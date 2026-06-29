@@ -22,11 +22,13 @@ import {
   Keyword,
   PlayerId,
   PlayerState,
-  SpellEffect,
+  EffectDefinition,
   SpellTarget,
   UnitModifier,
   UnitInstance
 } from "./types";
+import { resolveEffectQueue } from "./effects";
+import { emitEvent } from "./triggers";
 
 export function createInitialPlayerState(
   id: PlayerId,
@@ -67,46 +69,69 @@ export function createInitialGameState(
     turn: 0,
     consecutivePasses: 0,
     rngSeed,
-    started: false
+    started: false,
+    effectQueue: [],
+    visualEvents: []
   };
 }
 
 export function applyAction(state: GameState, action: GameAction): GameState {
   validateAction(state, action);
 
+  let cleanState = cloneState(state);
+  cleanState.visualEvents = [];
+
+  let next = cleanState;
   switch (action.type) {
     case "START_GAME":
-      return startGame(state, action.firstPlayerId ?? "P1");
+      next = startGame(cleanState, action.firstPlayerId ?? "P1");
+      break;
     case "DRAW_CARD":
-      return drawCards(state, action.playerId, action.count ?? 1);
+      next = drawCards(cleanState, action.playerId, action.count ?? 1);
+      break;
     case "START_ROUND":
-      return startRound(state);
+      next = startRound(cleanState);
+      break;
     case "PLAY_UNIT":
-      return playUnit(state, action.playerId, action.cardInstanceId);
+      next = playUnit(cleanState, action.playerId, action.cardInstanceId);
+      break;
     case "PLAY_SPELL":
-      return playSpell(state, action.playerId, action.cardInstanceId, action.target);
+      next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target);
+      break;
     case "DECLARE_ATTACKER":
-      return declareAttacker(state, action.playerId, action.unitInstanceId);
+      next = declareAttacker(cleanState, action.playerId, action.unitInstanceId);
+      break;
     case "REMOVE_ATTACKER":
-      return removeAttacker(state, action.playerId, action.unitInstanceId);
+      next = removeAttacker(cleanState, action.playerId, action.unitInstanceId);
+      break;
     case "COMMIT_ATTACK":
-      return commitAttack(state, action.playerId);
+      next = commitAttack(cleanState, action.playerId);
+      break;
     case "DECLARE_BLOCKER":
-      return declareBlocker(
-        state,
+      next = declareBlocker(
+        cleanState,
         action.playerId,
         action.attackerId,
         action.blockerId
       );
+      break;
     case "REMOVE_BLOCKER":
-      return removeBlocker(state, action.playerId, action.blockerId);
+      next = removeBlocker(cleanState, action.playerId, action.blockerId);
+      break;
     case "COMMIT_BLOCKS":
-      return commitBlocks(state, action.playerId);
+      next = commitBlocks(cleanState, action.playerId);
+      break;
     case "RESOLVE_COMBAT":
-      return resolveCombat(state);
+      next = resolveCombat(cleanState);
+      break;
     case "END_TURN":
-      return endTurn(state, action.playerId);
+      next = endTurn(cleanState, action.playerId);
+      break;
   }
+
+  runCleanupPipeline(next);
+  resolveEffectQueue(next);
+  return checkWinConditions(next);
 }
 
 function startGame(state: GameState, firstPlayerId: PlayerId): GameState {
@@ -127,22 +152,24 @@ function startGame(state: GameState, firstPlayerId: PlayerId): GameState {
       next.players[playerId].deck,
       next.rngSeed + (playerId === "P1" ? 101 : 202)
     );
-    drawInto(next.players[playerId], STARTING_HAND_SIZE);
+    drawInto(next, next.players[playerId], STARTING_HAND_SIZE);
   }
   next.rngSeed += 1;
 
   refreshRound(next, false);
-  return checkWinConditions(next);
+  emitEvent(next, { type: "GAME_STARTED" });
+  return next;
 }
 
 function startRound(state: GameState): GameState {
   const next = cloneState(state);
   beginNextRound(next);
-  return checkWinConditions(next);
+  return next;
 }
 
 function beginNextRound(state: GameState): void {
   const next = state;
+  emitEvent(next, { type: "ROUND_ENDED" });
   runCleanupPipeline(next, "END_ROUND");
   next.round += 1;
   next.turn = 1;
@@ -154,6 +181,7 @@ function beginNextRound(state: GameState): void {
   next.combat.attackers = [];
   next.consecutivePasses = 0;
   refreshRound(next, true);
+  emitEvent(next, { type: "ROUND_STARTED" });
 }
 
 function refreshRound(state: GameState, draw: boolean): void {
@@ -170,18 +198,18 @@ function refreshRound(state: GameState, draw: boolean): void {
       blockedByUnitId: undefined
     }));
     if (draw) {
-      drawInto(player, 1);
+      drawInto(state, player, 1);
     }
   }
 }
 
 function drawCards(state: GameState, playerId: PlayerId, count: number): GameState {
   const next = cloneState(state);
-  drawInto(next.players[playerId], count);
-  return checkWinConditions(next);
+  drawInto(next, next.players[playerId], count);
+  return next;
 }
 
-function drawInto(player: PlayerState, count: number): void {
+export function drawInto(state: GameState, player: PlayerState, count: number): void {
   for (let i = 0; i < count; i += 1) {
     const card = player.deck.shift();
     if (!card) {
@@ -190,6 +218,7 @@ function drawInto(player: PlayerState, count: number): void {
     }
     player.hand.push(card);
   }
+  state.visualEvents.push({ type: "DRAW", playerId: player.id, count });
 }
 
 function playUnit(
@@ -208,6 +237,9 @@ function playUnit(
   player.board.push(createUnitInstance(card));
   next.consecutivePasses = 0;
   passPriority(next, playerId);
+
+  emitEvent(next, { type: "CARD_PLAYED", playerId, cardInstanceId });
+  emitEvent(next, { type: "UNIT_SUMMONED", playerId, cardInstanceId, unitInstanceId: card.instanceId });
 
   return next;
 }
@@ -230,10 +262,13 @@ function playSpell(
     applySpellEffect(next, playerId, card, effect, target);
   }
   player.graveyard.push(card);
-  runCleanupPipeline(next);
   next.consecutivePasses = 0;
   passPriority(next, playerId);
-  return checkWinConditions(next);
+  
+  emitEvent(next, { type: "CARD_PLAYED", playerId, cardInstanceId });
+  emitEvent(next, { type: "SPELL_CAST", playerId, cardInstanceId, target });
+
+  return next;
 }
 
 function declareAttacker(
@@ -247,6 +282,7 @@ function declareAttacker(
   next.combat.attackers.push({ attackerId: unit.instanceId });
   next.consecutivePasses = 0;
 
+  emitEvent(next, { type: "ATTACK_DECLARED", playerId, unitInstanceId });
   return next;
 }
 
@@ -273,6 +309,11 @@ function commitAttack(state: GameState, playerId: PlayerId): GameState {
   next.priorityPlayerId = defenderId;
   next.activePlayerId = defenderId;
   next.turn += 1;
+  
+  for (const lane of next.combat.attackers) {
+    emitEvent(next, { type: "ATTACK_DECLARED", playerId, attackerId: lane.attackerId });
+  }
+  
   return next;
 }
 
@@ -291,6 +332,8 @@ function declareBlocker(
     lane.blockerId = blockerId;
   }
   next.consecutivePasses = 0;
+
+  emitEvent(next, { type: "BLOCK_DECLARED", playerId, attackerId, blockerId });
 
   return next;
 }
@@ -348,22 +391,25 @@ function resolveCombat(state: GameState): GameState {
     if (blocker && getUnitHealth(blocker) > 0) {
       if (hasKeyword(attacker, "QUICK_ATTACK")) {
         const attackerAttack = getUnitAttack(attacker);
-        const result = dealDamageToUnit(blocker, attackerAttack);
+        const result = dealDamageToUnit(next, blocker, attackerAttack);
         if (hasKeyword(attacker, "OVERWHELM")) {
           defenderPlayer.nexusHp -= result.excessDamage;
+          emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: result.excessDamage });
         }
         if (getUnitHealth(blocker) > 0) {
-          dealDamageToUnit(attacker, getUnitAttack(blocker));
+          dealDamageToUnit(next, attacker, getUnitAttack(blocker));
         }
       } else {
-        const result = dealDamageToUnit(blocker, getUnitAttack(attacker));
-        dealDamageToUnit(attacker, getUnitAttack(blocker));
+        const result = dealDamageToUnit(next, blocker, getUnitAttack(attacker));
+        dealDamageToUnit(next, attacker, getUnitAttack(blocker));
         if (hasKeyword(attacker, "OVERWHELM")) {
           defenderPlayer.nexusHp -= result.excessDamage;
+          emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: result.excessDamage });
         }
       }
     } else {
       defenderPlayer.nexusHp -= getUnitAttack(attacker);
+      emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: getUnitAttack(attacker) });
     }
   }
 
@@ -376,29 +422,31 @@ function resolveCombat(state: GameState): GameState {
   next.activePlayerId = defenderId;
   next.consecutivePasses = 0;
 
-  return checkWinConditions(next);
+  return next;
 }
 
 function applySpellEffect(
   state: GameState,
   casterId: PlayerId,
   sourceCard: CardInstance,
-  effect: SpellEffect,
+  effect: EffectDefinition,
   target: SpellTarget
 ): void {
   switch (effect.type) {
     case "DEAL_DAMAGE":
       if (target.type === "UNIT") {
-        dealDamageToUnit(findUnit(state, target.playerId, target.unitId), effect.amount);
+        dealDamageToUnit(state, findUnit(state, target.playerId, target.unitId), effect.amount);
       } else if (target.type === "NEXUS") {
         state.players[target.playerId].nexusHp -= effect.amount;
+        emitEvent(state, { type: "NEXUS_DAMAGED", playerId: target.playerId, amount: effect.amount });
       } else if (target.type === "SELF") {
         state.players[casterId].nexusHp -= effect.amount;
+        emitEvent(state, { type: "NEXUS_DAMAGED", playerId: casterId, amount: effect.amount });
       }
       return;
     case "HEAL":
       if (target.type === "UNIT") {
-        healUnit(findUnit(state, target.playerId, target.unitId), effect.amount);
+        healUnit(state, findUnit(state, target.playerId, target.unitId), effect.amount);
       } else if (target.type === "NEXUS") {
         const player = state.players[target.playerId];
         player.nexusHp = Math.min(STARTING_NEXUS_HP, player.nexusHp + effect.amount);
@@ -408,7 +456,7 @@ function applySpellEffect(
       }
       return;
     case "DRAW_CARD":
-      drawInto(state.players[casterId], effect.count);
+      drawInto(state, state.players[casterId], effect.count);
       return;
     case "BUFF_UNIT": {
       if (target.type !== "UNIT") {
@@ -429,6 +477,17 @@ function applySpellEffect(
       unit.modifiers.push(unitModifier);
       return;
     }
+    case "GRANT_KEYWORD":
+    case "SUMMON_UNIT":
+      // Handled in effects.ts, but spells might not natively use this without effect queue.
+      // But if played from a spell, we should support it:
+      import("./effects").then(m => m.enqueueEffect(state, {
+         sourceId: sourceCard.instanceId,
+         sourcePlayerId: casterId,
+         effect,
+         target
+      }));
+      return;
   }
 }
 
@@ -461,7 +520,8 @@ function createRandom(seed: number): () => number {
   };
 }
 
-function dealDamageToUnit(
+export function dealDamageToUnit(
+  state: GameState,
   unit: UnitInstance,
   amount: number
 ): { damageDealt: number; excessDamage: number } {
@@ -477,20 +537,25 @@ function dealDamageToUnit(
   const healthBefore = getUnitHealth(unit);
   const damageDealt = Math.min(healthBefore, modifiedDamage);
   unit.damage += modifiedDamage;
+
+  state.visualEvents.push({ type: "DAMAGE", targetId: unit.instanceId, amount: modifiedDamage, isNexus: false });
+  emitEvent(state, { type: "UNIT_STRUCK", playerId: unit.ownerId, unitInstanceId: unit.instanceId, amount: damageDealt });
+  emitEvent(state, { type: "UNIT_DAMAGED", playerId: unit.ownerId, unitInstanceId: unit.instanceId, amount: damageDealt });
+
   return {
     damageDealt,
     excessDamage: Math.max(0, modifiedDamage - healthBefore)
   };
 }
 
-function healUnit(unit: UnitInstance, amount: number): void {
-  if (amount <= 0) {
-    return;
-  }
+export function healUnit(state: GameState, unit: UnitInstance, amount: number): void {
+  if (amount <= 0) return;
   unit.damage = Math.max(0, unit.damage - amount);
+  state.visualEvents.push({ type: "HEAL", targetId: unit.instanceId, amount, isNexus: false });
+  emitEvent(state, { type: "UNIT_HEALED", playerId: unit.ownerId, unitInstanceId: unit.instanceId, amount });
 }
 
-function hasKeyword(unit: UnitInstance, keyword: Keyword): boolean {
+export function hasKeyword(unit: UnitInstance, keyword: Keyword): boolean {
   return unit.keywords.includes(keyword);
 }
 
@@ -508,11 +573,13 @@ function endTurn(state: GameState, playerId: PlayerId): GameState {
   next.consecutivePasses += 1;
   if (next.consecutivePasses >= 2) {
     beginNextRound(next);
-    return checkWinConditions(next);
+    return next;
   }
   passPriority(next, playerId);
   next.turn += 1;
+  emitEvent(next, { type: "TURN_ENDED" });
   runCleanupPipeline(next, "END_TURN");
+  emitEvent(next, { type: "TURN_STARTED" });
   return next;
 }
 
@@ -521,7 +588,7 @@ function passPriority(state: GameState, playerId: PlayerId): void {
   state.activePlayerId = opponentOf(playerId);
 }
 
-function cleanupDeadUnits(player: PlayerState): void {
+function cleanupDeadUnits(state: GameState, player: PlayerState): void {
   const survivors: UnitInstance[] = [];
   for (const unit of player.board) {
     if (getUnitHealth(unit) <= 0) {
@@ -530,6 +597,7 @@ function cleanupDeadUnits(player: PlayerState): void {
         definition: unit.definition,
         ownerId: unit.ownerId
       });
+      emitEvent(state, { type: "UNIT_DIED", playerId: player.id, unitInstanceId: unit.instanceId });
     } else {
       survivors.push(unit);
     }
@@ -537,7 +605,7 @@ function cleanupDeadUnits(player: PlayerState): void {
   player.board = survivors;
 }
 
-function runCleanupPipeline(
+export function runCleanupPipeline(
   state: GameState,
   timing?: "END_TURN" | "END_ROUND" | "COMBAT_END"
 ): void {
@@ -550,8 +618,8 @@ function runCleanupPipeline(
     expireModifiers(state, "UNTIL_COMBAT_END");
   }
 
-  cleanupDeadUnits(state.players.P1);
-  cleanupDeadUnits(state.players.P2);
+  cleanupDeadUnits(state, state.players.P1);
+  cleanupDeadUnits(state, state.players.P2);
 }
 
 function expireModifiers(

@@ -1,6 +1,6 @@
 "use client";
 
-import { UnitInstance } from "../game/types";
+import { UnitInstance, VisualEvent } from "../game/types";
 import { CardView } from "./CardView";
 
 interface BoardViewProps {
@@ -8,13 +8,15 @@ interface BoardViewProps {
   selectedUnitId?: string;
   selectedUnitIds?: string[];
   onSelectUnit?: (unit: UnitInstance) => void;
+  visualEvents?: VisualEvent[];
 }
 
 export function BoardView({
   units,
   selectedUnitId,
   selectedUnitIds = [],
-  onSelectUnit
+  onSelectUnit,
+  visualEvents
 }: BoardViewProps) {
   return (
     <section className="lane" aria-label="Board">
@@ -32,6 +34,7 @@ export function BoardView({
                 selectedUnitIds.includes(unit.instanceId)
               }
               onClick={onSelectUnit ? () => onSelectUnit(unit) : undefined}
+              visualEvents={visualEvents?.filter(e => (e as any).targetId === unit.instanceId || (e as any).sourceId === unit.instanceId)}
             />
           ))
         )}

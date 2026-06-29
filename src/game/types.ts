@@ -1,3 +1,5 @@
+import { GameEventType, GameEvent } from "./events";
+
 export type PlayerId = "P1" | "P2";
 
 export type CardType = "unit" | "spell";
@@ -26,7 +28,7 @@ export interface UnitModifier {
   createdTurn: number;
 }
 
-export type SpellEffect =
+export type EffectDefinition =
   | {
       type: "DEAL_DAMAGE";
       amount: number;
@@ -46,9 +48,36 @@ export type SpellEffect =
       type: "BUFF_UNIT";
       attack: number;
       health: number;
-      target: "ALLY_UNIT" | "ENEMY_UNIT";
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF";
       duration?: ModifierDuration;
+    }
+  | {
+      type: "GRANT_KEYWORD";
+      keyword: Keyword;
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF";
+    }
+  | {
+      type: "SUMMON_UNIT";
+      cardDefinition: CardDefinition;
+      target: "SELF";
     };
+
+export type SpellEffect = EffectDefinition;
+
+export type Trigger = {
+  id: string;
+  sourceId: string;
+  event: GameEventType;
+  condition?: (state: GameState, event: GameEvent) => boolean;
+  effects: EffectDefinition[];
+};
+
+export interface QueuedEffect {
+  sourceId: string;
+  sourcePlayerId: PlayerId;
+  effect: EffectDefinition;
+  target?: SpellTarget;
+}
 
 export type SpellTarget =
   | { type: "UNIT"; playerId: PlayerId; unitId: string }
@@ -69,10 +98,12 @@ export interface CardDefinition {
   name: string;
   cost: number;
   type: CardType;
+  supertype?: "champion" | string;
   attack?: number;
   health?: number;
   keywords?: Keyword[];
-  effects?: SpellEffect[];
+  effects?: EffectDefinition[];
+  triggers?: Trigger[];
 }
 
 export interface CardInstance {
@@ -94,6 +125,7 @@ export interface UnitInstance {
   attacking: boolean;
   blockingUnitId?: string;
   blockedByUnitId?: string;
+  triggers?: Trigger[];
 }
 
 export interface PlayerState {
@@ -107,6 +139,13 @@ export interface PlayerState {
   board: UnitInstance[];
   graveyard: CardInstance[];
 }
+
+export type VisualEvent =
+  | { type: "DAMAGE"; targetId: string; amount: number; isNexus: boolean }
+  | { type: "HEAL"; targetId: string; amount: number; isNexus: boolean }
+  | { type: "DRAW"; playerId: PlayerId; count: number }
+  | { type: "BUFF"; targetId: string; attackDelta: number; healthDelta: number }
+  | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string };
 
 export interface GameState {
   players: Record<PlayerId, PlayerState>;
@@ -122,6 +161,8 @@ export interface GameState {
   rngSeed: number;
   started: boolean;
   winnerId?: PlayerId;
+  effectQueue: QueuedEffect[];
+  visualEvents: VisualEvent[];
 }
 
 export type GameAction =

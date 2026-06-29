@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { createCardInstance } from "../game/cards";
 import { applyAction, createInitialGameState } from "../game/engine";
 import { sampleDeckCards } from "../game/sampleCards";
-import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
+import { GameAction, GameState, GameValidationError, PlayerId, VisualEvent } from "../game/types";
 
 export interface LogEntry {
   id: number;
@@ -23,8 +23,23 @@ export function useLocalGame() {
 
   function dispatch(action: GameAction, label = describeAction(action)): boolean {
     try {
-      setGameState((current) => applyAction(current, action));
-      addLog(label);
+      const nextState = applyAction(gameState, action);
+      setGameState(nextState);
+      
+      const newLogs = nextState.visualEvents.map(describeVisualEvent).filter((s): s is string => Boolean(s));
+      
+      // We want to add them in order. The addLog function prepends to the array, 
+      // so to keep them chronologically appearing top-to-bottom, we add the action label, then the triggers.
+      // Wait, addLog uses `[{...}, ...current]`. 
+      // So the most recent event is at the top.
+      
+      // Let's add the action log first, then the visual events in order.
+      // Actually, if we reverse the array and add them, the last event will be at the top.
+      const allMessages = [label, ...newLogs].reverse();
+      allMessages.forEach(msg => {
+         if (msg) setActionLog(current => [{ id: Date.now() + Math.random(), message: msg }, ...current]);
+      });
+      
       return true;
     } catch (error) {
       addLog(error instanceof GameValidationError ? error.message : "Action failed.");
@@ -88,5 +103,20 @@ function describeAction(action: GameAction): string {
       return "Resolved combat.";
     case "END_TURN":
       return `${action.playerId} passed priority.`;
+  }
+}
+
+function describeVisualEvent(event: VisualEvent): string | undefined {
+  switch (event.type) {
+    case "TRIGGER_ACTIVATED":
+      return `Trigger activated: ${event.effectName}`;
+    case "DAMAGE":
+      return `${event.targetId} took ${event.amount} damage.`;
+    case "HEAL":
+      return `${event.targetId} healed ${event.amount}.`;
+    case "DRAW":
+      return `${event.playerId} drew ${event.count} card(s).`;
+    case "BUFF":
+      return `${event.targetId} gained ${event.attackDelta > 0 ? '+' : ''}${event.attackDelta}/${event.healthDelta > 0 ? '+' : ''}${event.healthDelta}.`;
   }
 }

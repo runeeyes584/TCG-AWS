@@ -13,6 +13,10 @@ import { useLocalGame } from "../hooks/useLocalGame";
 import { ActionLog } from "./ActionLog";
 import { PlayerZone } from "./PlayerZone";
 import { CardView } from "./CardView";
+import { getUnitAttack, getUnitHealth } from "../game/cards";
+import { hasKeyword } from "../game/engine";
+import { HoverProvider } from "../contexts/HoverContext";
+import { CardInspector } from "./CardInspector";
 
 export function GameBoard() {
   const { gameState, actionLog, dispatch, resetGame } = useLocalGame();
@@ -46,6 +50,12 @@ export function GameBoard() {
   }
 
   function playCard(playerId: PlayerId, card: CardInstance) {
+    if (card.definition.supertype?.toLowerCase() === "champion") {
+      if (!window.confirm(`Are you sure you want to play Champion ${card.definition.name}?`)) {
+        return;
+      }
+    }
+
     if (card.definition.type === "spell") {
       playOrSelectSpell(playerId, card);
       return;
@@ -80,6 +90,44 @@ export function GameBoard() {
     }
 
     setSelectedSpellTarget(undefined);
+  }
+
+  function getDamagePreview(attacker: UnitInstance, blocker?: UnitInstance) {
+    if (!blocker) {
+      return { attackerTakes: 0, blockerTakes: 0, nexusTakes: getUnitAttack(attacker) };
+    }
+    const atk = getUnitAttack(attacker);
+    const blkAtk = getUnitAttack(blocker);
+    
+    let attackerTakes = 0;
+    let blockerTakes = 0;
+    let nexusTakes = 0;
+    
+    const calcDamage = (amount: number, unit: UnitInstance) => {
+      if (amount <= 0) return 0;
+      if (hasKeyword(unit, "BARRIER")) return 0;
+      return hasKeyword(unit, "TOUGH") ? Math.max(0, amount - 1) : amount;
+    };
+    
+    if (hasKeyword(attacker, "QUICK_ATTACK")) {
+      const dmgToBlocker = calcDamage(atk, blocker);
+      blockerTakes = Math.min(getUnitHealth(blocker), dmgToBlocker);
+      if (hasKeyword(attacker, "OVERWHELM")) {
+        nexusTakes = Math.max(0, dmgToBlocker - getUnitHealth(blocker));
+      }
+      if (getUnitHealth(blocker) - blockerTakes > 0) {
+        attackerTakes = calcDamage(blkAtk, attacker);
+      }
+    } else {
+      const dmgToBlocker = calcDamage(atk, blocker);
+      blockerTakes = Math.min(getUnitHealth(blocker), dmgToBlocker);
+      attackerTakes = calcDamage(blkAtk, attacker);
+      if (hasKeyword(attacker, "OVERWHELM")) {
+        nexusTakes = Math.max(0, dmgToBlocker - getUnitHealth(blocker));
+      }
+    }
+    
+    return { attackerTakes, blockerTakes, nexusTakes };
   }
 
   function getPrimarySpellTarget(card: CardInstance): SpellTargetKind | undefined {
@@ -256,8 +304,9 @@ export function GameBoard() {
   }
 
   return (
-    <main className="app-shell">
-      <div className="battle-table">
+    <HoverProvider>
+      <main className="app-shell">
+        <div className="battle-table">
         <header className="topbar">
           <div className="stat-row">
             <span className="stat-pill">
@@ -485,10 +534,30 @@ export function GameBoard() {
                       Boolean(lane.blockerId)
                     }
                   >
-                    <CardView unit={attacker} />
+                    <CardView 
+                       unit={attacker} 
+                       visualEvents={gameState.visualEvents.filter(e => (e as any).targetId === attacker.instanceId || (e as any).sourceId === attacker.instanceId)}
+                    />
+                    
+                    {gameState.phase === "BLOCK" && (
+                      <div className="damage-preview" style={{ fontSize: '12px', margin: '8px 0', padding: '4px 8px', background: 'rgba(0,0,0,0.6)', borderRadius: '4px', color: '#fff', textAlign: 'center' }}>
+                        {(() => {
+                           const preview = getDamagePreview(attacker, blocker);
+                           const parts = [];
+                           if (preview.attackerTakes > 0) parts.push(`Atk takes ${preview.attackerTakes}`);
+                           if (preview.blockerTakes > 0) parts.push(`Blk takes ${preview.blockerTakes}`);
+                           if (preview.nexusTakes > 0) parts.push(`Nexus takes ${preview.nexusTakes}`);
+                           return parts.length > 0 ? parts.join(" | ") : "No Damage";
+                        })()}
+                      </div>
+                    )}
+
                     <div className="blocker-slot">
                       {blocker ? (
-                        <CardView unit={blocker} />
+                        <CardView 
+                          unit={blocker} 
+                          visualEvents={gameState.visualEvents.filter(e => (e as any).targetId === blocker.instanceId || (e as any).sourceId === blocker.instanceId)}
+                        />
                       ) : (
                         <span>
                           {selectedBlockerId ? "Click to block here" : "Unblocked"}
@@ -520,8 +589,12 @@ export function GameBoard() {
         />
       </div>
 
-      <ActionLog entries={actionLog} />
+      <aside className="right-panel">
+        <CardInspector />
+        <ActionLog entries={actionLog} />
+      </aside>
     </main>
+    </HoverProvider>
   );
 }
 

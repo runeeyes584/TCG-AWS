@@ -42,8 +42,20 @@ export function PlayerZone({
           {hasPriority ? <span className="token">Priority</span> : null}
         </div>
         <div className="stat-row">
-          <span className="stat-pill">
+          <span className="stat-pill" style={{ position: 'relative' }}>
             <Heart size={14} aria-hidden="true" /> Nexus <strong>{player.nexusHp}</strong>
+            {(() => {
+                const nxEvents = gameState.visualEvents.filter(e => (e as any).targetId === `nexus-${player.id}`);
+                return nxEvents.length > 0 ? (
+                  <span className="floating-events-container">
+                    {nxEvents.map((e, i) => (
+                      <span key={i} className={`floating-event ${e.type.toLowerCase()}`}>
+                        {e.type === "DAMAGE" ? `-${(e as any).amount}` : `+${(e as any).amount}`}
+                      </span>
+                    ))}
+                  </span>
+                ) : null;
+            })()}
           </span>
           <span className="stat-pill">
             <Sparkles size={14} aria-hidden="true" /> Mana{" "}
@@ -69,6 +81,7 @@ export function PlayerZone({
         selectedUnitId={selectedBlockerId}
         selectedUnitIds={selectedUnitIds}
         onSelectUnit={(unit) => onSelectBoardUnit(player.id, unit)}
+        visualEvents={gameState.visualEvents}
       />
       <HandView
         cards={player.hand}

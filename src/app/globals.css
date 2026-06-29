@@ -376,8 +376,56 @@ button svg,
   color: var(--muted);
   font-size: 13px;
   line-height: 1.35;
+  pointer-events: none;
   list-style: none;
   padding-bottom: 6px;
+}
+
+.is-trigger-activated {
+  box-shadow: 0 0 10px 4px var(--gold);
+  border-color: var(--gold);
+  animation: pulse-glow 1.5s ease-out;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 15px 6px var(--gold); }
+  100% { box-shadow: 0 0 10px 4px var(--gold); }
+}
+
+.floating-events-container {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.floating-event {
+  font-weight: bold;
+  font-size: 16px;
+  text-shadow: 0px 0px 4px black;
+  animation: float-up 2.5s ease-out forwards;
+}
+
+.floating-event.damage {
+  color: var(--red);
+}
+
+.floating-event.heal {
+  color: var(--green);
+}
+
+.floating-event.buff {
+  color: var(--blue);
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-40px); opacity: 0; }
 }
 
 .winner-banner {
@@ -401,4 +449,66 @@ button svg,
   .board-grid {
     grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   }
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 32px);
+}
+
+.card-inspector {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 250px;
+  flex-shrink: 0;
+}
+
+.card-inspector.empty {
+  justify-content: center;
+  align-items: center;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.inspector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.inspector-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.inspector-type {
+  text-transform: capitalize;
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.inspector-keywords, .inspector-effects, .inspector-triggers {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.inspector-keywords strong, .inspector-effects strong, .inspector-triggers strong {
+  color: var(--text);
+}
+
+.inspector-effects ul, .inspector-triggers ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
 }

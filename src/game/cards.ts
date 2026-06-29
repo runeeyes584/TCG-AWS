@@ -33,7 +33,8 @@ export function createUnitInstance(card: CardInstance): UnitInstance {
     keywords: [...(card.definition.keywords ?? [])],
     modifiers: [],
     exhausted: false,
-    attacking: false
+    attacking: false,
+    triggers: card.definition.triggers ? [...card.definition.triggers] : []
   };
 }
 

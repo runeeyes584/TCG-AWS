@@ -2,16 +2,19 @@
 
 import { Shield, Swords, Zap } from "lucide-react";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "../game/cards";
-import { CardInstance, UnitInstance } from "../game/types";
+import { CardInstance, UnitInstance, VisualEvent } from "../game/types";
+import { useHover } from "../contexts/HoverContext";
 
 interface CardViewProps {
   card?: CardInstance;
   unit?: UnitInstance;
   selected?: boolean;
   onClick?: () => void;
+  visualEvents?: VisualEvent[];
 }
 
-export function CardView({ card, unit, selected = false, onClick }: CardViewProps) {
+export function CardView({ card, unit, selected = false, onClick, visualEvents }: CardViewProps) {
+  const { setHoveredCard } = useHover();
   const definition = unit?.definition ?? card?.definition;
   if (!definition) {
     return null;
@@ -20,12 +23,16 @@ export function CardView({ card, unit, selected = false, onClick }: CardViewProp
   const attack = unit ? getUnitAttack(unit) : definition.attack;
   const health = unit ? getUnitHealth(unit) : definition.health;
   const maxHealth = unit ? getUnitMaxHealth(unit) : definition.health;
+  const isTriggerActivated = visualEvents?.some(e => e.type === "TRIGGER_ACTIVATED");
+  const floatingEvents = visualEvents?.filter(e => e.type !== "TRIGGER_ACTIVATED" && e.type !== "DRAW");
+
   const className = [
     "card-view",
     onClick ? "is-clickable" : "",
     selected ? "is-selected" : "",
     unit?.attacking ? "is-attacking" : "",
-    unit?.blockingUnitId ? "is-blocking" : ""
+    unit?.blockingUnitId ? "is-blocking" : "",
+    isTriggerActivated ? "is-trigger-activated" : ""
   ]
     .filter(Boolean)
     .join(" ");
@@ -57,15 +64,30 @@ export function CardView({ card, unit, selected = false, onClick }: CardViewProp
           ))}
         </span>
       ) : null}
+      
+      {floatingEvents && floatingEvents.length > 0 ? (
+        <span className="floating-events-container">
+          {floatingEvents.map((e, idx) => (
+            <span key={idx} className={`floating-event ${e.type.toLowerCase()}`}>
+              {e.type === "DAMAGE" ? `-${e.amount}` : e.type === "HEAL" ? `+${e.amount}` : e.type === "BUFF" ? `+${e.attackDelta}/+${e.healthDelta}` : ""}
+            </span>
+          ))}
+        </span>
+      ) : null}
     </>
   );
 
+  const hoverProps = {
+    onMouseEnter: () => setHoveredCard(card, unit),
+    onMouseLeave: () => setHoveredCard(undefined, undefined)
+  };
+
   if (!onClick) {
-    return <div className={className}>{content}</div>;
+    return <div className={className} {...hoverProps}>{content}</div>;
   }
 
   return (
-    <button className={className} type="button" onClick={onClick}>
+    <button className={className} type="button" onClick={onClick} {...hoverProps}>
       {content}
     </button>
   );
