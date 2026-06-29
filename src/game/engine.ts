@@ -29,6 +29,62 @@ import {
 } from "./types";
 import { resolveEffectQueue } from "./effects";
 import { emitEvent } from "./triggers";
+import { GameEvent } from "./events";
+import { sampleUnitCards } from "./sampleCards";
+
+export function updateChampionProgress(state: GameState, event: GameEvent): void {
+  switch (event.type) {
+    case "UNIT_DIED":
+      if (event.playerId) {
+        state.players[event.playerId].championProgress["ALLIES_DIED"] = 
+          (state.players[event.playerId].championProgress["ALLIES_DIED"] || 0) + 1;
+      }
+      break;
+    case "SPELL_CAST":
+      if (event.playerId) {
+        state.players[event.playerId].championProgress["SPELLS_CAST"] = 
+          (state.players[event.playerId].championProgress["SPELLS_CAST"] || 0) + 1;
+      }
+      break;
+    case "NEXUS_DAMAGED":
+      if (event.playerId && event.amount) {
+        const dealerId = opponentOf(event.playerId);
+        state.players[dealerId].championProgress["NEXUS_DAMAGE_DEALT"] = 
+          (state.players[dealerId].championProgress["NEXUS_DAMAGE_DEALT"] || 0) + event.amount;
+      }
+      break;
+  }
+}
+
+export function checkChampionLevelUps(state: GameState): void {
+  for (const playerId of PLAYER_IDS) {
+    const player = state.players[playerId];
+    for (const unit of player.board) {
+      if (unit.definition.type === "champion" && unit.definition.level === 1 && unit.definition.levelUpCondition && unit.definition.leveledUpCardId) {
+        let leveledUp = false;
+        const condition = unit.definition.levelUpCondition;
+        if (condition.type === "ALLIES_DIED") {
+           leveledUp = (player.championProgress["ALLIES_DIED"] || 0) >= condition.threshold;
+        } else if (condition.type === "SPELLS_CAST") {
+           leveledUp = (player.championProgress["SPELLS_CAST"] || 0) >= condition.threshold;
+        } else if (condition.type === "NEXUS_DAMAGE_DEALT") {
+           leveledUp = (player.championProgress["NEXUS_DAMAGE_DEALT"] || 0) >= condition.threshold;
+        }
+
+        if (leveledUp) {
+           const level2Def = sampleUnitCards.find(c => c.id === unit.definition.leveledUpCardId);
+           if (level2Def) {
+             const healthDiff = (level2Def.health || 0) - (unit.definition.health || 0);
+             unit.definition = level2Def;
+             unit.maxHealth += healthDiff; // Keep damage the same, increase maxHealth
+             emitEvent(state, { type: "CHAMPION_LEVELED_UP", playerId, unitInstanceId: unit.instanceId });
+             state.visualEvents.push({ type: "CHAMPION_LEVELED_UP", playerId, unitId: unit.instanceId, newLevel: 2 });
+           }
+        }
+      }
+    }
+  }
+}
 
 export function createInitialPlayerState(
   id: PlayerId,
@@ -43,7 +99,8 @@ export function createInitialPlayerState(
     deck,
     hand: [],
     board: [],
-    graveyard: []
+    graveyard: [],
+    championProgress: {}
   };
 }
 
@@ -477,6 +534,28 @@ function applySpellEffect(
       unit.modifiers.push(unitModifier);
       return;
     }
+    case "REVIVE_UNIT": {
+      const targetPlayerId = effect.target === "ALLY_GRAVEYARD" ? casterId : opponentOf(casterId);
+      const player = state.players[targetPlayerId];
+      if (player.graveyard.length === 0 || player.board.length >= 6) return;
+      
+      let entryIndex = player.graveyard.length - 1; // Default to most recently dead
+      if (target.type === "GRAVEYARD" && target.cardInstanceId) {
+        const found = player.graveyard.findIndex(c => c.instanceId === target.cardInstanceId);
+        if (found !== -1) entryIndex = found;
+      }
+      
+      const [entry] = player.graveyard.splice(entryIndex, 1);
+      
+      const instance = createUnitInstance({
+        instanceId: `${entry.definition.id}-${Date.now()}-${Math.random()}`,
+        definition: entry.definition,
+        ownerId: targetPlayerId
+      });
+      player.board.push(instance);
+      emitEvent(state, { type: "UNIT_SUMMONED", playerId: targetPlayerId, cardInstanceId: entry.instanceId, unitInstanceId: instance.instanceId });
+      return;
+    }
     case "GRANT_KEYWORD":
     case "SUMMON_UNIT":
       // Handled in effects.ts, but spells might not natively use this without effect queue.
@@ -618,8 +697,11 @@ export function runCleanupPipeline(
     expireModifiers(state, "UNTIL_COMBAT_END");
   }
 
-  cleanupDeadUnits(state, state.players.P1);
-  cleanupDeadUnits(state, state.players.P2);
+  for (const playerId of PLAYER_IDS) {
+    cleanupDeadUnits(state, state.players[playerId]);
+  }
+  
+  checkChampionLevelUps(state);
 }
 
 function expireModifiers(

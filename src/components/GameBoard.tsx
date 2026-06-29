@@ -612,6 +612,10 @@ function describeNeededTarget(targetKind: SpellTargetKind | undefined): string {
       return "nexus";
     case "SELF":
       return "self";
+    case "ALLY_GRAVEYARD":
+      return "click a card in your graveyard";
+    case "ENEMY_GRAVEYARD":
+      return "click a card in enemy graveyard";
     default:
       return "none";
   }
@@ -625,5 +629,7 @@ function describeSpellTarget(target: SpellTarget): string {
       return `${target.playerId} nexus`;
     case "SELF":
       return `${target.playerId}`;
+    case "GRAVEYARD":
+      return `${target.playerId} graveyard`;
   }
 }

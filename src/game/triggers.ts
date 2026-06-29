@@ -2,8 +2,11 @@ import { GameEvent } from "./events";
 import { enqueueEffects } from "./effects";
 import { GameState, Trigger, QueuedEffect } from "./types";
 import { PLAYER_IDS } from "./rules";
+import { updateChampionProgress } from "./engine";
 
 export function emitEvent(state: GameState, event: GameEvent): void {
+  updateChampionProgress(state, event);
+  
   const activeTriggers = getActiveTriggers(state);
   
   for (const { trigger, sourcePlayerId } of activeTriggers) {

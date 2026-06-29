@@ -118,5 +118,7 @@ function describeVisualEvent(event: VisualEvent): string | undefined {
       return `${event.playerId} drew ${event.count} card(s).`;
     case "BUFF":
       return `${event.targetId} gained ${event.attackDelta > 0 ? '+' : ''}${event.attackDelta}/${event.healthDelta > 0 ? '+' : ''}${event.healthDelta}.`;
+    case "CHAMPION_LEVELED_UP":
+      return `${event.playerId}'s champion leveled up to level ${event.newLevel}!`;
   }
 }

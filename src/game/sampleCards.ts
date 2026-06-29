@@ -54,6 +54,42 @@ export const sampleUnitCards: CardDefinition[] = [
   {
     id: "chain-brute", name: "Chain Brute", cost: 6, type: "unit", attack: 6, health: 6,
     triggers: [{ id: "chain-heal", event: "UNIT_DIED", sourceId: "", effects: [{ type: "HEAL", amount: 1, target: "SELF" }] }]
+  },
+  
+  // CHAMPIONS
+  {
+    id: "darius-1", name: "Darius", cost: 6, type: "champion", supertype: "champion", attack: 6, health: 5,
+    keywords: ["OVERWHELM"],
+    level: 1,
+    levelUpCondition: { type: "NEXUS_DAMAGE_DEALT", threshold: 10 },
+    leveledUpCardId: "darius-2"
+  },
+  {
+    id: "darius-2", name: "Darius", cost: 6, type: "champion", supertype: "champion", attack: 10, health: 6,
+    keywords: ["OVERWHELM"],
+    level: 2
+  },
+  {
+    id: "lux-1", name: "Lux", cost: 5, type: "champion", supertype: "champion", attack: 4, health: 5,
+    keywords: ["BARRIER"],
+    level: 1,
+    levelUpCondition: { type: "SPELLS_CAST", threshold: 4 },
+    leveledUpCardId: "lux-2"
+  },
+  {
+    id: "lux-2", name: "Lux", cost: 5, type: "champion", supertype: "champion", attack: 5, health: 6,
+    keywords: ["BARRIER"],
+    level: 2
+  },
+  {
+    id: "kalista-1", name: "Kalista", cost: 3, type: "champion", supertype: "champion", attack: 4, health: 3,
+    level: 1,
+    levelUpCondition: { type: "ALLIES_DIED", threshold: 3 },
+    leveledUpCardId: "kalista-2"
+  },
+  {
+    id: "kalista-2", name: "Kalista", cost: 3, type: "champion", supertype: "champion", attack: 5, health: 4,
+    level: 2
   }
 ];
 

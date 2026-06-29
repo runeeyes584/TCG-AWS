@@ -16,8 +16,8 @@ export function createCardInstance(
 }
 
 export function createUnitInstance(card: CardInstance): UnitInstance {
-  if (card.definition.type !== "unit") {
-    throw new GameValidationError("Only unit cards can become units.");
+  if (card.definition.type !== "unit" && card.definition.type !== "champion") {
+    throw new GameValidationError("Only unit or champion cards can become units.");
   }
 
   const attack = requireStat(card.definition.attack, "attack");

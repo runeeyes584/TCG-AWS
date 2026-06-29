@@ -15,7 +15,8 @@ export type GameEventType =
   | "UNIT_DAMAGED"
   | "UNIT_HEALED"
   | "UNIT_DIED"
-  | "NEXUS_DAMAGED";
+  | "NEXUS_DAMAGED"
+  | "CHAMPION_LEVELED_UP";
 
 export interface GameEvent {
   type: GameEventType;

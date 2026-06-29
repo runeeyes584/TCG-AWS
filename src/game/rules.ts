@@ -225,8 +225,8 @@ function assertPlayableUnit(
 ): void {
   const player = state.players[playerId];
   const card = assertCardInHand(state, playerId, cardInstanceId);
-  if (card.definition.type !== "unit") {
-    throw new GameValidationError("Card is not a unit.");
+  if (card.definition.type !== "unit" && card.definition.type !== "champion") {
+    throw new GameValidationError("Card is not a unit or champion.");
   }
   if (card.definition.attack === undefined || card.definition.health === undefined) {
     throw new GameValidationError("Unit card requires attack and health.");
@@ -287,6 +287,24 @@ function assertSpellTarget(
     case "SELF":
       if (target.type !== "SELF" || target.playerId !== casterId) {
         throw new GameValidationError("Spell requires self as target.");
+      }
+      return;
+    case "ALLY_GRAVEYARD":
+      if (target.type !== "GRAVEYARD" || target.playerId !== casterId) {
+        throw new GameValidationError("Spell requires an ally graveyard target.");
+      }
+      if (target.cardInstanceId) {
+        const card = state.players[casterId].graveyard.find(c => c.instanceId === target.cardInstanceId);
+        if (!card) throw new GameValidationError("Target card not found in ally graveyard.");
+      }
+      return;
+    case "ENEMY_GRAVEYARD":
+      if (target.type !== "GRAVEYARD" || target.playerId !== opponentOf(casterId)) {
+        throw new GameValidationError("Spell requires an enemy graveyard target.");
+      }
+      if (target.cardInstanceId) {
+        const card = state.players[opponentOf(casterId)].graveyard.find(c => c.instanceId === target.cardInstanceId);
+        if (!card) throw new GameValidationError("Target card not found in enemy graveyard.");
       }
       return;
   }

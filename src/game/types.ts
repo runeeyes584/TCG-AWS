@@ -2,13 +2,13 @@ import { GameEventType, GameEvent } from "./events";
 
 export type PlayerId = "P1" | "P2";
 
-export type CardType = "unit" | "spell";
+export type CardType = "unit" | "spell" | "champion";
 
 export type GamePhase = "ACTION" | "BLOCK" | "COMBAT";
 
 export type Keyword = "TOUGH" | "BARRIER" | "QUICK_ATTACK" | "OVERWHELM";
 
-export type SpellTargetKind = "ENEMY_UNIT" | "ALLY_UNIT" | "NEXUS" | "SELF";
+export type SpellTargetKind = "ENEMY_UNIT" | "ALLY_UNIT" | "NEXUS" | "SELF" | "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD";
 
 export type ModifierDuration =
   | "PERMANENT"
@@ -60,6 +60,10 @@ export type EffectDefinition =
       type: "SUMMON_UNIT";
       cardDefinition: CardDefinition;
       target: "SELF";
+    }
+  | {
+      type: "REVIVE_UNIT";
+      target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD";
     };
 
 export type SpellEffect = EffectDefinition;
@@ -72,6 +76,11 @@ export type Trigger = {
   effects: EffectDefinition[];
 };
 
+export type LevelUpCondition = 
+  | { type: "ALLIES_DIED"; threshold: number }
+  | { type: "SPELLS_CAST"; threshold: number }
+  | { type: "NEXUS_DAMAGE_DEALT"; threshold: number };
+
 export interface QueuedEffect {
   sourceId: string;
   sourcePlayerId: PlayerId;
@@ -82,7 +91,8 @@ export interface QueuedEffect {
 export type SpellTarget =
   | { type: "UNIT"; playerId: PlayerId; unitId: string }
   | { type: "NEXUS"; playerId: PlayerId }
-  | { type: "SELF"; playerId: PlayerId };
+  | { type: "SELF"; playerId: PlayerId }
+  | { type: "GRAVEYARD"; playerId: PlayerId; cardInstanceId?: string };
 
 export interface CombatAttacker {
   attackerId: string;
@@ -104,6 +114,9 @@ export interface CardDefinition {
   keywords?: Keyword[];
   effects?: EffectDefinition[];
   triggers?: Trigger[];
+  level?: 1 | 2;
+  levelUpCondition?: LevelUpCondition;
+  leveledUpCardId?: string;
 }
 
 export interface CardInstance {
@@ -128,6 +141,12 @@ export interface UnitInstance {
   triggers?: Trigger[];
 }
 
+export interface GraveyardEntry {
+  instanceId: string;
+  definition: CardDefinition;
+  ownerId: PlayerId;
+}
+
 export interface PlayerState {
   id: PlayerId;
   nexusHp: number;
@@ -137,7 +156,8 @@ export interface PlayerState {
   deck: CardInstance[];
   hand: CardInstance[];
   board: UnitInstance[];
-  graveyard: CardInstance[];
+  graveyard: GraveyardEntry[];
+  championProgress: Record<string, number>;
 }
 
 export type VisualEvent =
@@ -145,7 +165,8 @@ export type VisualEvent =
   | { type: "HEAL"; targetId: string; amount: number; isNexus: boolean }
   | { type: "DRAW"; playerId: PlayerId; count: number }
   | { type: "BUFF"; targetId: string; attackDelta: number; healthDelta: number }
-  | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string };
+  | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string }
+  | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number };
 
 export interface GameState {
   players: Record<PlayerId, PlayerState>;
