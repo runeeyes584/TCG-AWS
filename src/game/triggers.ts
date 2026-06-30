@@ -51,7 +51,7 @@ function getActiveTriggers(state: GameState): Array<{ trigger: Trigger, sourcePl
   for (const playerId of PLAYER_IDS) {
     const player = state.players[playerId];
     for (const unit of player.board) {
-      if (unit.definition.triggers) {
+      if (unit.definition?.triggers) {
         for (const trigger of unit.definition.triggers) {
            activeTriggers.push({ trigger: { ...trigger, sourceId: unit.instanceId }, sourcePlayerId: playerId });
         }

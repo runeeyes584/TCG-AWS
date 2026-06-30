@@ -7,6 +7,8 @@ export type GameEventType =
   | "TURN_STARTED"
   | "TURN_ENDED"
   | "CARD_PLAYED"
+  | "CARD_DRAWN"
+  | "CARD_DISCARDED"
   | "SPELL_CAST"
   | "UNIT_SUMMONED"
   | "ATTACK_DECLARED"

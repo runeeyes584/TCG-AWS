@@ -77,7 +77,7 @@ export function executePlayedSpellAbilities(
 export function executeTriggeredAbilities(state: GameState, event: GameEvent): void {
   for (const playerId of ["P1", "P2"] as PlayerId[]) {
     for (const unit of state.players[playerId].board) {
-      for (const ability of unit.definition.abilities ?? []) {
+      for (const ability of unit.definition?.abilities ?? []) {
         if (!ability.when) {
           continue;
         }

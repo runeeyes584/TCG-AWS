@@ -1,9 +1,12 @@
 import {
   createUnitInstance,
+  attachCardDefinitionAccessor,
+  attachUnitDefinitionAccessor,
   getUnitAttack,
   getUnitHealth,
   isChampionCard
 } from "./cards";
+import { registerCardDefinition, registerCardDefinitions } from "./cardRegistry";
 import {
   checkWinConditions,
   cloneState,
@@ -38,6 +41,12 @@ import {
   moveSpellToGraveyard,
   moveUnitToGraveyard
 } from "./graveyard";
+import {
+  dealDamageToUnitState,
+  discardCards as discardCardsOperation,
+  drawCards as drawCardsOperation,
+  healTarget
+} from "./operations";
 export {
   getGraveyardEntries,
   findReviveTargets,
@@ -123,7 +132,7 @@ function levelChampionUnit(
   unit: UnitInstance,
   level2Def: CardDefinition
 ): void {
-  unit.definition = level2Def;
+  unit.cardId = level2Def.id;
   unit.attack = level2Def.attack ?? unit.attack;
   unit.maxHealth = level2Def.health ?? unit.maxHealth;
   unit.keywords = [...(level2Def.keywords ?? [])];
@@ -330,13 +339,13 @@ function refreshRound(state: GameState, draw: boolean): void {
   player.spellMana = Math.min(MAX_SPELL_MANA, player.spellMana + player.mana);
     player.maxMana = Math.min(MAX_MANA, player.maxMana + 1);
     player.mana = player.maxMana;
-    player.board = player.board.map((unit) => ({
+    player.board = player.board.map((unit) => attachUnitDefinitionAccessor({
       ...unit,
       exhausted: false,
       attacking: false,
       blockingUnitId: undefined,
       blockedByUnitId: undefined
-    }));
+    } as UnitInstance));
     player.abilityProgress["SPELLS_CAST_THIS_ROUND"] = 0;
     if (draw) {
       drawInto(state, player, 1);
@@ -357,11 +366,7 @@ function discardCard(
 ): GameState {
   const next = cloneState(state);
   const player = next.players[playerId];
-  const handIndex = player.hand.findIndex(
-    (card) => card.instanceId === cardInstanceId
-  );
-  const [card] = player.hand.splice(handIndex, 1);
-  moveCardToGraveyard(next, card, playerId, "DISCARD");
+  discardCardsOperation(next, playerId, [cardInstanceId]);
 
   if (player.hand.length <= (next.pendingDiscard?.downTo ?? HAND_LIMIT)) {
     const returnPhase = next.pendingDiscard?.returnPhase ?? "ACTION";
@@ -373,16 +378,7 @@ function discardCard(
 }
 
 export function drawInto(state: GameState, player: PlayerState, count: number): void {
-  for (let i = 0; i < count; i += 1) {
-    const card = player.deck.shift();
-    if (!card) {
-      player.nexusHp = 0;
-      state.winnerId = opponentOf(player.id);
-      return;
-    }
-    player.hand.push(card);
-  }
-  state.visualEvents.push({ type: "DRAW", playerId: player.id, count });
+  drawCardsOperation(state, player.id, count);
 }
 
 function playUnit(
@@ -650,26 +646,7 @@ export function dealDamageToUnit(
   unit: UnitInstance,
   amount: number
 ): { damageDealt: number; excessDamage: number } {
-  if (amount <= 0) {
-    return { damageDealt: 0, excessDamage: 0 };
-  }
-
-  if (removeKeyword(unit, "BARRIER")) {
-    return { damageDealt: 0, excessDamage: 0 };
-  }
-
-  const modifiedDamage = hasKeyword(unit, "TOUGH") ? Math.max(0, amount - 1) : amount;
-  const healthBefore = getUnitHealth(unit);
-  const damageDealt = Math.min(healthBefore, modifiedDamage);
-  unit.damage += modifiedDamage;
-
-  state.visualEvents.push({ type: "DAMAGE", targetId: unit.instanceId, amount: modifiedDamage, isNexus: false });
-  emitEvent(state, { type: "UNIT_DAMAGED", playerId: unit.ownerId, unitInstanceId: unit.instanceId, amount: damageDealt });
-
-  return {
-    damageDealt,
-    excessDamage: Math.max(0, modifiedDamage - healthBefore)
-  };
+  return dealDamageToUnitState(state, unit, amount);
 }
 
 function emitUnitStruck(state: GameState, unit: UnitInstance, amount: number): void {
@@ -682,23 +659,11 @@ function emitUnitStruck(state: GameState, unit: UnitInstance, amount: number): v
 }
 
 export function healUnit(state: GameState, unit: UnitInstance, amount: number): void {
-  if (amount <= 0) return;
-  unit.damage = Math.max(0, unit.damage - amount);
-  state.visualEvents.push({ type: "HEAL", targetId: unit.instanceId, amount, isNexus: false });
-  emitEvent(state, { type: "UNIT_HEALED", playerId: unit.ownerId, unitInstanceId: unit.instanceId, amount });
+  healTarget(state, { type: "UNIT", playerId: unit.ownerId, unitId: unit.instanceId }, amount);
 }
 
 export function hasKeyword(unit: UnitInstance, keyword: Keyword): boolean {
   return unit.keywords.includes(keyword);
-}
-
-function removeKeyword(unit: UnitInstance, keyword: Keyword): boolean {
-  const index = unit.keywords.indexOf(keyword);
-  if (index === -1) {
-    return false;
-  }
-  unit.keywords.splice(index, 1);
-  return true;
 }
 
 function endTurn(state: GameState, playerId: PlayerId): GameState {
@@ -778,12 +743,12 @@ function expireModifiers(
 
 function clearCombatAssignments(state: GameState): void {
   for (const playerId of PLAYER_IDS) {
-    state.players[playerId].board = state.players[playerId].board.map((unit) => ({
+    state.players[playerId].board = state.players[playerId].board.map((unit) => attachUnitDefinitionAccessor({
       ...unit,
       attacking: false,
       blockingUnitId: undefined,
       blockedByUnitId: undefined
-    }));
+    } as UnitInstance));
   }
 }
 
@@ -794,9 +759,10 @@ function buildCardRegistry(
   const registry: Record<string, CardInstance["definition"]> = {
     ...extraCardRegistry
   };
+  registerCardDefinitions(Object.values(extraCardRegistry));
 
   for (const card of cards) {
-    registry[card.definition.id] = card.definition;
+    registry[card.cardId ?? card.definition.id] = card.definition;
   }
 
   return registry;
@@ -808,13 +774,17 @@ function normalizeDeck(
 ): CardInstance[] {
   return deck.map((entry, index) => {
     if ("definition" in entry) {
-      return entry;
+      if (entry.definition) {
+        registerCardDefinition(entry.definition);
+      }
+      return attachCardDefinitionAccessor(entry);
     }
 
-    return {
+    registerCardDefinition(entry);
+    return attachCardDefinitionAccessor({
       instanceId: `${ownerId}-${entry.id}-${index}`,
-      definition: entry,
+      cardId: entry.id,
       ownerId
-    };
+    } as CardInstance);
   });
 }

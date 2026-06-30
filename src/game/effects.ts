@@ -11,12 +11,20 @@ import {
   BOARD_LIMIT,
   checkWinConditions,
   findUnit,
-  opponentOf,
-  STARTING_NEXUS_HP
+  opponentOf
 } from "./rules";
-import { dealDamageToUnit, healUnit, drawInto, runCleanupPipeline } from "./engine";
-import { createUnitInstance } from "./cards";
+import { runCleanupPipeline } from "./engine";
+import { createCardInstance, createUnitInstance } from "./cards";
 import { emitEvent } from "./triggers";
+import {
+  addModifier,
+  dealDamage,
+  discardCards,
+  drawCards,
+  grantKeyword,
+  healTarget,
+  summonUnit
+} from "./operations";
 
 export function enqueueEffect(state: GameState, queuedEffect: QueuedEffect): void {
   state.effectQueue.push(queuedEffect);
@@ -86,67 +94,39 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
 
   switch (effect.type) {
     case "DEAL_DAMAGE":
-      if (target?.type === "UNIT") {
-        try {
-          const unit = findUnit(state, target.playerId, target.unitId);
-          dealDamageToUnit(state, unit, effect.amount);
-        } catch (e) {
-          // Unit might be dead or gone
-        }
-      } else if (target?.type === "NEXUS") {
-        state.players[target.playerId].nexusHp -= effect.amount;
-        state.visualEvents.push({ type: "DAMAGE", targetId: `nexus-${target.playerId}`, amount: effect.amount, isNexus: true });
-        emitEvent(state, { type: "NEXUS_DAMAGED", playerId: target.playerId, amount: effect.amount });
-      } else if (target?.type === "SELF") {
-        state.players[casterId].nexusHp -= effect.amount;
-        state.visualEvents.push({ type: "DAMAGE", targetId: `nexus-${casterId}`, amount: effect.amount, isNexus: true });
-        emitEvent(state, { type: "NEXUS_DAMAGED", playerId: casterId, amount: effect.amount });
+      if (target) {
+        dealDamage(state, { playerId: casterId, sourceId }, target, effect.amount);
       }
       return;
     case "HEAL":
-      if (target?.type === "UNIT") {
-        try {
-          const unit = findUnit(state, target.playerId, target.unitId);
-          healUnit(state, unit, effect.amount);
-        } catch (e) {}
-      } else if (target?.type === "NEXUS") {
-        const player = state.players[target.playerId];
-        const amount = Math.min(STARTING_NEXUS_HP - player.nexusHp, effect.amount);
-        if (amount > 0) {
-          player.nexusHp += amount;
-          state.visualEvents.push({ type: "HEAL", targetId: `nexus-${target.playerId}`, amount, isNexus: true });
-        }
-      } else if (target?.type === "SELF") {
-        const player = state.players[casterId];
-        const amount = Math.min(STARTING_NEXUS_HP - player.nexusHp, effect.amount);
-        if (amount > 0) {
-          player.nexusHp += amount;
-          state.visualEvents.push({ type: "HEAL", targetId: `nexus-${casterId}`, amount, isNexus: true });
-        }
+      if (target) {
+        healTarget(state, target, effect.amount);
       }
       return;
     case "DRAW_CARD":
-      drawInto(state, state.players[casterId], effect.count);
+      drawCards(state, casterId, effect.count);
       return;
+    case "DISCARD_CARD": {
+      const ids = state.players[casterId].hand
+        .slice(0, effect.count ?? 1)
+        .map((card) => card.instanceId);
+      discardCards(state, casterId, ids);
+      return;
+    }
     case "BUFF_UNIT": {
       if (target?.type !== "UNIT") {
         return;
       }
       try {
-        const unit = findUnit(state, target.playerId, target.unitId);
-        const unitModifier: UnitModifier = {
-          id: `${target.unitId}-${effect.type}-${state.round}-${state.turn}-${unit.modifiers.length}`,
+        findUnit(state, target.playerId, target.unitId);
+        addModifier(state, target.unitId, {
           sourceCardId: sourceId,
           sourceName: sourceName ?? sourceId,
           type: "BUFF",
           attackDelta: effect.attack,
           healthDelta: effect.health,
-          duration: effect.duration ?? "THIS_ROUND",
-          createdRound: state.round,
-          createdTurn: state.turn
-        };
-        unit.modifiers.push(unitModifier);
-        state.visualEvents.push({ type: "BUFF", targetId: unit.instanceId, attackDelta: effect.attack ?? 0, healthDelta: effect.health ?? 0 });
+          duration: effect.duration ?? "THIS_ROUND"
+        });
       } catch (e) {}
       return;
     }
@@ -155,25 +135,19 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
         return;
       }
       try {
-        const unit = findUnit(state, target.playerId, target.unitId);
-        if (!unit.keywords.includes(effect.keyword)) {
-          unit.keywords.push(effect.keyword);
-        }
+        findUnit(state, target.playerId, target.unitId);
+        grantKeyword(state, target.unitId, effect.keyword);
       } catch(e) {}
       return;
     }
     case "SUMMON_UNIT": {
-      const player = state.players[casterId];
-      if (player.board.length < BOARD_LIMIT) {
-         if (effect.cardDefinition) {
-            const instance = createUnitInstance({
-              instanceId: createGeneratedInstanceId(state, effect.cardDefinition.id),
-              definition: effect.cardDefinition,
-              ownerId: casterId
-            });
-            player.board.push(instance);
-            emitEvent(state, { type: "UNIT_SUMMONED", playerId: casterId, cardInstanceId: sourceId, unitInstanceId: instance.instanceId });
-         }
+      if (effect.cardDefinition) {
+        summonUnit(
+          state,
+          casterId,
+          effect.cardDefinition.id,
+          createGeneratedInstanceId(state, effect.cardDefinition.id)
+        );
       }
       return;
     }
@@ -190,11 +164,13 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       
       const [entry] = player.graveyard.splice(entryIndex, 1);
       
-      const instance = createUnitInstance({
-        instanceId: createGeneratedInstanceId(state, entry.definition.id),
-        definition: entry.definition,
-        ownerId: targetPlayerId
-      });
+      const instance = createUnitInstance(
+        createCardInstance(
+          entry.definition,
+          targetPlayerId,
+          createGeneratedInstanceId(state, entry.definition.id)
+        )
+      );
       player.board.push(instance);
       state.visualEvents.push({ type: "DRAW", playerId: targetPlayerId, count: 0 }); // Placeholder for summon animation? We don't have SUMMON_UNIT visual event.
       // Wait, let's emit UNIT_SUMMONED event.

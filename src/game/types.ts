@@ -61,6 +61,11 @@ export type EffectDefinition =
       target: "SELF" | string;
     }
   | {
+      type: "DISCARD_CARD";
+      count?: number;
+      target: "SELF" | string;
+    }
+  | {
       type: "BUFF_UNIT";
       attack: number;
       health: number;
@@ -180,18 +185,21 @@ export interface CardDefinition {
 
 export interface CardInstance {
   instanceId: string;
-  definition: CardDefinition;
+  cardId?: string;
   ownerId: PlayerId;
+  readonly definition: CardDefinition;
 }
 
 export interface UnitInstance {
   instanceId: string;
-  definition: CardDefinition;
+  cardId: string;
   ownerId: PlayerId;
+  readonly definition: CardDefinition;
   attack: number;
   maxHealth: number;
   damage: number;
   keywords: Keyword[];
+  temporaryKeywords: Keyword[];
   modifiers: UnitModifier[];
   exhausted: boolean;
   attacking: boolean;

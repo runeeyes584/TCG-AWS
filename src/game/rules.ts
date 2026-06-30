@@ -1,6 +1,8 @@
 import {
   getUnitHealth,
-  isUnitCard
+  isUnitCard,
+  attachCardDefinitionAccessor,
+  attachUnitDefinitionAccessor
 } from "./cards";
 import {
   CardInstance,
@@ -429,19 +431,20 @@ function clonePlayer(player: PlayerState): PlayerState {
     ...player,
     deck: player.deck.map(cloneCard),
     hand: player.hand.map(cloneCard),
-    board: player.board.map((unit) => ({
+    board: player.board.map((unit) => attachUnitDefinitionAccessor({
       ...unit,
       keywords: [...unit.keywords],
+      temporaryKeywords: [...(unit.temporaryKeywords ?? [])],
       modifiers: unit.modifiers.map((modifier) => ({ ...modifier }))
-    })),
+    } as UnitInstance)),
     graveyard: player.graveyard.map((entry) => ({ ...entry })),
     abilityProgress: { ...player.abilityProgress }
   };
 }
 
 function cloneCard(card: CardInstance): CardInstance {
-  return {
+  return attachCardDefinitionAccessor({
     ...card,
-    definition: { ...card.definition }
-  };
+    cardId: card.cardId
+  } as CardInstance);
 }
