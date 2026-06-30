@@ -29,6 +29,17 @@ import {
 import { enqueueEffect, resolveEffectQueue } from "./effects";
 import { emitEvent } from "./triggers";
 import { GameEvent } from "./events";
+import {
+  cleanupDeadUnits,
+  moveSpellToGraveyard
+} from "./graveyard";
+export {
+  getGraveyardEntries,
+  findReviveTargets,
+  moveUnitToGraveyard,
+  moveSpellToGraveyard,
+  cleanupDeadUnits
+} from "./graveyard";
 
 export function updateChampionProgress(state: GameState, event: GameEvent): void {
   switch (event.type) {
@@ -331,7 +342,8 @@ function playSpell(
       target
     });
   }
-  player.graveyard.push(card);
+  // Move spell card to graveyard with full metadata
+  moveSpellToGraveyard(next, card, playerId);
   next.consecutivePasses = 0;
   passPriority(next, playerId);
   
@@ -479,7 +491,7 @@ function resolveCombat(state: GameState): GameState {
     }
   }
 
-  runCleanupPipeline(next, "COMBAT_END");
+  runCleanupPipeline(next, "COMBAT_END", "COMBAT");
   clearCombatAssignments(next);
   next.combat.attackers = [];
   next.phase = "ACTION";
@@ -588,26 +600,11 @@ function passPriority(state: GameState, playerId: PlayerId): void {
   state.activePlayerId = opponentOf(playerId);
 }
 
-function cleanupDeadUnits(state: GameState, player: PlayerState): void {
-  const survivors: UnitInstance[] = [];
-  for (const unit of player.board) {
-    if (getUnitHealth(unit) <= 0) {
-      player.graveyard.push({
-        instanceId: unit.instanceId,
-        definition: unit.definition,
-        ownerId: unit.ownerId
-      });
-      emitEvent(state, { type: "UNIT_DIED", playerId: player.id, unitInstanceId: unit.instanceId });
-    } else {
-      survivors.push(unit);
-    }
-  }
-  player.board = survivors;
-}
 
 export function runCleanupPipeline(
   state: GameState,
-  timing?: "END_TURN" | "END_ROUND" | "COMBAT_END"
+  timing?: "END_TURN" | "END_ROUND" | "COMBAT_END",
+  cause: import("./types").GraveyardCause = "EFFECT"
 ): void {
   if (timing === "END_TURN") {
     expireModifiers(state, "THIS_TURN");
@@ -619,7 +616,7 @@ export function runCleanupPipeline(
   }
 
   for (const playerId of PLAYER_IDS) {
-    cleanupDeadUnits(state, state.players[playerId]);
+    cleanupDeadUnits(state, state.players[playerId], cause);
   }
   
   checkChampionLevelUps(state);
@@ -636,6 +633,8 @@ function expireModifiers(
       );
     }
   }
+  // After expiry, dead units (health dropped below 0 due to lost health buffs) are caught
+  // by cleanupDeadUnits called immediately after in runCleanupPipeline.
 }
 
 function clearCombatAssignments(state: GameState): void {

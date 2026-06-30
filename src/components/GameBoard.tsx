@@ -465,25 +465,40 @@ export function GameBoard() {
 
   function renderRecallZone(playerId: PlayerId) {
     const units = getRecallUnits(playerId);
-    if (units.length === 0) return null;
+    const isEnemy = playerId === "P2";
+    const selectedIds = playerId === attackPlayerId ? attackerIds : assignedBlockerIds;
+
+    if (units.length === 0) {
+      return (
+        <div
+          className={`recall-zone recall-zone--empty ${isEnemy ? "opponent-recall" : "own-recall"}`}
+          aria-hidden="true"
+        />
+      );
+    }
+
     return (
-      <section
-        className={`recall-zone unit-recall-zone ${
-          playerId === "P2" ? "opponent-recall" : "own-recall"
-        }`}
+      <div
+        className={`recall-zone ${isEnemy ? "opponent-recall" : "own-recall"}`}
         aria-label={`${playerId} board`}
       >
-        <BoardView
-          units={units}
-          emptyLabel=""
-          selectedUnitId={selectedBlockerId}
-          selectedUnitIds={
-            playerId === attackPlayerId ? attackerIds : assignedBlockerIds
-          }
-          onSelectUnit={(unit) => selectBoardUnit(playerId, unit)}
-          visualEvents={gameState.visualEvents}
-        />
-      </section>
+        {units.map((unit) => (
+          <CardView
+            key={unit.instanceId}
+            unit={unit}
+            selected={
+              unit.instanceId === selectedBlockerId ||
+              selectedIds.includes(unit.instanceId)
+            }
+            onClick={() => selectBoardUnit(playerId, unit)}
+            visualEvents={gameState.visualEvents.filter(
+              (e) =>
+                (e as any).targetId === unit.instanceId ||
+                (e as any).sourceId === unit.instanceId
+            )}
+          />
+        ))}
+      </div>
     );
   }
 

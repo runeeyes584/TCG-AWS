@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyAction, createInitialGameState } from "./engine";
+import { getGraveyardEntries, findReviveTargets } from "./graveyard";
 import { GameState, CardDefinition, PlayerId, GameAction } from "./types";
 import { findUnit } from "./rules";
 
@@ -212,9 +213,14 @@ describe("Graveyard and Death Pipeline", () => {
     
     // Put a dummy unit in P1's graveyard directly (to simulate it dying earlier)
     state.players.P1.graveyard.push({
+      id: "dead-dummy-gy",
       instanceId: "dead-dummy",
-      definition: dummyUnit,
-      ownerId: "P1"
+      cardCode: dummyUnit.id,
+      ownerId: "P1",
+      type: "UNIT",
+      round: 1,
+      cause: "COMBAT",
+      definition: dummyUnit
     });
     
     // P1 plays revive spell
@@ -236,5 +242,152 @@ describe("Graveyard and Death Pipeline", () => {
     // The revive spell should be in the graveyard
     expect(state.players.P1.graveyard.length).toBe(1);
     expect(state.players.P1.graveyard[0].definition.id).toBe("revive-spell");
+  });
+
+  // ─── NEW TESTS: rich GraveyardEntry metadata ──────────────────────────────
+
+  it("combat death: GraveyardEntry has cause=COMBAT and correct cardCode", () => {
+    let state = setupGame();
+    const p1UnitId = addCardToHand(state, "P1", dummyUnit);
+    state = playCard(state, "P1", p1UnitId);
+    const p2UnitId = addCardToHand(state, "P2", dummyUnit);
+    state = playCard(state, "P2", p2UnitId);
+    const attackerId = state.players.P1.board[0].instanceId;
+    state = applyAction(state, { type: "DECLARE_ATTACKER", playerId: "P1", unitInstanceId: attackerId });
+    state = applyAction(state, { type: "COMMIT_ATTACK", playerId: "P1" });
+    const blockerId = state.players.P2.board[0].instanceId;
+    state = applyAction(state, { type: "DECLARE_BLOCKER", playerId: "P2", attackerId, blockerId });
+    state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: "P2" });
+    state = applyAction(state, { type: "RESOLVE_COMBAT" });
+
+    const p1Entry = state.players.P1.graveyard[0];
+    expect(p1Entry.cause).toBe("COMBAT");
+    expect(p1Entry.cardCode).toBe("dummy-unit");
+    expect(p1Entry.type).toBe("UNIT");
+    expect(p1Entry.id).toBe(`${p1Entry.instanceId}-gy`);
+  });
+
+  it("spell card: GraveyardEntry for resolved spell has cause=SPELL and type=SPELL", () => {
+    let state = setupGame();
+    state = applyAction(state, { type: "END_TURN", playerId: "P1" });
+    const p2UnitId = addCardToHand(state, "P2", dummyUnit);
+    state = playCard(state, "P2", p2UnitId);
+    const p1SpellId = addCardToHand(state, "P1", killSpell);
+    const targetUnitId = state.players.P2.board[0].instanceId;
+    state = playCard(state, "P1", p1SpellId, { type: "UNIT", playerId: "P2", unitId: targetUnitId });
+
+    const spellEntry = state.players.P1.graveyard[0];
+    expect(spellEntry.cause).toBe("SPELL");
+    expect(spellEntry.type).toBe("SPELL");
+    expect(spellEntry.cardCode).toBe("kill-spell");
+    expect(spellEntry.id).toBe(`${spellEntry.instanceId}-gy`);
+  });
+
+  it("GraveyardEntry.round matches state.round at time of death", () => {
+    let state = setupGame();
+    state = applyAction(state, { type: "START_ROUND" });
+    expect(state.round).toBe(2);
+    // Refill mana for both players after round start
+    state.players.P1.mana = 10;
+    state.players.P2.mana = 10;
+    // After START_ROUND, attack token may have flipped — ensure P1 has priority
+    // P1 plays a unit
+    const p1UnitId = addCardToHand(state, state.priorityPlayerId, dummyUnit);
+    state = playCard(state, state.priorityPlayerId, p1UnitId);
+    // Other player plays a unit
+    const otherPlayer = state.priorityPlayerId;
+    state.players[otherPlayer].mana = 10;
+    const p2UnitId = addCardToHand(state, otherPlayer, dummyUnit);
+    state = playCard(state, otherPlayer, p2UnitId);
+
+    // Attack setup: the player who has attack token attacks
+    const attPlayer = state.attackTokenPlayerId;
+    const defPlayer = attPlayer === "P1" ? "P2" : "P1";
+    expect(state.players[attPlayer].board.length).toBeGreaterThan(0);
+    expect(state.players[defPlayer].board.length).toBeGreaterThan(0);
+
+    const attackerId = state.players[attPlayer].board[0].instanceId;
+    // Ensure attacker has priority first, otherwise pass
+    if (state.priorityPlayerId !== attPlayer) {
+      state = applyAction(state, { type: "END_TURN", playerId: state.priorityPlayerId });
+    }
+    state = applyAction(state, { type: "DECLARE_ATTACKER", playerId: attPlayer, unitInstanceId: attackerId });
+    state = applyAction(state, { type: "COMMIT_ATTACK", playerId: attPlayer });
+    const blockerId = state.players[defPlayer].board[0].instanceId;
+    state = applyAction(state, { type: "DECLARE_BLOCKER", playerId: defPlayer, attackerId, blockerId });
+    state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: defPlayer });
+    state = applyAction(state, { type: "RESOLVE_COMBAT" });
+
+    expect(state.players[attPlayer].graveyard[0].round).toBe(2);
+    expect(state.players[defPlayer].graveyard[0].round).toBe(2);
+  });
+
+  it("no duplicate graveyard entries: same unit dying once produces exactly 1 entry", () => {
+    let state = setupGame();
+    const p1UnitId = addCardToHand(state, "P1", dummyUnit);
+    state = playCard(state, "P1", p1UnitId);
+    const p2UnitId = addCardToHand(state, "P2", dummyUnit);
+    state = playCard(state, "P2", p2UnitId);
+    const attackerId = state.players.P1.board[0].instanceId;
+    state = applyAction(state, { type: "DECLARE_ATTACKER", playerId: "P1", unitInstanceId: attackerId });
+    state = applyAction(state, { type: "COMMIT_ATTACK", playerId: "P1" });
+    const blockerId = state.players.P2.board[0].instanceId;
+    state = applyAction(state, { type: "DECLARE_BLOCKER", playerId: "P2", attackerId, blockerId });
+    state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: "P2" });
+    state = applyAction(state, { type: "RESOLVE_COMBAT" });
+
+    expect(state.players.P1.graveyard.length).toBe(1);
+    expect(state.players.P2.graveyard.length).toBe(1);
+    const allIds = [
+      ...state.players.P1.graveyard.map((e) => e.id),
+      ...state.players.P2.graveyard.map((e) => e.id),
+    ];
+    expect(new Set(allIds).size).toBe(allIds.length);
+  });
+
+  it("findReviveTargets returns only UNIT/CHAMPION, not spells", () => {
+    let state = setupGame();
+    state.players.P1.graveyard = [
+      { id: "u1-gy", instanceId: "u1", cardCode: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 1, cause: "COMBAT", definition: dummyUnit },
+      { id: "s1-gy", instanceId: "s1", cardCode: "kill-spell",  ownerId: "P1", type: "SPELL", round: 1, cause: "SPELL",  definition: killSpell },
+    ];
+    const targets = findReviveTargets(state, "P1");
+    expect(targets.length).toBe(1);
+    expect(targets[0].type).toBe("UNIT");
+  });
+
+  it("getGraveyardEntries filter by type and round", () => {
+    let state = setupGame();
+    state.players.P1.graveyard = [
+      { id: "u1-gy", instanceId: "u1", cardCode: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 1, cause: "COMBAT", definition: dummyUnit },
+      { id: "s1-gy", instanceId: "s1", cardCode: "kill-spell",  ownerId: "P1", type: "SPELL", round: 1, cause: "SPELL",  definition: killSpell },
+      { id: "u2-gy", instanceId: "u2", cardCode: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 2, cause: "EFFECT", definition: dummyUnit },
+    ];
+    expect(getGraveyardEntries(state, "P1", { type: "UNIT" }).length).toBe(2);
+    expect(getGraveyardEntries(state, "P1", { type: "SPELL" }).length).toBe(1);
+    expect(getGraveyardEntries(state, "P1", { round: 2 })[0].instanceId).toBe("u2");
+  });
+
+  it("modifier expiry can kill a unit and it lands in graveyard", () => {
+    let state = setupGame();
+    // P1 has priority initially; play unit
+    const p1UnitId = addCardToHand(state, "P1", dummyUnit); // 2/2
+    state = playCard(state, "P1", p1UnitId);
+    // Playing P1 card passes priority to P2 — pass it back
+    state = applyAction(state, { type: "END_TURN", playerId: state.priorityPlayerId });
+
+    // Now mutate the board unit directly (P1 has priority again)
+    const unit = state.players.P1.board[0];
+    // Deal 2 damage so effective health = 0 without buff
+    unit.damage += 2;
+    // Give +1 health THIS_TURN buff so effective health = 1
+    unit.modifiers.push({ id: "test-buff", attackDelta: 0, healthDelta: 1, duration: "THIS_TURN", source: "test" });
+
+    // P1 ends their turn — modifier expires — effective health = 0 — unit dies
+    state = applyAction(state, { type: "END_TURN", playerId: state.priorityPlayerId });
+
+    expect(state.players.P1.board.length).toBe(0);
+    expect(state.players.P1.graveyard.length).toBe(1);
+    expect(state.players.P1.graveyard[0].cardCode).toBe("dummy-unit");
   });
 });

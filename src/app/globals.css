@@ -281,35 +281,69 @@ button svg { vertical-align: -2px; }
 /* ===== CENTER BOARD ===== */
 .center-board {
   display: grid;
+  /*
+   * Recall zones collapse to 0 when empty (.recall-zone--empty),
+   * expand to a fixed 100px when units are present.
+   * The attack-lanes row takes all remaining space.
+   */
   grid-template-rows: auto auto 1fr auto;
   gap: 5px;
   min-width: 0;
+  overflow: hidden;
 }
 
 /* ===== RECALL / BOARD ZONES ===== */
+/*
+ * Direct flex container — no .lane/.card-grid wrappers.
+ * Fixed height prevents vertical overflow when units appear.
+ */
 .recall-zone {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  height: 100px;
+  max-height: 100px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid var(--lor-border-dim);
   background: rgba(8,20,12,0.4);
-  /* Collapse when empty via min-height trick — label is hidden */
-  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,144,48,0.2) transparent;
+  flex-shrink: 0;
 }
 
+.recall-zone::-webkit-scrollbar { height: 3px; }
+.recall-zone::-webkit-scrollbar-track { background: transparent; }
+.recall-zone::-webkit-scrollbar-thumb {
+  background: rgba(200,144,48,0.25);
+  border-radius: 99px;
+}
+
+/* Collapsed state when no units */
+.recall-zone--empty {
+  height: 0;
+  max-height: 0;
+  padding: 0;
+  border-width: 0;
+  overflow: hidden;
+}
+
+/* Cards inside recall zone — fixed size, don't stretch */
+.recall-zone .card-view {
+  min-width: 60px;
+  max-width: 70px;
+  width: 64px;
+  height: 82px;
+  min-height: unset;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+/* Legacy class selectors (unused but kept for safety) */
 .unit-recall-zone .lane-label { display: none; }
-
-.unit-recall-zone .card-grid {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 5px;
-  overflow-x: auto;
-  padding: 6px;
-  min-height: 0;
-  scrollbar-width: none;
-}
-
-.unit-recall-zone .card-grid::-webkit-scrollbar { display: none; }
-
-/* Hide empty placeholder in recall zone */
 .unit-recall-zone .empty-slot { display: none; }
 
 /* ===== COMBAT CENTER ===== */

@@ -391,7 +391,7 @@ function clonePlayer(player: PlayerState): PlayerState {
       keywords: [...unit.keywords],
       modifiers: unit.modifiers.map((modifier) => ({ ...modifier }))
     })),
-    graveyard: player.graveyard.map(cloneCard)
+    graveyard: player.graveyard.map((entry) => ({ ...entry }))
   };
 }
 
