@@ -381,7 +381,7 @@ describe("Graveyard and Death Pipeline", () => {
     // Deal 2 damage so effective health = 0 without buff
     unit.damage += 2;
     // Give +1 health THIS_TURN buff so effective health = 1
-    unit.modifiers.push({ id: "test-buff", attackDelta: 0, healthDelta: 1, duration: "THIS_TURN", source: "test" });
+    unit.modifiers.push({ id: "test-buff", type: "BUFF", attackDelta: 0, healthDelta: 1, duration: "THIS_TURN", sourceCardId: "test", sourceName: "test", createdRound: 1, createdTurn: 1 });
 
     // P1 ends their turn — modifier expires — effective health = 0 — unit dies
     state = applyAction(state, { type: "END_TURN", playerId: state.priorityPlayerId });

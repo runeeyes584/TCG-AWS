@@ -50,7 +50,7 @@ export function validateAction(state: GameState, action: GameAction): void {
     case "PLAY_UNIT":
       assertPhase(state, "ACTION");
       assertPriority(state, action.playerId);
-      assertBoardSpace(state.players[action.playerId]);
+      assertBoardSpace(state.players[action.playerId], action.replaceUnitId);
       assertPlayableUnit(state, action.playerId, action.cardInstanceId);
       return;
     case "PLAY_SPELL":
@@ -204,9 +204,17 @@ function assertPhase(state: GameState, phase: GameState["phase"]): void {
   }
 }
 
-function assertBoardSpace(player: PlayerState): void {
+function assertBoardSpace(player: PlayerState, replaceUnitId?: string): void {
   if (player.board.length >= BOARD_LIMIT) {
-    throw new GameValidationError("Board is full.");
+    if (!replaceUnitId) {
+      throw new GameValidationError("Board is full. You must replace a unit.");
+    }
+    const unitToReplace = player.board.find(u => u.instanceId === replaceUnitId);
+    if (!unitToReplace) {
+      throw new GameValidationError("Unit to replace not found on board.");
+    }
+  } else if (replaceUnitId) {
+    throw new GameValidationError("Cannot replace a unit when the board is not full.");
   }
 }
 

@@ -31,7 +31,8 @@ import { emitEvent } from "./triggers";
 import { GameEvent } from "./events";
 import {
   cleanupDeadUnits,
-  moveSpellToGraveyard
+  moveSpellToGraveyard,
+  moveUnitToGraveyard
 } from "./graveyard";
 export {
   getGraveyardEntries,
@@ -168,7 +169,7 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       next = startRound(cleanState);
       break;
     case "PLAY_UNIT":
-      next = playUnit(cleanState, action.playerId, action.cardInstanceId);
+      next = playUnit(cleanState, action.playerId, action.cardInstanceId, action.replaceUnitId);
       break;
     case "PLAY_SPELL":
       next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target);
@@ -299,7 +300,8 @@ export function drawInto(state: GameState, player: PlayerState, count: number): 
 function playUnit(
   state: GameState,
   playerId: PlayerId,
-  cardInstanceId: string
+  cardInstanceId: string,
+  replaceUnitId?: string
 ): GameState {
   const next = cloneState(state);
   const player = next.players[playerId];
@@ -309,6 +311,20 @@ function playUnit(
   const [card] = player.hand.splice(handIndex, 1);
 
   player.mana -= card.definition.cost;
+  
+  if (replaceUnitId) {
+    const replaceIndex = player.board.findIndex(u => u.instanceId === replaceUnitId);
+    if (replaceIndex !== -1) {
+      const replacedUnit = player.board[replaceIndex];
+      // Note: we're directly splicing it out of the array before adding to graveyard
+      // to ensure it is actually gone, but moveUnitToGraveyard also expects unit to be 
+      // removed externally from board usually (cleanupDeadUnits does this).
+      player.board.splice(replaceIndex, 1);
+      // Move it to graveyard (cause=EFFECT since it's a replacement sacrifice)
+      moveUnitToGraveyard(next, replacedUnit, "EFFECT");
+    }
+  }
+  
   player.board.push(createUnitInstance(card));
   next.consecutivePasses = 0;
   passPriority(next, playerId);

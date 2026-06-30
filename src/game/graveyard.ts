@@ -25,7 +25,7 @@ import {
 
 /**
  * Move a unit instance from board to its owner graveyard.
- * Does NOT remove it from board — caller (cleanupDeadUnits) handles that.
+ * Does NOT remove it from board - caller (cleanupDeadUnits) handles that.
  * Emits UNIT_DIED after adding to graveyard.
  */
 export function moveUnitToGraveyard(
@@ -147,3 +147,4 @@ export function findReviveTargets(
     (e) => e.type === "UNIT" || e.type === "CHAMPION"
   );
 }
+

@@ -281,15 +281,112 @@ button svg { vertical-align: -2px; }
 /* ===== CENTER BOARD ===== */
 .center-board {
   display: grid;
-  /*
-   * Recall zones collapse to 0 when empty (.recall-zone--empty),
-   * expand to a fixed 100px when units are present.
-   * The attack-lanes row takes all remaining space.
-   */
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: 92px 112px auto 112px 92px;
   gap: 5px;
   min-width: 0;
   overflow: hidden;
+}
+
+.battle-row-wrap {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 3px;
+  min-width: 0;
+  border: 1px solid var(--lor-border-dim);
+  border-radius: 8px;
+  background: rgba(8,20,12,0.48);
+  padding: 4px 6px;
+  overflow: hidden;
+}
+
+.waiting-row-wrap {
+  min-height: 92px;
+  background: rgba(8,18,16,0.42);
+}
+
+.active-row-wrap {
+  min-height: 112px;
+  background: rgba(10,28,18,0.7);
+  border-color: rgba(200,144,48,0.18);
+}
+
+.opponent-active {
+  border-color: rgba(200,64,64,0.26);
+}
+
+.own-active {
+  border-color: rgba(60,120,200,0.26);
+}
+
+.battle-row-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(232,220,200,0.62);
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.battle-row-label strong {
+  color: var(--lor-gold);
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.battle-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  min-height: 0;
+}
+
+.battle-slot {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  padding: 3px;
+  border: 1px solid rgba(200,144,48,0.12);
+  border-radius: 6px;
+  background: rgba(5,12,10,0.5);
+  overflow: hidden;
+}
+
+.battle-slot--empty {
+  border-style: dashed;
+  background: rgba(5,12,10,0.24);
+}
+
+.battle-slot--empty:not(:disabled) {
+  cursor: pointer;
+  border-color: rgba(28,200,200,0.45);
+  box-shadow: 0 0 10px rgba(28,200,200,0.12) inset;
+}
+
+.battle-slot--empty:not(:disabled):hover {
+  border-color: var(--lor-teal);
+  box-shadow: 0 0 14px rgba(28,200,200,0.24) inset;
+}
+
+.battle-slot .card-view,
+.active-unit-card .card-view {
+  min-width: 0;
+  min-height: 68px;
+  width: 100%;
+  height: 100%;
+  font-size: 10px;
+}
+
+.active-unit-card {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
 }
 
 /* ===== RECALL / BOARD ZONES ===== */
@@ -1169,4 +1266,89 @@ button svg { vertical-align: -2px; }
 @media (max-width: 900px) {
   .app-shell { grid-template-columns: 1fr; }
   .board-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+}
+
+/* Graveyard Modal Styles */
+.graveyard-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.graveyard-modal-content {
+  background: linear-gradient(160deg, #0e1820 0%, #08100e 100%);
+  border: 1px solid var(--lor-border);
+  border-radius: 12px;
+  width: 90vw;
+  max-width: 800px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.graveyard-modal-content header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--lor-border-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.graveyard-modal-content h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--lor-gold);
+}
+
+.graveyard-modal-content button {
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.graveyard-modal-content button:hover {
+  color: #fff;
+}
+
+.graveyard-grid {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.graveyard-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cause-tag {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #c0c0c0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.graveyard-stack.has-cards {
+  cursor: pointer;
+  border-color: rgba(200, 144, 48, 0.35);
+}
+
+.graveyard-stack.has-cards:hover {
+  border-color: var(--lor-gold);
+  background: rgba(200, 144, 48, 0.1);
 }

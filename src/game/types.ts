@@ -223,7 +223,7 @@ export type GameAction =
   | { type: "START_GAME"; firstPlayerId?: PlayerId }
   | { type: "DRAW_CARD"; playerId: PlayerId; count?: number }
   | { type: "START_ROUND" }
-  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string }
+  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string }
   | {
       type: "PLAY_SPELL";
       playerId: PlayerId;

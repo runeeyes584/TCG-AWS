@@ -643,6 +643,42 @@ describe("game engine", () => {
     expect(state.players.P1.deck).toHaveLength(deckBefore - 2);
   });
 
+  it("can replace a unit when playing a unit onto a full board", () => {
+    let state = startedGame();
+    state.players.P1.mana = 10;
+    
+    // Fill the board (6 units)
+    for (let i = 0; i < 6; i++) {
+      state.players.P1.board.push(createUnitInstance(card(soldier, "P1", `u${i}`)));
+    }
+    
+    expect(state.players.P1.board.length).toBe(6);
+    const targetToReplace = state.players.P1.board[2];
+    
+    // Hand has new unit
+    state = withHand(state, "P1", [card(bruiser, "P1", "new_unit")]);
+    
+    // Attempting to play without replaceUnitId should fail
+    expect(() => {
+      applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "new_unit" });
+    }).toThrowError(/must replace a unit/);
+    
+    // Playing WITH replaceUnitId should succeed
+    state = applyAction(state, { 
+      type: "PLAY_UNIT", 
+      playerId: "P1", 
+      cardInstanceId: "new_unit",
+      replaceUnitId: targetToReplace.instanceId
+    });
+    
+    // Board should still have 6 units
+    expect(state.players.P1.board.length).toBe(6);
+    // The replaced unit should be in the graveyard
+    expect(state.players.P1.graveyard.some(g => g.instanceId === targetToReplace.instanceId)).toBe(true);
+    // The new unit should be on the board
+    expect(state.players.P1.board.some(u => u.instanceId === "new_unit")).toBe(true);
+  });
+
   it("BUFF_UNIT spell adds a temporary modifier instead of mutating base stats", () => {
     const buffSpell = spell("buff", {
       type: "BUFF_UNIT",
