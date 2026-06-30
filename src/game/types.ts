@@ -169,6 +169,8 @@ export interface CardDefinition {
   name: string;
   cost: number;
   type: CardType;
+  description?: string;
+  imageUrl?: string;
   championId?: string;
   supertype?: "champion" | string;
   attack?: number;

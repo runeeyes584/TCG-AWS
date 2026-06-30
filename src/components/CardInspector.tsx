@@ -37,6 +37,12 @@ export function CardInspector() {
         </div>
       )}
 
+      {definition.description && (
+        <div className="inspector-description" style={{ marginTop: '8px', fontStyle: 'italic', color: '#ccc' }}>
+          {definition.description}
+        </div>
+      )}
+
       {definition.keywords && definition.keywords.length > 0 && (
         <div className="inspector-keywords">
           <strong>Keywords:</strong> {definition.keywords.join(", ")}

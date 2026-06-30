@@ -850,18 +850,46 @@ button svg { vertical-align: -2px; }
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 90px;
-  min-width: 64px;
-  border: 1px solid var(--card-border);
-  border-radius: 5px;
-  background: linear-gradient(160deg, #1c2438 0%, #101824 100%);
-  box-shadow: var(--shadow-card);
-  padding: 6px 6px 5px;
-  text-align: left;
-  width: 100%;
-  cursor: default;
-  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  width: 90px;
+  height: 120px;
+  background: linear-gradient(to bottom, #16202c 0%, #081014 100%);
+  border: 1px solid var(--lor-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+  font-family: 'Cinzel', serif;
+  color: var(--lor-text);
+  user-select: none;
   overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.card-bg-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+  opacity: 0.8;
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+.card-header-bg {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(2px);
+}
+
+.card-view > :not(.card-bg-image) {
+  position: relative;
+  z-index: 1;
 }
 
 .card-view::before {

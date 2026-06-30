@@ -37,9 +37,12 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
     .filter(Boolean)
     .join(" ");
 
+  const style = definition.imageUrl ? { backgroundImage: `url(${definition.imageUrl})` } : undefined;
+
   const content = (
     <>
-      <span>
+      {definition.imageUrl && <span className="card-bg-image" style={style} />}
+      <span className="card-header-bg">
         <span className="card-meta">
           <Zap size={13} aria-hidden="true" /> {definition.cost}
         </span>
