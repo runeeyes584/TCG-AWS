@@ -2,7 +2,7 @@ import { GameEventType, GameEvent } from "./events";
 
 export type PlayerId = "P1" | "P2";
 
-export type CardType = "unit" | "spell" | "champion";
+export type CardType = "unit" | "spell" | "champion" | "CHAMPION";
 
 export type GamePhase = "ACTION" | "BLOCK" | "COMBAT" | "DISCARD";
 
@@ -16,6 +16,15 @@ export type TriggerTargetKind =
   | "ALLY_NEXUS"
   | "ENEMY_NEXUS"
   | "RANDOM_ENEMY_UNIT";
+
+export type AbilityTargetKind =
+  | "SELF"
+  | "ALLY_UNIT"
+  | "ENEMY_UNIT"
+  | "ANY_UNIT"
+  | "ALLY_NEXUS"
+  | "ENEMY_NEXUS"
+  | "ANY_TARGET";
 
 export type ModifierDuration =
   | "PERMANENT"
@@ -39,41 +48,77 @@ export type EffectDefinition =
   | {
       type: "DEAL_DAMAGE";
       amount: number;
-      target: SpellTargetKind | TriggerTargetKind;
+      target: SpellTargetKind | TriggerTargetKind | string;
     }
   | {
       type: "HEAL";
       amount: number;
-      target: SpellTargetKind | TriggerTargetKind;
+      target: SpellTargetKind | TriggerTargetKind | string;
     }
   | {
       type: "DRAW_CARD";
       count: number;
-      target: "SELF";
+      target: "SELF" | string;
     }
   | {
       type: "BUFF_UNIT";
       attack: number;
       health: number;
-      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind;
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind | string;
       duration?: ModifierDuration;
     }
   | {
       type: "GRANT_KEYWORD";
       keyword: Keyword;
-      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind;
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind | string;
     }
   | {
       type: "SUMMON_UNIT";
       cardDefinition: CardDefinition;
-      target: "SELF";
+      target: "SELF" | string;
     }
   | {
       type: "REVIVE_UNIT";
-      target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD";
+      target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
     };
 
 export type SpellEffect = EffectDefinition;
+
+export interface TriggerDefinition {
+  event: GameEventType;
+}
+
+export type ConditionDefinition =
+  | { type: "HAS_MANA"; amount: number }
+  | { type: "HAS_CARD_IN_HAND"; count?: number }
+  | { type: "ALLY_UNIT_EXISTS" }
+  | { type: "SPELLS_CAST_THIS_ROUND_AT_LEAST"; count: number }
+  | { type: "UNIT_DIED_THIS_GAME_AT_LEAST"; count: number }
+  | { type: "NEXUS_HEALTH_BELOW"; player: "SELF" | "ENEMY"; amount: number }
+  | { type: "UNIT_HAS_KEYWORD"; target: string; keyword: Keyword };
+
+export interface TargetDefinition {
+  id: string;
+  kind: AbilityTargetKind;
+  required?: boolean;
+}
+
+export type CostDefinition =
+  | { type: "PAY_MANA"; amount: number }
+  | { type: "DISCARD"; target: string }
+  | { type: "SACRIFICE_UNIT"; target: string }
+  | { type: "PAY_HEALTH"; amount: number }
+  | { type: "DESTROY_ALLY"; target: string }
+  | { type: "EXHAUST_UNIT"; target: string };
+
+export interface Ability {
+  id: string;
+  when?: TriggerDefinition;
+  conditions?: ConditionDefinition[];
+  targets?: TargetDefinition[];
+  costs?: CostDefinition[];
+  effects: EffectDefinition[];
+}
 
 export type Trigger = {
   id: string;
@@ -86,7 +131,8 @@ export type Trigger = {
 export type LevelUpCondition = 
   | { type: "ALLIES_DIED"; threshold: number }
   | { type: "SPELLS_CAST"; threshold: number }
-  | { type: "NEXUS_DAMAGE_DEALT"; threshold: number };
+  | { type: "NEXUS_DAMAGE_DEALT"; threshold: number }
+  | { type: "THIS_CHAMPION_STRUCK"; threshold: number };
 
 export interface QueuedEffect {
   sourceId: string;
@@ -95,6 +141,8 @@ export interface QueuedEffect {
   effect: EffectDefinition;
   target?: SpellTarget;
 }
+
+export type AbilityTargetMap = Record<string, SpellTarget>;
 
 export type SpellTarget =
   | { type: "UNIT"; playerId: PlayerId; unitId: string }
@@ -116,14 +164,17 @@ export interface CardDefinition {
   name: string;
   cost: number;
   type: CardType;
+  championId?: string;
   supertype?: "champion" | string;
   attack?: number;
   health?: number;
   keywords?: Keyword[];
   effects?: EffectDefinition[];
   triggers?: Trigger[];
+  abilities?: Ability[];
   level?: 1 | 2;
   levelUpCondition?: LevelUpCondition;
+  level2CardCode?: string;
   leveledUpCardId?: string;
 }
 
@@ -190,6 +241,7 @@ export interface PlayerState {
   board: UnitInstance[];
   graveyard: GraveyardEntry[];
   championProgress: Record<string, number>;
+  abilityProgress: Record<string, number>;
 }
 
 export type VisualEvent =

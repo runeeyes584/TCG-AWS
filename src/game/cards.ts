@@ -7,6 +7,14 @@ import {
   UnitInstance
 } from "./types";
 
+export function isChampionCard(definition: CardDefinition): boolean {
+  return definition.type === "champion" || definition.type === "CHAMPION";
+}
+
+export function isUnitCard(definition: CardDefinition): boolean {
+  return definition.type === "unit" || isChampionCard(definition);
+}
+
 export function createCardInstance(
   definition: CardDefinition,
   ownerId: PlayerId,
@@ -16,7 +24,7 @@ export function createCardInstance(
 }
 
 export function createUnitInstance(card: CardInstance): UnitInstance {
-  if (card.definition.type !== "unit" && card.definition.type !== "champion") {
+  if (!isUnitCard(card.definition)) {
     throw new GameValidationError("Only unit or champion cards can become units.");
   }
 

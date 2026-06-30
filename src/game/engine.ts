@@ -1,7 +1,8 @@
 import {
   createUnitInstance,
   getUnitAttack,
-  getUnitHealth
+  getUnitHealth,
+  isChampionCard
 } from "./cards";
 import {
   checkWinConditions,
@@ -28,6 +29,7 @@ import {
   UnitInstance
 } from "./types";
 import { enqueueEffect, resolveEffectQueue, resolvePlayedSpellEffectTarget } from "./effects";
+import { executePlayedSpellAbilities } from "./abilities";
 import { emitEvent } from "./triggers";
 import { GameEvent } from "./events";
 import {
@@ -59,6 +61,13 @@ export function updateChampionProgress(state: GameState, event: GameEvent): void
           (state.players[event.playerId].championProgress["SPELLS_CAST"] || 0) + 1;
       }
       break;
+    case "UNIT_STRUCK":
+      if (event.playerId && event.unitInstanceId) {
+        const key = championStrikeProgressKey(event.unitInstanceId);
+        state.players[event.playerId].championProgress[key] =
+          (state.players[event.playerId].championProgress[key] || 0) + 1;
+      }
+      break;
     case "NEXUS_DAMAGED":
       if (event.playerId && event.amount) {
         const dealerId = opponentOf(event.playerId);
@@ -77,30 +86,64 @@ export function checkChampionLevelUps(state: GameState): void {
 
     const player = state.players[playerId];
     for (const unit of player.board) {
-      if (unit.definition.type === "champion" && unit.definition.level === 1 && unit.definition.levelUpCondition && unit.definition.leveledUpCardId) {
-        let leveledUp = false;
-        const condition = unit.definition.levelUpCondition;
-        if (condition.type === "ALLIES_DIED") {
-           leveledUp = (player.championProgress["ALLIES_DIED"] || 0) >= condition.threshold;
-        } else if (condition.type === "SPELLS_CAST") {
-           leveledUp = (player.championProgress["SPELLS_CAST"] || 0) >= condition.threshold;
-        } else if (condition.type === "NEXUS_DAMAGE_DEALT") {
-           leveledUp = (player.championProgress["NEXUS_DAMAGE_DEALT"] || 0) >= condition.threshold;
-        }
+      if (!shouldLevelChampion(player, unit)) {
+        continue;
+      }
 
-        if (leveledUp) {
-           const level2Def = state.cardRegistry[unit.definition.leveledUpCardId];
-           if (level2Def) {
-             const healthDiff = (level2Def.health || 0) - (unit.definition.health || 0);
-             unit.definition = level2Def;
-             unit.maxHealth += healthDiff; // Keep damage the same, increase maxHealth
-             emitEvent(state, { type: "CHAMPION_LEVELED_UP", playerId, unitInstanceId: unit.instanceId });
-             state.visualEvents.push({ type: "CHAMPION_LEVELED_UP", playerId, unitId: unit.instanceId, newLevel: 2 });
-           }
-        }
+      const level2Code = unit.definition.level2CardCode ?? unit.definition.leveledUpCardId;
+      const level2Def = level2Code ? state.cardRegistry[level2Code] : undefined;
+      if (level2Def) {
+        levelChampionUnit(state, playerId, unit, level2Def);
       }
     }
   }
+}
+
+function shouldLevelChampion(player: PlayerState, unit: UnitInstance): boolean {
+  if (
+    !isChampionCard(unit.definition) ||
+    unit.definition.level !== 1 ||
+    !unit.definition.levelUpCondition
+  ) {
+    return false;
+  }
+
+  const condition = unit.definition.levelUpCondition;
+  const key =
+    condition.type === "THIS_CHAMPION_STRUCK"
+      ? championStrikeProgressKey(unit.instanceId)
+      : condition.type;
+
+  return (player.championProgress[key] || 0) >= condition.threshold;
+}
+
+function levelChampionUnit(
+  state: GameState,
+  playerId: PlayerId,
+  unit: UnitInstance,
+  level2Def: CardDefinition
+): void {
+  unit.definition = level2Def;
+  unit.attack = level2Def.attack ?? unit.attack;
+  unit.maxHealth = level2Def.health ?? unit.maxHealth;
+  unit.keywords = [...(level2Def.keywords ?? [])];
+  unit.triggers = level2Def.triggers ? [...level2Def.triggers] : [];
+
+  emitEvent(state, {
+    type: "CHAMPION_LEVELED_UP",
+    playerId,
+    unitInstanceId: unit.instanceId
+  });
+  state.visualEvents.push({
+    type: "CHAMPION_LEVELED_UP",
+    playerId,
+    unitId: unit.instanceId,
+    newLevel: 2
+  });
+}
+
+function championStrikeProgressKey(unitInstanceId: string): string {
+  return `CHAMPION_STRUCK:${unitInstanceId}`;
 }
 
 export function createInitialPlayerState(
@@ -117,7 +160,8 @@ export function createInitialPlayerState(
     hand: [],
     board: [],
     graveyard: [],
-    championProgress: {}
+    championProgress: {},
+    abilityProgress: {}
   };
 }
 
@@ -283,7 +327,7 @@ function refreshRound(state: GameState, draw: boolean): void {
     }
 
     const player = state.players[playerId];
-    player.spellMana = Math.min(MAX_SPELL_MANA, player.spellMana + player.mana);
+  player.spellMana = Math.min(MAX_SPELL_MANA, player.spellMana + player.mana);
     player.maxMana = Math.min(MAX_MANA, player.maxMana + 1);
     player.mana = player.maxMana;
     player.board = player.board.map((unit) => ({
@@ -293,6 +337,7 @@ function refreshRound(state: GameState, draw: boolean): void {
       blockingUnitId: undefined,
       blockedByUnitId: undefined
     }));
+    player.abilityProgress["SPELLS_CAST_THIS_ROUND"] = 0;
     if (draw) {
       drawInto(state, player, 1);
     }
@@ -392,14 +437,18 @@ function playSpell(
   const [card] = player.hand.splice(handIndex, 1);
 
   spendSpellMana(player, card.definition.cost);
-  for (const effect of card.definition.effects ?? []) {
-    enqueueEffect(next, {
-      sourceId: card.instanceId,
-      sourceName: card.definition.name,
-      sourcePlayerId: playerId,
-      effect,
-      target: resolvePlayedSpellEffectTarget(effect, playerId, target)
-    });
+  if (card.definition.abilities?.length) {
+    executePlayedSpellAbilities(next, card, target);
+  } else {
+    for (const effect of card.definition.effects ?? []) {
+      enqueueEffect(next, {
+        sourceId: card.instanceId,
+        sourceName: card.definition.name,
+        sourcePlayerId: playerId,
+        effect,
+        target: resolvePlayedSpellEffectTarget(effect, playerId, target)
+      });
+    }
   }
   // Move spell card to graveyard with full metadata
   moveSpellToGraveyard(next, card, playerId);
@@ -529,16 +578,20 @@ function resolveCombat(state: GameState): GameState {
       if (hasKeyword(attacker, "QUICK_ATTACK")) {
         const attackerAttack = getUnitAttack(attacker);
         const result = dealDamageToUnit(next, blocker, attackerAttack);
+        emitUnitStruck(next, attacker, result.damageDealt);
         if (hasKeyword(attacker, "OVERWHELM")) {
           defenderPlayer.nexusHp -= result.excessDamage;
           emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: result.excessDamage });
         }
         if (getUnitHealth(blocker) > 0) {
-          dealDamageToUnit(next, attacker, getUnitAttack(blocker));
+          const blockerResult = dealDamageToUnit(next, attacker, getUnitAttack(blocker));
+          emitUnitStruck(next, blocker, blockerResult.damageDealt);
         }
       } else {
         const result = dealDamageToUnit(next, blocker, getUnitAttack(attacker));
-        dealDamageToUnit(next, attacker, getUnitAttack(blocker));
+        emitUnitStruck(next, attacker, result.damageDealt);
+        const blockerResult = dealDamageToUnit(next, attacker, getUnitAttack(blocker));
+        emitUnitStruck(next, blocker, blockerResult.damageDealt);
         if (hasKeyword(attacker, "OVERWHELM")) {
           defenderPlayer.nexusHp -= result.excessDamage;
           emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: result.excessDamage });
@@ -546,6 +599,7 @@ function resolveCombat(state: GameState): GameState {
       }
     } else {
       defenderPlayer.nexusHp -= getUnitAttack(attacker);
+      emitUnitStruck(next, attacker, getUnitAttack(attacker));
       emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: getUnitAttack(attacker) });
     }
   }
@@ -610,13 +664,21 @@ export function dealDamageToUnit(
   unit.damage += modifiedDamage;
 
   state.visualEvents.push({ type: "DAMAGE", targetId: unit.instanceId, amount: modifiedDamage, isNexus: false });
-  emitEvent(state, { type: "UNIT_STRUCK", playerId: unit.ownerId, unitInstanceId: unit.instanceId, amount: damageDealt });
   emitEvent(state, { type: "UNIT_DAMAGED", playerId: unit.ownerId, unitInstanceId: unit.instanceId, amount: damageDealt });
 
   return {
     damageDealt,
     excessDamage: Math.max(0, modifiedDamage - healthBefore)
   };
+}
+
+function emitUnitStruck(state: GameState, unit: UnitInstance, amount: number): void {
+  emitEvent(state, {
+    type: "UNIT_STRUCK",
+    playerId: unit.ownerId,
+    unitInstanceId: unit.instanceId,
+    amount
+  });
 }
 
 export function healUnit(state: GameState, unit: UnitInstance, amount: number): void {

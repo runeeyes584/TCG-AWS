@@ -1,5 +1,6 @@
 import {
-  getUnitHealth
+  getUnitHealth,
+  isUnitCard
 } from "./cards";
 import {
   CardInstance,
@@ -270,7 +271,7 @@ function assertPlayableUnit(
 ): void {
   const player = state.players[playerId];
   const card = assertCardInHand(state, playerId, cardInstanceId);
-  if (card.definition.type !== "unit" && card.definition.type !== "champion") {
+  if (!isUnitCard(card.definition)) {
     throw new GameValidationError("Card is not a unit or champion.");
   }
   if (card.definition.attack === undefined || card.definition.health === undefined) {
@@ -292,14 +293,14 @@ function assertPlayableSpell(
   if (card.definition.type !== "spell") {
     throw new GameValidationError("Card is not a spell.");
   }
-  if (!card.definition.effects?.length) {
+  if (!card.definition.effects?.length && !card.definition.abilities?.length) {
     throw new GameValidationError("Spell card requires at least one effect.");
   }
   if (player.mana + player.spellMana < card.definition.cost) {
     throw new GameValidationError("Not enough mana.");
   }
 
-  for (const effect of card.definition.effects) {
+  for (const effect of card.definition.effects ?? []) {
     assertSpellTarget(state, playerId, effect, target);
   }
 }
@@ -433,7 +434,8 @@ function clonePlayer(player: PlayerState): PlayerState {
       keywords: [...unit.keywords],
       modifiers: unit.modifiers.map((modifier) => ({ ...modifier }))
     })),
-    graveyard: player.graveyard.map((entry) => ({ ...entry }))
+    graveyard: player.graveyard.map((entry) => ({ ...entry })),
+    abilityProgress: { ...player.abilityProgress }
   };
 }
 

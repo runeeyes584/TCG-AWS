@@ -59,36 +59,45 @@ export const sampleUnitCards: CardDefinition[] = [
   // CHAMPIONS
   {
     id: "darius-1", name: "Darius", cost: 6, type: "champion", supertype: "champion", attack: 6, health: 5,
+    championId: "darius",
     keywords: ["OVERWHELM"],
     level: 1,
     levelUpCondition: { type: "NEXUS_DAMAGE_DEALT", threshold: 10 },
+    level2CardCode: "darius-2",
     leveledUpCardId: "darius-2"
   },
   {
     id: "darius-2", name: "Darius", cost: 6, type: "champion", supertype: "champion", attack: 10, health: 6,
+    championId: "darius",
     keywords: ["OVERWHELM"],
     level: 2
   },
   {
     id: "lux-1", name: "Lux", cost: 5, type: "champion", supertype: "champion", attack: 4, health: 5,
+    championId: "lux",
     keywords: ["BARRIER"],
     level: 1,
     levelUpCondition: { type: "SPELLS_CAST", threshold: 4 },
+    level2CardCode: "lux-2",
     leveledUpCardId: "lux-2"
   },
   {
     id: "lux-2", name: "Lux", cost: 5, type: "champion", supertype: "champion", attack: 5, health: 6,
+    championId: "lux",
     keywords: ["BARRIER"],
     level: 2
   },
   {
     id: "kalista-1", name: "Kalista", cost: 3, type: "champion", supertype: "champion", attack: 4, health: 3,
+    championId: "kalista",
     level: 1,
     levelUpCondition: { type: "ALLIES_DIED", threshold: 3 },
+    level2CardCode: "kalista-2",
     leveledUpCardId: "kalista-2"
   },
   {
     id: "kalista-2", name: "Kalista", cost: 3, type: "champion", supertype: "champion", attack: 5, health: 4,
+    championId: "kalista",
     level: 2
   }
 ];
@@ -131,7 +140,80 @@ export const sampleSpellCards: CardDefinition[] = [
   }
 ];
 
+export const sampleAbilityCards: CardDefinition[] = [
+  {
+    id: "ability-spark",
+    name: "Ability Spark",
+    cost: 1,
+    type: "spell",
+    abilities: [
+      {
+        id: "ability-spark-cast",
+        targets: [{ id: "target", kind: "ENEMY_UNIT" }],
+        effects: [{ type: "DEAL_DAMAGE", amount: 1, target: "target" }]
+      }
+    ]
+  },
+  {
+    id: "ability-channeler",
+    name: "Ability Channeler",
+    cost: 2,
+    type: "unit",
+    attack: 1,
+    health: 3,
+    abilities: [
+      {
+        id: "channeler-spell-buff",
+        when: { event: "SPELL_CAST" },
+        targets: [{ id: "self", kind: "SELF" }],
+        effects: [
+          { type: "BUFF_UNIT", attack: 1, health: 0, target: "self", duration: "THIS_ROUND" }
+        ]
+      }
+    ]
+  },
+  {
+    id: "ability-champion-1",
+    name: "Ability Champion",
+    cost: 3,
+    type: "champion",
+    championId: "ability-champion",
+    attack: 2,
+    health: 4,
+    level: 1,
+    levelUpCondition: { type: "SPELLS_CAST", threshold: 2 },
+    level2CardCode: "ability-champion-2",
+    abilities: [
+      {
+        id: "ability-champion-strike",
+        when: { event: "UNIT_STRUCK" },
+        targets: [{ id: "enemy", kind: "ENEMY_NEXUS" }],
+        effects: [{ type: "DEAL_DAMAGE", amount: 1, target: "enemy" }]
+      }
+    ]
+  },
+  {
+    id: "ability-champion-2",
+    name: "Ability Champion",
+    cost: 3,
+    type: "champion",
+    championId: "ability-champion",
+    attack: 3,
+    health: 5,
+    level: 2,
+    abilities: [
+      {
+        id: "ability-champion-level-2-strike",
+        when: { event: "UNIT_STRUCK" },
+        targets: [{ id: "enemy", kind: "ENEMY_NEXUS" }],
+        effects: [{ type: "DEAL_DAMAGE", amount: 2, target: "enemy" }]
+      }
+    ]
+  }
+];
+
 export const sampleDeckCards: CardDefinition[] = [
   ...sampleUnitCards,
-  ...sampleSpellCards
+  ...sampleSpellCards,
+  ...sampleAbilityCards
 ];

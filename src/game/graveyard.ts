@@ -6,7 +6,7 @@
  * They are called from engine.ts after damage, spell resolution, and modifier expiry.
  */
 
-import { getUnitHealth } from "./cards";
+import { getUnitHealth, isChampionCard } from "./cards";
 import { emitEvent } from "./triggers";
 import {
   CardInstance,
@@ -46,7 +46,7 @@ export function moveUnitToGraveyard(
     instanceId: unit.instanceId,
     cardCode: unit.definition.id,
     ownerId: unit.ownerId,
-    type: unit.definition.type === "champion" ? "CHAMPION" : "UNIT",
+    type: isChampionCard(unit.definition) ? "CHAMPION" : "UNIT",
     round: state.round,
     cause,
     definition: unit.definition,
@@ -106,7 +106,7 @@ export function moveCardToGraveyard(
   }
 
   const type: GraveyardEntryType =
-    card.definition.type === "champion"
+    isChampionCard(card.definition)
       ? "CHAMPION"
       : card.definition.type === "spell"
         ? "SPELL"
