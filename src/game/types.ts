@@ -4,7 +4,7 @@ export type PlayerId = "P1" | "P2";
 
 export type CardType = "unit" | "spell" | "champion";
 
-export type GamePhase = "ACTION" | "BLOCK" | "COMBAT";
+export type GamePhase = "ACTION" | "BLOCK" | "COMBAT" | "DISCARD";
 
 export type Keyword = "TOUGH" | "BARRIER" | "QUICK_ATTACK" | "OVERWHELM";
 
@@ -207,6 +207,11 @@ export interface GameState {
   attackTokenPlayerId: PlayerId;
   attackTokenAvailable: boolean;
   phase: GamePhase;
+  pendingDiscard?: {
+    playerId: PlayerId;
+    downTo: number;
+    returnPhase: Exclude<GamePhase, "DISCARD">;
+  };
   combat: CombatState;
   round: number;
   turn: number;
@@ -222,6 +227,7 @@ export interface GameState {
 export type GameAction =
   | { type: "START_GAME"; firstPlayerId?: PlayerId }
   | { type: "DRAW_CARD"; playerId: PlayerId; count?: number }
+  | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: string }
   | { type: "START_ROUND" }
   | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string }
   | {

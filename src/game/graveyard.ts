@@ -91,6 +91,40 @@ export function moveSpellToGraveyard(
 }
 
 /**
+ * Move any card instance from a hidden/hand zone to its owner's graveyard.
+ */
+export function moveCardToGraveyard(
+  state: GameState,
+  card: CardInstance,
+  ownerId: PlayerId,
+  cause: GraveyardCause
+): void {
+  const player = state.players[ownerId];
+
+  if (player.graveyard.some((e) => e.instanceId === card.instanceId)) {
+    return;
+  }
+
+  const type: GraveyardEntryType =
+    card.definition.type === "champion"
+      ? "CHAMPION"
+      : card.definition.type === "spell"
+        ? "SPELL"
+        : "UNIT";
+
+  player.graveyard.push({
+    id: `${card.instanceId}-gy`,
+    instanceId: card.instanceId,
+    cardCode: card.definition.id,
+    ownerId,
+    type,
+    round: state.round,
+    cause,
+    definition: card.definition
+  });
+}
+
+/**
  * Sweep a player board: move all dead units (health <= 0) to graveyard.
  * Call this after any operation that may deal lethal damage.
  */

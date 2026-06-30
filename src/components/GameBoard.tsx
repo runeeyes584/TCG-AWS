@@ -41,6 +41,14 @@ export function GameBoard() {
   function canPlay(playerId: PlayerId, card: CardInstance) {
     const player = gameState.players[playerId];
     const isSpell = card.definition.type === "spell";
+    if (gameState.phase === "DISCARD") {
+      return (
+        gameState.pendingDiscard?.playerId === playerId &&
+        card.ownerId === playerId &&
+        player.hand.length > gameState.pendingDiscard.downTo
+      );
+    }
+
     return (
       gameState.started &&
       !gameState.winnerId &&
@@ -53,6 +61,14 @@ export function GameBoard() {
   }
 
   function playCard(playerId: PlayerId, card: CardInstance) {
+    if (gameState.phase === "DISCARD") {
+      dispatch(
+        { type: "DISCARD_CARD", playerId, cardInstanceId: card.instanceId },
+        `${playerId} discarded ${card.definition.name}.`
+      );
+      return;
+    }
+
     if (card.definition.supertype?.toLowerCase() === "champion") {
       if (!window.confirm(`Are you sure you want to play Champion ${card.definition.name}?`)) {
         return;
@@ -790,6 +806,16 @@ export function GameBoard() {
               <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
               <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
               <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
+              {gameState.pendingDiscard ? (
+                <span className="stat-pill">
+                  Discard{" "}
+                  <strong>
+                    {gameState.pendingDiscard.playerId}{" "}
+                    {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
+                    {gameState.pendingDiscard.downTo}
+                  </strong>
+                </span>
+              ) : null}
               <span className="stat-pill">
                 Attack <strong>{gameState.attackTokenPlayerId}{gameState.attackTokenAvailable ? "" : " spent"}</strong>
               </span>

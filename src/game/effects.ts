@@ -49,6 +49,37 @@ export function resolveEffectQueue(state: GameState): void {
   }
 }
 
+export function resolvePlayedSpellEffectTarget(
+  effect: EffectDefinition,
+  casterId: PlayerId,
+  selectedTarget: SpellTarget
+): SpellTarget | undefined {
+  switch (effect.target) {
+    case "SELF":
+      if (
+        (effect.type === "BUFF_UNIT" || effect.type === "GRANT_KEYWORD") &&
+        selectedTarget.type === "UNIT"
+      ) {
+        return selectedTarget;
+      }
+      return { type: "SELF", playerId: casterId };
+    case "ALLY_NEXUS":
+      return { type: "NEXUS", playerId: casterId };
+    case "ENEMY_NEXUS":
+      return { type: "NEXUS", playerId: opponentOf(casterId) };
+    case "ENEMY_UNIT":
+    case "ALLY_UNIT":
+    case "NEXUS":
+    case "ALLY_GRAVEYARD":
+    case "ENEMY_GRAVEYARD":
+      return selectedTarget;
+    case "SOURCE":
+    case "EVENT_UNIT":
+    case "RANDOM_ENEMY_UNIT":
+      return selectedTarget;
+  }
+}
+
 function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
   const { sourcePlayerId, sourceId, sourceName, effect, target } = queuedEffect;
   const casterId = sourcePlayerId;

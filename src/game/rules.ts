@@ -18,6 +18,7 @@ export const STARTING_NEXUS_HP = 20;
 export const MAX_MANA = 10;
 export const MAX_SPELL_MANA = 3;
 export const STARTING_HAND_SIZE = 4;
+export const HAND_LIMIT = 6;
 export const BOARD_LIMIT = 6;
 
 export function validateAction(state: GameState, action: GameAction): void {
@@ -27,6 +28,10 @@ export function validateAction(state: GameState, action: GameAction): void {
 
   if (action.type !== "START_GAME" && !state.started) {
     throw new GameValidationError("Game has not started.");
+  }
+
+  if (state.phase === "DISCARD" && action.type !== "DISCARD_CARD") {
+    throw new GameValidationError("Discard cards until your hand has 6 cards.");
   }
 
   switch (action.type) {
@@ -43,6 +48,9 @@ export function validateAction(state: GameState, action: GameAction): void {
       if ((action.count ?? 1) < 1) {
         throw new GameValidationError("Draw count must be positive.");
       }
+      return;
+    case "DISCARD_CARD":
+      assertDiscardCard(state, action.playerId, action.cardInstanceId);
       return;
     case "START_ROUND":
       assertPhase(state, "ACTION");
@@ -128,6 +136,10 @@ export function validateAction(state: GameState, action: GameAction): void {
 }
 
 export function checkWinConditions(state: GameState): GameState {
+  if (state.winnerId) {
+    return state;
+  }
+
   const p1Dead = state.players.P1.nexusHp <= 0;
   const p2Dead = state.players.P2.nexusHp <= 0;
 
@@ -175,6 +187,7 @@ export function cloneState(state: GameState): GameState {
     })),
     visualEvents: state.visualEvents.map((event) => ({ ...event })),
     cardRegistry: { ...state.cardRegistry },
+    pendingDiscard: state.pendingDiscard ? { ...state.pendingDiscard } : undefined,
     combat: {
       attackers: state.combat.attackers.map((lane) => ({ ...lane }))
     },
@@ -202,6 +215,24 @@ function assertPhase(state: GameState, phase: GameState["phase"]): void {
   if (state.phase !== phase) {
     throw new GameValidationError(`Action is not allowed during ${state.phase}.`);
   }
+}
+
+function assertDiscardCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: string
+): void {
+  assertPlayer(playerId);
+  if (state.phase !== "DISCARD" || !state.pendingDiscard) {
+    throw new GameValidationError("No discard is pending.");
+  }
+  if (state.pendingDiscard.playerId !== playerId) {
+    throw new GameValidationError("Only the pending player can discard.");
+  }
+  if (state.players[playerId].hand.length <= state.pendingDiscard.downTo) {
+    throw new GameValidationError("Hand is already within the limit.");
+  }
+  assertCardInHand(state, playerId, cardInstanceId);
 }
 
 function assertBoardSpace(player: PlayerState, replaceUnitId?: string): void {
@@ -280,6 +311,12 @@ function assertSpellTarget(
   target: SpellTarget
 ): void {
   switch (effect.target) {
+    case "SOURCE":
+    case "EVENT_UNIT":
+    case "ALLY_NEXUS":
+    case "ENEMY_NEXUS":
+    case "RANDOM_ENEMY_UNIT":
+      return;
     case "ENEMY_UNIT":
       if (target.type !== "UNIT" || target.playerId !== opponentOf(casterId)) {
         throw new GameValidationError("Spell requires an enemy unit target.");
@@ -299,9 +336,6 @@ function assertSpellTarget(
       assertPlayer(target.playerId);
       return;
     case "SELF":
-      if (target.type !== "SELF" || target.playerId !== casterId) {
-        throw new GameValidationError("Spell requires self as target.");
-      }
       return;
     case "ALLY_GRAVEYARD":
       if (target.type !== "GRAVEYARD" || target.playerId !== casterId) {

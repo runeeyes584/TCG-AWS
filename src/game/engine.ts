@@ -9,6 +9,7 @@ import {
   findUnit,
   MAX_MANA,
   MAX_SPELL_MANA,
+  HAND_LIMIT,
   opponentOf,
   PLAYER_IDS,
   STARTING_HAND_SIZE,
@@ -26,11 +27,12 @@ import {
   SpellTarget,
   UnitInstance
 } from "./types";
-import { enqueueEffect, resolveEffectQueue } from "./effects";
+import { enqueueEffect, resolveEffectQueue, resolvePlayedSpellEffectTarget } from "./effects";
 import { emitEvent } from "./triggers";
 import { GameEvent } from "./events";
 import {
   cleanupDeadUnits,
+  moveCardToGraveyard,
   moveSpellToGraveyard,
   moveUnitToGraveyard
 } from "./graveyard";
@@ -38,6 +40,7 @@ export {
   getGraveyardEntries,
   findReviveTargets,
   moveUnitToGraveyard,
+  moveCardToGraveyard,
   moveSpellToGraveyard,
   cleanupDeadUnits
 } from "./graveyard";
@@ -68,6 +71,10 @@ export function updateChampionProgress(state: GameState, event: GameEvent): void
 
 export function checkChampionLevelUps(state: GameState): void {
   for (const playerId of PLAYER_IDS) {
+    if (state.winnerId) {
+      return;
+    }
+
     const player = state.players[playerId];
     for (const unit of player.board) {
       if (unit.definition.type === "champion" && unit.definition.level === 1 && unit.definition.levelUpCondition && unit.definition.leveledUpCardId) {
@@ -137,6 +144,7 @@ export function createInitialGameState(
     attackTokenPlayerId: "P1",
     attackTokenAvailable: true,
     phase: "ACTION",
+    pendingDiscard: undefined,
     combat: {
       attackers: []
     },
@@ -164,6 +172,9 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       break;
     case "DRAW_CARD":
       next = drawCards(cleanState, action.playerId, action.count ?? 1);
+      break;
+    case "DISCARD_CARD":
+      next = discardCard(cleanState, action.playerId, action.cardInstanceId);
       break;
     case "START_ROUND":
       next = startRound(cleanState);
@@ -254,14 +265,23 @@ function beginNextRound(state: GameState): void {
   next.activePlayerId = next.attackTokenPlayerId;
   next.priorityPlayerId = next.attackTokenPlayerId;
   next.phase = "ACTION";
+  next.pendingDiscard = undefined;
   next.combat.attackers = [];
   next.consecutivePasses = 0;
   refreshRound(next, true);
+  if (next.winnerId) {
+    return;
+  }
+  requestDiscardIfNeeded(next, next.priorityPlayerId);
   emitEvent(next, { type: "ROUND_STARTED" });
 }
 
 function refreshRound(state: GameState, draw: boolean): void {
   for (const playerId of PLAYER_IDS) {
+    if (state.winnerId) {
+      return;
+    }
+
     const player = state.players[playerId];
     player.spellMana = Math.min(MAX_SPELL_MANA, player.spellMana + player.mana);
     player.maxMana = Math.min(MAX_MANA, player.maxMana + 1);
@@ -285,11 +305,34 @@ function drawCards(state: GameState, playerId: PlayerId, count: number): GameSta
   return next;
 }
 
+function discardCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: string
+): GameState {
+  const next = cloneState(state);
+  const player = next.players[playerId];
+  const handIndex = player.hand.findIndex(
+    (card) => card.instanceId === cardInstanceId
+  );
+  const [card] = player.hand.splice(handIndex, 1);
+  moveCardToGraveyard(next, card, playerId, "DISCARD");
+
+  if (player.hand.length <= (next.pendingDiscard?.downTo ?? HAND_LIMIT)) {
+    const returnPhase = next.pendingDiscard?.returnPhase ?? "ACTION";
+    next.pendingDiscard = undefined;
+    next.phase = returnPhase;
+  }
+
+  return next;
+}
+
 export function drawInto(state: GameState, player: PlayerState, count: number): void {
   for (let i = 0; i < count; i += 1) {
     const card = player.deck.shift();
     if (!card) {
       player.nexusHp = 0;
+      state.winnerId = opponentOf(player.id);
       return;
     }
     player.hand.push(card);
@@ -355,7 +398,7 @@ function playSpell(
       sourceName: card.definition.name,
       sourcePlayerId: playerId,
       effect,
-      target
+      target: resolvePlayedSpellEffectTarget(effect, playerId, target)
     });
   }
   // Move spell card to graveyard with full metadata
@@ -614,6 +657,24 @@ function endTurn(state: GameState, playerId: PlayerId): GameState {
 function passPriority(state: GameState, playerId: PlayerId): void {
   state.priorityPlayerId = opponentOf(playerId);
   state.activePlayerId = opponentOf(playerId);
+  if (state.phase === "ACTION") {
+    requestDiscardIfNeeded(state, state.priorityPlayerId);
+  }
+}
+
+function requestDiscardIfNeeded(state: GameState, playerId: PlayerId): void {
+  if (state.players[playerId].hand.length <= HAND_LIMIT) {
+    return;
+  }
+
+  state.pendingDiscard = {
+    playerId,
+    downTo: HAND_LIMIT,
+    returnPhase: "ACTION"
+  };
+  state.phase = "DISCARD";
+  state.priorityPlayerId = playerId;
+  state.activePlayerId = playerId;
 }
 
 

@@ -170,6 +170,51 @@ describe("game engine", () => {
     expect(state.players.P1.deck).toHaveLength(4);
   });
 
+  it("player loses immediately when drawing from an empty deck", () => {
+    let state = startedGame();
+    state = {
+      ...state,
+      players: {
+        ...state.players,
+        P1: {
+          ...state.players.P1,
+          deck: []
+        }
+      }
+    };
+
+    state = applyAction(state, {
+      type: "DRAW_CARD",
+      playerId: "P1"
+    });
+
+    expect(state.players.P1.nexusHp).toBe(0);
+    expect(state.winnerId).toBe("P2");
+  });
+
+  it("first player to deck out during round draw loses before the other draw resolves", () => {
+    let state = startedGame();
+    state = {
+      ...state,
+      players: {
+        P1: {
+          ...state.players.P1,
+          deck: []
+        },
+        P2: {
+          ...state.players.P2,
+          deck: []
+        }
+      }
+    };
+
+    state = applyAction(state, { type: "START_ROUND" });
+
+    expect(state.winnerId).toBe("P2");
+    expect(state.players.P1.nexusHp).toBe(0);
+    expect(state.players.P2.nexusHp).toBe(20);
+  });
+
   it("refills mana and rotates the attack token on round start", () => {
     const state = applyAction(startedGame(), { type: "START_ROUND" });
 
@@ -643,6 +688,60 @@ describe("game engine", () => {
     expect(state.players.P1.deck).toHaveLength(deckBefore - 2);
   });
 
+  it("resolves reusable multi-effect spells with per-effect targets", () => {
+    const multiSpell: CardDefinition = {
+      id: "spark-and-study",
+      name: "Spark and Study",
+      cost: 1,
+      type: "spell",
+      effects: [
+        { type: "DEAL_DAMAGE", amount: 1, target: "ENEMY_UNIT" },
+        { type: "DRAW_CARD", count: 1, target: "SELF" }
+      ]
+    };
+    let state = startedGame();
+    const enemy = createUnitInstance(card(soldier, "P2", "enemy"));
+    state = withBoard(state, "P2", [enemy]);
+    state = withHand(state, "P1", [card(multiSpell, "P1", "spell")]);
+    const deckBefore = state.players.P1.deck.length;
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "UNIT", playerId: "P2", unitId: "enemy" }
+    });
+
+    expect(getUnitHealth(state.players.P2.board[0])).toBe(1);
+    expect(state.players.P1.hand).toHaveLength(1);
+    expect(state.players.P1.deck).toHaveLength(deckBefore - 1);
+    expect(state.players.P1.graveyard[0].instanceId).toBe("spell");
+  });
+
+  it("SELF unit spells can target an allied unit", () => {
+    const selfBuff = spell("self-buff", {
+      type: "BUFF_UNIT",
+      attack: 1,
+      health: 1,
+      duration: "THIS_ROUND",
+      target: "SELF"
+    });
+    let state = startedGame();
+    const ally = createUnitInstance(card(soldier, "P1", "ally"));
+    state = withBoard(state, "P1", [ally]);
+    state = withHand(state, "P1", [card(selfBuff, "P1", "spell")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "UNIT", playerId: "P1", unitId: "ally" }
+    });
+
+    expect(getUnitAttack(state.players.P1.board[0])).toBe(3);
+    expect(getUnitMaxHealth(state.players.P1.board[0])).toBe(3);
+  });
+
   it("can replace a unit when playing a unit onto a full board", () => {
     let state = startedGame();
     state.players.P1.mana = 10;
@@ -997,5 +1096,48 @@ describe("game engine", () => {
         target: { type: "UNIT", playerId: "P1", unitId: "ally" }
       })
     ).toThrow(GameValidationError);
+  });
+
+  it("requires discarding to 6 cards when a new action turn starts over hand limit", () => {
+    let state = startedGame();
+    state = {
+      ...state,
+      players: {
+        ...state.players,
+        P2: {
+          ...state.players.P2,
+          hand: Array.from({ length: 7 }, (_, index) =>
+            card(soldier, "P2", `p2-hand-${index}`)
+          )
+        }
+      }
+    };
+
+    state = applyAction(state, { type: "END_TURN", playerId: "P1" });
+
+    expect(state.phase).toBe("DISCARD");
+    expect(state.pendingDiscard).toEqual({
+      playerId: "P2",
+      downTo: 6,
+      returnPhase: "ACTION"
+    });
+    expect(() =>
+      applyAction(state, { type: "END_TURN", playerId: "P2" })
+    ).toThrow(GameValidationError);
+
+    state = applyAction(state, {
+      type: "DISCARD_CARD",
+      playerId: "P2",
+      cardInstanceId: "p2-hand-0"
+    });
+
+    expect(state.phase).toBe("ACTION");
+    expect(state.pendingDiscard).toBeUndefined();
+    expect(state.players.P2.hand).toHaveLength(6);
+    expect(state.players.P2.graveyard[0]).toMatchObject({
+      instanceId: "p2-hand-0",
+      cause: "DISCARD",
+      type: "UNIT"
+    });
   });
 });

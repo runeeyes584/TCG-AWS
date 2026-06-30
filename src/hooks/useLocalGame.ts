@@ -3,8 +3,15 @@
 import { useMemo, useState } from "react";
 import { createCardInstance } from "../game/cards";
 import { applyAction, createInitialGameState } from "../game/engine";
-import { sampleDeckCards } from "../game/sampleCards";
-import { GameAction, GameState, GameValidationError, PlayerId, VisualEvent } from "../game/types";
+import { sampleSpellCards, sampleUnitCards } from "../game/sampleCards";
+import {
+  CardDefinition,
+  GameAction,
+  GameState,
+  GameValidationError,
+  PlayerId,
+  VisualEvent
+} from "../game/types";
 
 export interface LogEntry {
   id: number;
@@ -81,8 +88,7 @@ export function useLocalGame() {
 }
 
 function buildDeck(playerId: PlayerId) {
-  return Array.from({ length: 24 }, (_, index) => {
-    const definition = sampleDeckCards[index % sampleDeckCards.length];
+  return buildSampleLocalDeck().map((definition, index) => {
     return createCardInstance(
       definition,
       playerId,
@@ -91,12 +97,33 @@ function buildDeck(playerId: PlayerId) {
   });
 }
 
+function buildSampleLocalDeck(): CardDefinition[] {
+  const deck: CardDefinition[] = [];
+  let unitIndex = 0;
+  let spellIndex = 0;
+
+  for (let index = 0; index < 24; index += 1) {
+    const shouldAddSpell = (index + 1) % 3 === 0;
+    if (shouldAddSpell) {
+      deck.push(sampleSpellCards[spellIndex % sampleSpellCards.length]);
+      spellIndex += 1;
+    } else {
+      deck.push(sampleUnitCards[unitIndex % sampleUnitCards.length]);
+      unitIndex += 1;
+    }
+  }
+
+  return deck;
+}
+
 function describeAction(action: GameAction): string {
   switch (action.type) {
     case "START_GAME":
       return `Started game with ${action.firstPlayerId ?? "P1"} attacking first.`;
     case "DRAW_CARD":
       return `${action.playerId} drew ${action.count ?? 1} card(s).`;
+    case "DISCARD_CARD":
+      return `${action.playerId} discarded a card.`;
     case "START_ROUND":
       return "Started a new round.";
     case "PLAY_UNIT":
