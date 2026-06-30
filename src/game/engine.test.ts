@@ -900,6 +900,48 @@ describe("game engine", () => {
     );
   });
 
+  it("GRANT_KEYWORD spell resolves synchronously through the effect queue", () => {
+    const keywordSpell = spell("grant-tough", {
+      type: "GRANT_KEYWORD",
+      keyword: "TOUGH",
+      target: "ALLY_UNIT"
+    });
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(soldier, "P1", "ally"))
+    ]);
+    state = withHand(state, "P1", [card(keywordSpell, "P1", "spell")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "UNIT", playerId: "P1", unitId: "ally" }
+    });
+
+    expect(state.effectQueue).toEqual([]);
+    expect(state.players.P1.board[0].keywords).toContain("TOUGH");
+  });
+
+  it("SUMMON_UNIT spell resolves synchronously through the effect queue", () => {
+    const summonSpell = spell("summon", {
+      type: "SUMMON_UNIT",
+      cardDefinition: soldier,
+      target: "SELF"
+    });
+    let state = withHand(startedGame(), "P1", [card(summonSpell, "P1", "spell")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(state.effectQueue).toEqual([]);
+    expect(state.players.P1.board).toHaveLength(1);
+    expect(state.players.P1.board[0].definition.id).toBe("soldier");
+  });
+
   it("validates spell target ownership", () => {
     const damageSpell = spell("bad-target", {
       type: "DEAL_DAMAGE",

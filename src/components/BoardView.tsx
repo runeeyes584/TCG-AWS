@@ -5,6 +5,8 @@ import { CardView } from "./CardView";
 
 interface BoardViewProps {
   units: UnitInstance[];
+  label?: string;
+  emptyLabel?: string;
   selectedUnitId?: string;
   selectedUnitIds?: string[];
   onSelectUnit?: (unit: UnitInstance) => void;
@@ -13,6 +15,8 @@ interface BoardViewProps {
 
 export function BoardView({
   units,
+  label = "Board",
+  emptyLabel = "No units",
   selectedUnitId,
   selectedUnitIds = [],
   onSelectUnit,
@@ -20,10 +24,10 @@ export function BoardView({
 }: BoardViewProps) {
   return (
     <section className="lane" aria-label="Board">
-      <div className="lane-label">Board</div>
+      <div className="lane-label">{label}</div>
       <div className="card-grid board-grid">
         {units.length === 0 ? (
-          <div className="empty-slot">No units</div>
+          <div className="empty-slot">{emptyLabel}</div>
         ) : (
           units.map((unit) => (
             <CardView

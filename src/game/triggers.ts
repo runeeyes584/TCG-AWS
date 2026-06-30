@@ -1,7 +1,7 @@
 import { GameEvent } from "./events";
 import { enqueueEffects } from "./effects";
-import { GameState, Trigger, QueuedEffect } from "./types";
-import { PLAYER_IDS } from "./rules";
+import { GameState, PlayerId, QueuedEffect, SpellTarget, Trigger } from "./types";
+import { opponentOf, PLAYER_IDS } from "./rules";
 import { updateChampionProgress } from "./engine";
 
 export function emitEvent(state: GameState, event: GameEvent): void {
@@ -16,9 +16,10 @@ export function emitEvent(state: GameState, event: GameEvent): void {
         // Enqueue the trigger's effects
         const queuedEffects: QueuedEffect[] = trigger.effects.map(effect => ({
           sourceId: trigger.sourceId,
+          sourceName: trigger.id,
           sourcePlayerId,
           effect,
-          target: resolveTarget(trigger, effect, sourcePlayerId, event)
+          target: resolveTarget(state, trigger, effect, sourcePlayerId, event)
         }));
         
         state.visualEvents.push({ type: "TRIGGER_ACTIVATED", sourceId: trigger.sourceId, effectName: trigger.id });
@@ -28,8 +29,8 @@ export function emitEvent(state: GameState, event: GameEvent): void {
   }
 }
 
-function getActiveTriggers(state: GameState): Array<{ trigger: Trigger, sourcePlayerId: "P1" | "P2" }> {
-  const activeTriggers: Array<{ trigger: Trigger, sourcePlayerId: "P1" | "P2" }> = [];
+function getActiveTriggers(state: GameState): Array<{ trigger: Trigger, sourcePlayerId: PlayerId }> {
+  const activeTriggers: Array<{ trigger: Trigger, sourcePlayerId: PlayerId }> = [];
   
   // Triggers typically originate from units currently on the board
   for (const playerId of PLAYER_IDS) {
@@ -46,25 +47,70 @@ function getActiveTriggers(state: GameState): Array<{ trigger: Trigger, sourcePl
   return activeTriggers;
 }
 
-function resolveTarget(trigger: Trigger, effect: QueuedEffect["effect"], sourcePlayerId: "P1" | "P2", event: GameEvent) {
+function resolveTarget(
+  state: GameState,
+  trigger: Trigger,
+  effect: QueuedEffect["effect"],
+  sourcePlayerId: PlayerId,
+  event: GameEvent
+): SpellTarget | undefined {
+  if (effect.target === "SOURCE") {
+    return { type: "UNIT", playerId: sourcePlayerId, unitId: trigger.sourceId };
+  }
+
+  if (effect.target === "EVENT_UNIT") {
+    return resolveEventUnitTarget(event);
+  }
+
+  if (effect.target === "ALLY_NEXUS") {
+    return { type: "NEXUS", playerId: sourcePlayerId };
+  }
+
+  if (effect.target === "ENEMY_NEXUS") {
+    return { type: "NEXUS", playerId: opponentOf(sourcePlayerId) };
+  }
+
+  if (effect.target === "RANDOM_ENEMY_UNIT") {
+    return resolveRandomEnemyUnitTarget(state, sourcePlayerId);
+  }
+
   if (effect.target === "SELF") {
     if (effect.type === "DRAW_CARD") {
-      return { type: "SELF", playerId: sourcePlayerId } as const;
+      return { type: "SELF", playerId: sourcePlayerId };
     }
-    return { type: "UNIT", playerId: sourcePlayerId, unitId: trigger.sourceId } as const;
+    return { type: "UNIT", playerId: sourcePlayerId, unitId: trigger.sourceId };
   }
   if (effect.target === "ALLY_UNIT" || effect.target === "ENEMY_UNIT") {
-    // If the event provides a unitInstanceId, we could use that, otherwise default to the source unit itself
-    // Or we could have trigger payload explicitly define targets.
-    // For these tests, we will target the source unit if it's an ALLY_UNIT buff.
-    return { type: "UNIT", playerId: sourcePlayerId, unitId: trigger.sourceId } as const;
+    return { type: "UNIT", playerId: sourcePlayerId, unitId: trigger.sourceId };
   }
   if (effect.target === "NEXUS") {
     if (effect.type === "HEAL") {
-      return { type: "NEXUS", playerId: sourcePlayerId } as const;
+      return { type: "NEXUS", playerId: sourcePlayerId };
     }
-    // Defaulting to ENEMY nexus for damage unless otherwise specified
-    return { type: "NEXUS", playerId: sourcePlayerId === "P1" ? "P2" : "P1" } as const;
+    return { type: "NEXUS", playerId: opponentOf(sourcePlayerId) };
   }
   return undefined;
+}
+
+function resolveEventUnitTarget(event: GameEvent): SpellTarget | undefined {
+  const unitId = event.unitInstanceId ?? event.attackerId ?? event.blockerId;
+  if (!event.playerId || !unitId) {
+    return undefined;
+  }
+  return { type: "UNIT", playerId: event.playerId, unitId };
+}
+
+function resolveRandomEnemyUnitTarget(
+  state: GameState,
+  sourcePlayerId: PlayerId
+): SpellTarget | undefined {
+  const enemyId = opponentOf(sourcePlayerId);
+  const enemyBoard = state.players[enemyId].board;
+  if (enemyBoard.length === 0) {
+    return undefined;
+  }
+
+  const index = state.rngSeed % enemyBoard.length;
+  state.rngSeed += 1;
+  return { type: "UNIT", playerId: enemyId, unitId: enemyBoard[index].instanceId };
 }

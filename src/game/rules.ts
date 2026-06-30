@@ -169,6 +169,12 @@ export function opponentOf(playerId: PlayerId): PlayerId {
 export function cloneState(state: GameState): GameState {
   return {
     ...state,
+    effectQueue: state.effectQueue.map((queuedEffect) => ({
+      ...queuedEffect,
+      target: queuedEffect.target ? { ...queuedEffect.target } : undefined
+    })),
+    visualEvents: state.visualEvents.map((event) => ({ ...event })),
+    cardRegistry: { ...state.cardRegistry },
     combat: {
       attackers: state.combat.attackers.map((lane) => ({ ...lane }))
     },

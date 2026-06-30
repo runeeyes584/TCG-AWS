@@ -71,8 +71,11 @@ describe("Trigger System and Effect Queue", () => {
     expect(state.players.P1.board[0].modifiers.length).toBe(1);
     expect(getUnitAttack(state.players.P1.board[0])).toBe(4); // Base 3 + 1
     
-    // Resolve combat & end turn
     state = applyAction(state, { type: "COMMIT_ATTACK", playerId: "P1" });
+    expect(state.players.P1.board[0].modifiers.length).toBe(1);
+    expect(getUnitAttack(state.players.P1.board[0])).toBe(4);
+
+    // Resolve combat & end turn
     state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: "P2" });
     state = applyAction(state, { type: "RESOLVE_COMBAT" });
     state = applyAction(state, { type: "END_TURN", playerId: "P2" });
@@ -176,5 +179,50 @@ describe("Trigger System and Effect Queue", () => {
     expect(state.winnerId).toBe("P1");
     // Guard should not have buffed
     expect(getUnitAttack(state.players.P2.board[0])).toBe(4);
+  });
+
+  it("EVENT_UNIT trigger target resolves to the unit from the event", () => {
+    const watcher: CardDefinition = {
+      id: "summon-pinger",
+      name: "Summon Pinger",
+      cost: 0,
+      type: "unit",
+      attack: 0,
+      health: 3,
+      triggers: [
+        {
+          id: "ping-event-unit",
+          sourceId: "",
+          event: "UNIT_SUMMONED",
+          condition: (_state, event) => event.playerId === "P2",
+          effects: [{ type: "DEAL_DAMAGE", amount: 1, target: "EVENT_UNIT" }]
+        }
+      ]
+    };
+    const target: CardDefinition = {
+      id: "target",
+      name: "Target",
+      cost: 0,
+      type: "unit",
+      attack: 1,
+      health: 2
+    };
+    let state = startedGame();
+    state = withHand(state, "P1", [createCardInstance(watcher, "P1", "watcher")]);
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: "watcher"
+    });
+    state = withHand(state, "P2", [createCardInstance(target, "P2", "target")]);
+
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P2",
+      cardInstanceId: "target"
+    });
+
+    expect(state.players.P2.board[0].damage).toBe(1);
+    expect(state.players.P1.board[0].damage).toBe(0);
   });
 });

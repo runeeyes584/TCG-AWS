@@ -11,15 +11,16 @@ import {
 } from "../game/types";
 import { useLocalGame } from "../hooks/useLocalGame";
 import { ActionLog } from "./ActionLog";
-import { PlayerZone } from "./PlayerZone";
 import { CardView } from "./CardView";
 import { getUnitAttack, getUnitHealth } from "../game/cards";
 import { hasKeyword } from "../game/engine";
 import { HoverProvider } from "../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
+import { BoardView } from "./BoardView";
+import { HandView } from "./HandView";
 
 export function GameBoard() {
-  const { gameState, actionLog, dispatch, resetGame } = useLocalGame();
+  const { gameState, actionLog, dispatch, dispatchChain, resetGame } = useLocalGame();
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
   const [selectedSpellTarget, setSelectedSpellTarget] = useState<SpellTarget>();
@@ -131,7 +132,18 @@ export function GameBoard() {
   }
 
   function getPrimarySpellTarget(card: CardInstance): SpellTargetKind | undefined {
-    return card.definition.effects?.[0]?.target;
+    const target = card.definition.effects?.[0]?.target;
+    if (
+      target === "ENEMY_UNIT" ||
+      target === "ALLY_UNIT" ||
+      target === "NEXUS" ||
+      target === "SELF" ||
+      target === "ALLY_GRAVEYARD" ||
+      target === "ENEMY_GRAVEYARD"
+    ) {
+      return target;
+    }
+    return undefined;
   }
 
   function assignBlocker(attacker: UnitInstance, blockerId: string) {
@@ -280,6 +292,93 @@ export function GameBoard() {
     dispatch({ type: "RESOLVE_COMBAT" }, "Combat resolved.");
   }
 
+  // --- Smart Action Orb logic ---
+  type SmartAction = {
+    label: string;
+    sublabel: string;
+    mode: "attack" | "defend" | "round" | "idle";
+    enabled: boolean;
+    onClick: () => void;
+  };
+
+  function getSmartAction(): SmartAction {
+    const started = gameState.started && !gameState.winnerId;
+
+    // ATTACK/PASS: attacker has priority, action phase, attack token still available.
+    if (
+      started &&
+      gameState.phase === "ACTION" &&
+      gameState.priorityPlayerId === attackPlayerId &&
+      gameState.attackTokenAvailable
+    ) {
+      if (attackerCount === 0) {
+        return {
+          label: "PASS",
+          sublabel: "No attack",
+          mode: "idle",
+          enabled: true,
+          onClick: passPriority
+        };
+      }
+
+      return {
+        label: "ATTACK",
+        sublabel: `${attackerCount} unit${attackerCount > 1 ? "s" : ""}`,
+        mode: "attack",
+        enabled: true,
+        onClick: commitAttack
+      };
+    }
+
+    // DEFEND: block phase, defender has priority, no pending manual assignment
+    if (
+      started &&
+      gameState.phase === "BLOCK" &&
+      gameState.priorityPlayerId === defenderId &&
+      !selectedBlockerId
+    ) {
+      const hasBlocks = assignedBlockerIds.length > 0;
+
+      return {
+        label: hasBlocks ? "DEFEND" : "PASS",
+        sublabel: hasBlocks
+          ? `${assignedBlockerIds.length} block${assignedBlockerIds.length > 1 ? "s" : ""}`
+          : "No blocks",
+        mode: "defend",
+        enabled: true,
+        // Commit blocks then auto-resolve in one atomic step
+        onClick: () => {
+          setSelectedBlockerId(undefined);
+          setSelectedSpell(undefined);
+          setSelectedSpellTarget(undefined);
+          dispatchChain([
+            { action: { type: "COMMIT_BLOCKS", playerId: defenderId }, label: `${defenderId} committed blocks.` },
+            { action: { type: "RESOLVE_COMBAT" }, label: "Combat resolved." }
+          ]);
+        }
+      };
+    }
+
+    // ROUND: action phase — advance the round
+    if (started && gameState.phase === "ACTION") {
+      return {
+        label: "ROUND",
+        sublabel: `#${gameState.round}`,
+        mode: "round",
+        enabled: true,
+        onClick: startRound
+      };
+    }
+
+    return {
+      label: "ROUND",
+      sublabel: `#${gameState.round}`,
+      mode: "idle",
+      enabled: false,
+      onClick: () => {}
+    };
+  }
+
   function castSelectedSpell() {
     if (!selectedSpell || !selectedSpellTarget) {
       return;
@@ -303,169 +402,340 @@ export function GameBoard() {
     setSelectedSpellTarget(undefined);
   }
 
+  function renderPlayerStatus(playerId: PlayerId, label: string) {
+    const player = gameState.players[playerId];
+    const hasToken = gameState.attackTokenPlayerId === playerId;
+    const hasPriority = gameState.priorityPlayerId === playerId;
+
+    return (
+      <div className={`nexus-orb ${hasPriority ? "is-priority" : ""}`}>
+        <span>{label}</span>
+        <strong>{player.nexusHp}</strong>
+        <small>
+          {player.mana}/{player.maxMana} mana · {player.spellMana} spell
+        </small>
+        {hasToken ? (
+          <small>{gameState.attackTokenAvailable ? "Attack" : "Spent"}</small>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderDeckStack(playerId: PlayerId, label: string) {
+    const player = gameState.players[playerId];
+
+    return (
+      <div className="deck-stack">
+        <span>{label}</span>
+        <strong>{player.deck.length}</strong>
+      </div>
+    );
+  }
+
+  function renderGraveyard(playerId: PlayerId, label: string) {
+    const player = gameState.players[playerId];
+
+    return (
+      <div className="graveyard-bubble">
+        <span>{label}</span>
+        <strong>{player.graveyard.length}</strong>
+      </div>
+    );
+  }
+
+  function renderSpellStack(label: string) {
+    if (!selectedSpell) {
+      return <div className="spell-stack spell-stack--empty" aria-hidden="true" />;
+    }
+
+    return (
+      <div className="spell-stack">
+        <span>{label}</span>
+        <strong>{selectedSpell.definition.name}</strong>
+      </div>
+    );
+  }
+
+  function getRecallUnits(playerId: PlayerId) {
+    const combatUnitIds = new Set([...attackerIds, ...assignedBlockerIds]);
+    return gameState.players[playerId].board.filter(
+      (unit) => !combatUnitIds.has(unit.instanceId)
+    );
+  }
+
+  function renderRecallZone(playerId: PlayerId) {
+    const units = getRecallUnits(playerId);
+    if (units.length === 0) return null;
+    return (
+      <section
+        className={`recall-zone unit-recall-zone ${
+          playerId === "P2" ? "opponent-recall" : "own-recall"
+        }`}
+        aria-label={`${playerId} board`}
+      >
+        <BoardView
+          units={units}
+          emptyLabel=""
+          selectedUnitId={selectedBlockerId}
+          selectedUnitIds={
+            playerId === attackPlayerId ? attackerIds : assignedBlockerIds
+          }
+          onSelectUnit={(unit) => selectBoardUnit(playerId, unit)}
+          visualEvents={gameState.visualEvents}
+        />
+      </section>
+    );
+  }
+
   return (
     <HoverProvider>
-      <main className="app-shell">
-        <div className="battle-table">
-        <header className="topbar">
-          <div className="stat-row">
-            <span className="stat-pill">
-              Round <strong>{gameState.round}</strong>
-            </span>
-            <span className="stat-pill">
-              Turn <strong>{gameState.turn}</strong>
-            </span>
-            <span className="stat-pill">
-              Priority <strong>{gameState.priorityPlayerId}</strong>
-            </span>
-            <span className="stat-pill">
-              Phase <strong>{gameState.phase}</strong>
-            </span>
-            <span className="stat-pill">
-              Attack Token{" "}
-              <strong>
-                {gameState.attackTokenPlayerId}
-                {gameState.attackTokenAvailable ? "" : " spent"}
-              </strong>
-            </span>
-            <span className="stat-pill">
-              Passes <strong>{gameState.consecutivePasses}</strong>
-            </span>
-          </div>
-          <div className="button-row">
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "START_GAME", firstPlayerId: "P1" })}
-              disabled={gameState.started}
-            >
-              <Zap size={16} aria-hidden="true" /> Start Game
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                dispatch({ type: "DRAW_CARD", playerId: gameState.priorityPlayerId })
-              }
-              disabled={!gameState.started || Boolean(gameState.winnerId)}
-            >
-              Draw
-            </button>
-            <button
-              type="button"
-              onClick={startRound}
-              disabled={
-                !gameState.started ||
-                Boolean(gameState.winnerId) ||
-                gameState.phase !== "ACTION"
-              }
-            >
-              <RotateCcw size={16} aria-hidden="true" /> Start Round
-            </button>
-            <button
-              type="button"
-              onClick={passPriority}
-              disabled={
-                !gameState.started ||
-                Boolean(gameState.winnerId) ||
-                gameState.phase !== "ACTION"
-              }
-            >
-              Pass Priority
-            </button>
-            <button type="button" onClick={resetGame}>
-              Reset
-            </button>
-          </div>
-        </header>
+      <main className="app-shell board-layout">
+        <aside className="left-rail">
+          <ActionLog entries={actionLog} />
+          <section className="quick-controls" aria-label="Game controls">
+            <div className="button-row">
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "START_GAME", firstPlayerId: "P1" })}
+                disabled={gameState.started}
+              >
+                <Zap size={16} aria-hidden="true" /> Start
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch({ type: "DRAW_CARD", playerId: gameState.priorityPlayerId })
+                }
+                disabled={!gameState.started || Boolean(gameState.winnerId)}
+              >
+                Draw
+              </button>
+              <button
+                type="button"
+                onClick={startRound}
+                disabled={
+                  !gameState.started ||
+                  Boolean(gameState.winnerId) ||
+                  gameState.phase !== "ACTION"
+                }
+              >
+                <RotateCcw size={16} aria-hidden="true" /> Round
+              </button>
+              <button
+                type="button"
+                onClick={passPriority}
+                disabled={
+                  !gameState.started ||
+                  Boolean(gameState.winnerId) ||
+                  gameState.phase !== "ACTION"
+                }
+              >
+                Pass
+              </button>
+              <button type="button" onClick={resetGame}>
+                Reset
+              </button>
+            </div>
+          </section>
+        </aside>
 
-        {gameState.winnerId ? (
-          <div className="winner-banner">{gameState.winnerId} wins the battle.</div>
-        ) : null}
-
-        <PlayerZone
-          player={gameState.players.P2}
-          gameState={gameState}
-          selectedBlockerId={selectedBlockerId}
-          selectedUnitIds={
-            gameState.players.P2.id === attackPlayerId ? attackerIds : assignedBlockerIds
-          }
-          selectedCardId={
-            selectedSpell?.ownerId === gameState.players.P2.id
-              ? selectedSpell.instanceId
-              : undefined
-          }
-          canPlay={canPlay}
-          onPlayCard={playCard}
-          onSelectBoardUnit={selectBoardUnit}
-        />
-
-        <section className="combat-controls" aria-label="Combat controls">
-          <div className="stat-row">
-            <span className="stat-pill">
-              <Swords size={14} aria-hidden="true" /> Attackers{" "}
-              <strong>{attackerCount}</strong>
-            </span>
-            <span className="stat-pill">
-              <Shield size={14} aria-hidden="true" /> Defender <strong>{defenderId}</strong>
-            </span>
-            {gameState.phase === "BLOCK" ? (
+        <section className="battle-table lor-table" aria-label="Local battle board">
+          <header className="topbar compact-topbar">
+            <div className="stat-row">
+              <span className="stat-pill">Round <strong>{gameState.round}</strong></span>
+              <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
+              <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
+              <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
               <span className="stat-pill">
-                Blocker{" "}
-                <strong>{selectedBlocker ? selectedBlocker.definition.name : "None"}</strong>
+                Attack <strong>{gameState.attackTokenPlayerId}{gameState.attackTokenAvailable ? "" : " spent"}</strong>
               </span>
+            </div>
+            {gameState.winnerId ? (
+              <div className="winner-banner">{gameState.winnerId} wins.</div>
             ) : null}
-            {selectedSpell ? (
-              <span className="stat-pill">
-                Spell <strong>{selectedSpell.definition.name}</strong>
-              </span>
-            ) : null}
-          </div>
-          <div className="button-row">
-            <button
-              type="button"
-              onClick={commitAttack}
-              disabled={
-                !gameState.started ||
-                Boolean(gameState.winnerId) ||
-                gameState.phase !== "ACTION" ||
-                gameState.priorityPlayerId !== attackPlayerId ||
-                !gameState.attackTokenAvailable ||
-                attackerCount === 0
-              }
-            >
-              Commit Attack
-            </button>
-            <button
-              type="button"
-              onClick={commitBlocks}
-              disabled={
-                !gameState.started ||
-                Boolean(gameState.winnerId) ||
-                gameState.phase !== "BLOCK" ||
-                gameState.priorityPlayerId !== defenderId ||
-                Boolean(selectedBlockerId)
-              }
-            >
-              Commit Blocks
-            </button>
-            <button
-              type="button"
-              onClick={resolveCombat}
-              disabled={
-                !gameState.started ||
-                Boolean(gameState.winnerId) ||
-                gameState.phase !== "COMBAT" ||
-                attackerCount === 0
-              }
-            >
-              Resolve Combat
-            </button>
-          </div>
-        </section>
+          </header>
 
-        {selectedSpell ? (
-          <section className="spell-panel" aria-label="Selected spell">
-            <div>
-              <div className="lane-label">Selected Spell</div>
+          <HandView
+            cards={gameState.players.P2.hand}
+            selectedCardId={
+              selectedSpell?.ownerId === "P2" ? selectedSpell.instanceId : undefined
+            }
+            canPlay={(card) => canPlay("P2", card)}
+            onPlayCard={(card) => playCard("P2", card)}
+          />
+
+          <div className="arena-grid">
+            <div className="side-counters">
+              {renderGraveyard("P2", "GY")}
+              {renderDeckStack("P2", "Deck")}
+              {renderDeckStack("P1", "Deck")}
+              {renderGraveyard("P1", "GY")}
+            </div>
+
+            <div className="center-board">
+              {renderRecallZone("P2")}
+
+              <div className="combat-status-bar">
+                {gameState.phase === "BLOCK" && attackerCount > 0 ? (
+                  <span className="stat-pill">
+                    <Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking
+                  </span>
+                ) : null}
+                {selectedBlocker ? (
+                  <span className="stat-pill">
+                    <Shield size={12} aria-hidden="true" /> <strong>{selectedBlocker.definition.name}</strong>
+                  </span>
+                ) : null}
+              </div>
+
+              <section className="attack-lanes" aria-label="Attack lanes">
+                <div className="attack-lane-grid">
+                  {gameState.combat.attackers.length === 0 ? (
+                    <div className="empty-slot">No attackers</div>
+                  ) : (
+                    gameState.combat.attackers.map((lane) => {
+                      const attacker = gameState.players[attackPlayerId].board.find(
+                        (unit) => unit.instanceId === lane.attackerId
+                      );
+                      const blocker = lane.blockerId
+                        ? gameState.players[defenderId].board.find(
+                            (unit) => unit.instanceId === lane.blockerId
+                          )
+                        : undefined;
+
+                      if (!attacker) {
+                        return null;
+                      }
+
+                      const canAssignBlocker =
+                        gameState.phase === "BLOCK" &&
+                        gameState.priorityPlayerId === defenderId &&
+                        Boolean(selectedBlockerId) &&
+                        !lane.blockerId;
+                      const canToggleAttacker =
+                        gameState.phase === "ACTION" &&
+                        gameState.priorityPlayerId === attackPlayerId &&
+                        gameState.attackTokenAvailable;
+                      const canUseLane = canAssignBlocker || canToggleAttacker;
+
+                      return (
+                        <div
+                          className={`attack-lane ${
+                            canUseLane ? "can-assign-blocker" : ""
+                          }`}
+                          key={lane.attackerId}
+                          role="button"
+                          tabIndex={canUseLane ? 0 : -1}
+                          onClick={() => {
+                            if (canUseLane) {
+                              selectBoardUnit(attackPlayerId, attacker);
+                            }
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              canUseLane &&
+                              (event.key === "Enter" || event.key === " ")
+                            ) {
+                              event.preventDefault();
+                              selectBoardUnit(attackPlayerId, attacker);
+                            }
+                          }}
+                        >
+                          <CardView
+                            unit={attacker}
+                            visualEvents={gameState.visualEvents.filter(
+                              (event) =>
+                                (event as any).targetId === attacker.instanceId ||
+                                (event as any).sourceId === attacker.instanceId
+                            )}
+                          />
+                          {gameState.phase === "BLOCK" ? (
+                            <div className="damage-preview">
+                              {(() => {
+                                const preview = getDamagePreview(attacker, blocker);
+                                const parts = [];
+                                if (preview.attackerTakes > 0) parts.push(`Atk ${preview.attackerTakes}`);
+                                if (preview.blockerTakes > 0) parts.push(`Blk ${preview.blockerTakes}`);
+                                if (preview.nexusTakes > 0) parts.push(`Nexus ${preview.nexusTakes}`);
+                                return parts.length > 0 ? parts.join(" · ") : "No damage";
+                              })()}
+                            </div>
+                          ) : null}
+                          <div className="blocker-slot">
+                            {blocker ? (
+                              <CardView
+                                unit={blocker}
+                                onClick={
+                                  gameState.phase === "BLOCK" &&
+                                  gameState.priorityPlayerId === defenderId
+                                    ? () => {
+                                        dispatch(
+                                          {
+                                            type: "REMOVE_BLOCKER",
+                                            playerId: defenderId,
+                                            blockerId: blocker.instanceId
+                                          },
+                                          `${defenderId} removed ${blocker.definition.name} from blocking.`
+                                        );
+                                      }
+                                    : undefined
+                                }
+                                visualEvents={gameState.visualEvents.filter(
+                                  (event) =>
+                                    (event as any).targetId === blocker.instanceId ||
+                                    (event as any).sourceId === blocker.instanceId
+                                )}
+                              />
+                            ) : (
+                              <span>{selectedBlockerId ? "Block here" : "Open"}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+              {renderRecallZone("P1")}
+            </div>
+
+            <div className="status-column">
+              {renderPlayerStatus("P2", "Nexus")}
+              {renderSpellStack("Spell")}
+              {(() => {
+                const action = getSmartAction();
+                return (
+                  <button
+                    type="button"
+                    className={`action-orb action-orb--${action.mode} ${
+                      action.enabled ? "action-orb--active" : ""
+                    }`}
+                    onClick={action.onClick}
+                    disabled={!action.enabled}
+                    aria-label={action.label}
+                  >
+                    <span className="action-orb__label">{action.label}</span>
+                    <span className="action-orb__sub">{action.sublabel}</span>
+                  </button>
+                );
+              })()}
+              {renderSpellStack("Spell")}
+              {renderPlayerStatus("P1", "Nexus")}
+            </div>
+          </div>
+
+          <HandView
+            cards={gameState.players.P1.hand}
+            selectedCardId={
+              selectedSpell?.ownerId === "P1" ? selectedSpell.instanceId : undefined
+            }
+            canPlay={(card) => canPlay("P1", card)}
+            onPlayCard={(card) => playCard("P1", card)}
+          />
+
+          {selectedSpell ? (
+            <section className="spell-panel floating-spell-panel" aria-label="Selected spell">
               <div className="spell-summary">
                 <strong>{selectedSpell.definition.name}</strong>
                 <span>
@@ -475,125 +745,26 @@ export function GameBoard() {
                     : describeNeededTarget(getPrimarySpellTarget(selectedSpell))}
                 </span>
               </div>
-            </div>
-            <div className="button-row">
-              <button
-                type="button"
-                onClick={castSelectedSpell}
-                disabled={!selectedSpellTarget}
-              >
-                Cast Spell
-              </button>
-              <button type="button" onClick={cancelSelectedSpell}>
-                Cancel
-              </button>
-            </div>
-          </section>
-        ) : null}
-
-        <section className="attack-lanes" aria-label="Attack lanes">
-          <div className="lane-heading">
-            <div className="lane-label">Attack Lanes</div>
-            {gameState.phase === "BLOCK" ? (
-              <div className="lane-help">
-                Select a {defenderId} board unit, then click an unblocked attacker lane.
-                {selectedBlocker ? " Assign the selected blocker before committing." : ""}
+              <div className="button-row">
+                <button
+                  type="button"
+                  onClick={castSelectedSpell}
+                  disabled={!selectedSpellTarget}
+                >
+                  Cast Spell
+                </button>
+                <button type="button" onClick={cancelSelectedSpell}>
+                  Cancel
+                </button>
               </div>
-            ) : null}
-          </div>
-          <div className="attack-lane-grid">
-            {gameState.combat.attackers.length === 0 ? (
-              <div className="empty-slot">No attackers committed</div>
-            ) : (
-              gameState.combat.attackers.map((lane) => {
-                const attacker = gameState.players[attackPlayerId].board.find(
-                  (unit) => unit.instanceId === lane.attackerId
-                );
-                const blocker = lane.blockerId
-                  ? gameState.players[defenderId].board.find(
-                      (unit) => unit.instanceId === lane.blockerId
-                    )
-                  : undefined;
-
-                if (!attacker) {
-                  return null;
-                }
-
-                return (
-                  <button
-                    className={`attack-lane ${
-                      selectedBlockerId && !lane.blockerId ? "can-assign-blocker" : ""
-                    }`}
-                    type="button"
-                    key={lane.attackerId}
-                    onClick={() => selectBoardUnit(attackPlayerId, attacker)}
-                    disabled={
-                      gameState.phase !== "BLOCK" ||
-                      gameState.priorityPlayerId !== defenderId ||
-                      !selectedBlockerId ||
-                      Boolean(lane.blockerId)
-                    }
-                  >
-                    <CardView 
-                       unit={attacker} 
-                       visualEvents={gameState.visualEvents.filter(e => (e as any).targetId === attacker.instanceId || (e as any).sourceId === attacker.instanceId)}
-                    />
-                    
-                    {gameState.phase === "BLOCK" && (
-                      <div className="damage-preview" style={{ fontSize: '12px', margin: '8px 0', padding: '4px 8px', background: 'rgba(0,0,0,0.6)', borderRadius: '4px', color: '#fff', textAlign: 'center' }}>
-                        {(() => {
-                           const preview = getDamagePreview(attacker, blocker);
-                           const parts = [];
-                           if (preview.attackerTakes > 0) parts.push(`Atk takes ${preview.attackerTakes}`);
-                           if (preview.blockerTakes > 0) parts.push(`Blk takes ${preview.blockerTakes}`);
-                           if (preview.nexusTakes > 0) parts.push(`Nexus takes ${preview.nexusTakes}`);
-                           return parts.length > 0 ? parts.join(" | ") : "No Damage";
-                        })()}
-                      </div>
-                    )}
-
-                    <div className="blocker-slot">
-                      {blocker ? (
-                        <CardView 
-                          unit={blocker} 
-                          visualEvents={gameState.visualEvents.filter(e => (e as any).targetId === blocker.instanceId || (e as any).sourceId === blocker.instanceId)}
-                        />
-                      ) : (
-                        <span>
-                          {selectedBlockerId ? "Click to block here" : "Unblocked"}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
+            </section>
+          ) : null}
         </section>
 
-        <PlayerZone
-          player={gameState.players.P1}
-          gameState={gameState}
-          selectedBlockerId={selectedBlockerId}
-          selectedUnitIds={
-            gameState.players.P1.id === attackPlayerId ? attackerIds : assignedBlockerIds
-          }
-          selectedCardId={
-            selectedSpell?.ownerId === gameState.players.P1.id
-              ? selectedSpell.instanceId
-              : undefined
-          }
-          canPlay={canPlay}
-          onPlayCard={playCard}
-          onSelectBoardUnit={selectBoardUnit}
-        />
-      </div>
-
-      <aside className="right-panel">
-        <CardInspector />
-        <ActionLog entries={actionLog} />
-      </aside>
-    </main>
+        <aside className="right-panel inspector-panel">
+          <CardInspector />
+        </aside>
+      </main>
     </HoverProvider>
   );
 }

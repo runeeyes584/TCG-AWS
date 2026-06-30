@@ -16,21 +16,19 @@ import {
   validateAction
 } from "./rules";
 import {
+  CardDefinition,
   CardInstance,
   GameAction,
   GameState,
   Keyword,
   PlayerId,
   PlayerState,
-  EffectDefinition,
   SpellTarget,
-  UnitModifier,
   UnitInstance
 } from "./types";
-import { resolveEffectQueue } from "./effects";
+import { enqueueEffect, resolveEffectQueue } from "./effects";
 import { emitEvent } from "./triggers";
 import { GameEvent } from "./events";
-import { sampleUnitCards } from "./sampleCards";
 
 export function updateChampionProgress(state: GameState, event: GameEvent): void {
   switch (event.type) {
@@ -72,7 +70,7 @@ export function checkChampionLevelUps(state: GameState): void {
         }
 
         if (leveledUp) {
-           const level2Def = sampleUnitCards.find(c => c.id === unit.definition.leveledUpCardId);
+           const level2Def = state.cardRegistry[unit.definition.leveledUpCardId];
            if (level2Def) {
              const healthDiff = (level2Def.health || 0) - (unit.definition.health || 0);
              unit.definition = level2Def;
@@ -105,14 +103,22 @@ export function createInitialPlayerState(
 }
 
 export function createInitialGameState(
-  p1Deck: CardInstance[] = [],
-  p2Deck: CardInstance[] = [],
-  rngSeed = 1
+  p1Deck: Array<CardInstance | CardDefinition> = [],
+  p2Deck: Array<CardInstance | CardDefinition> = [],
+  rngSeed = 1,
+  extraCardRegistry: Record<string, CardInstance["definition"]> = {}
 ): GameState {
+  const normalizedP1Deck = normalizeDeck(p1Deck, "P1");
+  const normalizedP2Deck = normalizeDeck(p2Deck, "P2");
+  const cardRegistry = buildCardRegistry(
+    [...normalizedP1Deck, ...normalizedP2Deck],
+    extraCardRegistry
+  );
+
   return {
     players: {
-      P1: createInitialPlayerState("P1", p1Deck),
-      P2: createInitialPlayerState("P2", p2Deck)
+      P1: createInitialPlayerState("P1", normalizedP1Deck),
+      P2: createInitialPlayerState("P2", normalizedP2Deck)
     },
     activePlayerId: "P1",
     priorityPlayerId: "P1",
@@ -128,7 +134,8 @@ export function createInitialGameState(
     rngSeed,
     started: false,
     effectQueue: [],
-    visualEvents: []
+    visualEvents: [],
+    cardRegistry
   };
 }
 
@@ -316,7 +323,13 @@ function playSpell(
 
   spendSpellMana(player, card.definition.cost);
   for (const effect of card.definition.effects ?? []) {
-    applySpellEffect(next, playerId, card, effect, target);
+    enqueueEffect(next, {
+      sourceId: card.instanceId,
+      sourceName: card.definition.name,
+      sourcePlayerId: playerId,
+      effect,
+      target
+    });
   }
   player.graveyard.push(card);
   next.consecutivePasses = 0;
@@ -366,11 +379,7 @@ function commitAttack(state: GameState, playerId: PlayerId): GameState {
   next.priorityPlayerId = defenderId;
   next.activePlayerId = defenderId;
   next.turn += 1;
-  
-  for (const lane of next.combat.attackers) {
-    emitEvent(next, { type: "ATTACK_DECLARED", playerId, attackerId: lane.attackerId });
-  }
-  
+
   return next;
 }
 
@@ -480,94 +489,6 @@ function resolveCombat(state: GameState): GameState {
   next.consecutivePasses = 0;
 
   return next;
-}
-
-function applySpellEffect(
-  state: GameState,
-  casterId: PlayerId,
-  sourceCard: CardInstance,
-  effect: EffectDefinition,
-  target: SpellTarget
-): void {
-  switch (effect.type) {
-    case "DEAL_DAMAGE":
-      if (target.type === "UNIT") {
-        dealDamageToUnit(state, findUnit(state, target.playerId, target.unitId), effect.amount);
-      } else if (target.type === "NEXUS") {
-        state.players[target.playerId].nexusHp -= effect.amount;
-        emitEvent(state, { type: "NEXUS_DAMAGED", playerId: target.playerId, amount: effect.amount });
-      } else if (target.type === "SELF") {
-        state.players[casterId].nexusHp -= effect.amount;
-        emitEvent(state, { type: "NEXUS_DAMAGED", playerId: casterId, amount: effect.amount });
-      }
-      return;
-    case "HEAL":
-      if (target.type === "UNIT") {
-        healUnit(state, findUnit(state, target.playerId, target.unitId), effect.amount);
-      } else if (target.type === "NEXUS") {
-        const player = state.players[target.playerId];
-        player.nexusHp = Math.min(STARTING_NEXUS_HP, player.nexusHp + effect.amount);
-      } else if (target.type === "SELF") {
-        const player = state.players[casterId];
-        player.nexusHp = Math.min(STARTING_NEXUS_HP, player.nexusHp + effect.amount);
-      }
-      return;
-    case "DRAW_CARD":
-      drawInto(state, state.players[casterId], effect.count);
-      return;
-    case "BUFF_UNIT": {
-      if (target.type !== "UNIT") {
-        return;
-      }
-      const unit = findUnit(state, target.playerId, target.unitId);
-      const unitModifier: UnitModifier = {
-        id: `${target.unitId}-${effect.type}-${state.round}-${state.turn}-${unit.modifiers.length}`,
-        sourceCardId: sourceCard.definition.id,
-        sourceName: sourceCard.definition.name,
-        type: "BUFF",
-        attackDelta: effect.attack,
-        healthDelta: effect.health,
-        duration: effect.duration ?? "THIS_ROUND",
-        createdRound: state.round,
-        createdTurn: state.turn
-      };
-      unit.modifiers.push(unitModifier);
-      return;
-    }
-    case "REVIVE_UNIT": {
-      const targetPlayerId = effect.target === "ALLY_GRAVEYARD" ? casterId : opponentOf(casterId);
-      const player = state.players[targetPlayerId];
-      if (player.graveyard.length === 0 || player.board.length >= 6) return;
-      
-      let entryIndex = player.graveyard.length - 1; // Default to most recently dead
-      if (target.type === "GRAVEYARD" && target.cardInstanceId) {
-        const found = player.graveyard.findIndex(c => c.instanceId === target.cardInstanceId);
-        if (found !== -1) entryIndex = found;
-      }
-      
-      const [entry] = player.graveyard.splice(entryIndex, 1);
-      
-      const instance = createUnitInstance({
-        instanceId: `${entry.definition.id}-${Date.now()}-${Math.random()}`,
-        definition: entry.definition,
-        ownerId: targetPlayerId
-      });
-      player.board.push(instance);
-      emitEvent(state, { type: "UNIT_SUMMONED", playerId: targetPlayerId, cardInstanceId: entry.instanceId, unitInstanceId: instance.instanceId });
-      return;
-    }
-    case "GRANT_KEYWORD":
-    case "SUMMON_UNIT":
-      // Handled in effects.ts, but spells might not natively use this without effect queue.
-      // But if played from a spell, we should support it:
-      import("./effects").then(m => m.enqueueEffect(state, {
-         sourceId: sourceCard.instanceId,
-         sourcePlayerId: casterId,
-         effect,
-         target
-      }));
-      return;
-  }
 }
 
 function spendSpellMana(player: PlayerState, cost: number): void {
@@ -726,4 +647,36 @@ function clearCombatAssignments(state: GameState): void {
       blockedByUnitId: undefined
     }));
   }
+}
+
+function buildCardRegistry(
+  cards: CardInstance[],
+  extraCardRegistry: Record<string, CardInstance["definition"]>
+): Record<string, CardInstance["definition"]> {
+  const registry: Record<string, CardInstance["definition"]> = {
+    ...extraCardRegistry
+  };
+
+  for (const card of cards) {
+    registry[card.definition.id] = card.definition;
+  }
+
+  return registry;
+}
+
+function normalizeDeck(
+  deck: Array<CardInstance | CardDefinition>,
+  ownerId: PlayerId
+): CardInstance[] {
+  return deck.map((entry, index) => {
+    if ("definition" in entry) {
+      return entry;
+    }
+
+    return {
+      instanceId: `${ownerId}-${entry.id}-${index}`,
+      definition: entry,
+      ownerId
+    };
+  });
 }

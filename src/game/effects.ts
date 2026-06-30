@@ -3,20 +3,20 @@ import {
   GameState,
   GameValidationError,
   PlayerId,
+  QueuedEffect,
   SpellTarget,
   UnitModifier
 } from "./types";
-import { checkWinConditions, findUnit, STARTING_NEXUS_HP, opponentOf } from "./rules";
+import {
+  BOARD_LIMIT,
+  checkWinConditions,
+  findUnit,
+  opponentOf,
+  STARTING_NEXUS_HP
+} from "./rules";
 import { dealDamageToUnit, healUnit, drawInto, runCleanupPipeline } from "./engine";
 import { createUnitInstance } from "./cards";
 import { emitEvent } from "./triggers";
-
-export interface QueuedEffect {
-  sourceId: string;       // ID of the card/unit that created this effect
-  sourcePlayerId: PlayerId; // Player who controls the source
-  effect: EffectDefinition;
-  target?: SpellTarget;   // Target for the effect, if applicable
-}
 
 export function enqueueEffect(state: GameState, queuedEffect: QueuedEffect): void {
   state.effectQueue.push(queuedEffect);
@@ -50,7 +50,7 @@ export function resolveEffectQueue(state: GameState): void {
 }
 
 function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
-  const { sourcePlayerId, sourceId, effect, target } = queuedEffect;
+  const { sourcePlayerId, sourceId, sourceName, effect, target } = queuedEffect;
   const casterId = sourcePlayerId;
 
   switch (effect.type) {
@@ -106,7 +106,7 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
         const unitModifier: UnitModifier = {
           id: `${target.unitId}-${effect.type}-${state.round}-${state.turn}-${unit.modifiers.length}`,
           sourceCardId: sourceId,
-          sourceName: sourceId,
+          sourceName: sourceName ?? sourceId,
           type: "BUFF",
           attackDelta: effect.attack,
           healthDelta: effect.health,
@@ -133,17 +133,15 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
     }
     case "SUMMON_UNIT": {
       const player = state.players[casterId];
-      if (player.board.length < 6) { // 6 is BOARD_LIMIT
-         // Need a way to create a unit from an ID. 
-         // Assuming effect.cardDefinition is available or we pass the definition?
-         // We can put it inside the effect payload.
+      if (player.board.length < BOARD_LIMIT) {
          if (effect.cardDefinition) {
             const instance = createUnitInstance({
-              instanceId: `${effect.cardDefinition.id}-${Date.now()}-${Math.random()}`,
+              instanceId: createGeneratedInstanceId(state, effect.cardDefinition.id),
               definition: effect.cardDefinition,
               ownerId: casterId
             });
             player.board.push(instance);
+            emitEvent(state, { type: "UNIT_SUMMONED", playerId: casterId, cardInstanceId: sourceId, unitInstanceId: instance.instanceId });
          }
       }
       return;
@@ -151,7 +149,7 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
     case "REVIVE_UNIT": {
       const targetPlayerId = effect.target === "ALLY_GRAVEYARD" ? casterId : opponentOf(casterId);
       const player = state.players[targetPlayerId];
-      if (player.graveyard.length === 0 || player.board.length >= 6) return;
+      if (player.graveyard.length === 0 || player.board.length >= BOARD_LIMIT) return;
       
       let entryIndex = player.graveyard.length - 1; // Default to most recently dead
       if (target?.type === "GRAVEYARD" && target.cardInstanceId) {
@@ -162,7 +160,7 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       const [entry] = player.graveyard.splice(entryIndex, 1);
       
       const instance = createUnitInstance({
-        instanceId: `${entry.definition.id}-${Date.now()}-${Math.random()}`,
+        instanceId: createGeneratedInstanceId(state, entry.definition.id),
         definition: entry.definition,
         ownerId: targetPlayerId
       });
@@ -173,4 +171,10 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       return;
     }
   }
+}
+
+function createGeneratedInstanceId(state: GameState, cardId: string): string {
+  const id = `${cardId}-generated-${state.rngSeed}`;
+  state.rngSeed += 1;
+  return id;
 }

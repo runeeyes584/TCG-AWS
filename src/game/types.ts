@@ -10,6 +10,13 @@ export type Keyword = "TOUGH" | "BARRIER" | "QUICK_ATTACK" | "OVERWHELM";
 
 export type SpellTargetKind = "ENEMY_UNIT" | "ALLY_UNIT" | "NEXUS" | "SELF" | "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD";
 
+export type TriggerTargetKind =
+  | "EVENT_UNIT"
+  | "SOURCE"
+  | "ALLY_NEXUS"
+  | "ENEMY_NEXUS"
+  | "RANDOM_ENEMY_UNIT";
+
 export type ModifierDuration =
   | "PERMANENT"
   | "THIS_ROUND"
@@ -32,12 +39,12 @@ export type EffectDefinition =
   | {
       type: "DEAL_DAMAGE";
       amount: number;
-      target: SpellTargetKind;
+      target: SpellTargetKind | TriggerTargetKind;
     }
   | {
       type: "HEAL";
       amount: number;
-      target: SpellTargetKind;
+      target: SpellTargetKind | TriggerTargetKind;
     }
   | {
       type: "DRAW_CARD";
@@ -48,13 +55,13 @@ export type EffectDefinition =
       type: "BUFF_UNIT";
       attack: number;
       health: number;
-      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF";
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind;
       duration?: ModifierDuration;
     }
   | {
       type: "GRANT_KEYWORD";
       keyword: Keyword;
-      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF";
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind;
     }
   | {
       type: "SUMMON_UNIT";
@@ -83,6 +90,7 @@ export type LevelUpCondition =
 
 export interface QueuedEffect {
   sourceId: string;
+  sourceName?: string;
   sourcePlayerId: PlayerId;
   effect: EffectDefinition;
   target?: SpellTarget;
@@ -184,6 +192,7 @@ export interface GameState {
   winnerId?: PlayerId;
   effectQueue: QueuedEffect[];
   visualEvents: VisualEvent[];
+  cardRegistry: Record<string, CardDefinition>;
 }
 
 export type GameAction =

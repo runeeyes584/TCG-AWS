@@ -27,14 +27,6 @@ export function useLocalGame() {
       setGameState(nextState);
       
       const newLogs = nextState.visualEvents.map(describeVisualEvent).filter((s): s is string => Boolean(s));
-      
-      // We want to add them in order. The addLog function prepends to the array, 
-      // so to keep them chronologically appearing top-to-bottom, we add the action label, then the triggers.
-      // Wait, addLog uses `[{...}, ...current]`. 
-      // So the most recent event is at the top.
-      
-      // Let's add the action log first, then the visual events in order.
-      // Actually, if we reverse the array and add them, the last event will be at the top.
       const allMessages = [label, ...newLogs].reverse();
       allMessages.forEach(msg => {
          if (msg) setActionLog(current => [{ id: Date.now() + Math.random(), message: msg }, ...current]);
@@ -45,6 +37,29 @@ export function useLocalGame() {
       addLog(error instanceof GameValidationError ? error.message : "Action failed.");
       return false;
     }
+  }
+
+  /** Chain multiple actions: each acts on the result of the previous one. */
+  function dispatchChain(actions: Array<{ action: GameAction; label?: string }>): boolean {
+    let state = gameState;
+    const allMessages: string[] = [];
+    for (const { action, label } of actions) {
+      try {
+        state = applyAction(state, action);
+        const msg = label ?? describeAction(action);
+        if (msg) allMessages.push(msg);
+        const newLogs = state.visualEvents.map(describeVisualEvent).filter((s): s is string => Boolean(s));
+        allMessages.push(...newLogs);
+      } catch (error) {
+        addLog(error instanceof GameValidationError ? error.message : "Action failed.");
+        return false;
+      }
+    }
+    setGameState(state);
+    [...allMessages].reverse().forEach(msg => {
+      if (msg) setActionLog(current => [{ id: Date.now() + Math.random(), message: msg }, ...current]);
+    });
+    return true;
   }
 
   function resetGame() {
@@ -60,6 +75,7 @@ export function useLocalGame() {
     gameState,
     actionLog,
     dispatch,
+    dispatchChain,
     resetGame
   };
 }
