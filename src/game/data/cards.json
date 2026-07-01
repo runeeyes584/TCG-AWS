@@ -126,11 +126,14 @@
     "type": "unit",
     "attack": 1,
     "health": 1,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/acolyte/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "acolyte-draw",
-        "event": "UNIT_SUMMONED",
-        "sourceId": "",
+        "when": {
+          "event": "UNIT_SUMMONED"
+        },
         "effects": [
           {
             "type": "DRAW_CARD",
@@ -139,9 +142,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/acolyte/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "fierce-striker",
@@ -150,11 +151,14 @@
     "type": "unit",
     "attack": 3,
     "health": 2,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/fierce-striker/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "fierce-buff",
-        "event": "ATTACK_DECLARED",
-        "sourceId": "",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
         "effects": [
           {
             "type": "BUFF_UNIT",
@@ -165,9 +169,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/fierce-striker/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "volatile-bomb",
@@ -176,11 +178,14 @@
     "type": "unit",
     "attack": 0,
     "health": 1,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/volatile-bomb/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "bomb-damage",
-        "event": "UNIT_DIED",
-        "sourceId": "",
+        "when": {
+          "event": "UNIT_DIED"
+        },
         "effects": [
           {
             "type": "DEAL_DAMAGE",
@@ -189,9 +194,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/volatile-bomb/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "spellweaver",
@@ -200,11 +203,14 @@
     "type": "unit",
     "attack": 2,
     "health": 2,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/spellweaver/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "weaver-buff",
-        "event": "SPELL_CAST",
-        "sourceId": "",
+        "when": {
+          "event": "SPELL_CAST"
+        },
         "effects": [
           {
             "type": "BUFF_UNIT",
@@ -215,9 +221,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/spellweaver/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "dawn-healer",
@@ -226,11 +230,14 @@
     "type": "unit",
     "attack": 1,
     "health": 4,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/dawn-healer/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "dawn-heal",
-        "event": "ROUND_STARTED",
-        "sourceId": "",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
         "effects": [
           {
             "type": "HEAL",
@@ -239,9 +246,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/dawn-healer/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "revenge-spirit",
@@ -250,11 +255,14 @@
     "type": "unit",
     "attack": 3,
     "health": 3,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/revenge-spirit/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "revenge-buff",
-        "event": "UNIT_DIED",
-        "sourceId": "",
+        "when": {
+          "event": "UNIT_DIED"
+        },
         "effects": [
           {
             "type": "BUFF_UNIT",
@@ -265,9 +273,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/revenge-spirit/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "nexus-guard",
@@ -276,11 +282,14 @@
     "type": "unit",
     "attack": 4,
     "health": 5,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/nexus-guard/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "guard-buff",
-        "event": "NEXUS_DAMAGED",
-        "sourceId": "",
+        "when": {
+          "event": "NEXUS_DAMAGED"
+        },
         "effects": [
           {
             "type": "BUFF_UNIT",
@@ -291,9 +300,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/nexus-guard/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "blood-mage",
@@ -302,11 +309,14 @@
     "type": "unit",
     "attack": 3,
     "health": 2,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/blood-mage/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "blood-draw",
-        "event": "UNIT_SUMMONED",
-        "sourceId": "",
+        "when": {
+          "event": "UNIT_SUMMONED"
+        },
         "effects": [
           {
             "type": "DEAL_DAMAGE",
@@ -320,9 +330,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/blood-mage/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "echoing-strike",
@@ -331,11 +339,14 @@
     "type": "unit",
     "attack": 3,
     "health": 4,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/echoing-strike/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "echo-dmg",
-        "event": "SPELL_CAST",
-        "sourceId": "",
+        "when": {
+          "event": "SPELL_CAST"
+        },
         "effects": [
           {
             "type": "DEAL_DAMAGE",
@@ -344,9 +355,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/echoing-strike/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "chain-brute",
@@ -355,11 +364,14 @@
     "type": "unit",
     "attack": 6,
     "health": 6,
-    "triggers": [
+    "imageUrl": "https://picsum.photos/seed/chain-brute/200/300",
+    "description": "A mysterious unit from the realm of Kaleidoscope.",
+    "abilities": [
       {
         "id": "chain-heal",
-        "event": "UNIT_DIED",
-        "sourceId": "",
+        "when": {
+          "event": "UNIT_DIED"
+        },
         "effects": [
           {
             "type": "HEAL",
@@ -368,9 +380,7 @@
           }
         ]
       }
-    ],
-    "imageUrl": "https://picsum.photos/seed/chain-brute/200/300",
-    "description": "A mysterious unit from the realm of Kaleidoscope."
+    ]
   },
   {
     "id": "darius-1",
@@ -493,7 +503,8 @@
       }
     ],
     "imageUrl": "https://picsum.photos/seed/shard-bolt/200/300",
-    "description": "A mysterious spell from the realm of Kaleidoscope."
+    "description": "A mysterious spell from the realm of Kaleidoscope.",
+    "spellSpeed": "fast"
   },
   {
     "id": "mending-light",
@@ -508,7 +519,8 @@
       }
     ],
     "imageUrl": "https://picsum.photos/seed/mending-light/200/300",
-    "description": "A mysterious spell from the realm of Kaleidoscope."
+    "description": "A mysterious spell from the realm of Kaleidoscope.",
+    "spellSpeed": "slow"
   },
   {
     "id": "refocus",
@@ -523,7 +535,8 @@
       }
     ],
     "imageUrl": "https://picsum.photos/seed/refocus/200/300",
-    "description": "A mysterious spell from the realm of Kaleidoscope."
+    "description": "A mysterious spell from the realm of Kaleidoscope.",
+    "spellSpeed": "slow"
   },
   {
     "id": "prismatic-charge",
@@ -539,7 +552,8 @@
       }
     ],
     "imageUrl": "https://picsum.photos/seed/prismatic-charge/200/300",
-    "description": "A mysterious spell from the realm of Kaleidoscope."
+    "description": "A mysterious spell from the realm of Kaleidoscope.",
+    "spellSpeed": "slow"
   },
   {
     "id": "nexus-spark",
@@ -554,7 +568,8 @@
       }
     ],
     "imageUrl": "https://picsum.photos/seed/nexus-spark/200/300",
-    "description": "A mysterious spell from the realm of Kaleidoscope."
+    "description": "A mysterious spell from the realm of Kaleidoscope.",
+    "spellSpeed": "fast"
   },
   {
     "id": "ability-spark",
@@ -580,7 +595,8 @@
       }
     ],
     "imageUrl": "https://picsum.photos/seed/ability-spark/200/300",
-    "description": "A mysterious spell from the realm of Kaleidoscope."
+    "description": "A mysterious spell from the realm of Kaleidoscope.",
+    "spellSpeed": "fast"
   },
   {
     "id": "ability-channeler",

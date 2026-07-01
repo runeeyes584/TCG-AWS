@@ -53,7 +53,7 @@ describe("Trigger System and Effect Queue", () => {
     // 1 card drawn from deck, hand has 1 card
     expect(state.players.P1.deck.length).toBe(initialDeckCount - 1);
     expect(state.players.P1.hand.length).toBe(1);
-    expect(state.visualEvents.some(e => e.type === "TRIGGER_ACTIVATED" && e.sourceId === "aco-1")).toBe(true);
+    expect(state.visualEvents.filter(e => e.type === "TRIGGER_ACTIVATED" && e.sourceId === "aco-1")).toHaveLength(1);
   });
 
   it("On attack: Fierce Striker gains +1 attack THIS_ROUND", () => {
@@ -99,6 +99,34 @@ describe("Trigger System and Effect Queue", () => {
     
     // P2 Nexus took 2 damage
     expect(state.players.P2.nexusHp).toBe(18);
+    expect(state.visualEvents.filter(e => e.type === "TRIGGER_ACTIVATED" && e.sourceId === "bomb-1")).toHaveLength(1);
+  });
+
+  it("On spell cast: Spellweaver buffs exactly once", () => {
+    let state = startedGame();
+    state = withHand(state, "P1", [card("spellweaver", "P1", "weaver-1")]);
+    state = applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "weaver-1" });
+    state = applyAction(state, { type: "END_TURN", playerId: "P2" });
+
+    const drawSpell: CardDefinition = {
+      id: "weaver-test-spell",
+      name: "Weaver Test Spell",
+      cost: 0,
+      type: "spell",
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    state = withHand(state, "P1", [createCardInstance(drawSpell, "P1", "spell-1")]);
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell-1",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(state.players.P1.board[0].modifiers).toHaveLength(1);
+    expect(getUnitAttack(state.players.P1.board[0])).toBe(3);
+    expect(getUnitMaxHealth(state.players.P1.board[0])).toBe(3);
+    expect(state.visualEvents.filter(e => e.type === "TRIGGER_ACTIVATED" && e.sourceId === "weaver-1")).toHaveLength(1);
   });
 
   it("Round start: Dawn Healer heals ally nexus", () => {

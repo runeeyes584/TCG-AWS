@@ -21,10 +21,12 @@ import {
   validateAction
 } from "./rules";
 import {
+  AbilityTargetMap,
   CardDefinition,
   CardInstance,
   GameAction,
   GameState,
+  GameValidationError,
   Keyword,
   PlayerId,
   PlayerState,
@@ -32,7 +34,11 @@ import {
   UnitInstance
 } from "./types";
 import { enqueueEffect, resolveEffectQueue, resolvePlayedSpellEffectTarget } from "./effects";
-import { executePlayedSpellAbilities } from "./abilities";
+import {
+  executeAbility,
+  executePlayedSpellAbilities,
+  getMissingRequiredTargets
+} from "./abilities";
 import { emitEvent } from "./triggers";
 import { GameEvent } from "./events";
 import {
@@ -42,6 +48,7 @@ import {
   moveUnitToGraveyard
 } from "./graveyard";
 import {
+  dealDamage,
   dealDamageToUnitState,
   discardCards as discardCardsOperation,
   drawCards as drawCardsOperation,
@@ -79,7 +86,7 @@ export function updateChampionProgress(state: GameState, event: GameEvent): void
       break;
     case "NEXUS_DAMAGED":
       if (event.playerId && event.amount) {
-        const dealerId = opponentOf(event.playerId);
+        const dealerId = event.sourcePlayerId ?? opponentOf(event.playerId);
         state.players[dealerId].championProgress["NEXUS_DAMAGE_DEALT"] = 
           (state.players[dealerId].championProgress["NEXUS_DAMAGE_DEALT"] || 0) + event.amount;
       }
@@ -138,7 +145,6 @@ function levelChampionUnit(
   unit.attack = level2Def.attack ?? unit.attack;
   unit.maxHealth = level2Def.health ?? unit.maxHealth;
   unit.keywords = [...(level2Def.keywords ?? [])];
-  unit.triggers = level2Def.triggers ? [...level2Def.triggers] : [];
 
   emitEvent(state, {
     type: "CHAMPION_LEVELED_UP",
@@ -235,6 +241,12 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       break;
     case "PLAY_SPELL":
       next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target);
+      break;
+    case "SUBMIT_ABILITY_TARGETS":
+      next = submitAbilityTargets(cleanState, action.playerId, action.targets);
+      break;
+    case "CANCEL_PENDING_CHOICE":
+      next = cancelPendingChoice(cleanState, action.playerId);
       break;
     case "DECLARE_ATTACKER":
       next = declareAttacker(cleanState, action.playerId, action.unitInstanceId);
@@ -412,8 +424,27 @@ function playUnit(
   next.consecutivePasses = 0;
   passPriority(next, playerId);
 
-  emitEvent(next, { type: "CARD_PLAYED", playerId, cardInstanceId });
-  emitEvent(next, { type: "UNIT_SUMMONED", playerId, cardInstanceId, unitInstanceId: card.instanceId });
+  emitEvent(next, {
+    type: "CARD_PLAYED",
+    playerId,
+    cardInstanceId,
+    sourcePlayerId: playerId,
+    sourceInstanceId: card.instanceId,
+    sourceCardId: card.cardId
+  });
+  emitEvent(next, {
+    type: "UNIT_SUMMONED",
+    playerId,
+    cardInstanceId,
+    unitInstanceId: card.instanceId,
+    sourcePlayerId: playerId,
+    sourceInstanceId: card.instanceId,
+    sourceCardId: card.cardId,
+    targetPlayerId: playerId,
+    targetInstanceId: card.instanceId,
+    targetUnitId: card.instanceId,
+    targetCardId: card.cardId
+  });
 
   return next;
 }
@@ -431,6 +462,32 @@ function playSpell(
   );
   const [card] = player.hand.splice(handIndex, 1);
   const definition = getCardDefinitionForInstance(card);
+  const spellSpeed = definition.spellSpeed ?? "slow";
+  const selectedTargets = createPlayedSpellTargetMap(playerId, target);
+
+  const pendingAbility = (definition.abilities ?? [])
+    .filter((ability) => !ability.when)
+    .map((ability) => ({
+      ability,
+      missingTargets: getMissingRequiredTargets(ability, selectedTargets)
+    }))
+    .find((candidate) => candidate.missingTargets.length > 0);
+
+  if (pendingAbility) {
+    player.hand.splice(handIndex, 0, card);
+    next.pendingChoice = {
+      playerId,
+      sourceInstanceId: card.instanceId,
+      sourceCardId: card.cardId,
+      abilityId: pendingAbility.ability.id,
+      requiredTargets: pendingAbility.missingTargets,
+      chosenTargets: selectedTargets,
+      returnPhase: next.phase
+    };
+    next.priorityPlayerId = playerId;
+    next.activePlayerId = playerId;
+    return next;
+  }
 
   spendSpellMana(player, definition.cost);
   if (definition.abilities?.length) {
@@ -440,6 +497,7 @@ function playSpell(
       enqueueEffect(next, {
         sourceId: card.instanceId,
         sourceName: definition.name,
+        sourceCardId: card.cardId,
         sourcePlayerId: playerId,
         effect,
         target: resolvePlayedSpellEffectTarget(effect, playerId, target)
@@ -449,12 +507,134 @@ function playSpell(
   // Move spell card to graveyard with full metadata
   moveSpellToGraveyard(next, card, playerId);
   next.consecutivePasses = 0;
-  passPriority(next, playerId);
+  // TODO: Add a full stack/response window for fast and slow spells.
+  if (spellSpeed !== "burst") {
+    passPriority(next, playerId);
+  }
   
-  emitEvent(next, { type: "CARD_PLAYED", playerId, cardInstanceId });
-  emitEvent(next, { type: "SPELL_CAST", playerId, cardInstanceId, target });
+  emitPlayedSpellEvents(next, playerId, card, target);
 
   return next;
+}
+
+function submitAbilityTargets(
+  state: GameState,
+  playerId: PlayerId,
+  targets: AbilityTargetMap
+): GameState {
+  const next = cloneState(state);
+  const pendingChoice = next.pendingChoice;
+  if (!pendingChoice) {
+    return next;
+  }
+
+  const player = next.players[playerId];
+  const cardIndex = player.hand.findIndex(
+    (card) => card.instanceId === pendingChoice.sourceInstanceId
+  );
+  const card = player.hand[cardIndex];
+  if (!card) {
+    throw new GameValidationError("Pending choice source card is not in hand.");
+  }
+  const definition = getCardDefinitionForInstance(card);
+  const ability = (definition.abilities ?? []).find(
+    (candidate) => candidate.id === pendingChoice.abilityId
+  );
+  if (!ability) {
+    throw new GameValidationError("Pending choice ability not found.");
+  }
+
+  const selectedTargets = {
+    ...pendingChoice.chosenTargets,
+    ...targets
+  };
+  rejectSourceCardAsHandTarget(selectedTargets, pendingChoice.sourceInstanceId);
+
+  if (player.mana + player.spellMana < definition.cost) {
+    throw new GameValidationError("Not enough mana.");
+  }
+
+  executeAbility(next, ability, {
+    sourceId: card.instanceId,
+    sourceName: definition.name,
+    sourcePlayerId: playerId,
+    sourceCard: card,
+    selectedTargets
+  });
+
+  const playedCardIndex = player.hand.findIndex(
+    (candidate) => candidate.instanceId === pendingChoice.sourceInstanceId
+  );
+  if (playedCardIndex === -1) {
+    throw new GameValidationError("Pending choice source card is not in hand.");
+  }
+  const [playedCard] = player.hand.splice(playedCardIndex, 1);
+  spendSpellMana(player, definition.cost);
+  moveSpellToGraveyard(next, playedCard, playerId);
+  next.pendingChoice = undefined;
+  next.phase = pendingChoice.returnPhase;
+  next.consecutivePasses = 0;
+  if ((definition.spellSpeed ?? "slow") !== "burst") {
+    passPriority(next, playerId);
+  }
+
+  emitPlayedSpellEvents(next, playerId, playedCard, selectedTargets.target);
+  return next;
+}
+
+function cancelPendingChoice(state: GameState, _playerId: PlayerId): GameState {
+  const next = cloneState(state);
+  if (next.pendingChoice) {
+    next.phase = next.pendingChoice.returnPhase;
+    next.pendingChoice = undefined;
+  }
+  return next;
+}
+
+function createPlayedSpellTargetMap(
+  playerId: PlayerId,
+  target: SpellTarget
+): AbilityTargetMap {
+  return {
+    target,
+    self: { type: "SELF", playerId }
+  };
+}
+
+function rejectSourceCardAsHandTarget(
+  targets: AbilityTargetMap,
+  sourceInstanceId: string
+): void {
+  for (const target of Object.values(targets)) {
+    if (target.type === "HAND_CARD" && target.cardInstanceId === sourceInstanceId) {
+      throw new GameValidationError("Ability cannot choose its source card as a hand-card target.");
+    }
+  }
+}
+
+function emitPlayedSpellEvents(
+  state: GameState,
+  playerId: PlayerId,
+  card: CardInstance,
+  target?: SpellTarget
+): void {
+  emitEvent(state, {
+    type: "CARD_PLAYED",
+    playerId,
+    cardInstanceId: card.instanceId,
+    sourcePlayerId: playerId,
+    sourceInstanceId: card.instanceId,
+    sourceCardId: card.cardId
+  });
+  emitEvent(state, {
+    type: "SPELL_CAST",
+    playerId,
+    cardInstanceId: card.instanceId,
+    target,
+    sourcePlayerId: playerId,
+    sourceInstanceId: card.instanceId,
+    sourceCardId: card.cardId
+  });
 }
 
 function declareAttacker(
@@ -573,30 +753,27 @@ function resolveCombat(state: GameState): GameState {
     if (blocker && getUnitHealth(blocker) > 0) {
       if (hasKeyword(attacker, "QUICK_ATTACK")) {
         const attackerAttack = getUnitAttack(attacker);
-        const result = dealDamageToUnit(next, blocker, attackerAttack);
-        emitUnitStruck(next, attacker, result.damageDealt);
+        const result = dealDamageToUnit(next, blocker, attackerAttack, attacker);
+        emitUnitStruck(next, attacker, result.damageDealt, blocker);
         if (hasKeyword(attacker, "OVERWHELM")) {
-          defenderPlayer.nexusHp -= result.excessDamage;
-          emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: result.excessDamage });
+          dealCombatNexusDamage(next, attacker, defenderId, result.excessDamage);
         }
         if (getUnitHealth(blocker) > 0) {
-          const blockerResult = dealDamageToUnit(next, attacker, getUnitAttack(blocker));
-          emitUnitStruck(next, blocker, blockerResult.damageDealt);
+          const blockerResult = dealDamageToUnit(next, attacker, getUnitAttack(blocker), blocker);
+          emitUnitStruck(next, blocker, blockerResult.damageDealt, attacker);
         }
       } else {
-        const result = dealDamageToUnit(next, blocker, getUnitAttack(attacker));
-        emitUnitStruck(next, attacker, result.damageDealt);
-        const blockerResult = dealDamageToUnit(next, attacker, getUnitAttack(blocker));
-        emitUnitStruck(next, blocker, blockerResult.damageDealt);
+        const result = dealDamageToUnit(next, blocker, getUnitAttack(attacker), attacker);
+        emitUnitStruck(next, attacker, result.damageDealt, blocker);
+        const blockerResult = dealDamageToUnit(next, attacker, getUnitAttack(blocker), blocker);
+        emitUnitStruck(next, blocker, blockerResult.damageDealt, attacker);
         if (hasKeyword(attacker, "OVERWHELM")) {
-          defenderPlayer.nexusHp -= result.excessDamage;
-          emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: result.excessDamage });
+          dealCombatNexusDamage(next, attacker, defenderId, result.excessDamage);
         }
       }
     } else {
-      defenderPlayer.nexusHp -= getUnitAttack(attacker);
       emitUnitStruck(next, attacker, getUnitAttack(attacker));
-      emitEvent(next, { type: "NEXUS_DAMAGED", playerId: defenderId, amount: getUnitAttack(attacker) });
+      dealCombatNexusDamage(next, attacker, defenderId, getUnitAttack(attacker));
     }
   }
 
@@ -644,16 +821,62 @@ function createRandom(seed: number): () => number {
 export function dealDamageToUnit(
   state: GameState,
   unit: UnitInstance,
-  amount: number
+  amount: number,
+  sourceUnit?: UnitInstance
 ): { damageDealt: number; excessDamage: number } {
-  return dealDamageToUnitState(state, unit, amount);
+  return dealDamageToUnitState(
+    state,
+    unit,
+    amount,
+    sourceUnit
+      ? {
+          playerId: sourceUnit.ownerId,
+          sourceId: sourceUnit.instanceId,
+          sourceInstanceId: sourceUnit.instanceId,
+          sourceCardId: sourceUnit.cardId,
+          damageType: "COMBAT"
+        }
+      : undefined
+  );
 }
 
-function emitUnitStruck(state: GameState, unit: UnitInstance, amount: number): void {
+function dealCombatNexusDamage(
+  state: GameState,
+  attacker: UnitInstance,
+  defenderId: PlayerId,
+  amount: number
+): void {
+  dealDamage(
+    state,
+    {
+      playerId: attacker.ownerId,
+      sourceId: attacker.instanceId,
+      sourceInstanceId: attacker.instanceId,
+      sourceCardId: attacker.cardId,
+      damageType: "COMBAT"
+    },
+    { type: "NEXUS", playerId: defenderId },
+    amount
+  );
+}
+
+function emitUnitStruck(
+  state: GameState,
+  unit: UnitInstance,
+  amount: number,
+  targetUnit?: UnitInstance
+): void {
   emitEvent(state, {
     type: "UNIT_STRUCK",
     playerId: unit.ownerId,
     unitInstanceId: unit.instanceId,
+    sourcePlayerId: unit.ownerId,
+    sourceInstanceId: unit.instanceId,
+    sourceCardId: unit.cardId,
+    targetPlayerId: targetUnit?.ownerId,
+    targetInstanceId: targetUnit?.instanceId,
+    targetUnitId: targetUnit?.instanceId,
+    targetCardId: targetUnit?.cardId,
     amount
   });
 }

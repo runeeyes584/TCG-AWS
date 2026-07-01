@@ -56,6 +56,10 @@ function withBoard(state: GameState, playerId: PlayerId, ids: string[]): GameSta
   };
 }
 
+function handCardTarget(playerId: PlayerId, cardInstanceId: string) {
+  return { type: "HAND_CARD" as const, playerId, cardInstanceId };
+}
+
 describe("ability system", () => {
   it("fails when a condition is not met", () => {
     const ability: Ability = {
@@ -241,5 +245,144 @@ describe("ability system", () => {
 
     expect(getUnitAttack(state.players.P1.board[0])).toBe(3);
     expect(state.visualEvents.some((event) => event.type === "TRIGGER_ACTIVATED")).toBe(true);
+  });
+
+  it("ALLY_HAND_CARD accepts a card in own hand", () => {
+    const ability: Ability = {
+      id: "target-own-hand",
+      targets: [{ id: "discardTarget", kind: "ALLY_HAND_CARD" }],
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    const state = startedGame();
+    state.players.P1.hand = [card(unit, "P1", "discard-me")];
+
+    expect(() =>
+      executeAbility(state, ability, {
+        sourceId: "source",
+        sourcePlayerId: "P1",
+        selectedTargets: { discardTarget: handCardTarget("P1", "discard-me") }
+      })
+    ).not.toThrow();
+  });
+
+  it("ALLY_HAND_CARD rejects a unit on board", () => {
+    const ability: Ability = {
+      id: "reject-board-unit",
+      targets: [{ id: "discardTarget", kind: "ALLY_HAND_CARD" }],
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    let state = startedGame();
+    state = withBoard(state, "P1", ["ally"]);
+
+    expect(() =>
+      executeAbility(state, ability, {
+        sourceId: "source",
+        sourcePlayerId: "P1",
+        selectedTargets: {
+          discardTarget: { type: "UNIT", playerId: "P1", unitId: "ally" }
+        }
+      })
+    ).toThrow(GameValidationError);
+  });
+
+  it("ALLY_HAND_CARD rejects a missing hand card", () => {
+    const ability: Ability = {
+      id: "reject-missing-hand-card",
+      targets: [{ id: "discardTarget", kind: "ALLY_HAND_CARD" }],
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    const state = startedGame();
+
+    expect(() =>
+      executeAbility(state, ability, {
+        sourceId: "source",
+        sourcePlayerId: "P1",
+        selectedTargets: { discardTarget: handCardTarget("P1", "missing") }
+      })
+    ).toThrow(GameValidationError);
+  });
+
+  it("ALLY_HAND_CARD rejects an enemy hand card", () => {
+    const ability: Ability = {
+      id: "reject-enemy-hand-card",
+      targets: [{ id: "discardTarget", kind: "ALLY_HAND_CARD" }],
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    const state = startedGame();
+    state.players.P2.hand = [card(unit, "P2", "enemy-card")];
+
+    expect(() =>
+      executeAbility(state, ability, {
+        sourceId: "source",
+        sourcePlayerId: "P1",
+        selectedTargets: { discardTarget: handCardTarget("P2", "enemy-card") }
+      })
+    ).toThrow(GameValidationError);
+  });
+
+  it("DISCARD cost removes the selected HAND_CARD and moves it to graveyard", () => {
+    const ability: Ability = {
+      id: "discard-to-draw",
+      targets: [{ id: "discardTarget", kind: "ALLY_HAND_CARD" }],
+      costs: [{ type: "DISCARD", target: "discardTarget" }],
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    const state = startedGame();
+    state.players.P1.hand = [card(unit, "P1", "discard-me")];
+
+    executeAbility(state, ability, {
+      sourceId: "source",
+      sourcePlayerId: "P1",
+      selectedTargets: { discardTarget: handCardTarget("P1", "discard-me") }
+    });
+
+    expect(state.players.P1.hand).toHaveLength(0);
+    expect(state.players.P1.graveyard[0]).toMatchObject({
+      instanceId: "discard-me",
+      cardId: "unit",
+      cause: "DISCARD"
+    });
+  });
+
+  it("DISCARD cost does not accept UNIT targets anymore", () => {
+    const ability: Ability = {
+      id: "bad-discard",
+      costs: [{ type: "DISCARD", target: "discardTarget" }],
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    let state = startedGame();
+    state = withBoard(state, "P1", ["ally"]);
+
+    expect(() =>
+      executeAbility(state, ability, {
+        sourceId: "source",
+        sourcePlayerId: "P1",
+        selectedTargets: {
+          discardTarget: { type: "UNIT", playerId: "P1", unitId: "ally" }
+        }
+      })
+    ).toThrow(GameValidationError);
+  });
+
+  it("a sample ability can discard one hand card to draw cards", () => {
+    const forbiddenResearch: Ability = {
+      id: "forbidden-research-cast",
+      targets: [{ id: "discardTarget", kind: "ALLY_HAND_CARD" }],
+      costs: [{ type: "DISCARD", target: "discardTarget" }],
+      effects: [{ type: "DRAW_CARD", count: 2, target: "SELF" }]
+    };
+    const state = startedGame();
+    state.players.P1.hand = [card(unit, "P1", "discard-me")];
+    const deckBefore = state.players.P1.deck.length;
+
+    executeAbility(state, forbiddenResearch, {
+      sourceId: "forbidden-research",
+      sourcePlayerId: "P1",
+      selectedTargets: { discardTarget: handCardTarget("P1", "discard-me") }
+    });
+    resolveEffectQueue(state);
+
+    expect(state.players.P1.graveyard.map((entry) => entry.instanceId)).toContain("discard-me");
+    expect(state.players.P1.deck).toHaveLength(deckBefore - 2);
   });
 });

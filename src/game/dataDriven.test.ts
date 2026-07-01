@@ -62,7 +62,7 @@ describe("data-driven card registry and operations", () => {
       health: 3
     };
 
-    expect(registerCardDefinition(champion)).toBe(champion);
+    expect(registerCardDefinition(champion)).toMatchObject(champion);
     expect(getCardDefinition(champion.id).type).toBe("champion");
   });
 
@@ -105,6 +105,146 @@ describe("data-driven card registry and operations", () => {
   it("JSON card data contains no uppercase CardType values", () => {
     const validTypes = new Set(["unit", "spell", "champion"]);
     expect((cardsJson as Array<{ type: string }>).every((card) => validTypes.has(card.type))).toBe(true);
+  });
+
+  it("normalizes legacy triggers into abilities when registered", () => {
+    const legacyCard: CardDefinition = {
+      id: "data-legacy-trigger-card",
+      name: "Legacy Trigger Card",
+      type: "unit",
+      cost: 1,
+      attack: 1,
+      health: 1,
+      triggers: [
+        {
+          id: "legacy-draw",
+          sourceId: "",
+          event: "UNIT_SUMMONED",
+          effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+        }
+      ]
+    };
+
+    const normalized = registerCardDefinition(legacyCard);
+
+    expect(normalized.triggers).toBeUndefined();
+    expect(normalized.abilities).toContainEqual({
+      id: "legacy-trigger:legacy-draw",
+      when: { event: "UNIT_SUMMONED" },
+      runtimeCondition: undefined,
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    });
+  });
+
+  it("does not duplicate a legacy trigger when an equivalent ability exists", () => {
+    const normalized = registerCardDefinition({
+      id: "data-legacy-and-ability",
+      name: "Legacy And Ability",
+      type: "unit",
+      cost: 1,
+      attack: 1,
+      health: 1,
+      abilities: [
+        {
+          id: "legacy-trigger:same-trigger",
+          when: { event: "UNIT_SUMMONED" },
+          effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+        }
+      ],
+      triggers: [
+        {
+          id: "same-trigger",
+          sourceId: "",
+          event: "UNIT_SUMMONED",
+          effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+        }
+      ]
+    });
+
+    expect(normalized.abilities).toHaveLength(1);
+  });
+
+  it("cards.json contains no legacy triggers fields", () => {
+    expect(JSON.stringify(cardsJson)).not.toContain('"triggers"');
+  });
+
+  it("CardRegistry accepts valid spellSpeed values", () => {
+    for (const spellSpeed of ["burst", "fast", "slow"] as const) {
+      const definition = registerCardDefinition({
+        id: `data-${spellSpeed}-spell`,
+        name: `${spellSpeed} spell`,
+        type: "spell",
+        cost: 0,
+        spellSpeed,
+        effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+      });
+
+      expect(definition.spellSpeed).toBe(spellSpeed);
+    }
+  });
+
+  it("rejects invalid spellSpeed values for spell cards", () => {
+    expect(() =>
+      registerCardDefinition({
+        id: "data-invalid-speed",
+        name: "Invalid Speed",
+        type: "spell",
+        cost: 0,
+        spellSpeed: "instant",
+        effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+      } as unknown as CardDefinition)
+    ).toThrow("Invalid spell speed: instant");
+  });
+
+  it("non-spell cards do not require spellSpeed", () => {
+    const definition = registerCardDefinition({
+      id: "data-no-speed-unit",
+      name: "No Speed Unit",
+      type: "unit",
+      cost: 1,
+      attack: 1,
+      health: 1
+    });
+
+    expect(definition.spellSpeed).toBeUndefined();
+  });
+
+  it("a migrated legacy trigger fires exactly once at runtime", () => {
+    const legacyDrawUnit: CardDefinition = {
+      id: "data-runtime-legacy-draw",
+      name: "Runtime Legacy Draw",
+      type: "unit",
+      cost: 0,
+      attack: 1,
+      health: 1,
+      triggers: [
+        {
+          id: "runtime-draw",
+          sourceId: "",
+          event: "UNIT_SUMMONED",
+          effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+        }
+      ]
+    };
+    let state = startedGame();
+    state.players.P1.hand = [card(legacyDrawUnit, "P1", "legacy-draw-unit")];
+    state.players.P1.mana = 10;
+    const deckBefore = state.players.P1.deck.length;
+
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: "legacy-draw-unit"
+    });
+
+    expect(state.players.P1.deck).toHaveLength(deckBefore - 1);
+    expect(
+      state.visualEvents.filter(
+        (event) =>
+          event.type === "TRIGGER_ACTIVATED" &&
+          event.sourceId === "legacy-draw-unit"
+      )
+    ).toHaveLength(1);
   });
 
   it("throws GameValidationError for invalid cardId", () => {

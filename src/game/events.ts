@@ -22,7 +22,7 @@ export type GameEventType =
 
 export interface GameEvent {
   type: GameEventType;
-  // Common contextual payload, depending on the event
+  // Legacy/common compatibility fields
   playerId?: PlayerId;
   cardInstanceId?: string;
   unitInstanceId?: string;
@@ -30,4 +30,19 @@ export interface GameEvent {
   blockerId?: string;
   amount?: number;
   target?: SpellTarget;
+
+  // Source context
+  sourcePlayerId?: PlayerId;
+  sourceInstanceId?: string;
+  sourceCardId?: string;
+
+  // Target context
+  targetPlayerId?: PlayerId;
+  targetInstanceId?: string;
+  targetCardId?: string;
+  targetUnitId?: string;
+
+  // Event classification
+  damageType?: "COMBAT" | "SPELL" | "EFFECT" | "COST" | "FATIGUE";
+  cause?: string;
 }

@@ -6,6 +6,7 @@ import {
   CardInstance,
   ConditionDefinition,
   CostDefinition,
+  EffectDefinition,
   GameState,
   GameValidationError,
   PlayerId,
@@ -13,9 +14,10 @@ import {
   TargetDefinition,
   UnitInstance
 } from "./types";
-import { findUnit, opponentOf } from "./rules";
+import { findCardInHand, findUnit, opponentOf } from "./rules";
 import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth } from "./cards";
-import { moveCardToGraveyard, moveUnitToGraveyard } from "./graveyard";
+import { moveUnitToGraveyard } from "./graveyard";
+import { discardCards } from "./operations";
 
 export interface AbilityContext {
   sourceId: string;
@@ -27,13 +29,26 @@ export interface AbilityContext {
   event?: GameEvent;
 }
 
+export function getMissingRequiredTargets(
+  ability: Ability,
+  selectedTargets: AbilityTargetMap = {}
+): TargetDefinition[] {
+  return (ability.targets ?? []).filter(
+    (targetDefinition) =>
+      targetDefinition.required !== false && !selectedTargets[targetDefinition.id]
+  );
+}
+
 export function executeAbility(
   state: GameState,
   ability: Ability,
   context: AbilityContext
-): void {
+): boolean {
   if (!doesTriggerMatch(ability, context.event)) {
-    return;
+    return false;
+  }
+  if (ability.runtimeCondition && context.event && !ability.runtimeCondition(state, context.event)) {
+    return false;
   }
 
   assertConditions(state, ability.conditions ?? [], context);
@@ -45,11 +60,13 @@ export function executeAbility(
     enqueueEffect(state, {
       sourceId: context.sourceId,
       sourceName: context.sourceName ?? ability.id,
+      sourceCardId: context.sourceCard?.cardId ?? context.sourceUnit?.cardId,
       sourcePlayerId: context.sourcePlayerId,
       effect,
-      target: resolveEffectTarget(effect.target, context, targets)
+      target: resolveEffectTarget(state, effect, context, targets)
     });
   }
+  return true;
 }
 
 export function executePlayedSpellAbilities(
@@ -80,28 +97,36 @@ export function executeTriggeredAbilities(state: GameState, event: GameEvent): v
     for (const unit of state.players[playerId].board) {
       const definition = getCardDefinitionForUnit(unit);
       for (const ability of definition.abilities ?? []) {
-        if (!ability.when) {
+        if (!ability.when || ability.when.event !== event.type) {
           continue;
         }
         try {
-          executeAbility(state, ability, {
+          const didFire = executeAbility(state, ability, {
             sourceId: unit.instanceId,
-            sourceName: definition.name,
+            sourceName: getTriggeredAbilitySourceName(ability.id),
             sourcePlayerId: playerId,
             sourceUnit: unit,
             event
           });
-          state.visualEvents.push({
-            type: "TRIGGER_ACTIVATED",
-            sourceId: unit.instanceId,
-            effectName: ability.id
-          });
+          if (didFire) {
+            state.visualEvents.push({
+              type: "TRIGGER_ACTIVATED",
+              sourceId: unit.instanceId,
+              effectName: ability.id
+            });
+          }
         } catch {
           // Triggered abilities with unmet conditions/costs simply do not fire.
         }
       }
     }
   }
+}
+
+function getTriggeredAbilitySourceName(abilityId: string): string {
+  return abilityId.startsWith("legacy-trigger:")
+    ? abilityId.slice("legacy-trigger:".length)
+    : abilityId;
 }
 
 function doesTriggerMatch(ability: Ability, event?: GameEvent): boolean {
@@ -263,7 +288,27 @@ function assertTargetDefinition(
     case "ANY_TARGET":
       if (target.type === "UNIT") {
         findUnit(state, target.playerId, target.unitId);
+      } else if (target.type === "HAND_CARD") {
+        findCardInHand(state, target.playerId, target.cardInstanceId);
       }
+      break;
+    case "ALLY_HAND_CARD":
+      if (target.type !== "HAND_CARD" || target.playerId !== sourcePlayerId) {
+        throw new GameValidationError("Ability target must be an allied hand card.");
+      }
+      findCardInHand(state, target.playerId, target.cardInstanceId);
+      break;
+    case "ENEMY_HAND_CARD":
+      if (target.type !== "HAND_CARD" || target.playerId !== opponentOf(sourcePlayerId)) {
+        throw new GameValidationError("Ability target must be an enemy hand card.");
+      }
+      findCardInHand(state, target.playerId, target.cardInstanceId);
+      break;
+    case "ANY_HAND_CARD":
+      if (target.type !== "HAND_CARD") {
+        throw new GameValidationError("Ability target must be a hand card.");
+      }
+      findCardInHand(state, target.playerId, target.cardInstanceId);
       break;
   }
 }
@@ -287,7 +332,7 @@ function assertCosts(
         }
         break;
       case "DISCARD":
-        requireTargetCardInHand(state, context.sourcePlayerId, targets[cost.target]);
+        requireDiscardHandCardTarget(state, context.sourcePlayerId, targets[cost.target]);
         break;
       case "SACRIFICE_UNIT":
       case "DESTROY_ALLY":
@@ -320,13 +365,8 @@ function payCosts(
         break;
       case "DISCARD": {
         const target = targets[cost.target];
-        const hand = state.players[context.sourcePlayerId].hand;
-        if (target?.type !== "UNIT") {
-          throw new GameValidationError("Discard cost requires a card target.");
-        }
-        const index = hand.findIndex((card) => card.instanceId === target?.unitId);
-        const [card] = hand.splice(index, 1);
-        moveCardToGraveyard(state, card, context.sourcePlayerId, "DISCARD");
+        requireDiscardHandCardTarget(state, context.sourcePlayerId, target);
+        discardCards(state, context.sourcePlayerId, [target.cardInstanceId]);
         break;
       }
       case "SACRIFICE_UNIT":
@@ -348,30 +388,51 @@ function payCosts(
 }
 
 function resolveEffectTarget(
-  effectTarget: string,
+  state: GameState,
+  effect: EffectDefinition,
   context: AbilityContext,
   targets: AbilityTargetMap
 ): SpellTarget | undefined {
+  const effectTarget = effect.target;
   if (targets[effectTarget]) {
     return targets[effectTarget];
   }
 
   switch (effectTarget) {
     case "SELF":
+      if (effect.type === "DRAW_CARD") {
+        return { type: "SELF", playerId: context.sourcePlayerId };
+      }
+      return resolveSourceUnitOrSelf(context);
     case "SOURCE":
-      return context.sourceUnit
-        ? { type: "UNIT", playerId: context.sourcePlayerId, unitId: context.sourceUnit.instanceId }
-        : { type: "SELF", playerId: context.sourcePlayerId };
+      return resolveSourceUnitOrSelf(context);
     case "ALLY_NEXUS":
       return { type: "NEXUS", playerId: context.sourcePlayerId };
     case "ENEMY_NEXUS":
-    case "NEXUS":
       return { type: "NEXUS", playerId: opponentOf(context.sourcePlayerId) };
+    case "NEXUS":
+      return {
+        type: "NEXUS",
+        playerId: effect.type === "HEAL" ? context.sourcePlayerId : opponentOf(context.sourcePlayerId)
+      };
     case "EVENT_UNIT":
       return resolveEventUnitTarget(context.event);
+    case "RANDOM_ENEMY_UNIT":
+      return resolveRandomEnemyUnitTarget(state, context.sourcePlayerId);
+    case "ALLY_UNIT":
+    case "ENEMY_UNIT":
+      return context.sourceUnit
+        ? { type: "UNIT", playerId: context.sourcePlayerId, unitId: context.sourceUnit.instanceId }
+        : targets.target;
     default:
       return targets.target;
   }
+}
+
+function resolveSourceUnitOrSelf(context: AbilityContext): SpellTarget {
+  return context.sourceUnit
+    ? { type: "UNIT", playerId: context.sourcePlayerId, unitId: context.sourceUnit.instanceId }
+    : { type: "SELF", playerId: context.sourcePlayerId };
 }
 
 function resolveEventUnitTarget(event?: GameEvent): SpellTarget | undefined {
@@ -382,17 +443,30 @@ function resolveEventUnitTarget(event?: GameEvent): SpellTarget | undefined {
   return { type: "UNIT", playerId: event.playerId, unitId };
 }
 
-function requireTargetCardInHand(
+function resolveRandomEnemyUnitTarget(
+  state: GameState,
+  sourcePlayerId: PlayerId
+): SpellTarget | undefined {
+  const enemyId = opponentOf(sourcePlayerId);
+  const enemyBoard = state.players[enemyId].board;
+  if (enemyBoard.length === 0) {
+    return undefined;
+  }
+
+  const index = state.rngSeed % enemyBoard.length;
+  state.rngSeed += 1;
+  return { type: "UNIT", playerId: enemyId, unitId: enemyBoard[index].instanceId };
+}
+
+function requireDiscardHandCardTarget(
   state: GameState,
   playerId: PlayerId,
   target: SpellTarget | undefined
-): void {
-  if (!target || target.type !== "UNIT") {
-    throw new GameValidationError("Discard cost requires a card target.");
+): asserts target is { type: "HAND_CARD"; playerId: PlayerId; cardInstanceId: string } {
+  if (!target || target.type !== "HAND_CARD" || target.playerId !== playerId) {
+    throw new GameValidationError("Discard cost requires an allied hand card target.");
   }
-  if (!state.players[playerId].hand.some((card) => card.instanceId === target.unitId)) {
-    throw new GameValidationError("Discard cost card is not in hand.");
-  }
+  findCardInHand(state, playerId, target.cardInstanceId);
 }
 
 function requireAlliedUnitTarget(

@@ -8,6 +8,8 @@ export type GamePhase = "ACTION" | "BLOCK" | "COMBAT" | "DISCARD";
 
 export type Keyword = "TOUGH" | "BARRIER" | "QUICK_ATTACK" | "OVERWHELM";
 
+export type SpellSpeed = "burst" | "fast" | "slow";
+
 export type SpellTargetKind = "ENEMY_UNIT" | "ALLY_UNIT" | "NEXUS" | "SELF" | "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD";
 
 export type TriggerTargetKind =
@@ -24,7 +26,10 @@ export type AbilityTargetKind =
   | "ANY_UNIT"
   | "ALLY_NEXUS"
   | "ENEMY_NEXUS"
-  | "ANY_TARGET";
+  | "ANY_TARGET"
+  | "ALLY_HAND_CARD"
+  | "ENEMY_HAND_CARD"
+  | "ANY_HAND_CARD";
 
 export type ModifierDuration =
   | "PERMANENT"
@@ -119,6 +124,7 @@ export type CostDefinition =
 export interface Ability {
   id: string;
   when?: TriggerDefinition;
+  runtimeCondition?: (state: GameState, event: GameEvent) => boolean;
   conditions?: ConditionDefinition[];
   targets?: TargetDefinition[];
   costs?: CostDefinition[];
@@ -142,6 +148,7 @@ export type LevelUpCondition =
 export interface QueuedEffect {
   sourceId: string;
   sourceName?: string;
+  sourceCardId?: string;
   sourcePlayerId: PlayerId;
   effect: EffectDefinition;
   target?: SpellTarget;
@@ -153,7 +160,8 @@ export type SpellTarget =
   | { type: "UNIT"; playerId: PlayerId; unitId: string }
   | { type: "NEXUS"; playerId: PlayerId }
   | { type: "SELF"; playerId: PlayerId }
-  | { type: "GRAVEYARD"; playerId: PlayerId; cardInstanceId?: string };
+  | { type: "GRAVEYARD"; playerId: PlayerId; cardInstanceId?: string }
+  | { type: "HAND_CARD"; playerId: PlayerId; cardInstanceId: string };
 
 export interface CombatAttacker {
   attackerId: string;
@@ -164,11 +172,25 @@ export interface CombatState {
   attackers: CombatAttacker[];
 }
 
+export interface PendingChoice {
+  playerId: PlayerId;
+  sourceInstanceId: string;
+  sourceCardId: string;
+  abilityId: string;
+  requiredTargets: TargetDefinition[];
+  chosenTargets: AbilityTargetMap;
+  returnPhase: GamePhase;
+}
+
 export interface CardDefinition {
   id: string;
   name: string;
   cost: number;
   type: CardType;
+  /**
+   * Spell timing category. Missing spellSpeed is treated as "slow" for MVP rules.
+   */
+  spellSpeed?: SpellSpeed;
   description?: string;
   imageUrl?: string;
   championId?: string;
@@ -177,6 +199,10 @@ export interface CardDefinition {
   health?: number;
   keywords?: Keyword[];
   effects?: EffectDefinition[];
+  /**
+   * @deprecated Use abilities with `when` instead.
+   * Legacy triggers are normalized into abilities by cardRegistry.
+   */
   triggers?: Trigger[];
   abilities?: Ability[];
   level?: 1 | 2;
@@ -269,6 +295,7 @@ export interface GameState {
     downTo: number;
     returnPhase: Exclude<GamePhase, "DISCARD">;
   };
+  pendingChoice?: PendingChoice;
   combat: CombatState;
   round: number;
   turn: number;
@@ -292,6 +319,12 @@ export type GameAction =
       cardInstanceId: string;
       target: SpellTarget;
     }
+  | {
+      type: "SUBMIT_ABILITY_TARGETS";
+      playerId: PlayerId;
+      targets: AbilityTargetMap;
+    }
+  | { type: "CANCEL_PENDING_CHOICE"; playerId: PlayerId }
   | { type: "DECLARE_ATTACKER"; playerId: PlayerId; unitInstanceId: string }
   | { type: "REMOVE_ATTACKER"; playerId: PlayerId; unitInstanceId: string }
   | { type: "COMMIT_ATTACK"; playerId: PlayerId }

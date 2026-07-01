@@ -36,6 +36,14 @@ export function validateAction(state: GameState, action: GameAction): void {
     throw new GameValidationError("Discard cards until your hand has 6 cards.");
   }
 
+  if (
+    state.pendingChoice &&
+    action.type !== "SUBMIT_ABILITY_TARGETS" &&
+    action.type !== "CANCEL_PENDING_CHOICE"
+  ) {
+    throw new GameValidationError("Resolve the pending ability choice first.");
+  }
+
   switch (action.type) {
     case "START_GAME":
       if (state.started) {
@@ -67,6 +75,12 @@ export function validateAction(state: GameState, action: GameAction): void {
       assertPhase(state, "ACTION");
       assertPriority(state, action.playerId);
       assertPlayableSpell(state, action.playerId, action.cardInstanceId, action.target);
+      return;
+    case "SUBMIT_ABILITY_TARGETS":
+      assertPendingChoicePlayer(state, action.playerId);
+      return;
+    case "CANCEL_PENDING_CHOICE":
+      assertPendingChoicePlayer(state, action.playerId);
       return;
     case "DECLARE_ATTACKER":
       assertPhase(state, "ACTION");
@@ -170,6 +184,20 @@ export function findUnit(
   return unit;
 }
 
+export function findCardInHand(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: string
+): CardInstance {
+  const card = state.players[playerId].hand.find(
+    (candidate) => candidate.instanceId === cardInstanceId
+  );
+  if (!card) {
+    throw new GameValidationError("Card is not in hand.");
+  }
+  return card;
+}
+
 export function getAttackers(state: GameState): UnitInstance[] {
   return state.combat.attackers.map((lane) =>
     findUnit(state, state.attackTokenPlayerId, lane.attackerId)
@@ -189,6 +217,13 @@ export function cloneState(state: GameState): GameState {
     })),
     visualEvents: state.visualEvents.map((event) => ({ ...event })),
     pendingDiscard: state.pendingDiscard ? { ...state.pendingDiscard } : undefined,
+    pendingChoice: state.pendingChoice
+      ? {
+          ...state.pendingChoice,
+          requiredTargets: state.pendingChoice.requiredTargets.map((target) => ({ ...target })),
+          chosenTargets: cloneAbilityTargetMap(state.pendingChoice.chosenTargets)
+        }
+      : undefined,
     combat: {
       attackers: state.combat.attackers.map((lane) => ({ ...lane }))
     },
@@ -215,6 +250,16 @@ function assertPriority(state: GameState, playerId: PlayerId): void {
 function assertPhase(state: GameState, phase: GameState["phase"]): void {
   if (state.phase !== phase) {
     throw new GameValidationError(`Action is not allowed during ${state.phase}.`);
+  }
+}
+
+function assertPendingChoicePlayer(state: GameState, playerId: PlayerId): void {
+  assertPlayer(playerId);
+  if (!state.pendingChoice) {
+    throw new GameValidationError("No ability choice is pending.");
+  }
+  if (state.pendingChoice.playerId !== playerId) {
+    throw new GameValidationError("Only the pending player can submit ability targets.");
   }
 }
 
@@ -447,4 +492,12 @@ function cloneCard(card: CardInstance): CardInstance {
     ...card,
     cardId: card.cardId
   };
+}
+
+function cloneAbilityTargetMap(
+  targets: import("./types").AbilityTargetMap
+): import("./types").AbilityTargetMap {
+  return Object.fromEntries(
+    Object.entries(targets).map(([key, target]) => [key, { ...target }])
+  );
 }

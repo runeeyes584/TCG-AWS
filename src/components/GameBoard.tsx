@@ -448,19 +448,34 @@ export function GameBoard() {
 
   function renderPlayerStatus(playerId: PlayerId, label: string) {
     const player = gameState.players[playerId];
-    const hasToken = gameState.attackTokenPlayerId === playerId;
+    const isAttacker = gameState.attackTokenPlayerId === playerId;
     const hasPriority = gameState.priorityPlayerId === playerId;
+    const RoleIcon = isAttacker ? Swords : Shield;
+    const roleLabel = isAttacker
+      ? gameState.attackTokenAvailable
+        ? "Attack"
+        : "Spent"
+      : "Defense";
 
     return (
-      <div className={`nexus-orb ${hasPriority ? "is-priority" : ""}`}>
+      <div
+        className={`nexus-orb ${hasPriority ? "is-priority" : ""} ${
+          isAttacker ? "is-attacker" : "is-defender"
+        }`}
+      >
         <span>{label}</span>
         <strong>{player.nexusHp}</strong>
         <small>
           {player.mana}/{player.maxMana} mana · {player.spellMana} spell
         </small>
-        {hasToken ? (
-          <small>{gameState.attackTokenAvailable ? "Attack" : "Spent"}</small>
-        ) : null}
+        <small
+          className={`combat-role ${
+            isAttacker ? "is-attacker" : "is-defender"
+          }`}
+        >
+          <RoleIcon size={11} aria-hidden="true" />
+          {roleLabel}
+        </small>
       </div>
     );
   }
@@ -978,5 +993,7 @@ function describeSpellTarget(target: SpellTarget): string {
       return `${target.playerId}`;
     case "GRAVEYARD":
       return `${target.playerId} graveyard`;
+    case "HAND_CARD":
+      return `${target.playerId} hand card`;
   }
 }

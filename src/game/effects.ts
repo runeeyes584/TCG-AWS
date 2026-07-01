@@ -89,13 +89,24 @@ export function resolvePlayedSpellEffectTarget(
 }
 
 function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
-  const { sourcePlayerId, sourceId, sourceName, effect, target } = queuedEffect;
+  const { sourcePlayerId, sourceId, sourceName, sourceCardId, effect, target } = queuedEffect;
   const casterId = sourcePlayerId;
 
   switch (effect.type) {
     case "DEAL_DAMAGE":
       if (target) {
-        dealDamage(state, { playerId: casterId, sourceId }, target, effect.amount);
+        dealDamage(
+          state,
+          {
+            playerId: casterId,
+            sourceId,
+            sourceInstanceId: sourceId,
+            sourceCardId,
+            damageType: "SPELL"
+          },
+          target,
+          effect.amount
+        );
       }
       return;
     case "HEAL":

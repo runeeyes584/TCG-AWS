@@ -42,6 +42,61 @@ const guardian: CardDefinition = {
   health: 5
 };
 
+const nexusWatcher: CardDefinition = {
+  id: "nexus-watcher",
+  name: "Nexus Watcher",
+  cost: 1,
+  type: "unit",
+  attack: 1,
+  health: 3,
+  abilities: [
+    {
+      id: "watch-nexus-damage",
+      when: { event: "NEXUS_DAMAGED" },
+      effects: [
+        {
+          type: "BUFF_UNIT",
+          attack: 1,
+          health: 0,
+          target: "SELF",
+          duration: "PERMANENT"
+        }
+      ]
+    }
+  ]
+};
+
+function eventWatcher(
+  id: string,
+  event: import("./events").GameEventType,
+  runtimeCondition: NonNullable<CardDefinition["abilities"]>[number]["runtimeCondition"]
+): CardDefinition {
+  return {
+    id,
+    name: id,
+    cost: 0,
+    type: "unit",
+    attack: 0,
+    health: 3,
+    abilities: [
+      {
+        id: `${id}-watch`,
+        when: { event },
+        runtimeCondition,
+        effects: [
+          {
+            type: "BUFF_UNIT",
+            attack: 1,
+            health: 0,
+            target: "SELF",
+            duration: "PERMANENT"
+          }
+        ]
+      }
+    ]
+  };
+}
+
 function card(definition: CardDefinition, ownerId: PlayerId, id: string) {
   return createCardInstance(definition, ownerId, id);
 }
@@ -108,6 +163,39 @@ function spell(id: string, effect: SpellEffect, cost = 1) {
     cost,
     type: "spell" as const,
     effects: [effect]
+  };
+}
+
+function forbiddenResearchSpell(): CardDefinition {
+  return {
+    id: "forbidden-research",
+    name: "Forbidden Research",
+    cost: 1,
+    type: "spell",
+    abilities: [
+      {
+        id: "forbidden-research-cast",
+        targets: [
+          {
+            id: "discardTarget",
+            kind: "ALLY_HAND_CARD"
+          }
+        ],
+        costs: [
+          {
+            type: "DISCARD",
+            target: "discardTarget"
+          }
+        ],
+        effects: [
+          {
+            type: "DRAW_CARD",
+            count: 2,
+            target: "SELF"
+          }
+        ]
+      }
+    ]
   };
 }
 
@@ -502,6 +590,396 @@ describe("game engine", () => {
         playerId: "P1"
       })
     ).toThrow(GameValidationError);
+  });
+
+  it("unblocked combat damage goes through dealDamage and emits NEXUS_DAMAGED once", () => {
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(bruiser, "P1", "attacker")),
+      createUnitInstance(card(nexusWatcher, "P1", "watcher"))
+    ]);
+
+    state = declareAndCommitAttack(state, "attacker");
+    state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: "P2" });
+    state = applyAction(state, { type: "RESOLVE_COMBAT" });
+
+    expect(state.players.P2.nexusHp).toBe(17);
+    expect(state.visualEvents.filter((event) => event.type === "DAMAGE" && event.targetId === "nexus-P2")).toHaveLength(1);
+    expect(state.visualEvents.filter((event) => event.type === "TRIGGER_ACTIVATED" && event.sourceId === "watcher")).toHaveLength(1);
+    expect(state.players.P1.board.find((unit) => unit.instanceId === "watcher")?.modifiers).toHaveLength(1);
+  });
+
+  it("overwhelm excess damage goes through dealDamage and emits NEXUS_DAMAGED once", () => {
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card({ ...guardian, id: "overwhelm-attacker", attack: 5, keywords: ["OVERWHELM"] }, "P1", "attacker")),
+      createUnitInstance(card(nexusWatcher, "P1", "watcher"))
+    ]);
+    state = withBoard(state, "P2", [
+      createUnitInstance(card(soldier, "P2", "blocker"))
+    ]);
+
+    state = declareAndCommitAttack(state, "attacker");
+    state = applyAction(state, {
+      type: "DECLARE_BLOCKER",
+      playerId: "P2",
+      attackerId: "attacker",
+      blockerId: "blocker"
+    });
+    state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: "P2" });
+    state = applyAction(state, { type: "RESOLVE_COMBAT" });
+
+    expect(state.players.P2.nexusHp).toBe(17);
+    expect(state.visualEvents.filter((event) => event.type === "DAMAGE" && event.targetId === "nexus-P2")).toHaveLength(1);
+    expect(state.visualEvents.filter((event) => event.type === "TRIGGER_ACTIVATED" && event.sourceId === "watcher")).toHaveLength(1);
+  });
+
+  it("spell damage to nexus goes through dealDamage and emits NEXUS_DAMAGED once", () => {
+    const nexusDamage = spell("nexus-damage", {
+      type: "DEAL_DAMAGE",
+      amount: 2,
+      target: "NEXUS"
+    }, 0);
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(nexusWatcher, "P1", "watcher"))
+    ]);
+    state = withHand(state, "P1", [card(nexusDamage, "P1", "spell")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "NEXUS", playerId: "P2" }
+    });
+
+    expect(state.players.P2.nexusHp).toBe(18);
+    expect(state.visualEvents.filter((event) => event.type === "DAMAGE" && event.targetId === "nexus-P2")).toHaveLength(1);
+    expect(state.visualEvents.filter((event) => event.type === "TRIGGER_ACTIVATED" && event.sourceId === "watcher")).toHaveLength(1);
+  });
+
+  it("spell damage to nexus emits rich NEXUS_DAMAGED context", () => {
+    const watcher = eventWatcher("spell-nexus-context-watcher", "NEXUS_DAMAGED", (_state, event) =>
+      event.playerId === "P2" &&
+      event.targetPlayerId === "P2" &&
+      event.sourcePlayerId === "P1" &&
+      event.sourceInstanceId === "spell" &&
+      event.sourceCardId === "context-nexus-damage" &&
+      event.amount === 2 &&
+      event.damageType === "SPELL"
+    );
+    const damageSpell = spell("context-nexus-damage", {
+      type: "DEAL_DAMAGE",
+      amount: 2,
+      target: "NEXUS"
+    }, 0);
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(watcher, "P1", "watcher"))
+    ]);
+    state = withHand(state, "P1", [card(damageSpell, "P1", "spell")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "NEXUS", playerId: "P2" }
+    });
+
+    expect(getUnitAttack(state.players.P1.board[0])).toBe(1);
+  });
+
+  it("combat damage to nexus emits rich NEXUS_DAMAGED context", () => {
+    const watcher = eventWatcher("combat-nexus-context-watcher", "NEXUS_DAMAGED", (_state, event) =>
+      event.playerId === "P2" &&
+      event.targetPlayerId === "P2" &&
+      event.sourcePlayerId === "P1" &&
+      event.sourceInstanceId === "attacker" &&
+      event.sourceCardId === "bruiser" &&
+      event.amount === 3 &&
+      event.damageType === "COMBAT"
+    );
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(bruiser, "P1", "attacker")),
+      createUnitInstance(card(watcher, "P1", "watcher"))
+    ]);
+
+    state = declareAndCommitAttack(state, "attacker");
+    state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: "P2" });
+    state = applyAction(state, { type: "RESOLVE_COMBAT" });
+
+    expect(getUnitAttack(state.players.P1.board.find((unit) => unit.instanceId === "watcher")!)).toBe(1);
+  });
+
+  it("unit damage emits target unit context and keeps legacy fields", () => {
+    const watcher = eventWatcher("unit-damage-context-watcher", "UNIT_DAMAGED", (_state, event) =>
+      event.playerId === "P2" &&
+      event.unitInstanceId === "target" &&
+      event.targetPlayerId === "P2" &&
+      event.targetUnitId === "target" &&
+      event.targetInstanceId === "target" &&
+      event.targetCardId === "guardian" &&
+      event.sourcePlayerId === "P1" &&
+      event.sourceInstanceId === "spell" &&
+      event.sourceCardId === "context-unit-damage" &&
+      event.amount === 1 &&
+      event.damageType === "SPELL"
+    );
+    const damageSpell = spell("context-unit-damage", {
+      type: "DEAL_DAMAGE",
+      amount: 1,
+      target: "ENEMY_UNIT"
+    }, 0);
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(watcher, "P1", "watcher"))
+    ]);
+    state = withBoard(state, "P2", [
+      createUnitInstance(card(guardian, "P2", "target"))
+    ]);
+    state = withHand(state, "P1", [card(damageSpell, "P1", "spell")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "UNIT", playerId: "P2", unitId: "target" }
+    });
+
+    expect(getUnitAttack(state.players.P1.board[0])).toBe(1);
+  });
+
+  it("legacy SPELL_CAST listeners still work with playerId and cardInstanceId", () => {
+    const watcher = eventWatcher("legacy-spell-cast-watcher", "SPELL_CAST", (_state, event) =>
+      event.playerId === "P1" &&
+      event.cardInstanceId === "spell" &&
+      event.sourcePlayerId === "P1" &&
+      event.sourceInstanceId === "spell" &&
+      event.sourceCardId === "legacy-spell-cast"
+    );
+    const drawSpell = spell("legacy-spell-cast", {
+      type: "DRAW_CARD",
+      count: 1,
+      target: "SELF"
+    }, 0);
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(watcher, "P1", "watcher"))
+    ]);
+    state = withHand(state, "P1", [card(drawSpell, "P1", "spell")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "spell",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(getUnitAttack(state.players.P1.board[0])).toBe(1);
+  });
+
+  it("burst spell resolves without passing priority", () => {
+    const burstSpell: CardDefinition = {
+      id: "burst-draw",
+      name: "Burst Draw",
+      cost: 0,
+      type: "spell",
+      spellSpeed: "burst",
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    let state = withHand(startedGame(), "P1", [card(burstSpell, "P1", "burst")]);
+    const deckBefore = state.players.P1.deck.length;
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "burst",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(state.priorityPlayerId).toBe("P1");
+    expect(state.players.P1.deck).toHaveLength(deckBefore - 1);
+  });
+
+  it("slow and fast spells preserve current priority passing behavior", () => {
+    const slowSpell: CardDefinition = {
+      id: "slow-draw",
+      name: "Slow Draw",
+      cost: 0,
+      type: "spell",
+      spellSpeed: "slow",
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    const fastSpell: CardDefinition = {
+      id: "fast-draw",
+      name: "Fast Draw",
+      cost: 0,
+      type: "spell",
+      spellSpeed: "fast",
+      effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
+    };
+    let slowState = withHand(startedGame(), "P1", [card(slowSpell, "P1", "slow")]);
+    slowState = applyAction(slowState, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "slow",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    let fastState = withHand(startedGame(), "P1", [card(fastSpell, "P1", "fast")]);
+    fastState = applyAction(fastState, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "fast",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(slowState.priorityPlayerId).toBe("P2");
+    expect(fastState.priorityPlayerId).toBe("P2");
+  });
+
+  it("playing a spell with a missing HAND_CARD target creates pendingChoice", () => {
+    const research = forbiddenResearchSpell();
+    let state = withHand(startedGame(), "P1", [card(research, "P1", "research")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "research",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(state.pendingChoice).toMatchObject({
+      playerId: "P1",
+      sourceInstanceId: "research",
+      sourceCardId: "forbidden-research",
+      abilityId: "forbidden-research-cast"
+    });
+    expect(state.players.P1.hand.map((handCard) => handCard.instanceId)).toContain("research");
+    expect(state.players.P1.graveyard).toHaveLength(0);
+  });
+
+  it("unrelated actions are rejected while pendingChoice exists", () => {
+    const research = forbiddenResearchSpell();
+    let state = withHand(startedGame(), "P1", [card(research, "P1", "research")]);
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "research",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(() =>
+      applyAction(state, { type: "DRAW_CARD", playerId: "P1" })
+    ).toThrow(GameValidationError);
+  });
+
+  it("SUBMIT_ABILITY_TARGETS resolves pending spell, discards hand card, moves spell to graveyard, and clears pendingChoice", () => {
+    const research = forbiddenResearchSpell();
+    let state = withHand(startedGame(), "P1", [
+      card(research, "P1", "research"),
+      card(soldier, "P1", "discard-me")
+    ]);
+    const deckBefore = state.players.P1.deck.length;
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "research",
+      target: { type: "SELF", playerId: "P1" }
+    });
+    state = applyAction(state, {
+      type: "SUBMIT_ABILITY_TARGETS",
+      playerId: "P1",
+      targets: {
+        discardTarget: {
+          type: "HAND_CARD",
+          playerId: "P1",
+          cardInstanceId: "discard-me"
+        }
+      }
+    });
+
+    expect(state.pendingChoice).toBeUndefined();
+    expect(state.players.P1.hand.map((handCard) => handCard.instanceId)).not.toContain("research");
+    expect(state.players.P1.hand.map((handCard) => handCard.instanceId)).not.toContain("discard-me");
+    expect(state.players.P1.graveyard).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: "discard-me", cause: "DISCARD" }),
+        expect.objectContaining({ instanceId: "research", cause: "SPELL" })
+      ])
+    );
+    expect(state.players.P1.deck).toHaveLength(deckBefore - 2);
+  });
+
+  it("invalid pending target does not resolve or pay costs", () => {
+    const research = forbiddenResearchSpell();
+    let state = withHand(startedGame(), "P1", [
+      card(research, "P1", "research"),
+      card(soldier, "P1", "discard-me")
+    ]);
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "research",
+      target: { type: "SELF", playerId: "P1" }
+    });
+
+    expect(() =>
+      applyAction(state, {
+        type: "SUBMIT_ABILITY_TARGETS",
+        playerId: "P1",
+        targets: {
+          discardTarget: {
+            type: "HAND_CARD",
+            playerId: "P2",
+            cardInstanceId: "discard-me"
+          }
+        }
+      })
+    ).toThrow(GameValidationError);
+
+    expect(state.pendingChoice).toBeDefined();
+    expect(state.players.P1.hand.map((handCard) => handCard.instanceId)).toEqual([
+      "research",
+      "discard-me"
+    ]);
+    expect(state.players.P1.graveyard).toHaveLength(0);
+  });
+
+  it("pending-choice spell emits CARD_PLAYED and SPELL_CAST only after submit", () => {
+    const research = forbiddenResearchSpell();
+    const cardPlayedWatcher = eventWatcher("card-played-watcher", "CARD_PLAYED", (_state, event) =>
+      event.cardInstanceId === "research" && event.sourceCardId === "forbidden-research"
+    );
+    const spellCastWatcher = eventWatcher("spell-cast-watcher", "SPELL_CAST", (_state, event) =>
+      event.cardInstanceId === "research" && event.sourceCardId === "forbidden-research"
+    );
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(cardPlayedWatcher, "P1", "card-watcher")),
+      createUnitInstance(card(spellCastWatcher, "P1", "spell-watcher"))
+    ]);
+    state = withHand(state, "P1", [
+      card(research, "P1", "research"),
+      card(soldier, "P1", "discard-me")
+    ]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "research",
+      target: { type: "SELF", playerId: "P1" }
+    });
+    expect(state.visualEvents.filter((event) => event.type === "TRIGGER_ACTIVATED")).toHaveLength(0);
+
+    state = applyAction(state, {
+      type: "SUBMIT_ABILITY_TARGETS",
+      playerId: "P1",
+      targets: {
+        discardTarget: {
+          type: "HAND_CARD",
+          playerId: "P1",
+          cardInstanceId: "discard-me"
+        }
+      }
+    });
+
+    expect(state.visualEvents.filter((event) => event.type === "TRIGGER_ACTIVATED" && event.sourceId === "card-watcher")).toHaveLength(1);
+    expect(state.visualEvents.filter((event) => event.type === "TRIGGER_ACTIVATED" && event.sourceId === "spell-watcher")).toHaveLength(1);
   });
 
   it("TOUGH reduces incoming combat damage by 1", () => {

@@ -51,8 +51,7 @@ export function createUnitInstance(card: CardInstance): UnitInstance {
     temporaryKeywords: [],
     modifiers: [],
     exhausted: false,
-    attacking: false,
-    triggers: definition.triggers ? [...definition.triggers] : []
+    attacking: false
   };
 }
 

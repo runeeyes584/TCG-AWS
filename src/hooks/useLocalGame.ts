@@ -130,6 +130,10 @@ function describeAction(action: GameAction): string {
       return `${action.playerId} played a unit.`;
     case "PLAY_SPELL":
       return `${action.playerId} played a spell.`;
+    case "SUBMIT_ABILITY_TARGETS":
+      return `${action.playerId} submitted ability targets.`;
+    case "CANCEL_PENDING_CHOICE":
+      return `${action.playerId} cancelled an ability choice.`;
     case "DECLARE_ATTACKER":
       return `${action.playerId} declared an attacker.`;
     case "REMOVE_ATTACKER":

@@ -589,6 +589,43 @@ button svg { vertical-align: -2px; }
   color: var(--lor-text-dim);
 }
 
+.nexus-orb.is-attacker {
+  border-color: rgba(226, 116, 34, 0.58);
+}
+
+.nexus-orb.is-defender {
+  border-color: rgba(82, 146, 230, 0.48);
+}
+
+.combat-role {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 15px;
+  max-width: 58px;
+  margin-top: 3px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.combat-role.is-attacker {
+  color: #ffbc73;
+  background: rgba(226, 116, 34, 0.18);
+  border: 1px solid rgba(226, 116, 34, 0.48);
+}
+
+.combat-role.is-defender {
+  color: #9bc8ff;
+  background: rgba(82, 146, 230, 0.16);
+  border: 1px solid rgba(82, 146, 230, 0.46);
+}
+
 .nexus-orb.is-priority {
   border-color: var(--lor-gold-bright);
   box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 0 16px rgba(200,144,48,0.55);

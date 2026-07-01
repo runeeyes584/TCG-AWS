@@ -56,7 +56,13 @@ export function moveUnitToGraveyard(
   emitEvent(state, {
     type: "UNIT_DIED",
     playerId: unit.ownerId,
-    unitInstanceId: unit.instanceId
+    unitInstanceId: unit.instanceId,
+    targetPlayerId: unit.ownerId,
+    targetUnitId: unit.instanceId,
+    targetInstanceId: unit.instanceId,
+    targetCardId: unit.cardId,
+    sourceInstanceId,
+    cause
   });
 }
 

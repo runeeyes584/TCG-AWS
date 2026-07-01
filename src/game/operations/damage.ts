@@ -3,11 +3,19 @@ import { emitEvent } from "../triggers";
 import { GameState, PlayerId, SpellTarget, UnitInstance } from "../types";
 import { findUnit } from "../rules";
 
-export type DamageSource = { playerId?: PlayerId; sourceId?: string } | undefined;
+export type DamageSource =
+  | {
+      playerId?: PlayerId;
+      sourceId?: string;
+      sourceInstanceId?: string;
+      sourceCardId?: string;
+      damageType?: "COMBAT" | "SPELL" | "EFFECT" | "COST" | "FATIGUE";
+    }
+  | undefined;
 
 export function dealDamage(
   state: GameState,
-  _source: DamageSource,
+  source: DamageSource,
   target: SpellTarget,
   amount: number
 ): void {
@@ -17,7 +25,7 @@ export function dealDamage(
 
   if (target.type === "UNIT") {
     const unit = findUnit(state, target.playerId, target.unitId);
-    dealDamageToUnitState(state, unit, amount);
+    dealDamageToUnitState(state, unit, amount, source);
     return;
   }
 
@@ -30,14 +38,24 @@ export function dealDamage(
       amount,
       isNexus: true
     });
-    emitEvent(state, { type: "NEXUS_DAMAGED", playerId, amount });
+    emitEvent(state, {
+      type: "NEXUS_DAMAGED",
+      playerId,
+      targetPlayerId: playerId,
+      sourcePlayerId: source?.playerId,
+      sourceInstanceId: source?.sourceInstanceId ?? source?.sourceId,
+      sourceCardId: source?.sourceCardId,
+      amount,
+      damageType: source?.damageType
+    });
   }
 }
 
 export function dealDamageToUnitState(
   state: GameState,
   unit: UnitInstance,
-  amount: number
+  amount: number,
+  source?: DamageSource
 ): { damageDealt: number; excessDamage: number } {
   if (amount <= 0) {
     return { damageDealt: 0, excessDamage: 0 };
@@ -64,6 +82,14 @@ export function dealDamageToUnitState(
     type: "UNIT_DAMAGED",
     playerId: unit.ownerId,
     unitInstanceId: unit.instanceId,
+    targetPlayerId: unit.ownerId,
+    targetUnitId: unit.instanceId,
+    targetInstanceId: unit.instanceId,
+    targetCardId: unit.cardId,
+    sourcePlayerId: source?.playerId,
+    sourceInstanceId: source?.sourceInstanceId ?? source?.sourceId,
+    sourceCardId: source?.sourceCardId,
+    damageType: source?.damageType,
     amount: damageDealt
   });
 
