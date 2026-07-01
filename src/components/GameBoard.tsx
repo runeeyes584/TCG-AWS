@@ -18,6 +18,7 @@ import { hasKeyword } from "../game/engine";
 import { HoverProvider } from "../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
 import { HandView } from "./HandView";
+import { getCardDefinition } from "../game/cardRegistry";
 
 export function GameBoard() {
   const { gameState, actionLog, dispatch, dispatchChain, resetGame } = useLocalGame();
@@ -38,9 +39,13 @@ export function GameBoard() {
     .map((lane) => lane.blockerId)
     .filter((blockerId): blockerId is string => Boolean(blockerId));
 
+  const cardDef = (card: CardInstance) => getCardDefinition(card.cardId);
+  const unitDef = (unit: UnitInstance) => getCardDefinition(unit.cardId);
+
   function canPlay(playerId: PlayerId, card: CardInstance) {
     const player = gameState.players[playerId];
-    const isSpell = card.definition.type === "spell";
+    const definition = cardDef(card);
+    const isSpell = definition.type === "spell";
     if (gameState.phase === "DISCARD") {
       return (
         gameState.pendingDiscard?.playerId === playerId &&
@@ -55,39 +60,40 @@ export function GameBoard() {
       gameState.phase === "ACTION" &&
       gameState.priorityPlayerId === playerId &&
       (isSpell
-        ? player.mana + player.spellMana >= card.definition.cost
-        : player.mana >= card.definition.cost)
+        ? player.mana + player.spellMana >= definition.cost
+        : player.mana >= definition.cost)
     );
   }
 
   function playCard(playerId: PlayerId, card: CardInstance) {
+    const definition = cardDef(card);
     if (gameState.phase === "DISCARD") {
       dispatch(
         { type: "DISCARD_CARD", playerId, cardInstanceId: card.instanceId },
-        `${playerId} discarded ${card.definition.name}.`
+        `${playerId} discarded ${definition.name}.`
       );
       return;
     }
 
-    if (card.definition.supertype?.toLowerCase() === "champion") {
-      if (!window.confirm(`Are you sure you want to play Champion ${card.definition.name}?`)) {
+    if (definition.supertype?.toLowerCase() === "champion") {
+      if (!window.confirm(`Are you sure you want to play Champion ${definition.name}?`)) {
         return;
       }
     }
 
-    if (card.definition.type === "spell") {
+    if (definition.type === "spell") {
       playOrSelectSpell(playerId, card);
       return;
     }
 
-    if ((card.definition.type === "unit" || card.definition.type === "champion") && gameState.players[playerId].board.length >= 6) {
+    if ((definition.type === "unit" || definition.type === "champion") && gameState.players[playerId].board.length >= 6) {
       setSelectedSpell(card); // Treat as spell to select replacement target
       return;
     }
 
     dispatch(
       { type: "PLAY_UNIT", playerId, cardInstanceId: card.instanceId },
-      `${playerId} played ${card.definition.name}.`
+      `${playerId} played ${definition.name}.`
     );
   }
 
@@ -108,7 +114,7 @@ export function GameBoard() {
 
     if (targetKind === "NEXUS") {
       const targetPlayerId =
-        card.definition.effects?.[0]?.type === "HEAL" ? playerId : opponentOf(playerId);
+        cardDef(card).effects?.[0]?.type === "HEAL" ? playerId : opponentOf(playerId);
       setSelectedSpellTarget({ type: "NEXUS", playerId: targetPlayerId });
       return;
     }
@@ -155,7 +161,7 @@ export function GameBoard() {
   }
 
   function getPrimarySpellTarget(card: CardInstance): SpellTargetKind | undefined {
-    const target = card.definition.effects?.[0]?.target;
+    const target = cardDef(card).effects?.[0]?.target;
     if (
       target === "ENEMY_UNIT" ||
       target === "ALLY_UNIT" ||
@@ -173,7 +179,8 @@ export function GameBoard() {
     const blockerName =
       gameState.players[defenderId].board.find(
         (candidate) => candidate.instanceId === blockerId
-      )?.definition.name ?? "a unit";
+      );
+    const blockerLabel = blockerName ? unitDef(blockerName).name : "a unit";
 
     dispatch(
       {
@@ -182,7 +189,7 @@ export function GameBoard() {
         attackerId: attacker.instanceId,
         blockerId
       },
-      `${defenderId} blocked ${attacker.definition.name} with ${blockerName}.`
+      `${defenderId} blocked ${unitDef(attacker).name} with ${blockerLabel}.`
     );
     setSelectedBlockerId(undefined);
   }
@@ -195,11 +202,12 @@ export function GameBoard() {
     if (selectedSpell && gameState.phase === "ACTION") {
       const casterId = selectedSpell.ownerId;
       
-      if (selectedSpell.definition.type === "unit" || selectedSpell.definition.type === "champion") {
+      const selectedDefinition = cardDef(selectedSpell);
+      if (selectedDefinition.type === "unit" || selectedDefinition.type === "champion") {
         if (playerId === casterId) {
           dispatch(
             { type: "PLAY_UNIT", playerId: casterId, cardInstanceId: selectedSpell.instanceId, replaceUnitId: unit.instanceId },
-            `${casterId} played ${selectedSpell.definition.name}, replacing ${unit.definition.name}.`
+            `${casterId} played ${selectedDefinition.name}, replacing ${unitDef(unit).name}.`
           );
           setSelectedSpell(undefined);
           setSelectedSpellTarget(undefined);
@@ -240,13 +248,13 @@ export function GameBoard() {
       if (gameState.combat.attackers.some((lane) => lane.attackerId === unit.instanceId)) {
         dispatch(
           { type: "REMOVE_ATTACKER", playerId, unitInstanceId: unit.instanceId },
-          `${playerId} removed ${unit.definition.name} from the attack.`
+          `${playerId} removed ${unitDef(unit).name} from the attack.`
         );
         return;
       }
       dispatch(
         { type: "DECLARE_ATTACKER", playerId, unitInstanceId: unit.instanceId },
-        `${playerId} sent ${unit.definition.name} to attack.`
+        `${playerId} sent ${unitDef(unit).name} to attack.`
       );
       return;
     }
@@ -258,7 +266,7 @@ export function GameBoard() {
       if (gameState.combat.attackers.some((lane) => lane.blockerId === unit.instanceId)) {
         dispatch(
           { type: "REMOVE_BLOCKER", playerId, blockerId: unit.instanceId },
-          `${playerId} removed ${unit.definition.name} from blocking.`
+          `${playerId} removed ${unitDef(unit).name} from blocking.`
         );
         setSelectedBlockerId(undefined);
         return;
@@ -427,7 +435,7 @@ export function GameBoard() {
         cardInstanceId: selectedSpell.instanceId,
         target: selectedSpellTarget
       },
-      `${selectedSpell.ownerId} played ${selectedSpell.definition.name}.`
+      `${selectedSpell.ownerId} played ${cardDef(selectedSpell).name}.`
     );
     setSelectedSpell(undefined);
     setSelectedSpellTarget(undefined);
@@ -497,7 +505,7 @@ export function GameBoard() {
     return (
       <div className="spell-stack">
         <span>{label}</span>
-        <strong>{selectedSpell.definition.name}</strong>
+        <strong>{cardDef(selectedSpell).name}</strong>
       </div>
     );
   }
@@ -692,7 +700,7 @@ export function GameBoard() {
                         playerId: defenderId,
                         blockerId: unit.instanceId
                       },
-                      `${defenderId} removed ${unit.definition.name} from blocking.`
+                      `${defenderId} removed ${unitDef(unit).name} from blocking.`
                     );
                   }
                 : undefined
@@ -742,7 +750,7 @@ export function GameBoard() {
                   ) : (
                     gameState.players[viewingGraveyard].graveyard.map((entry) => (
                       <div key={entry.id} className="graveyard-entry">
-                        <CardView card={{ instanceId: entry.id, definition: entry.definition, ownerId: entry.ownerId } as CardInstance} />
+                        <CardView card={{ instanceId: entry.id, cardId: entry.cardId, ownerId: entry.ownerId }} />
                         <div className="cause-tag">{entry.cause} (R{entry.round})</div>
                       </div>
                     ))
@@ -854,7 +862,7 @@ export function GameBoard() {
                 ) : null}
                 {selectedBlocker ? (
                   <span className="stat-pill">
-                    <Shield size={12} aria-hidden="true" /> <strong>{selectedBlocker.definition.name}</strong>
+                    <Shield size={12} aria-hidden="true" /> <strong>{unitDef(selectedBlocker).name}</strong>
                   </span>
                 ) : null}
               </div>
@@ -900,11 +908,11 @@ export function GameBoard() {
           {selectedSpell ? (
             <section className="spell-panel floating-spell-panel" aria-label="Selected spell">
               <div className="spell-summary">
-                <strong>{selectedSpell.definition.name}</strong>
+                <strong>{cardDef(selectedSpell).name}</strong>
                 <span>
                   Target:{" "}
-                  {selectedSpell.definition.type === "unit" ||
-                  selectedSpell.definition.type === "champion"
+                  {cardDef(selectedSpell).type === "unit" ||
+                  cardDef(selectedSpell).type === "champion"
                     ? "click one of your 6 units to replace it"
                     : selectedSpellTarget
                       ? describeSpellTarget(selectedSpellTarget)
@@ -912,7 +920,7 @@ export function GameBoard() {
                 </span>
               </div>
               <div className="button-row">
-                {selectedSpell.definition.type === "spell" ? (
+                {cardDef(selectedSpell).type === "spell" ? (
                   <button
                     type="button"
                     onClick={castSelectedSpell}

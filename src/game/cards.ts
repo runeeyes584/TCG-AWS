@@ -28,11 +28,11 @@ export function createCardInstance(
     typeof definitionOrCardId === "string"
       ? definitionOrCardId
       : registerCardDefinition(definitionOrCardId).id;
-  return attachCardDefinitionAccessor({ instanceId, cardId, ownerId } as CardInstance);
+  return { instanceId, cardId, ownerId };
 }
 
 export function createUnitInstance(card: CardInstance): UnitInstance {
-  const definition = getDefinitionForCardInstance(card);
+  const definition = getCardDefinitionForInstance(card);
   if (!isUnitCard(definition)) {
     throw new GameValidationError("Only unit or champion cards can become units.");
   }
@@ -40,7 +40,7 @@ export function createUnitInstance(card: CardInstance): UnitInstance {
   const attack = requireStat(definition.attack, "attack");
   const health = requireStat(definition.health, "health");
 
-  return attachUnitDefinitionAccessor({
+  return {
     instanceId: card.instanceId,
     cardId: definition.id,
     ownerId: card.ownerId,
@@ -53,47 +53,19 @@ export function createUnitInstance(card: CardInstance): UnitInstance {
     exhausted: false,
     attacking: false,
     triggers: definition.triggers ? [...definition.triggers] : []
-  } as unknown as UnitInstance);
+  };
 }
 
-export function attachCardDefinitionAccessor(card: CardInstance): CardInstance {
-  const existingDefinition = card.definition;
-  if (!card.cardId && existingDefinition) {
-    card.cardId = registerCardDefinition(existingDefinition).id;
-  }
-  if (!card.cardId) {
-    throw new GameValidationError("Card instance requires cardId.");
-  }
-  Object.defineProperty(card, "definition", {
-    configurable: true,
-    enumerable: false,
-    get: () => getCardDefinition(card.cardId!)
-  });
-  return card;
+export function getCardDefinitionForInstance(card: CardInstance): CardDefinition {
+  return getCardDefinition(card.cardId);
 }
 
-export function attachUnitDefinitionAccessor(unit: UnitInstance): UnitInstance {
-  Object.defineProperty(unit, "definition", {
-    configurable: true,
-    enumerable: false,
-    get: () => getCardDefinition(unit.cardId)
-  });
-  return unit;
+export function getCardDefinitionForUnit(unit: UnitInstance): CardDefinition {
+  return getCardDefinition(unit.cardId);
 }
 
-function getDefinitionForCardInstance(card: CardInstance): CardDefinition {
-  if (Object.prototype.hasOwnProperty.call(card, "definition") && card.definition) {
-    card.cardId = registerCardDefinition(card.definition).id;
-    return card.definition;
-  }
-  if (card.cardId) {
-    return getCardDefinition(card.cardId);
-  }
-  if (card.definition) {
-    card.cardId = registerCardDefinition(card.definition).id;
-    return card.definition;
-  }
-  throw new GameValidationError("Card instance requires cardId.");
+export function getCardDefinitionForGraveyardEntry(entry: { cardId: string }): CardDefinition {
+  return getCardDefinition(entry.cardId);
 }
 
 export function getUnitAttack(unit: UnitInstance): number {

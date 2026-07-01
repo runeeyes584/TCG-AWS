@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCardInstance } from "./cards";
+import { createCardInstance, createUnitInstance } from "./cards";
 import { getCardDefinition, hasCard, listCards } from "./cardRegistry";
 import { applyAction, createInitialGameState } from "./engine";
 import { CardDefinition, GameValidationError, PlayerId } from "./types";
@@ -66,7 +66,121 @@ describe("data-driven card registry and operations", () => {
     expect(unitInstance.cardId).toBeTruthy();
     expect(Object.keys(unitInstance)).not.toContain("definition");
     expect(JSON.stringify(unitInstance)).not.toContain("definition");
-    expect(unitInstance.definition.id).toBe(unitInstance.cardId);
+    expect(getCardDefinition(unitInstance.cardId).id).toBe(unitInstance.cardId);
+  });
+
+  it("CardInstance stores only instanceId, cardId, and ownerId", () => {
+    const instance = card(unit, "P1", "plain-card");
+
+    expect(instance).toEqual({
+      instanceId: "plain-card",
+      cardId: "data-test-unit",
+      ownerId: "P1"
+    });
+    expect(Object.keys(instance)).toEqual(["instanceId", "cardId", "ownerId"]);
+  });
+
+  it("createUnitInstance derives runtime stats and keywords from CardRegistry", () => {
+    const toughUnit: CardDefinition = {
+      ...unit,
+      id: "data-test-tough-unit",
+      attack: 4,
+      health: 5,
+      keywords: ["TOUGH"]
+    };
+
+    const instance = createUnitInstance(card(toughUnit, "P1", "tough"));
+
+    expect(instance).toMatchObject({
+      instanceId: "tough",
+      cardId: "data-test-tough-unit",
+      ownerId: "P1",
+      attack: 4,
+      maxHealth: 5,
+      damage: 0,
+      keywords: ["TOUGH"]
+    });
+    expect(Object.keys(instance)).not.toContain("definition");
+  });
+
+  it("GraveyardEntry stores cardId instead of a full definition", () => {
+    const destroySpell: CardDefinition = {
+      id: "data-kill",
+      name: "Data Kill",
+      type: "spell",
+      cost: 0,
+      effects: [{ type: "DEAL_DAMAGE", amount: 5, target: "ENEMY_UNIT" }]
+    };
+    let state = startedGame();
+    state.players.P1.hand = [card(destroySpell, "P1", "kill")];
+    state.players.P2.board = [createUnitInstance(card(unit, "P2", "victim"))];
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "kill",
+      target: { type: "UNIT", playerId: "P2", unitId: "victim" }
+    });
+
+    expect(state.players.P2.graveyard[0]).toMatchObject({
+      instanceId: "victim",
+      cardId: "data-test-unit",
+      ownerId: "P2"
+    });
+    expect(Object.keys(state.players.P2.graveyard[0])).not.toContain("definition");
+    expect(Object.keys(state.players.P2.graveyard[0])).not.toContain("cardCode");
+  });
+
+  it("REVIVE effect restores a unit using graveyard cardId lookup", () => {
+    const reviveSpell: CardDefinition = {
+      id: "data-revive",
+      name: "Data Revive",
+      type: "spell",
+      cost: 0,
+      effects: [{ type: "REVIVE_UNIT", target: "ALLY_GRAVEYARD" }]
+    };
+    let state = startedGame();
+    state.players.P1.graveyard = [
+      {
+        id: "fallen-gy",
+        instanceId: "fallen",
+        cardId: "data-test-unit",
+        ownerId: "P1",
+        type: "UNIT",
+        round: state.round,
+        cause: "COMBAT"
+      }
+    ];
+    state.players.P1.hand = [card(reviveSpell, "P1", "revive")];
+    state.players.P1.mana = 10;
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "revive",
+      target: { type: "GRAVEYARD", playerId: "P1", cardInstanceId: "fallen" }
+    });
+
+    expect(state.players.P1.board[0].cardId).toBe("data-test-unit");
+    expect(state.players.P1.graveyard.map((entry) => entry.cardId)).toEqual([
+      "data-revive"
+    ]);
+  });
+
+  it("JSON.stringify(GameState) does not include CardDefinition payloads", () => {
+    let state = startedGame();
+    const handCard = state.players.P1.hand[0];
+    state.players.P1.mana = 10;
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: handCard.instanceId
+    });
+
+    const serialized = JSON.stringify(state);
+    expect(serialized).not.toContain("definition");
+    expect(serialized).not.toContain("Data Test Unit");
+    expect(serialized).toContain("data-test-unit");
   });
 
   it("DRAW effect resolves through drawCards operation behavior", () => {
@@ -177,6 +291,6 @@ describe("data-driven card registry and operations", () => {
     });
 
     expect(state.players.P1.board[0].cardId).toBe("sparksmith");
-    expect(state.players.P1.board[0].definition.name).toBe("Sparksmith Adept");
+    expect(getCardDefinition(state.players.P1.board[0].cardId).name).toBe("Sparksmith Adept");
   });
 });

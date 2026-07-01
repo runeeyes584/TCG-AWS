@@ -6,7 +6,7 @@
  * They are called from engine.ts after damage, spell resolution, and modifier expiry.
  */
 
-import { getUnitHealth, isChampionCard } from "./cards";
+import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth, isChampionCard } from "./cards";
 import { emitEvent } from "./triggers";
 import {
   CardInstance,
@@ -44,12 +44,11 @@ export function moveUnitToGraveyard(
   const entry: GraveyardEntry = {
     id: `${unit.instanceId}-gy`,
     instanceId: unit.instanceId,
-    cardCode: unit.definition.id,
+    cardId: unit.cardId,
     ownerId: unit.ownerId,
-    type: isChampionCard(unit.definition) ? "CHAMPION" : "UNIT",
+    type: isChampionCard(getCardDefinitionForUnit(unit)) ? "CHAMPION" : "UNIT",
     round: state.round,
     cause,
-    definition: unit.definition,
     sourceInstanceId
   };
 
@@ -79,12 +78,11 @@ export function moveSpellToGraveyard(
   const entry: GraveyardEntry = {
     id: `${card.instanceId}-gy`,
     instanceId: card.instanceId,
-    cardCode: card.definition.id,
+    cardId: card.cardId,
     ownerId: casterId,
     type: "SPELL",
     round: state.round,
-    cause: "SPELL",
-    definition: card.definition
+    cause: "SPELL"
   };
 
   player.graveyard.push(entry);
@@ -106,21 +104,20 @@ export function moveCardToGraveyard(
   }
 
   const type: GraveyardEntryType =
-    isChampionCard(card.definition)
+    isChampionCard(getCardDefinitionForInstance(card))
       ? "CHAMPION"
-      : card.definition.type === "spell"
+      : getCardDefinitionForInstance(card).type === "spell"
         ? "SPELL"
         : "UNIT";
 
   player.graveyard.push({
     id: `${card.instanceId}-gy`,
     instanceId: card.instanceId,
-    cardCode: card.definition.id,
+    cardId: card.cardId,
     ownerId,
     type,
     round: state.round,
-    cause,
-    definition: card.definition
+    cause
   });
 }
 

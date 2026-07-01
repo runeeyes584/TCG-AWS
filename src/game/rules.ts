@@ -1,8 +1,7 @@
 import {
+  getCardDefinitionForInstance,
   getUnitHealth,
-  isUnitCard,
-  attachCardDefinitionAccessor,
-  attachUnitDefinitionAccessor
+  isUnitCard
 } from "./cards";
 import {
   CardInstance,
@@ -189,7 +188,6 @@ export function cloneState(state: GameState): GameState {
       target: queuedEffect.target ? { ...queuedEffect.target } : undefined
     })),
     visualEvents: state.visualEvents.map((event) => ({ ...event })),
-    cardRegistry: { ...state.cardRegistry },
     pendingDiscard: state.pendingDiscard ? { ...state.pendingDiscard } : undefined,
     combat: {
       attackers: state.combat.attackers.map((lane) => ({ ...lane }))
@@ -273,13 +271,14 @@ function assertPlayableUnit(
 ): void {
   const player = state.players[playerId];
   const card = assertCardInHand(state, playerId, cardInstanceId);
-  if (!isUnitCard(card.definition)) {
+  const definition = getCardDefinitionForInstance(card);
+  if (!isUnitCard(definition)) {
     throw new GameValidationError("Card is not a unit or champion.");
   }
-  if (card.definition.attack === undefined || card.definition.health === undefined) {
+  if (definition.attack === undefined || definition.health === undefined) {
     throw new GameValidationError("Unit card requires attack and health.");
   }
-  if (player.mana < card.definition.cost) {
+  if (player.mana < definition.cost) {
     throw new GameValidationError("Not enough mana.");
   }
 }
@@ -292,17 +291,18 @@ function assertPlayableSpell(
 ): void {
   const player = state.players[playerId];
   const card = assertCardInHand(state, playerId, cardInstanceId);
-  if (card.definition.type !== "spell") {
+  const definition = getCardDefinitionForInstance(card);
+  if (definition.type !== "spell") {
     throw new GameValidationError("Card is not a spell.");
   }
-  if (!card.definition.effects?.length && !card.definition.abilities?.length) {
+  if (!definition.effects?.length && !definition.abilities?.length) {
     throw new GameValidationError("Spell card requires at least one effect.");
   }
-  if (player.mana + player.spellMana < card.definition.cost) {
+  if (player.mana + player.spellMana < definition.cost) {
     throw new GameValidationError("Not enough mana.");
   }
 
-  for (const effect of card.definition.effects ?? []) {
+  for (const effect of definition.effects ?? []) {
     assertSpellTarget(state, playerId, effect, target);
   }
 }
@@ -431,7 +431,7 @@ function clonePlayer(player: PlayerState): PlayerState {
     ...player,
     deck: player.deck.map(cloneCard),
     hand: player.hand.map(cloneCard),
-    board: player.board.map((unit) => attachUnitDefinitionAccessor({
+    board: player.board.map((unit) => ({
       ...unit,
       keywords: [...unit.keywords],
       temporaryKeywords: [...(unit.temporaryKeywords ?? [])],
@@ -443,8 +443,8 @@ function clonePlayer(player: PlayerState): PlayerState {
 }
 
 function cloneCard(card: CardInstance): CardInstance {
-  return attachCardDefinitionAccessor({
+  return {
     ...card,
     cardId: card.cardId
-  } as CardInstance);
+  };
 }

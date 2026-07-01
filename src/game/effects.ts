@@ -166,9 +166,9 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       
       const instance = createUnitInstance(
         createCardInstance(
-          entry.definition,
+          entry.cardId,
           targetPlayerId,
-          createGeneratedInstanceId(state, entry.definition.id)
+          createGeneratedInstanceId(state, entry.cardId)
         )
       );
       player.board.push(instance);

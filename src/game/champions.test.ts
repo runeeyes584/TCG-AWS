@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { applyAction, createInitialGameState } from "./engine";
 import { createCardInstance, createUnitInstance, getUnitAttack } from "./cards";
 import { GameState, CardDefinition, PlayerId, GameAction, UnitInstance } from "./types";
+import { getCardDefinition } from "./cardRegistry";
 
 describe("Champion System & Level Up", () => {
   const dummyUnit: CardDefinition = {
@@ -28,6 +29,10 @@ describe("Champion System & Level Up", () => {
       activePlayerId: playerId,
       phase: "ACTION"
     };
+  }
+
+  function unitDef(unit: UnitInstance): CardDefinition {
+    return getCardDefinition(unit.cardId);
   }
 
   function putOnBoard(
@@ -90,12 +95,12 @@ describe("Champion System & Level Up", () => {
     let state = createInitialGameState([...sampleUnitCards, ...sampleUnitCards], [...sampleUnitCards, ...sampleUnitCards], 123);
     state = applyAction(state, { type: "START_GAME", firstPlayerId: "P1" });
     state.players.P1.mana = 10;
-    state.players.P1.hand.push({ instanceId: "kalista", definition: kalista1, ownerId: "P1" });
+    state.players.P1.hand.push(createCardInstance(kalista1, "P1", "kalista"));
     
     state = applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "kalista" });
     
     const kalistaInstance = state.players.P1.board[0];
-    expect(kalistaInstance.definition.level).toBe(1);
+    expect(unitDef(kalistaInstance).level).toBe(1);
     
     const { updateChampionProgress, checkChampionLevelUps } = await import("./engine");
     
@@ -103,14 +108,14 @@ describe("Champion System & Level Up", () => {
     updateChampionProgress(state, { type: "UNIT_DIED", playerId: "P1", unitInstanceId: "some-id2" });
     checkChampionLevelUps(state);
     
-    expect(state.players.P1.board[0].definition.level).toBe(1);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(1);
     
     updateChampionProgress(state, { type: "UNIT_DIED", playerId: "P1", unitInstanceId: "some-id3" });
     checkChampionLevelUps(state);
     
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
     expect(state.players.P1.board[0].maxHealth).toBe(4); 
-    expect(state.players.P1.board[0].definition.attack).toBe(5); 
+    expect(unitDef(state.players.P1.board[0]).attack).toBe(5); 
   });
 
   it("Lux levels up when 4 spells are cast", async () => {
@@ -121,7 +126,7 @@ describe("Champion System & Level Up", () => {
     state = applyAction(state, { type: "START_GAME", firstPlayerId: "P1" });
     state.players.P1.mana = 10;
     
-    state.players.P1.hand.push({ instanceId: "lux", definition: lux1, ownerId: "P1" });
+    state.players.P1.hand.push(createCardInstance(lux1, "P1", "lux"));
     state = applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "lux" });
     
     const { updateChampionProgress, checkChampionLevelUps } = await import("./engine");
@@ -130,11 +135,11 @@ describe("Champion System & Level Up", () => {
       updateChampionProgress(state, { type: "SPELL_CAST", playerId: "P1", cardInstanceId: "s" + i });
     }
     checkChampionLevelUps(state);
-    expect(state.players.P1.board[0].definition.level).toBe(1);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(1);
     
     updateChampionProgress(state, { type: "SPELL_CAST", playerId: "P1", cardInstanceId: "s4" });
     checkChampionLevelUps(state);
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
   });
 
   it("Darius levels up when 10+ nexus damage is dealt to opponent", async () => {
@@ -145,18 +150,18 @@ describe("Champion System & Level Up", () => {
     state = applyAction(state, { type: "START_GAME", firstPlayerId: "P1" });
     state.players.P1.mana = 10;
     
-    state.players.P1.hand.push({ instanceId: "darius", definition: darius1, ownerId: "P1" });
-    state.players.P1.hand.push({ instanceId: "dmg", definition: damageSpell, ownerId: "P1" });
+    state.players.P1.hand.push(createCardInstance(darius1, "P1", "darius"));
+    state.players.P1.hand.push(createCardInstance(damageSpell, "P1", "dmg"));
     
     state = applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "darius" });
-    expect(state.players.P1.board[0].definition.level).toBe(1);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(1);
     
     // P2 passes priority back to P1
     state = applyAction(state, { type: "END_TURN", playerId: "P2" });
     
     state = applyAction(state, { type: "PLAY_SPELL", playerId: "P1", cardInstanceId: "dmg", target: { type: "NEXUS", playerId: "P2" } });
     
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
     expect(state.visualEvents.some(v => v.type === "CHAMPION_LEVELED_UP")).toBe(true);
   });
   
@@ -167,7 +172,7 @@ describe("Champion System & Level Up", () => {
     let state = createInitialGameState([...sampleUnitCards, ...sampleUnitCards], [...sampleUnitCards, ...sampleUnitCards], 123);
     state = applyAction(state, { type: "START_GAME", firstPlayerId: "P1" });
     state.players.P1.mana = 10;
-    state.players.P1.hand.push({ instanceId: "darius", definition: darius1, ownerId: "P1" });
+    state.players.P1.hand.push(createCardInstance(darius1, "P1", "darius"));
     
     state = applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "darius" });
     
@@ -178,7 +183,7 @@ describe("Champion System & Level Up", () => {
     updateChampionProgress(state, { type: "NEXUS_DAMAGED", playerId: "P2", amount: 10 });
     checkChampionLevelUps(state);
     
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
     expect(state.players.P1.board[0].maxHealth).toBe(6);
     expect(state.players.P1.board[0].damage).toBe(2);
   });
@@ -244,8 +249,8 @@ describe("Champion System & Level Up", () => {
       target: { type: "UNIT", playerId: "P1", unitId: "P1-board-dummy-unit-1" }
     });
 
-    expect(state.players.P1.board[0].definition.level).toBe(2);
-    expect(state.players.P1.board[0].definition.type).toBe("CHAMPION");
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).type).toBe("CHAMPION");
   });
 
   it("champion levels up from spell casts through events", () => {
@@ -283,7 +288,7 @@ describe("Champion System & Level Up", () => {
       target: { type: "SELF", playerId: "P1" }
     });
 
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
   });
 
   it("champion levels up from nexus damage through events", () => {
@@ -321,7 +326,7 @@ describe("Champion System & Level Up", () => {
       target: { type: "NEXUS", playerId: "P2" }
     });
 
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
   });
 
   it("champion levels up when this champion has struck enough times", () => {
@@ -358,7 +363,7 @@ describe("Champion System & Level Up", () => {
     state = applyAction(state, { type: "COMMIT_BLOCKS", playerId: "P2" });
     state = applyAction(state, { type: "RESOLVE_COMBAT" });
 
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
   });
 
   it("CHAMPION_LEVELED_UP visual event is emitted", () => {
@@ -466,7 +471,7 @@ describe("Champion System & Level Up", () => {
       cardInstanceId: "spell-1",
       target: { type: "SELF", playerId: "P1" }
     });
-    expect(state.players.P1.board[0].definition.level).toBe(2);
+    expect(unitDef(state.players.P1.board[0]).level).toBe(2);
     expect(getUnitAttack(state.players.P1.board[0])).toBe(3);
 
     state = withPriority(state, "P1");
@@ -488,3 +493,4 @@ describe("Champion System & Level Up", () => {
     ).toBe(true);
   });
 });
+

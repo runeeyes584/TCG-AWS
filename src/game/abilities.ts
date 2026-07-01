@@ -14,7 +14,7 @@ import {
   UnitInstance
 } from "./types";
 import { findUnit, opponentOf } from "./rules";
-import { getUnitHealth } from "./cards";
+import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth } from "./cards";
 import { moveCardToGraveyard, moveUnitToGraveyard } from "./graveyard";
 
 export interface AbilityContext {
@@ -57,7 +57,8 @@ export function executePlayedSpellAbilities(
   card: CardInstance,
   selectedTarget: SpellTarget
 ): void {
-  const abilities = card.definition.abilities ?? [];
+  const definition = getCardDefinitionForInstance(card);
+  const abilities = definition.abilities ?? [];
   const selectedTargets: AbilityTargetMap = {
     target: selectedTarget,
     self: { type: "SELF", playerId: card.ownerId }
@@ -66,7 +67,7 @@ export function executePlayedSpellAbilities(
   for (const ability of abilities.filter((candidate) => !candidate.when)) {
     executeAbility(state, ability, {
       sourceId: card.instanceId,
-      sourceName: card.definition.name,
+      sourceName: definition.name,
       sourcePlayerId: card.ownerId,
       sourceCard: card,
       selectedTargets
@@ -77,14 +78,15 @@ export function executePlayedSpellAbilities(
 export function executeTriggeredAbilities(state: GameState, event: GameEvent): void {
   for (const playerId of ["P1", "P2"] as PlayerId[]) {
     for (const unit of state.players[playerId].board) {
-      for (const ability of unit.definition?.abilities ?? []) {
+      const definition = getCardDefinitionForUnit(unit);
+      for (const ability of definition.abilities ?? []) {
         if (!ability.when) {
           continue;
         }
         try {
           executeAbility(state, ability, {
             sourceId: unit.instanceId,
-            sourceName: unit.definition.name,
+            sourceName: definition.name,
             sourcePlayerId: playerId,
             sourceUnit: unit,
             event

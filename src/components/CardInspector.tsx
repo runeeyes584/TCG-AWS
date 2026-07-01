@@ -2,10 +2,12 @@
 import { useHover } from "../contexts/HoverContext";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "../game/cards";
 import { Shield, Swords, Zap } from "lucide-react";
+import { getCardDefinition } from "../game/cardRegistry";
 
 export function CardInspector() {
   const { hoveredCard, hoveredUnit } = useHover();
-  const definition = hoveredUnit?.definition ?? hoveredCard?.definition;
+  const cardId = hoveredUnit?.cardId ?? hoveredCard?.cardId;
+  const definition = cardId ? getCardDefinition(cardId) : undefined;
 
   if (!definition) {
     return (

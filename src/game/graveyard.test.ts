@@ -3,6 +3,8 @@ import { applyAction, createInitialGameState } from "./engine";
 import { getGraveyardEntries, findReviveTargets } from "./graveyard";
 import { GameState, CardDefinition, PlayerId, GameAction } from "./types";
 import { findUnit } from "./rules";
+import { createCardInstance } from "./cards";
+import { getCardDefinition } from "./cardRegistry";
 
 describe("Graveyard and Death Pipeline", () => {
   const dummyUnit: CardDefinition = {
@@ -65,16 +67,12 @@ describe("Graveyard and Death Pipeline", () => {
   };
 
   function setupGame(): GameState {
-    const deck = Array(10).fill(null).map((_, i) => ({
-      instanceId: `deck-card-${i}`,
-      definition: dummyUnit,
-      ownerId: "P1" as PlayerId
-    }));
-    const deck2 = Array(10).fill(null).map((_, i) => ({
-      instanceId: `deck2-card-${i}`,
-      definition: dummyUnit,
-      ownerId: "P2" as PlayerId
-    }));
+    const deck = Array(10).fill(null).map((_, i) =>
+      createCardInstance(dummyUnit, "P1", `deck-card-${i}`)
+    );
+    const deck2 = Array(10).fill(null).map((_, i) =>
+      createCardInstance(dummyUnit, "P2", `deck2-card-${i}`)
+    );
     let state = createInitialGameState(deck, deck2, 123);
     state = applyAction(state, { type: "START_GAME", firstPlayerId: "P1" });
     // Give both players plenty of mana
@@ -85,18 +83,15 @@ describe("Graveyard and Death Pipeline", () => {
 
   function addCardToHand(state: GameState, playerId: PlayerId, cardDef: CardDefinition) {
     const cardInstanceId = `hand-${Date.now()}-${Math.random()}`;
-    state.players[playerId].hand.push({
-      instanceId: cardInstanceId,
-      definition: cardDef,
-      ownerId: playerId,
-    });
+    state.players[playerId].hand.push(createCardInstance(cardDef, playerId, cardInstanceId));
     return cardInstanceId;
   }
 
   function playCard(state: GameState, playerId: PlayerId, cardInstanceId: string, target?: any) {
     const card = state.players[playerId].hand.find((c) => c.instanceId === cardInstanceId);
     if (!card) throw new Error("Card not found");
-    const type = card.definition.type === "unit" || card.definition.type === "champion" ? "PLAY_UNIT" : "PLAY_SPELL";
+    const definition = getCardDefinition(card.cardId);
+    const type = definition.type === "unit" || definition.type === "champion" ? "PLAY_UNIT" : "PLAY_SPELL";
     return applyAction(state, {
       type,
       playerId,
@@ -132,11 +127,11 @@ describe("Graveyard and Death Pipeline", () => {
     expect(state.players.P2.board.length).toBe(0);
     
     expect(state.players.P1.graveyard.length).toBe(1);
-    expect(state.players.P1.graveyard[0].definition.id).toBe("dummy-unit");
+    expect(state.players.P1.graveyard[0].cardId).toBe("dummy-unit");
     expect(state.players.P1.graveyard[0].ownerId).toBe("P1");
     
     expect(state.players.P2.graveyard.length).toBe(1);
-    expect(state.players.P2.graveyard[0].definition.id).toBe("dummy-unit");
+    expect(state.players.P2.graveyard[0].cardId).toBe("dummy-unit");
     expect(state.players.P2.graveyard[0].ownerId).toBe("P2");
   });
 
@@ -163,11 +158,11 @@ describe("Graveyard and Death Pipeline", () => {
     // P2 unit is dead
     expect(state.players.P2.board.length).toBe(0);
     expect(state.players.P2.graveyard.length).toBe(1);
-    expect(state.players.P2.graveyard[0].definition.id).toBe("dummy-unit");
+    expect(state.players.P2.graveyard[0].cardId).toBe("dummy-unit");
     
     // P1 spell is in graveyard
     expect(state.players.P1.graveyard.length).toBe(1);
-    expect(state.players.P1.graveyard[0].definition.id).toBe("kill-spell");
+    expect(state.players.P1.graveyard[0].cardId).toBe("kill-spell");
   });
 
   it("UNIT_DIED trigger sees dead unit data", () => {
@@ -215,12 +210,11 @@ describe("Graveyard and Death Pipeline", () => {
     state.players.P1.graveyard.push({
       id: "dead-dummy-gy",
       instanceId: "dead-dummy",
-      cardCode: dummyUnit.id,
+      cardId: dummyUnit.id,
       ownerId: "P1",
       type: "UNIT",
       round: 1,
-      cause: "COMBAT",
-      definition: dummyUnit
+      cause: "COMBAT"
     });
     
     // P1 plays revive spell
@@ -233,20 +227,20 @@ describe("Graveyard and Death Pipeline", () => {
     
     // The dummy unit should be on board
     expect(state.players.P1.board.length).toBe(1);
-    expect(state.players.P1.board[0].definition.id).toBe("dummy-unit");
+    expect(state.players.P1.board[0].cardId).toBe("dummy-unit");
     
     // The graveyard should no longer have the dummy unit
-    const dummyInGv = state.players.P1.graveyard.find(c => c.definition.id === "dummy-unit");
+    const dummyInGv = state.players.P1.graveyard.find(c => c.cardId === "dummy-unit");
     expect(dummyInGv).toBeUndefined();
     
     // The revive spell should be in the graveyard
     expect(state.players.P1.graveyard.length).toBe(1);
-    expect(state.players.P1.graveyard[0].definition.id).toBe("revive-spell");
+    expect(state.players.P1.graveyard[0].cardId).toBe("revive-spell");
   });
 
   // ─── NEW TESTS: rich GraveyardEntry metadata ──────────────────────────────
 
-  it("combat death: GraveyardEntry has cause=COMBAT and correct cardCode", () => {
+  it("combat death: GraveyardEntry has cause=COMBAT and correct cardId", () => {
     let state = setupGame();
     const p1UnitId = addCardToHand(state, "P1", dummyUnit);
     state = playCard(state, "P1", p1UnitId);
@@ -262,7 +256,7 @@ describe("Graveyard and Death Pipeline", () => {
 
     const p1Entry = state.players.P1.graveyard[0];
     expect(p1Entry.cause).toBe("COMBAT");
-    expect(p1Entry.cardCode).toBe("dummy-unit");
+    expect(p1Entry.cardId).toBe("dummy-unit");
     expect(p1Entry.type).toBe("UNIT");
     expect(p1Entry.id).toBe(`${p1Entry.instanceId}-gy`);
   });
@@ -279,7 +273,7 @@ describe("Graveyard and Death Pipeline", () => {
     const spellEntry = state.players.P1.graveyard[0];
     expect(spellEntry.cause).toBe("SPELL");
     expect(spellEntry.type).toBe("SPELL");
-    expect(spellEntry.cardCode).toBe("kill-spell");
+    expect(spellEntry.cardId).toBe("kill-spell");
     expect(spellEntry.id).toBe(`${spellEntry.instanceId}-gy`);
   });
 
@@ -348,8 +342,8 @@ describe("Graveyard and Death Pipeline", () => {
   it("findReviveTargets returns only UNIT/CHAMPION, not spells", () => {
     let state = setupGame();
     state.players.P1.graveyard = [
-      { id: "u1-gy", instanceId: "u1", cardCode: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 1, cause: "COMBAT", definition: dummyUnit },
-      { id: "s1-gy", instanceId: "s1", cardCode: "kill-spell",  ownerId: "P1", type: "SPELL", round: 1, cause: "SPELL",  definition: killSpell },
+      { id: "u1-gy", instanceId: "u1", cardId: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 1, cause: "COMBAT" },
+      { id: "s1-gy", instanceId: "s1", cardId: "kill-spell",  ownerId: "P1", type: "SPELL", round: 1, cause: "SPELL" },
     ];
     const targets = findReviveTargets(state, "P1");
     expect(targets.length).toBe(1);
@@ -359,9 +353,9 @@ describe("Graveyard and Death Pipeline", () => {
   it("getGraveyardEntries filter by type and round", () => {
     let state = setupGame();
     state.players.P1.graveyard = [
-      { id: "u1-gy", instanceId: "u1", cardCode: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 1, cause: "COMBAT", definition: dummyUnit },
-      { id: "s1-gy", instanceId: "s1", cardCode: "kill-spell",  ownerId: "P1", type: "SPELL", round: 1, cause: "SPELL",  definition: killSpell },
-      { id: "u2-gy", instanceId: "u2", cardCode: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 2, cause: "EFFECT", definition: dummyUnit },
+      { id: "u1-gy", instanceId: "u1", cardId: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 1, cause: "COMBAT" },
+      { id: "s1-gy", instanceId: "s1", cardId: "kill-spell",  ownerId: "P1", type: "SPELL", round: 1, cause: "SPELL" },
+      { id: "u2-gy", instanceId: "u2", cardId: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 2, cause: "EFFECT" },
     ];
     expect(getGraveyardEntries(state, "P1", { type: "UNIT" }).length).toBe(2);
     expect(getGraveyardEntries(state, "P1", { type: "SPELL" }).length).toBe(1);
@@ -388,6 +382,7 @@ describe("Graveyard and Death Pipeline", () => {
 
     expect(state.players.P1.board.length).toBe(0);
     expect(state.players.P1.graveyard.length).toBe(1);
-    expect(state.players.P1.graveyard[0].cardCode).toBe("dummy-unit");
+    expect(state.players.P1.graveyard[0].cardId).toBe("dummy-unit");
   });
 });
+

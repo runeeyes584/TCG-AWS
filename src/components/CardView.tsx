@@ -4,6 +4,7 @@ import { Shield, Swords, Zap } from "lucide-react";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "../game/cards";
 import { CardInstance, UnitInstance, VisualEvent } from "../game/types";
 import { useHover } from "../contexts/HoverContext";
+import { getCardDefinition } from "../game/cardRegistry";
 
 interface CardViewProps {
   card?: CardInstance;
@@ -15,10 +16,11 @@ interface CardViewProps {
 
 export function CardView({ card, unit, selected = false, onClick, visualEvents }: CardViewProps) {
   const { setHoveredCard } = useHover();
-  const definition = unit?.definition ?? card?.definition;
-  if (!definition) {
+  const cardId = unit?.cardId ?? card?.cardId;
+  if (!cardId) {
     return null;
   }
+  const definition = getCardDefinition(cardId);
 
   const attack = unit ? getUnitAttack(unit) : definition.attack;
   const health = unit ? getUnitHealth(unit) : definition.health;

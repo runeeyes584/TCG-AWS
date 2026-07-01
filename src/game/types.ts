@@ -187,16 +187,14 @@ export interface CardDefinition {
 
 export interface CardInstance {
   instanceId: string;
-  cardId?: string;
+  cardId: string;
   ownerId: PlayerId;
-  readonly definition: CardDefinition;
 }
 
 export interface UnitInstance {
   instanceId: string;
   cardId: string;
   ownerId: PlayerId;
-  readonly definition: CardDefinition;
   attack: number;
   maxHealth: number;
   damage: number;
@@ -227,15 +225,12 @@ export interface GraveyardEntry {
   id: string;
   /** Original card/unit instance ID. */
   instanceId: string;
-  /** Shorthand for definition.id — used for queries without pulling the full def. */
-  cardCode: string;
+  cardId: string;
   ownerId: PlayerId;
   type: GraveyardEntryType;
   /** Game round when this card entered the graveyard. */
   round: number;
   cause: GraveyardCause;
-  /** Full definition preserved — needed for revive, trigger inspection, etc. */
-  definition: CardDefinition;
   /** instanceId of the unit/spell that caused the death, if known. */
   sourceInstanceId?: string;
 }
@@ -283,7 +278,6 @@ export interface GameState {
   winnerId?: PlayerId;
   effectQueue: QueuedEffect[];
   visualEvents: VisualEvent[];
-  cardRegistry: Record<string, CardDefinition>;
 }
 
 export type GameAction =

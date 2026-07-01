@@ -4,6 +4,7 @@ import { executeTriggeredAbilities } from "./abilities";
 import { GameState, PlayerId, QueuedEffect, SpellTarget, Trigger } from "./types";
 import { opponentOf, PLAYER_IDS } from "./rules";
 import { updateChampionProgress } from "./engine";
+import { getCardDefinitionForUnit } from "./cards";
 
 export function emitEvent(state: GameState, event: GameEvent): void {
   updateChampionProgress(state, event);
@@ -51,8 +52,9 @@ function getActiveTriggers(state: GameState): Array<{ trigger: Trigger, sourcePl
   for (const playerId of PLAYER_IDS) {
     const player = state.players[playerId];
     for (const unit of player.board) {
-      if (unit.definition?.triggers) {
-        for (const trigger of unit.definition.triggers) {
+      const definition = getCardDefinitionForUnit(unit);
+      if (definition.triggers) {
+        for (const trigger of definition.triggers) {
            activeTriggers.push({ trigger: { ...trigger, sourceId: unit.instanceId }, sourcePlayerId: playerId });
         }
       }

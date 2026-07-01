@@ -1,12 +1,12 @@
 import {
   createUnitInstance,
-  attachCardDefinitionAccessor,
-  attachUnitDefinitionAccessor,
+  getCardDefinitionForInstance,
+  getCardDefinitionForUnit,
   getUnitAttack,
   getUnitHealth,
   isChampionCard
 } from "./cards";
-import { registerCardDefinition, registerCardDefinitions } from "./cardRegistry";
+import { getCardDefinition, registerCardDefinition, registerCardDefinitions } from "./cardRegistry";
 import {
   checkWinConditions,
   cloneState,
@@ -99,8 +99,9 @@ export function checkChampionLevelUps(state: GameState): void {
         continue;
       }
 
-      const level2Code = unit.definition.level2CardCode ?? unit.definition.leveledUpCardId;
-      const level2Def = level2Code ? state.cardRegistry[level2Code] : undefined;
+      const definition = getCardDefinitionForUnit(unit);
+      const level2Code = definition.level2CardCode ?? definition.leveledUpCardId;
+      const level2Def = level2Code ? getCardDefinition(level2Code) : undefined;
       if (level2Def) {
         levelChampionUnit(state, playerId, unit, level2Def);
       }
@@ -109,15 +110,16 @@ export function checkChampionLevelUps(state: GameState): void {
 }
 
 function shouldLevelChampion(player: PlayerState, unit: UnitInstance): boolean {
+  const definition = getCardDefinitionForUnit(unit);
   if (
-    !isChampionCard(unit.definition) ||
-    unit.definition.level !== 1 ||
-    !unit.definition.levelUpCondition
+    !isChampionCard(definition) ||
+    definition.level !== 1 ||
+    !definition.levelUpCondition
   ) {
     return false;
   }
 
-  const condition = unit.definition.levelUpCondition;
+  const condition = definition.levelUpCondition;
   const key =
     condition.type === "THIS_CHAMPION_STRUCK"
       ? championStrikeProgressKey(unit.instanceId)
@@ -178,14 +180,11 @@ export function createInitialGameState(
   p1Deck: Array<CardInstance | CardDefinition> = [],
   p2Deck: Array<CardInstance | CardDefinition> = [],
   rngSeed = 1,
-  extraCardRegistry: Record<string, CardInstance["definition"]> = {}
+  extraCardRegistry: Record<string, CardDefinition> = {}
 ): GameState {
+  registerCardDefinitions(Object.values(extraCardRegistry));
   const normalizedP1Deck = normalizeDeck(p1Deck, "P1");
   const normalizedP2Deck = normalizeDeck(p2Deck, "P2");
-  const cardRegistry = buildCardRegistry(
-    [...normalizedP1Deck, ...normalizedP2Deck],
-    extraCardRegistry
-  );
 
   return {
     players: {
@@ -207,8 +206,7 @@ export function createInitialGameState(
     rngSeed,
     started: false,
     effectQueue: [],
-    visualEvents: [],
-    cardRegistry
+    visualEvents: []
   };
 }
 
@@ -339,7 +337,7 @@ function refreshRound(state: GameState, draw: boolean): void {
   player.spellMana = Math.min(MAX_SPELL_MANA, player.spellMana + player.mana);
     player.maxMana = Math.min(MAX_MANA, player.maxMana + 1);
     player.mana = player.maxMana;
-    player.board = player.board.map((unit) => attachUnitDefinitionAccessor({
+    player.board = player.board.map((unit) => ({
       ...unit,
       exhausted: false,
       attacking: false,
@@ -393,8 +391,9 @@ function playUnit(
     (card) => card.instanceId === cardInstanceId
   );
   const [card] = player.hand.splice(handIndex, 1);
+  const definition = getCardDefinitionForInstance(card);
 
-  player.mana -= card.definition.cost;
+  player.mana -= definition.cost;
   
   if (replaceUnitId) {
     const replaceIndex = player.board.findIndex(u => u.instanceId === replaceUnitId);
@@ -431,15 +430,16 @@ function playSpell(
     (card) => card.instanceId === cardInstanceId
   );
   const [card] = player.hand.splice(handIndex, 1);
+  const definition = getCardDefinitionForInstance(card);
 
-  spendSpellMana(player, card.definition.cost);
-  if (card.definition.abilities?.length) {
+  spendSpellMana(player, definition.cost);
+  if (definition.abilities?.length) {
     executePlayedSpellAbilities(next, card, target);
   } else {
-    for (const effect of card.definition.effects ?? []) {
+    for (const effect of definition.effects ?? []) {
       enqueueEffect(next, {
         sourceId: card.instanceId,
-        sourceName: card.definition.name,
+        sourceName: definition.name,
         sourcePlayerId: playerId,
         effect,
         target: resolvePlayedSpellEffectTarget(effect, playerId, target)
@@ -743,7 +743,7 @@ function expireModifiers(
 
 function clearCombatAssignments(state: GameState): void {
   for (const playerId of PLAYER_IDS) {
-    state.players[playerId].board = state.players[playerId].board.map((unit) => attachUnitDefinitionAccessor({
+    state.players[playerId].board = state.players[playerId].board.map((unit) => ({
       ...unit,
       attacking: false,
       blockingUnitId: undefined,
@@ -752,39 +752,24 @@ function clearCombatAssignments(state: GameState): void {
   }
 }
 
-function buildCardRegistry(
-  cards: CardInstance[],
-  extraCardRegistry: Record<string, CardInstance["definition"]>
-): Record<string, CardInstance["definition"]> {
-  const registry: Record<string, CardInstance["definition"]> = {
-    ...extraCardRegistry
-  };
-  registerCardDefinitions(Object.values(extraCardRegistry));
-
-  for (const card of cards) {
-    registry[card.cardId ?? card.definition.id] = card.definition;
-  }
-
-  return registry;
-}
-
 function normalizeDeck(
   deck: Array<CardInstance | CardDefinition>,
   ownerId: PlayerId
 ): CardInstance[] {
   return deck.map((entry, index) => {
-    if ("definition" in entry) {
-      if (entry.definition) {
-        registerCardDefinition(entry.definition);
+    if ("instanceId" in entry) {
+      if (!entry.cardId) {
+        throw new Error("Card instance requires cardId.");
       }
-      return attachCardDefinitionAccessor(entry);
+      getCardDefinition(entry.cardId);
+      return { instanceId: entry.instanceId, cardId: entry.cardId, ownerId: entry.ownerId };
     }
 
     registerCardDefinition(entry);
-    return attachCardDefinitionAccessor({
+    return {
       instanceId: `${ownerId}-${entry.id}-${index}`,
       cardId: entry.id,
       ownerId
-    } as CardInstance);
+    };
   });
 }

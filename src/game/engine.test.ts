@@ -509,10 +509,7 @@ describe("game engine", () => {
       createUnitInstance(card(bruiser, "P1", "attacker"))
     ]);
     state = withBoard(state, "P2", [
-      createUnitInstance({
-        ...card(guardian, "P2", "blocker"),
-        definition: { ...guardian, keywords: ["TOUGH"] }
-      })
+      createUnitInstance(card({ ...guardian, id: "guardian-tough", keywords: ["TOUGH"] }, "P2", "blocker"))
     ]);
     state = declareAndCommitAttack(state, "attacker");
     state = applyAction(state, {
@@ -532,10 +529,7 @@ describe("game engine", () => {
       createUnitInstance(card(bruiser, "P1", "attacker"))
     ]);
     state = withBoard(state, "P2", [
-      createUnitInstance({
-        ...card(soldier, "P2", "blocker"),
-        definition: { ...soldier, keywords: ["BARRIER"] }
-      })
+      createUnitInstance(card({ ...soldier, id: "soldier-barrier", keywords: ["BARRIER"] }, "P2", "blocker"))
     ]);
     state = declareAndCommitAttack(state, "attacker");
     state = applyAction(state, {
@@ -553,10 +547,7 @@ describe("game engine", () => {
 
   it("QUICK_ATTACK attacker strikes first and avoids dead blocker strikeback", () => {
     let state = withBoard(startedGame(), "P1", [
-      createUnitInstance({
-        ...card(bruiser, "P1", "attacker"),
-        definition: { ...bruiser, keywords: ["QUICK_ATTACK"] }
-      })
+      createUnitInstance(card({ ...bruiser, id: "bruiser-quick", keywords: ["QUICK_ATTACK"] }, "P1", "attacker"))
     ]);
     state = withBoard(state, "P2", [
       createUnitInstance(card(soldier, "P2", "blocker"))
@@ -577,10 +568,7 @@ describe("game engine", () => {
 
   it("OVERWHELM deals excess blocked damage to the defender nexus", () => {
     let state = withBoard(startedGame(), "P1", [
-      createUnitInstance({
-        ...card(guardian, "P1", "attacker"),
-        definition: { ...guardian, attack: 5, keywords: ["OVERWHELM"] }
-      })
+      createUnitInstance(card({ ...guardian, id: "guardian-overwhelm", attack: 5, keywords: ["OVERWHELM"] }, "P1", "attacker"))
     ]);
     state = withBoard(state, "P2", [
       createUnitInstance(card(soldier, "P2", "blocker"))
@@ -1074,7 +1062,7 @@ describe("game engine", () => {
 
     expect(state.effectQueue).toEqual([]);
     expect(state.players.P1.board).toHaveLength(1);
-    expect(state.players.P1.board[0].definition.id).toBe("soldier");
+    expect(state.players.P1.board[0].cardId).toBe("soldier");
   });
 
   it("validates spell target ownership", () => {
