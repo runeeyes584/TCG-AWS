@@ -4,7 +4,7 @@ import { CardDefinition } from "./types";
 export const sampleDeckCards: CardDefinition[] = listCards();
 
 export const sampleUnitCards: CardDefinition[] = sampleDeckCards.filter(
-  (card) => card.type === "unit" || card.type === "champion" || card.type === "CHAMPION"
+  (card) => card.type === "unit" || card.type === "champion"
 );
 
 export const sampleSpellCards: CardDefinition[] = sampleDeckCards.filter(

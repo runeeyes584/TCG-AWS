@@ -223,7 +223,7 @@ describe("Champion System & Level Up", () => {
     const deathChamp2: CardDefinition = {
       id: "death-champ-2",
       name: "Death Champ",
-      type: "CHAMPION",
+      type: "champion",
       championId: "death-champ",
       cost: 1,
       attack: 3,
@@ -250,7 +250,7 @@ describe("Champion System & Level Up", () => {
     });
 
     expect(unitDef(state.players.P1.board[0]).level).toBe(2);
-    expect(unitDef(state.players.P1.board[0]).type).toBe("CHAMPION");
+    expect(unitDef(state.players.P1.board[0]).type).toBe("champion");
   });
 
   it("champion levels up from spell casts through events", () => {

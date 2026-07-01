@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { createCardInstance, createUnitInstance } from "./cards";
-import { getCardDefinition, hasCard, listCards } from "./cardRegistry";
+import {
+  createCardInstance,
+  createUnitInstance,
+  isChampionCard,
+  isUnitCard
+} from "./cards";
+import {
+  getCardDefinition,
+  hasCard,
+  listCards,
+  registerCardDefinition
+} from "./cardRegistry";
+import cardsJson from "./data/cards.json";
 import { applyAction, createInitialGameState } from "./engine";
 import { CardDefinition, GameValidationError, PlayerId } from "./types";
 
@@ -39,6 +50,61 @@ describe("data-driven card registry and operations", () => {
       type: "unit"
     });
     expect(listCards().length).toBeGreaterThan(10);
+  });
+
+  it("accepts lowercase champion card types", () => {
+    const champion: CardDefinition = {
+      id: "data-lowercase-champion",
+      name: "Lowercase Champion",
+      type: "champion",
+      cost: 1,
+      attack: 2,
+      health: 3
+    };
+
+    expect(registerCardDefinition(champion)).toBe(champion);
+    expect(getCardDefinition(champion.id).type).toBe("champion");
+  });
+
+  it("rejects uppercase CHAMPION card types", () => {
+    const invalidChampion = {
+      id: "data-uppercase-champion",
+      name: "Uppercase Champion",
+      type: "CHAMPION",
+      cost: 1,
+      attack: 2,
+      health: 3
+    } as unknown as CardDefinition;
+
+    expect(() => registerCardDefinition(invalidChampion)).toThrow(
+      "Invalid card type: CHAMPION"
+    );
+  });
+
+  it("card type helpers only accept lowercase card types", () => {
+    const champion: CardDefinition = {
+      id: "data-helper-champion",
+      name: "Helper Champion",
+      type: "champion",
+      cost: 1,
+      attack: 2,
+      health: 3
+    };
+    const uppercaseChampion = {
+      ...champion,
+      id: "data-helper-uppercase",
+      type: "CHAMPION"
+    } as unknown as CardDefinition;
+
+    expect(isChampionCard(champion)).toBe(true);
+    expect(isChampionCard(uppercaseChampion)).toBe(false);
+    expect(isUnitCard(unit)).toBe(true);
+    expect(isUnitCard(champion)).toBe(true);
+  });
+
+  it("JSON card data contains no uppercase CardType values", () => {
+    const validTypes = new Set(["unit", "spell", "champion"]);
+    expect((cardsJson as Array<{ type: string }>).every((card) => validTypes.has(card.type))).toBe(true);
   });
 
   it("throws GameValidationError for invalid cardId", () => {

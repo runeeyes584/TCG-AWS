@@ -1,13 +1,20 @@
 import cardsJson from "./data/cards.json";
-import { CardDefinition, GameValidationError } from "./types";
+import { CardDefinition, CardType, GameValidationError } from "./types";
 
 const cardMap = new Map<string, CardDefinition>();
 
 for (const card of cardsJson as CardDefinition[]) {
-  cardMap.set(card.id, card);
+  registerCardDefinition(card);
+}
+
+export function assertValidCardType(type: string): asserts type is CardType {
+  if (type !== "unit" && type !== "spell" && type !== "champion") {
+    throw new GameValidationError(`Invalid card type: ${type}`);
+  }
 }
 
 export function registerCardDefinition(definition: CardDefinition): CardDefinition {
+  assertValidCardType(definition.type);
   cardMap.set(definition.id, definition);
   return definition;
 }

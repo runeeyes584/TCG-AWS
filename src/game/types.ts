@@ -2,7 +2,7 @@ import { GameEventType, GameEvent } from "./events";
 
 export type PlayerId = "P1" | "P2";
 
-export type CardType = "unit" | "spell" | "champion" | "CHAMPION";
+export type CardType = "unit" | "spell" | "champion";
 
 export type GamePhase = "ACTION" | "BLOCK" | "COMBAT" | "DISCARD";
 

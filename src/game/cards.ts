@@ -12,11 +12,11 @@ export function isChampionCard(definition: CardDefinition): boolean {
   if (!definition) {
     return false;
   }
-  return definition.type === "champion" || definition.type === "CHAMPION";
+  return definition.type === "champion";
 }
 
 export function isUnitCard(definition: CardDefinition): boolean {
-  return definition.type === "unit" || isChampionCard(definition);
+  return definition.type === "unit" || definition.type === "champion";
 }
 
 export function createCardInstance(
