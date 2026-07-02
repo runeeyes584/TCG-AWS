@@ -701,5 +701,101 @@
     ],
     "imageUrl": "https://picsum.photos/seed/ability-champion-2/200/300",
     "description": "A mysterious champion from the realm of Kaleidoscope."
+  },
+  {
+    "id": "astral-severance",
+    "name": "Astral Severance",
+    "cost": 5,
+    "type": "spell",
+    "effects": [
+      {
+        "type": "BANISH_UNIT",
+        "target": "ENEMY_UNIT"
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/astral-severance/200/300",
+    "description": "Banish an enemy unit.",
+    "spellSpeed": "fast"
+  },
+  {
+    "id": "withering-initiate",
+    "name": "Withering Initiate",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "abilities": [
+      {
+        "id": "withering-initiate-play",
+        "when": {
+          "event": "UNIT_SUMMONED"
+        },
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": 0,
+            "target": "RANDOM_ENEMY_UNIT",
+            "duration": "THIS_ROUND"
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/withering-initiate/200/300",
+    "description": "When summoned, give a random enemy unit -1|0 this round."
+  },
+  {
+    "id": "gloom-hexer",
+    "name": "Gloom Hexer",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "abilities": [
+      {
+        "id": "gloom-hexer-play",
+        "when": {
+          "event": "UNIT_SUMMONED"
+        },
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": -1,
+            "target": "RANDOM_ENEMY_UNIT",
+            "duration": "THIS_ROUND"
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/gloom-hexer/200/300",
+    "description": "When summoned, give a random enemy unit -1|-1 this round."
+  },
+  {
+    "id": "nullbrand-warden",
+    "name": "Nullbrand Warden",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "abilities": [
+      {
+        "id": "nullbrand-warden-play",
+        "when": {
+          "event": "UNIT_SUMMONED"
+        },
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -2,
+            "healthDelta": 0,
+            "target": "RANDOM_ENEMY_UNIT",
+            "duration": "THIS_ROUND"
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/nullbrand-warden/200/300",
+    "description": "When summoned, give a random enemy unit -2|0 this round."
   }
 ]
