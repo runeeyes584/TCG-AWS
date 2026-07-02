@@ -9,6 +9,7 @@ export type GameEventType =
   | "CARD_PLAYED"
   | "CARD_DRAWN"
   | "CARD_DISCARDED"
+  | "CARD_BANISHED"
   | "SPELL_CAST"
   | "UNIT_SUMMONED"
   | "ATTACK_DECLARED"
@@ -17,6 +18,7 @@ export type GameEventType =
   | "UNIT_DAMAGED"
   | "UNIT_HEALED"
   | "UNIT_DIED"
+  | "UNIT_BANISHED"
   | "NEXUS_DAMAGED"
   | "CHAMPION_LEVELED_UP";
 
