@@ -4,3 +4,5 @@ export { dealDamage, dealDamageToUnitState } from "./damage";
 export { healTarget, healUnitById } from "./heal";
 export { summonUnit } from "./summon";
 export { addModifier, grantKeyword } from "./buff";
+export { addDebuff, removeKeyword } from "./debuff";
+export { banishCard, banishUnit } from "./banish";

@@ -41,7 +41,7 @@ export interface UnitModifier {
   id: string;
   sourceCardId: string;
   sourceName: string;
-  type: "BUFF";
+  type: "BUFF" | "DEBUFF";
   attackDelta: number;
   healthDelta: number;
   duration: ModifierDuration;
@@ -76,6 +76,17 @@ export type EffectDefinition =
       health: number;
       target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind | string;
       duration?: ModifierDuration;
+    }
+  | {
+      type: "DEBUFF_UNIT";
+      attackDelta: number;
+      healthDelta: number;
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
+      duration?: ModifierDuration;
+    }
+  | {
+      type: "BANISH_UNIT";
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
     }
   | {
       type: "GRANT_KEYWORD";
@@ -280,6 +291,7 @@ export type VisualEvent =
   | { type: "HEAL"; targetId: string; amount: number; isNexus: boolean }
   | { type: "DRAW"; playerId: PlayerId; count: number }
   | { type: "BUFF"; targetId: string; attackDelta: number; healthDelta: number }
+  | { type: "DEBUFF"; targetId: string; attackDelta: number; healthDelta: number }
   | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string }
   | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number };
 

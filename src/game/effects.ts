@@ -17,7 +17,9 @@ import { runCleanupPipeline } from "./engine";
 import { createCardInstance, createUnitInstance } from "./cards";
 import { emitEvent } from "./triggers";
 import {
+  addDebuff,
   addModifier,
+  banishUnit,
   dealDamage,
   discardCards,
   drawCards,
@@ -138,6 +140,33 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
           healthDelta: effect.health,
           duration: effect.duration ?? "THIS_ROUND"
         });
+      } catch (e) {}
+      return;
+    }
+    case "DEBUFF_UNIT": {
+      if (target?.type !== "UNIT") {
+        return;
+      }
+      try {
+        findUnit(state, target.playerId, target.unitId);
+        addDebuff(state, target.unitId, {
+          sourceCardId: sourceId,
+          sourceName: sourceName ?? sourceId,
+          type: "DEBUFF",
+          attackDelta: effect.attackDelta,
+          healthDelta: effect.healthDelta,
+          duration: effect.duration ?? "THIS_ROUND"
+        });
+      } catch (e) {}
+      return;
+    }
+    case "BANISH_UNIT": {
+      if (target?.type !== "UNIT") {
+        return;
+      }
+      try {
+        const unit = findUnit(state, target.playerId, target.unitId);
+        banishUnit(state, unit, sourceId);
       } catch (e) {}
       return;
     }
