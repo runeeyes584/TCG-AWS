@@ -637,6 +637,542 @@ button svg { vertical-align: -2px; }
   50%      { box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 0 24px rgba(200,144,48,0.7), 0 0 0 5px rgba(200,144,48,0.12); }
 }
 
+/* ===== HOME HUB ===== */
+.home-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 360px;
+  grid-template-rows: 112px minmax(0, 1fr) 176px;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(120deg, rgba(7,10,18,0.98) 0%, rgba(8,10,18,0.96) 42%, rgba(32,8,46,0.82) 100%),
+    radial-gradient(circle at 70% 42%, rgba(202,42,110,0.36), transparent 36%),
+    radial-gradient(circle at 50% 15%, rgba(28,200,200,0.18), transparent 28%);
+}
+
+.home-shell::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 4px),
+    linear-gradient(120deg, transparent 0 36%, rgba(70,95,155,0.22) 36% 58%, transparent 58%);
+  mix-blend-mode: screen;
+  opacity: 0.38;
+}
+
+.home-shell::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(240,192,80,0.18);
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.76);
+}
+
+.home-topbar,
+.home-menu,
+.home-stage,
+.home-news,
+.duel-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.home-topbar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(280px, 540px) minmax(160px, 280px) minmax(340px, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 18px 28px 10px;
+}
+
+.profile-card {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-rows: 1fr 10px;
+  gap: 8px 14px;
+  align-items: center;
+  max-width: 520px;
+  padding: 8px 18px 8px 8px;
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%);
+  background: linear-gradient(90deg, rgba(18,24,32,0.95), rgba(78,82,88,0.72));
+  border-left: 2px solid rgba(240,192,80,0.75);
+}
+
+.profile-avatar {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 3px solid var(--lor-gold-bright);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.92), rgba(188,170,120,0.62) 38%, rgba(35,28,22,0.9) 75%),
+    url("https://picsum.photos/seed/kaleidoscope-avatar/160/160") center / cover;
+  color: #141820;
+  font-family: 'Cinzel', serif;
+  font-size: 34px;
+  font-weight: 900;
+  box-shadow: 0 0 22px rgba(240,192,80,0.48);
+}
+
+.profile-copy {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  min-width: 0;
+}
+
+.profile-copy strong {
+  overflow: hidden;
+  color: rgba(255,255,255,0.9);
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-copy span {
+  color: var(--lor-text);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.profile-progress {
+  height: 8px;
+  max-width: 300px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.46);
+}
+
+.profile-progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--lor-teal), var(--lor-gold-bright));
+}
+
+.home-currency {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 190px;
+  padding: 11px 20px;
+  clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%);
+  background: rgba(92,96,104,0.8);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.9);
+  font-size: 22px;
+}
+
+.gem-icon {
+  width: 26px;
+  height: 26px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, #6cfff2, #725cff 48%, #ff5ec4);
+  border: 1px solid rgba(255,255,255,0.82);
+  box-shadow: 0 0 18px rgba(114,92,255,0.7);
+}
+
+.home-utility {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.home-utility button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 70px;
+  min-height: 64px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: rgba(230,248,246,0.84);
+  font-size: 10px;
+  opacity: 0.78;
+}
+
+.home-menu {
+  grid-column: 1;
+  grid-row: 2 / 4;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 52px 0 0 74px;
+}
+
+.home-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  width: 250px;
+  min-height: 58px;
+  padding: 0 24px 0 0;
+  border: 0;
+  border-left: 3px solid var(--lor-gold-bright);
+  border-radius: 0;
+  background: linear-gradient(90deg, rgba(4,8,12,0.92), rgba(18,24,32,0.42), transparent);
+  color: rgba(255,255,255,0.92);
+  font-family: 'Cinzel', serif;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.76);
+  text-transform: uppercase;
+}
+
+.home-menu-item:disabled {
+  opacity: 0.54;
+}
+
+.home-menu-item.is-active {
+  color: #fff;
+  text-shadow: 0 0 16px rgba(28,200,200,0.36), 0 2px 0 rgba(0,0,0,0.8);
+}
+
+.home-stage {
+  grid-column: 2 / 4;
+  grid-row: 2 / 4;
+  min-height: 0;
+}
+
+.home-hero-art {
+  position: absolute;
+  right: 8%;
+  bottom: 4%;
+  width: min(58vw, 780px);
+  height: min(72vh, 720px);
+  background:
+    radial-gradient(circle at 62% 38%, rgba(255,80,160,0.56), transparent 24%),
+    url("https://picsum.photos/seed/kaleido-drake/900/900") center / cover;
+  clip-path: polygon(22% 0, 100% 0, 100% 88%, 52% 100%, 0 68%, 8% 22%);
+  filter: saturate(1.28) contrast(1.08);
+  opacity: 0.84;
+  box-shadow: -30px 28px 90px rgba(0,0,0,0.58);
+}
+
+.home-card-fan {
+  position: absolute;
+  right: 26%;
+  top: 7%;
+  width: 330px;
+  height: 230px;
+  transform: rotate(-8deg);
+}
+
+.fan-card {
+  position: absolute;
+  width: 110px;
+  height: 160px;
+  border: 2px solid rgba(240,192,80,0.72);
+  border-radius: 8px;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.58);
+}
+
+.fan-card-1 {
+  left: 0;
+  top: 30px;
+  transform: rotate(-16deg);
+  background-image: url("https://picsum.photos/seed/darius-1/200/300");
+}
+
+.fan-card-2 {
+  left: 92px;
+  top: 4px;
+  transform: rotate(2deg);
+  background-image: url("https://picsum.photos/seed/lux-1/200/300");
+}
+
+.fan-card-3 {
+  left: 186px;
+  top: 32px;
+  transform: rotate(17deg);
+  background-image: url("https://picsum.photos/seed/kalista-1/200/300");
+}
+
+.home-title-block {
+  position: absolute;
+  left: 34px;
+  bottom: 230px;
+  max-width: 430px;
+}
+
+.home-title-block span {
+  color: var(--lor-teal);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.home-title-block h1 {
+  margin: 6px 0 8px;
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(48px, 7vw, 104px);
+  line-height: 0.88;
+  text-transform: uppercase;
+  text-shadow: 0 0 28px rgba(178,62,235,0.55), 0 5px 0 rgba(0,0,0,0.62);
+}
+
+.home-title-block p {
+  max-width: 360px;
+  margin: 0;
+  color: rgba(232,220,200,0.82);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.home-news {
+  grid-column: 1 / 2;
+  grid-row: 3;
+  display: grid;
+  align-self: end;
+  gap: 16px;
+  padding: 0 0 42px 74px;
+}
+
+.news-banner,
+.mission-card {
+  width: 442px;
+  max-width: calc(100vw - 96px);
+  border: 1px solid rgba(130,215,255,0.42);
+  background:
+    linear-gradient(135deg, rgba(22,116,226,0.86), rgba(20,42,108,0.82)),
+    url("https://picsum.photos/seed/mission-panel/600/240") center / cover;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.42);
+}
+
+.news-banner {
+  min-height: 126px;
+  padding: 22px;
+}
+
+.mission-card {
+  min-height: 84px;
+  padding: 14px 18px;
+  background:
+    linear-gradient(135deg, rgba(158,18,166,0.92), rgba(62,30,128,0.82)),
+    url("https://picsum.photos/seed/daily-mission/600/240") center / cover;
+}
+
+.news-banner span,
+.mission-card span,
+.duel-panel-kicker {
+  display: block;
+  color: rgba(255,255,255,0.72);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.news-banner strong,
+.mission-card strong {
+  display: block;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.news-banner small,
+.mission-card small {
+  display: block;
+  margin-top: 7px;
+  color: rgba(255,255,255,0.78);
+  font-size: 13px;
+}
+
+.duel-panel {
+  grid-column: 3;
+  grid-row: 3;
+  align-self: end;
+  justify-self: end;
+  width: min(390px, calc(100vw - 48px));
+  margin: 0 62px 66px 0;
+  padding: 20px 24px 22px;
+  clip-path: polygon(7% 0, 100% 0, 94% 100%, 0 100%);
+  border: 2px solid rgba(190,255,28,0.86);
+  background:
+    linear-gradient(135deg, rgba(26,20,42,0.92), rgba(126,28,152,0.8)),
+    url("https://picsum.photos/seed/training-duel/700/300") center / cover;
+  box-shadow: 0 0 22px rgba(190,255,28,0.42), 0 18px 48px rgba(0,0,0,0.56);
+}
+
+.duel-panel-glow {
+  position: absolute;
+  inset: -18px;
+  z-index: -1;
+  background: radial-gradient(circle at 70% 30%, rgba(190,255,28,0.42), transparent 44%);
+}
+
+.duel-panel h2 {
+  margin: 2px 0 4px;
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 40px;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.8);
+}
+
+.duel-panel p {
+  max-width: 260px;
+  margin: 0 0 14px;
+  color: rgba(255,255,255,0.8);
+  font-size: 12px;
+}
+
+.duel-start-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.42);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.duel-start-link:hover {
+  border-color: var(--lor-gold-bright);
+  color: var(--lor-gold-bright);
+}
+
+@media (max-width: 1100px) {
+  .home-shell {
+    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-rows: auto minmax(420px, 1fr) auto;
+    overflow-y: auto;
+  }
+
+  .home-topbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .home-currency,
+  .home-utility {
+    justify-self: start;
+  }
+
+  .home-menu {
+    padding-left: 28px;
+  }
+
+  .home-menu-item {
+    width: 210px;
+    font-size: 26px;
+  }
+
+  .home-stage {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .home-title-block {
+    left: 18px;
+    bottom: 80px;
+  }
+
+  .home-news {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding: 18px 28px;
+  }
+
+  .duel-panel {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: start;
+    margin: 18px 28px 32px;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .home-topbar {
+    padding: 14px;
+  }
+
+  .home-utility {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    gap: 6px;
+  }
+
+  .home-utility button {
+    min-width: 0;
+  }
+
+  .home-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  .home-menu-item {
+    width: auto;
+    min-height: 48px;
+    font-size: 20px;
+  }
+
+  .home-stage {
+    min-height: 420px;
+  }
+
+  .home-hero-art {
+    right: -18%;
+    width: 90vw;
+    height: 360px;
+  }
+
+  .home-card-fan {
+    right: 12%;
+    transform: scale(0.7) rotate(-8deg);
+    transform-origin: top right;
+  }
+
+  .home-title-block {
+    left: 16px;
+    bottom: 34px;
+  }
+
+  .home-news {
+    padding: 14px;
+  }
+
+  .duel-panel {
+    width: auto;
+    margin: 8px 14px 22px;
+  }
+}
+
 /* ===== COMBAT STATUS BAR ===== */
 .combat-status-bar {
   display: flex;
