@@ -134,6 +134,7 @@ export type CostDefinition =
 
 export interface Ability {
   id: string;
+  onPlay?: boolean;
   when?: TriggerDefinition;
   runtimeCondition?: (state: GameState, event: GameEvent) => boolean;
   conditions?: ConditionDefinition[];
@@ -191,6 +192,9 @@ export interface PendingChoice {
   requiredTargets: TargetDefinition[];
   chosenTargets: AbilityTargetMap;
   returnPhase: GamePhase;
+  playUnit?: {
+    replaceUnitId?: string;
+  };
 }
 
 export interface CardDefinition {
@@ -324,7 +328,7 @@ export type GameAction =
   | { type: "DRAW_CARD"; playerId: PlayerId; count?: number }
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: string }
   | { type: "START_ROUND" }
-  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string }
+  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string; target?: SpellTarget }
   | {
       type: "PLAY_SPELL";
       playerId: PlayerId;
