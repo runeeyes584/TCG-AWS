@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 16, "column": 0}, "map": {"version":3,"sources":["file:///K:/Catullus/AWS/TCG-AWS/src/app/page.tsx"],"sourcesContent":["import { GameBoard } from \"../components/GameBoard\";\r\n\r\nexport default function Home() {\r\n  return <GameBoard />;\r\n}\r\n"],"names":["Home"],"mappings":";;;;;AAAA;;;AAEe,SAASA;IACtB,qBAAO,8OAAC,4IAAS;;;;;AACnB"}}]
+}

@@ -1,4 +1,6 @@
-import cardsJson from "./data/cards.json";
+// import cardsJson from "./data/cards.json";
+import cardsJson from "./data/UiaCard.json";
+
 import {
   Ability,
   CardDefinition,

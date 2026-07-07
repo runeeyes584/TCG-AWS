@@ -221,7 +221,10 @@ export function cloneState(state: GameState): GameState {
       ? {
           ...state.pendingChoice,
           requiredTargets: state.pendingChoice.requiredTargets.map((target) => ({ ...target })),
-          chosenTargets: cloneAbilityTargetMap(state.pendingChoice.chosenTargets)
+          chosenTargets: cloneAbilityTargetMap(state.pendingChoice.chosenTargets),
+          playUnit: state.pendingChoice.playUnit
+            ? { ...state.pendingChoice.playUnit }
+            : undefined
         }
       : undefined,
     combat: {

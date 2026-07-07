@@ -1,0 +1,131 @@
+[
+
+    {
+    "id": "Cat-Black-Fat-Cat",
+    "name": "Black Fat Cat",
+    "cost": 5,
+    "type": "spell",
+    "effects": [
+      {
+        "type": "BANISH_UNIT",
+        "target": "ENEMY_UNIT"
+      }
+    ],
+    "imageUrl": "https://media1.tenor.com/m/FKkizy0WHJYAAAAC/jirniy-%D0%BA%D0%BE%D1%82.gif",
+    "description": "A fat cat sat on the grave; its weight prevented the opponent from rising from the dead, causing them to vanish instead.",
+    "spellSpeed": "fast"
+  },
+
+  {
+    "id": "Cat-Curse-Paw",
+    "name": "Cat Curse Paw",
+    "cost": 3,
+    "type": "spell",
+    "effects": [
+      {
+        "type": "DEBUFF_UNIT",
+        "attackDelta": -1,
+        "healthDelta": 0,
+        "target": "ENEMY_UNIT",
+        "duration": "PERMANENT"
+      }
+    ],
+    "imageUrl": "https://media.tenor.com/prES6nvHxTkAAAAi/cursed-cat.gif",
+    "description": "A cat with a dark curse that reduces enemy attack power (-1 attack) [Debuff]. ",
+    "spellSpeed": "fast"
+  },
+
+  {
+    "id": "Cat-Grave-Seal",
+    "name": "Grave Seal",
+    "cost": 2,
+    "type": "spell",
+    "effects": [
+      {
+        "type": "BANISH_GRAVEYARD",
+        "target": "ENEMY_GRAVEYARD"
+      }
+    ],
+    "imageUrl": "https://media1.tenor.com/m/5n8PMeGmltAAAAAC/cat-stare.gif",
+    "description": "Mark an enemy card in the graveyard with Banish, preventing that card from ever being revived.",
+    "spellSpeed": "slow"
+  },
+
+
+  {
+    "id": "Cat-Baby-with-bow",
+    "name": "Baby Cat with Bow",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "abilities": [
+      {
+        "id": "Cat-Baby-with-bow-play",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT",
+            "required": true
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": 0,
+            "target": "target",
+            "duration": "PERMANENT"
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://media1.tenor.com/m/lwumhdMpAVkAAAAC/a.gif",
+    "description": "When summoning the cat, its adorable bow and fluffiness cause the opponent to lower their guard, leaving them vulnerable (-1 Attack to a random enemy unit) [debuff]."
+  },
+
+  {
+    "id": "Cat-Banana",
+    "name": "Cat Banana",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "abilities": [
+      {
+        "id": "Cat-Banana-play",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT",
+            "required": true
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": -1,
+            "target": "target",
+            "duration": "PERMANENT"
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://media1.tenor.com/m/JfrX5uK-_qIAAAAC/banana-cat.gif",
+    "description": "Summoning the cat causes the opponent to slip and fall (-1 Attack and -1 Health to a random enemy) [debuff]"
+  },
+
+  {
+    "id": "Cat-hold-gun",
+    "name": "Cat Holding a Gun",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "imageUrl": "https://media1.tenor.com/m/bf51eRcGKSQAAAAd/outrageous-cat.gif",
+    "description": "A cat holding a gun with its tail."
+  }
+]

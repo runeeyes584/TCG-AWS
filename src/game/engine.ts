@@ -29,6 +29,7 @@ import {
   GameValidationError,
   Keyword,
   PlayerId,
+  PendingChoice,
   PlayerState,
   SpellTarget,
   UnitInstance
@@ -237,7 +238,7 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       next = startRound(cleanState);
       break;
     case "PLAY_UNIT":
-      next = playUnit(cleanState, action.playerId, action.cardInstanceId, action.replaceUnitId);
+      next = playUnit(cleanState, action.playerId, action.cardInstanceId, action.replaceUnitId, action.target);
       break;
     case "PLAY_SPELL":
       next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target);
@@ -395,7 +396,8 @@ function playUnit(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: string,
-  replaceUnitId?: string
+  replaceUnitId?: string,
+  target?: SpellTarget
 ): GameState {
   const next = cloneState(state);
   const player = next.players[playerId];
@@ -404,6 +406,28 @@ function playUnit(
   );
   const [card] = player.hand.splice(handIndex, 1);
   const definition = getCardDefinitionForInstance(card);
+  const onPlayAbilities = (definition.abilities ?? []).filter((ability) => ability.onPlay);
+
+  for (const ability of onPlayAbilities) {
+    const selectedTargets: AbilityTargetMap = target ? { target } : {};
+    const missingTargets = getMissingRequiredTargets(ability, selectedTargets);
+    if (missingTargets.length > 0) {
+      player.hand.splice(handIndex, 0, card);
+      next.pendingChoice = {
+        playerId,
+        sourceInstanceId: card.instanceId,
+        sourceCardId: card.cardId,
+        abilityId: ability.id,
+        requiredTargets: missingTargets,
+        chosenTargets: selectedTargets,
+        returnPhase: next.phase,
+        playUnit: { replaceUnitId }
+      };
+      next.priorityPlayerId = playerId;
+      next.activePlayerId = playerId;
+      return next;
+    }
+  }
 
   player.mana -= definition.cost;
   
@@ -445,6 +469,45 @@ function playUnit(
     targetUnitId: card.instanceId,
     targetCardId: card.cardId
   });
+
+  // Handle on-play abilities that require player targeting
+  for (const ability of onPlayAbilities) {
+    const selectedTargets: AbilityTargetMap = target ? { target } : {};
+    const unit = player.board.find((candidate) => candidate.instanceId === card.instanceId);
+    executeAbility(next, ability, {
+      sourceId: card.instanceId,
+      sourceName: definition.name,
+      sourcePlayerId: playerId,
+      sourceUnit: unit,
+      selectedTargets
+    });
+    continue;
+    const missingTargets = getMissingRequiredTargets(ability, selectedTargets);
+    if (missingTargets.length > 0) {
+      // Player must choose target → create pendingChoice
+      next.pendingChoice = {
+        playerId,
+        sourceInstanceId: card.instanceId,
+        sourceCardId: card.cardId,
+        abilityId: ability.id,
+        requiredTargets: missingTargets,
+        chosenTargets: selectedTargets,
+        returnPhase: next.phase
+      };
+      next.priorityPlayerId = playerId;
+      next.activePlayerId = playerId;
+    } else {
+      // All targets resolved → execute ability immediately
+      const unit = player.board.find(u => u.instanceId === card.instanceId);
+      executeAbility(next, ability, {
+        sourceId: card.instanceId,
+        sourceName: definition.name,
+        sourcePlayerId: playerId,
+        sourceUnit: unit,
+        selectedTargets
+      });
+    }
+  }
 
   return next;
 }
@@ -529,6 +592,36 @@ function submitAbilityTargets(
   }
 
   const player = next.players[playerId];
+  if (pendingChoice.playUnit) {
+    const selectedTargets = {
+      ...pendingChoice.chosenTargets,
+      ...targets
+    };
+    const primaryTargetId = pendingChoice.requiredTargets[0]?.id ?? "target";
+    const target = selectedTargets[primaryTargetId] ?? selectedTargets.target;
+    if (!target) {
+      throw new GameValidationError("Ability requires a target.");
+    }
+
+    next.pendingChoice = undefined;
+    return playUnit(
+      next,
+      playerId,
+      pendingChoice.sourceInstanceId,
+      pendingChoice.playUnit.replaceUnitId,
+      target
+    );
+  }
+
+  // Check if the source is a unit on the board (on-play ability)
+  const boardUnit = player.board.find(
+    (u) => u.instanceId === pendingChoice.sourceInstanceId
+  );
+  if (boardUnit) {
+    // On-play ability: source is a unit already on the board
+    return submitOnPlayAbilityTargets(next, playerId, pendingChoice, boardUnit, targets);
+  }
+  // Otherwise, source is a spell card in hand (existing flow)
   const cardIndex = player.hand.findIndex(
     (card) => card.instanceId === pendingChoice.sourceInstanceId
   );
@@ -580,6 +673,40 @@ function submitAbilityTargets(
 
   emitPlayedSpellEvents(next, playerId, playedCard, selectedTargets.target);
   return next;
+}
+
+function submitOnPlayAbilityTargets(
+  state: GameState,
+  playerId: PlayerId,
+  pendingChoice: PendingChoice,
+  unit: UnitInstance,
+  targets: AbilityTargetMap
+): GameState {
+  const definition = getCardDefinitionForUnit(unit);
+  const ability = (definition.abilities ?? []).find(
+    (candidate) => candidate.id === pendingChoice.abilityId
+  );
+  if (!ability) {
+    throw new GameValidationError("Pending choice ability not found.");
+  }
+  const selectedTargets = {
+    ...pendingChoice.chosenTargets,
+    ...targets
+  };
+  executeAbility(state, ability, {
+    sourceId: unit.instanceId,
+    sourceName: definition.name,
+    sourcePlayerId: playerId,
+    sourceUnit: unit,
+    selectedTargets
+  });
+  state.pendingChoice = undefined;
+  state.phase = pendingChoice.returnPhase;
+  // Restore priority to opponent — playUnit already called passPriority
+  // before the pendingChoice temporarily overrode it to the caster.
+  state.priorityPlayerId = opponentOf(playerId);
+  state.activePlayerId = opponentOf(playerId);
+  return state;
 }
 
 function cancelPendingChoice(state: GameState, _playerId: PlayerId): GameState {
