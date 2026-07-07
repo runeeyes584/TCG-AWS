@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, Shield, Swords, X, Zap } from "lucide-react";
+import { List, RotateCcw, Settings, Shield, Swords, X, Zap } from "lucide-react";
 import { useState } from "react";
 import type React from "react";
 import {
@@ -52,6 +52,7 @@ export function GameBoardView({
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
   const [selectedSpellTarget, setSelectedSpellTarget] = useState<SpellTarget>();
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
+  const [openPanel, setOpenPanel] = useState<"log" | "dev" | undefined>();
   const attackPlayerId = gameState.attackTokenPlayerId;
   const defenderId: PlayerId = attackPlayerId === "P1" ? "P2" : "P1";
   const attackerCount = gameState.combat.attackers.length;
@@ -963,105 +964,140 @@ export function GameBoardView({
   return (
     <HoverProvider>
       <main className="app-shell board-layout">
-        <aside className="left-rail">
-          {viewingGraveyard ? (
-            <div className="graveyard-modal-overlay" onClick={() => setViewingGraveyard(undefined)}>
-              <div className="graveyard-modal-content" onClick={(e) => e.stopPropagation()}>
-                <header>
-                  <h2>{viewingGraveyard}'s Graveyard</h2>
-                  <button onClick={() => setViewingGraveyard(undefined)}><X size={20} /></button>
-                </header>
-                <div className="graveyard-grid">
-                  {gameState.players[viewingGraveyard].graveyard.length === 0 ? (
-                    <div className="empty-message">Graveyard is empty.</div>
-                  ) : (
-                    gameState.players[viewingGraveyard].graveyard.map((entry) => (
-                      <div key={entry.id} className="graveyard-entry">
-                        <CardView
-                          card={{
-                            instanceId: entry.instanceId,
-                            cardId: entry.cardId,
-                            ownerId: entry.ownerId
-                          }}
-                          selected={
-                            selectedSpellTarget?.type === "GRAVEYARD" &&
-                            selectedSpellTarget.playerId === viewingGraveyard &&
-                            selectedSpellTarget.cardInstanceId === entry.instanceId
-                          }
-                          onClick={
-                            canSelectGraveyardCard(viewingGraveyard)
-                              ? () => selectGraveyardCard(viewingGraveyard, entry.instanceId)
-                              : undefined
-                          }
-                        />
-                        <div className="cause-tag">{entry.cause} (R{entry.round})</div>
-                      </div>
-                    ))
-                  )}
-                </div>
+        <div className="utility-dock" aria-label="Utility panels">
+          <button
+            type="button"
+            className={openPanel === "log" ? "is-active" : ""}
+            onClick={() => setOpenPanel(openPanel === "log" ? undefined : "log")}
+            aria-label="Open action log"
+          >
+            <List size={18} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={openPanel === "dev" ? "is-active" : ""}
+            onClick={() => setOpenPanel(openPanel === "dev" ? undefined : "dev")}
+            aria-label="Open dev tools"
+          >
+            <Settings size={18} aria-hidden="true" />
+          </button>
+        </div>
+
+        {openPanel ? (
+          <aside className="floating-utility-panel" aria-label={openPanel === "log" ? "Action log" : "Dev tools"}>
+            <button
+              type="button"
+              className="panel-close panel-close--floating"
+              onClick={() => setOpenPanel(undefined)}
+              aria-label="Close panel"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+            {openPanel === "log" ? (
+              <ActionLog entries={actionLog} />
+            ) : (
+              <>
+                {connectionStatus ? (
+                  <section className="quick-controls multiplayer-status" aria-label="Connection">
+                    <strong>Multiplayer</strong>
+                    <span>{connectionStatus}</span>
+                    {localPlayerId ? <span>You are {localPlayerId}</span> : null}
+                  </section>
+                ) : null}
+                <section className="quick-controls" aria-label="Game controls">
+                  <div className="button-row">
+                    <button
+                      type="button"
+                      onClick={() => dispatch({ type: "START_GAME", firstPlayerId: "P1" })}
+                      disabled={gameState.started || Boolean(localPlayerId && localPlayerId !== "P1")}
+                    >
+                      <Zap size={16} aria-hidden="true" /> Start
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        dispatch({ type: "DRAW_CARD", playerId: gameState.priorityPlayerId })
+                      }
+                      disabled={
+                        !gameState.started ||
+                        Boolean(gameState.winnerId) ||
+                        !canControl(gameState.priorityPlayerId)
+                      }
+                    >
+                      Draw
+                    </button>
+                    <button
+                      type="button"
+                      onClick={startRound}
+                      disabled={
+                        !gameState.started ||
+                        Boolean(gameState.winnerId) ||
+                        gameState.phase !== "ACTION" ||
+                        !canControl(gameState.priorityPlayerId)
+                      }
+                    >
+                      <RotateCcw size={16} aria-hidden="true" /> Round
+                    </button>
+                    <button
+                      type="button"
+                      onClick={passPriority}
+                      disabled={
+                        !gameState.started ||
+                        Boolean(gameState.winnerId) ||
+                        gameState.phase !== "ACTION" ||
+                        !canControl(gameState.priorityPlayerId)
+                      }
+                    >
+                      Pass
+                    </button>
+                    <button type="button" onClick={resetGame}>
+                      Reset
+                    </button>
+                  </div>
+                </section>
+              </>
+            )}
+          </aside>
+        ) : null}
+
+        {viewingGraveyard ? (
+          <div className="graveyard-modal-overlay" onClick={() => setViewingGraveyard(undefined)}>
+            <div className="graveyard-modal-content" onClick={(e) => e.stopPropagation()}>
+              <header>
+                <h2>{viewingGraveyard}'s Graveyard</h2>
+                <button onClick={() => setViewingGraveyard(undefined)}><X size={20} /></button>
+              </header>
+              <div className="graveyard-grid">
+                {gameState.players[viewingGraveyard].graveyard.length === 0 ? (
+                  <div className="empty-message">Graveyard is empty.</div>
+                ) : (
+                  gameState.players[viewingGraveyard].graveyard.map((entry) => (
+                    <div key={entry.id} className="graveyard-entry">
+                      <CardView
+                        card={{
+                          instanceId: entry.instanceId,
+                          cardId: entry.cardId,
+                          ownerId: entry.ownerId
+                        }}
+                        selected={
+                          selectedSpellTarget?.type === "GRAVEYARD" &&
+                          selectedSpellTarget.playerId === viewingGraveyard &&
+                          selectedSpellTarget.cardInstanceId === entry.instanceId
+                        }
+                        onClick={
+                          canSelectGraveyardCard(viewingGraveyard)
+                            ? () => selectGraveyardCard(viewingGraveyard, entry.instanceId)
+                            : undefined
+                        }
+                      />
+                      <div className="cause-tag">{entry.cause} (R{entry.round})</div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-          ) : null}
-          <ActionLog entries={actionLog} />
-          {connectionStatus ? (
-            <section className="quick-controls multiplayer-status" aria-label="Connection">
-              <strong>Multiplayer</strong>
-              <span>{connectionStatus}</span>
-              {localPlayerId ? <span>You are {localPlayerId}</span> : null}
-            </section>
-          ) : null}
-          <section className="quick-controls" aria-label="Game controls">
-            <div className="button-row">
-              <button
-                type="button"
-                onClick={() => dispatch({ type: "START_GAME", firstPlayerId: "P1" })}
-                disabled={gameState.started || Boolean(localPlayerId && localPlayerId !== "P1")}
-              >
-                <Zap size={16} aria-hidden="true" /> Start
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  dispatch({ type: "DRAW_CARD", playerId: gameState.priorityPlayerId })
-                }
-                disabled={
-                  !gameState.started ||
-                  Boolean(gameState.winnerId) ||
-                  !canControl(gameState.priorityPlayerId)
-                }
-              >
-                Draw
-              </button>
-              <button
-                type="button"
-                onClick={startRound}
-                disabled={
-                  !gameState.started ||
-                  Boolean(gameState.winnerId) ||
-                  gameState.phase !== "ACTION" ||
-                  !canControl(gameState.priorityPlayerId)
-                }
-              >
-                <RotateCcw size={16} aria-hidden="true" /> Round
-              </button>
-              <button
-                type="button"
-                onClick={passPriority}
-                disabled={
-                  !gameState.started ||
-                  Boolean(gameState.winnerId) ||
-                  gameState.phase !== "ACTION" ||
-                  !canControl(gameState.priorityPlayerId)
-                }
-              >
-                Pass
-              </button>
-              <button type="button" onClick={resetGame}>
-                Reset
-              </button>
-            </div>
-          </section>
-        </aside>
+          </div>
+        ) : null}
 
         <section className="battle-table lor-table" aria-label="Local battle board">
           <header className="topbar compact-topbar">
@@ -1192,9 +1228,7 @@ export function GameBoardView({
           ) : null}
         </section>
 
-        <aside className="right-panel inspector-panel">
-          <CardInspector />
-        </aside>
+        <CardInspector />
 
         {renderPendingChoice()}
       </main>
