@@ -18,17 +18,20 @@
 
   {
     "id": "Cat-Curse-Paw",
-    "name": "Curse Paw",
+    "name": "Cat Curse Paw",
     "cost": 3,
     "type": "spell",
     "effects": [
       {
-        "type": "BANISH_UNIT",
-        "target": "ENEMY_UNIT"
+        "type": "DEBUFF_UNIT",
+        "attackDelta": -1,
+        "healthDelta": 0,
+        "target": "ENEMY_UNIT",
+        "duration": "PERMANENT"
       }
     ],
-    "imageUrl": "https://media1.tenor.com/m/12ENYku6t2IAAAAC/cat-paw.gif",
-    "description": "Mark an enemy unit with Banish. It stays on the board, but when it dies it enters the graveyard banished and can never be revived.",
+    "imageUrl": "https://media.tenor.com/prES6nvHxTkAAAAi/cursed-cat.gif",
+    "description": "A cat with a dark curse that reduces enemy attack power (-1 attack) [Debuff]. ",
     "spellSpeed": "fast"
   },
 
@@ -39,7 +42,7 @@
     "type": "spell",
     "effects": [
       {
-        "type": "BANISH_UNIT",
+        "type": "BANISH_GRAVEYARD",
         "target": "ENEMY_GRAVEYARD"
       }
     ],
@@ -85,23 +88,28 @@
   {
     "id": "Cat-Banana",
     "name": "Cat Banana",
-    "cost": 3,
+    "cost": 4,
     "type": "unit",
     "attack": 2,
     "health": 3,
     "abilities": [
       {
         "id": "Cat-Banana-play",
-        "when": {
-          "event": "UNIT_SUMMONED"
-        },
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT",
+            "required": true
+          }
+        ],
         "effects": [
           {
             "type": "DEBUFF_UNIT",
             "attackDelta": -1,
             "healthDelta": -1,
-            "target": "RANDOM_ENEMY_UNIT",
-            "duration": "THIS_ROUND"
+            "target": "target",
+            "duration": "PERMANENT"
           }
         ]
       }

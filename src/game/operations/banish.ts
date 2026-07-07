@@ -1,43 +1,26 @@
 import { emitEvent } from "../triggers";
-import { CardInstance, GameState, PlayerId, UnitInstance } from "../types";
+import { GameState, PlayerId } from "../types";
 
-export function banishUnit(
+export function banishFromGraveyard(
   state: GameState,
-  unit: UnitInstance,
+  ownerId: PlayerId,
+  cardInstanceId: string,
   sourceInstanceId?: string
 ): void {
-  const player = state.players[unit.ownerId];
-  player.board = player.board.filter(
-    (candidate) => candidate.instanceId !== unit.instanceId
-  );
-  emitEvent(state, {
-    type: "UNIT_BANISHED",
-    playerId: unit.ownerId,
-    unitInstanceId: unit.instanceId,
-    targetPlayerId: unit.ownerId,
-    targetUnitId: unit.instanceId,
-    targetInstanceId: unit.instanceId,
-    targetCardId: unit.cardId,
-    sourceInstanceId
-  });
-}
-
-export function banishCard(
-  state: GameState,
-  card: CardInstance,
-  ownerId: PlayerId,
-  zone: "hand" | "deck"
-): void {
   const player = state.players[ownerId];
-  player[zone] = player[zone].filter(
-    (candidate) => candidate.instanceId !== card.instanceId
+  const entryIndex = player.graveyard.findIndex(
+    (entry) => entry.instanceId === cardInstanceId
   );
+  if (entryIndex === -1) return;
+
+  const [entry] = player.graveyard.splice(entryIndex, 1);
   emitEvent(state, {
     type: "CARD_BANISHED",
     playerId: ownerId,
-    cardInstanceId: card.instanceId,
+    cardInstanceId: entry.instanceId,
     targetPlayerId: ownerId,
-    targetInstanceId: card.instanceId,
-    targetCardId: card.cardId
+    targetInstanceId: entry.instanceId,
+    targetCardId: entry.cardId,
+    sourceInstanceId
   });
 }

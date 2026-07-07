@@ -104,6 +104,7 @@ export function GameBoard() {
     if (selectedSpell?.instanceId === card.instanceId) {
       setSelectedSpell(undefined);
       setSelectedSpellTarget(undefined);
+      setViewingGraveyard(undefined);
       return;
     }
 
@@ -119,6 +120,13 @@ export function GameBoard() {
       const targetPlayerId =
         cardDef(card).effects?.[0]?.type === "HEAL" ? playerId : opponentOf(playerId);
       setSelectedSpellTarget({ type: "NEXUS", playerId: targetPlayerId });
+      return;
+    }
+
+    if (targetKind === "ALLY_GRAVEYARD" || targetKind === "ENEMY_GRAVEYARD") {
+      const graveyardPlayerId = getGraveyardTargetPlayer(playerId, targetKind);
+      setSelectedSpellTarget(undefined);
+      setViewingGraveyard(graveyardPlayerId);
       return;
     }
 
@@ -442,6 +450,44 @@ export function GameBoard() {
     );
     setSelectedSpell(undefined);
     setSelectedSpellTarget(undefined);
+  }
+
+  function getGraveyardTargetPlayer(
+    casterId: PlayerId,
+    targetKind: SpellTargetKind | undefined
+  ): PlayerId | undefined {
+    if (targetKind === "ALLY_GRAVEYARD") {
+      return casterId;
+    }
+
+    if (targetKind === "ENEMY_GRAVEYARD") {
+      return opponentOf(casterId);
+    }
+
+    return undefined;
+  }
+
+  function canSelectGraveyardCard(playerId: PlayerId) {
+    if (!selectedSpell || gameState.phase !== "ACTION") {
+      return false;
+    }
+
+    const targetKind = getPrimarySpellTarget(selectedSpell);
+    const targetPlayerId = getGraveyardTargetPlayer(selectedSpell.ownerId, targetKind);
+    return targetPlayerId === playerId;
+  }
+
+  function selectGraveyardCard(playerId: PlayerId, cardInstanceId: string) {
+    if (!canSelectGraveyardCard(playerId)) {
+      return;
+    }
+
+    setSelectedSpellTarget({
+      type: "GRAVEYARD",
+      playerId,
+      cardInstanceId
+    });
+    setViewingGraveyard(undefined);
   }
 
   function submitPendingAbilityTarget(targetId: string, target: SpellTarget) {
@@ -869,7 +915,23 @@ export function GameBoard() {
                   ) : (
                     gameState.players[viewingGraveyard].graveyard.map((entry) => (
                       <div key={entry.id} className="graveyard-entry">
-                        <CardView card={{ instanceId: entry.id, cardId: entry.cardId, ownerId: entry.ownerId }} />
+                        <CardView
+                          card={{
+                            instanceId: entry.instanceId,
+                            cardId: entry.cardId,
+                            ownerId: entry.ownerId
+                          }}
+                          selected={
+                            selectedSpellTarget?.type === "GRAVEYARD" &&
+                            selectedSpellTarget.playerId === viewingGraveyard &&
+                            selectedSpellTarget.cardInstanceId === entry.instanceId
+                          }
+                          onClick={
+                            canSelectGraveyardCard(viewingGraveyard)
+                              ? () => selectGraveyardCard(viewingGraveyard, entry.instanceId)
+                              : undefined
+                          }
+                        />
                         <div className="cause-tag">{entry.cause} (R{entry.round})</div>
                       </div>
                     ))

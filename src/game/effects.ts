@@ -19,7 +19,7 @@ import { emitEvent } from "./triggers";
 import {
   addDebuff,
   addModifier,
-  banishUnit,
+  banishFromGraveyard,
   dealDamage,
   discardCards,
   drawCards,
@@ -160,14 +160,11 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       } catch (e) {}
       return;
     }
-    case "BANISH_UNIT": {
-      if (target?.type !== "UNIT") {
+    case "BANISH_GRAVEYARD": {
+      if (target?.type !== "GRAVEYARD" || !target.cardInstanceId) {
         return;
       }
-      try {
-        const unit = findUnit(state, target.playerId, target.unitId);
-        banishUnit(state, unit, sourceId);
-      } catch (e) {}
+      banishFromGraveyard(state, target.playerId, target.cardInstanceId, sourceId);
       return;
     }
     case "GRANT_KEYWORD": {

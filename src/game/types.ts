@@ -84,9 +84,10 @@ export type EffectDefinition =
       target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
       duration?: ModifierDuration;
     }
+
   | {
-      type: "BANISH_UNIT";
-      target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
+      type: "BANISH_GRAVEYARD";
+      target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
     }
   | {
       type: "GRANT_KEYWORD";

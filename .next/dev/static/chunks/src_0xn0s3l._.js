@@ -36,17 +36,20 @@ module.exports = [
     },
     {
         "id": "Cat-Curse-Paw",
-        "name": "Curse Paw",
+        "name": "Cat Curse Paw",
         "cost": 3,
         "type": "spell",
         "effects": [
             {
-                "type": "BANISH_UNIT",
-                "target": "ENEMY_UNIT"
+                "type": "DEBUFF_UNIT",
+                "attackDelta": -1,
+                "healthDelta": 0,
+                "target": "ENEMY_UNIT",
+                "duration": "PERMANENT"
             }
         ],
-        "imageUrl": "https://media1.tenor.com/m/12ENYku6t2IAAAAC/cat-paw.gif",
-        "description": "Mark an enemy unit with Banish. It stays on the board, but when it dies it enters the graveyard banished and can never be revived.",
+        "imageUrl": "https://media.tenor.com/prES6nvHxTkAAAAi/cursed-cat.gif",
+        "description": "A cat with a dark curse that reduces enemy attack power (-1 attack) [Debuff]. ",
         "spellSpeed": "fast"
     },
     {
@@ -56,7 +59,7 @@ module.exports = [
         "type": "spell",
         "effects": [
             {
-                "type": "BANISH_UNIT",
+                "type": "BANISH_GRAVEYARD",
                 "target": "ENEMY_GRAVEYARD"
             }
         ],
@@ -99,23 +102,28 @@ module.exports = [
     {
         "id": "Cat-Banana",
         "name": "Cat Banana",
-        "cost": 3,
+        "cost": 4,
         "type": "unit",
         "attack": 2,
         "health": 3,
         "abilities": [
             {
                 "id": "Cat-Banana-play",
-                "when": {
-                    "event": "UNIT_SUMMONED"
-                },
+                "onPlay": true,
+                "targets": [
+                    {
+                        "id": "target",
+                        "kind": "ENEMY_UNIT",
+                        "required": true
+                    }
+                ],
                 "effects": [
                     {
                         "type": "DEBUFF_UNIT",
                         "attackDelta": -1,
                         "healthDelta": -1,
-                        "target": "RANDOM_ENEMY_UNIT",
-                        "duration": "THIS_ROUND"
+                        "target": "target",
+                        "duration": "PERMANENT"
                     }
                 ]
             }
@@ -1298,37 +1306,24 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 "use strict";
 
 __turbopack_context__.s([
-    "banishCard",
-    ()=>banishCard,
-    "banishUnit",
-    ()=>banishUnit
+    "banishFromGraveyard",
+    ()=>banishFromGraveyard
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$game$2f$triggers$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/game/triggers.ts [app-client] (ecmascript)");
 ;
-function banishUnit(state, unit, sourceInstanceId) {
-    const player = state.players[unit.ownerId];
-    player.board = player.board.filter((candidate)=>candidate.instanceId !== unit.instanceId);
-    (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$game$2f$triggers$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["emitEvent"])(state, {
-        type: "UNIT_BANISHED",
-        playerId: unit.ownerId,
-        unitInstanceId: unit.instanceId,
-        targetPlayerId: unit.ownerId,
-        targetUnitId: unit.instanceId,
-        targetInstanceId: unit.instanceId,
-        targetCardId: unit.cardId,
-        sourceInstanceId
-    });
-}
-function banishCard(state, card, ownerId, zone) {
+function banishFromGraveyard(state, ownerId, cardInstanceId, sourceInstanceId) {
     const player = state.players[ownerId];
-    player[zone] = player[zone].filter((candidate)=>candidate.instanceId !== card.instanceId);
+    const entryIndex = player.graveyard.findIndex((entry)=>entry.instanceId === cardInstanceId);
+    if (entryIndex === -1) return;
+    const [entry] = player.graveyard.splice(entryIndex, 1);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$game$2f$triggers$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["emitEvent"])(state, {
         type: "CARD_BANISHED",
         playerId: ownerId,
-        cardInstanceId: card.instanceId,
+        cardInstanceId: entry.instanceId,
         targetPlayerId: ownerId,
-        targetInstanceId: card.instanceId,
-        targetCardId: card.cardId
+        targetInstanceId: entry.instanceId,
+        targetCardId: entry.cardId,
+        sourceInstanceId
     });
 }
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
@@ -1973,15 +1968,12 @@ function applyEffect(state, queuedEffect) {
                 } catch (e) {}
                 return;
             }
-        case "BANISH_UNIT":
+        case "BANISH_GRAVEYARD":
             {
-                if (target?.type !== "UNIT") {
+                if (target?.type !== "GRAVEYARD" || !target.cardInstanceId) {
                     return;
                 }
-                try {
-                    const unit = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$game$2f$rules$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findUnit"])(state, target.playerId, target.unitId);
-                    (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$game$2f$operations$2f$banish$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["banishUnit"])(state, unit, sourceId);
-                } catch (e) {}
+                (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$game$2f$operations$2f$banish$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["banishFromGraveyard"])(state, target.playerId, target.cardInstanceId, sourceId);
                 return;
             }
         case "GRANT_KEYWORD":
@@ -3901,6 +3893,7 @@ function GameBoard() {
         if (selectedSpell?.instanceId === card.instanceId) {
             setSelectedSpell(undefined);
             setSelectedSpellTarget(undefined);
+            setViewingGraveyard(undefined);
             return;
         }
         const targetKind = getPrimarySpellTarget(card);
@@ -3918,6 +3911,12 @@ function GameBoard() {
                 type: "NEXUS",
                 playerId: targetPlayerId
             });
+            return;
+        }
+        if (targetKind === "ALLY_GRAVEYARD" || targetKind === "ENEMY_GRAVEYARD") {
+            const graveyardPlayerId = getGraveyardTargetPlayer(playerId, targetKind);
+            setSelectedSpellTarget(undefined);
+            setViewingGraveyard(graveyardPlayerId);
             return;
         }
         setSelectedSpellTarget(undefined);
@@ -4183,6 +4182,34 @@ function GameBoard() {
         setSelectedSpell(undefined);
         setSelectedSpellTarget(undefined);
     }
+    function getGraveyardTargetPlayer(casterId, targetKind) {
+        if (targetKind === "ALLY_GRAVEYARD") {
+            return casterId;
+        }
+        if (targetKind === "ENEMY_GRAVEYARD") {
+            return opponentOf(casterId);
+        }
+        return undefined;
+    }
+    function canSelectGraveyardCard(playerId) {
+        if (!selectedSpell || gameState.phase !== "ACTION") {
+            return false;
+        }
+        const targetKind = getPrimarySpellTarget(selectedSpell);
+        const targetPlayerId = getGraveyardTargetPlayer(selectedSpell.ownerId, targetKind);
+        return targetPlayerId === playerId;
+    }
+    function selectGraveyardCard(playerId, cardInstanceId) {
+        if (!canSelectGraveyardCard(playerId)) {
+            return;
+        }
+        setSelectedSpellTarget({
+            type: "GRAVEYARD",
+            playerId,
+            cardInstanceId
+        });
+        setViewingGraveyard(undefined);
+    }
     function submitPendingAbilityTarget(targetId, target) {
         const pendingChoice = gameState.pendingChoice;
         if (!pendingChoice) {
@@ -4250,20 +4277,20 @@ function GameBoard() {
                                 children: sourceName
                             }, void 0, false, {
                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                lineNumber: 521,
+                                lineNumber: 567,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 children: describeAbilityTargetNeed(targetDefinition)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                lineNumber: 522,
+                                lineNumber: 568,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/GameBoard.tsx",
-                        lineNumber: 520,
+                        lineNumber: 566,
                         columnNumber: 11
                     }, this),
                     targetDefinition ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4278,12 +4305,12 @@ function GameBoard() {
                                 visualEvents: []
                             }, unit.instanceId, false, {
                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                lineNumber: 528,
+                                lineNumber: 574,
                                 columnNumber: 17
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameBoard.tsx",
-                        lineNumber: 526,
+                        lineNumber: 572,
                         columnNumber: 13
                     }, this) : null,
                     targetDefinition && getPendingTargetUnits(targetDefinition).length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4291,18 +4318,18 @@ function GameBoard() {
                         children: "No valid targets."
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameBoard.tsx",
-                        lineNumber: 545,
+                        lineNumber: 591,
                         columnNumber: 13
                     }, this) : null
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/GameBoard.tsx",
-                lineNumber: 519,
+                lineNumber: 565,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 513,
+            lineNumber: 559,
             columnNumber: 7
         }, this);
     }
@@ -4319,14 +4346,14 @@ function GameBoard() {
                     children: label
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 570,
+                    lineNumber: 616,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
                     children: player.nexusHp
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 571,
+                    lineNumber: 617,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("small", {
@@ -4340,7 +4367,7 @@ function GameBoard() {
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 572,
+                    lineNumber: 618,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("small", {
@@ -4351,20 +4378,20 @@ function GameBoard() {
                             "aria-hidden": "true"
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 580,
+                            lineNumber: 626,
                             columnNumber: 11
                         }, this),
                         roleLabel
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 575,
+                    lineNumber: 621,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 565,
+            lineNumber: 611,
             columnNumber: 7
         }, this);
     }
@@ -4377,20 +4404,20 @@ function GameBoard() {
                     children: label
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 592,
+                    lineNumber: 638,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
                     children: player.deck.length
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 593,
+                    lineNumber: 639,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 591,
+            lineNumber: 637,
             columnNumber: 7
         }, this);
     }
@@ -4412,20 +4439,20 @@ function GameBoard() {
                     children: label
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 613,
+                    lineNumber: 659,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
                     children: entryCount
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 614,
+                    lineNumber: 660,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 601,
+            lineNumber: 647,
             columnNumber: 7
         }, this);
     }
@@ -4436,7 +4463,7 @@ function GameBoard() {
                 "aria-hidden": "true"
             }, void 0, false, {
                 fileName: "[project]/src/components/GameBoard.tsx",
-                lineNumber: 621,
+                lineNumber: 667,
                 columnNumber: 14
             }, this);
         }
@@ -4447,20 +4474,20 @@ function GameBoard() {
                     children: label
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 626,
+                    lineNumber: 672,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
                     children: cardDef(selectedSpell).name
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 627,
+                    lineNumber: 673,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 625,
+            lineNumber: 671,
             columnNumber: 7
         }, this);
     }
@@ -4494,7 +4521,7 @@ function GameBoard() {
                         "aria-label": `Empty slot ${index + 1}`
                     }, `${options.rowClassName}-empty-${index}`, false, {
                         fileName: "[project]/src/components/GameBoard.tsx",
-                        lineNumber: 679,
+                        lineNumber: 725,
                         columnNumber: 15
                     }, this);
                 }
@@ -4507,18 +4534,18 @@ function GameBoard() {
                         visualEvents: gameState.visualEvents.filter((event)=>event.targetId === unit.instanceId || event.sourceId === unit.instanceId)
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameBoard.tsx",
-                        lineNumber: 695,
+                        lineNumber: 741,
                         columnNumber: 17
                     }, this)
                 }, unit.instanceId, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 691,
+                    lineNumber: 737,
                     columnNumber: 13
                 }, this);
             })
         }, void 0, false, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 669,
+            lineNumber: 715,
             columnNumber: 7
         }, this);
     }
@@ -4542,13 +4569,13 @@ function GameBoard() {
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 730,
+                            lineNumber: 776,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 728,
+                    lineNumber: 774,
                     columnNumber: 9
                 }, this),
                 renderSixSlots(units, {
@@ -4559,7 +4586,7 @@ function GameBoard() {
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 722,
+            lineNumber: 768,
             columnNumber: 7
         }, this);
     }
@@ -4576,7 +4603,7 @@ function GameBoard() {
                     children: isEnemy ? "Opponent active row" : "Your active row"
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 757,
+                    lineNumber: 803,
                     columnNumber: 9
                 }, this),
                 renderSixSlots(slots, {
@@ -4601,7 +4628,7 @@ function GameBoard() {
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 751,
+            lineNumber: 797,
             columnNumber: 7
         }, this);
     }
@@ -4625,7 +4652,7 @@ function GameBoard() {
                     visualEvents: gameState.visualEvents.filter((event)=>event.targetId === unit.instanceId || event.sourceId === unit.instanceId)
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 804,
+                    lineNumber: 850,
                     columnNumber: 9
                 }, this),
                 playerId === defenderId && lane ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4644,13 +4671,13 @@ function GameBoard() {
                     })()
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 834,
+                    lineNumber: 880,
                     columnNumber: 11
                 }, this) : null
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 803,
+            lineNumber: 849,
             columnNumber: 7
         }, this);
     }
@@ -4677,7 +4704,7 @@ function GameBoard() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                                lineNumber: 863,
+                                                lineNumber: 909,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4686,18 +4713,18 @@ function GameBoard() {
                                                     size: 20
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 864,
+                                                    lineNumber: 910,
                                                     columnNumber: 74
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                                lineNumber: 864,
+                                                lineNumber: 910,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 862,
+                                        lineNumber: 908,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4707,20 +4734,22 @@ function GameBoard() {
                                             children: "Graveyard is empty."
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 868,
+                                            lineNumber: 914,
                                             columnNumber: 21
                                         }, this) : gameState.players[viewingGraveyard].graveyard.map((entry)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                 className: "graveyard-entry",
                                                 children: [
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$CardView$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CardView"], {
                                                         card: {
-                                                            instanceId: entry.id,
+                                                            instanceId: entry.instanceId,
                                                             cardId: entry.cardId,
                                                             ownerId: entry.ownerId
-                                                        }
+                                                        },
+                                                        selected: selectedSpellTarget?.type === "GRAVEYARD" && selectedSpellTarget.playerId === viewingGraveyard && selectedSpellTarget.cardInstanceId === entry.instanceId,
+                                                        onClick: canSelectGraveyardCard(viewingGraveyard) ? ()=>selectGraveyardCard(viewingGraveyard, entry.instanceId) : undefined
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                                        lineNumber: 872,
+                                                        lineNumber: 918,
                                                         columnNumber: 25
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4733,36 +4762,36 @@ function GameBoard() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                                        lineNumber: 873,
+                                                        lineNumber: 935,
                                                         columnNumber: 25
                                                     }, this)
                                                 ]
                                             }, entry.id, true, {
                                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                                lineNumber: 871,
+                                                lineNumber: 917,
                                                 columnNumber: 23
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 866,
+                                        lineNumber: 912,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                lineNumber: 861,
+                                lineNumber: 907,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 860,
+                            lineNumber: 906,
                             columnNumber: 13
                         }, this) : null,
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ActionLog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ActionLog"], {
                             entries: actionLog
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 881,
+                            lineNumber: 943,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -4784,14 +4813,14 @@ function GameBoard() {
                                                 "aria-hidden": "true"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                                lineNumber: 889,
+                                                lineNumber: 951,
                                                 columnNumber: 17
                                             }, this),
                                             " Start"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 884,
+                                        lineNumber: 946,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4804,7 +4833,7 @@ function GameBoard() {
                                         children: "Draw"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 891,
+                                        lineNumber: 953,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4817,14 +4846,14 @@ function GameBoard() {
                                                 "aria-hidden": "true"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                                lineNumber: 909,
+                                                lineNumber: 971,
                                                 columnNumber: 17
                                             }, this),
                                             " Round"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 900,
+                                        lineNumber: 962,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4834,7 +4863,7 @@ function GameBoard() {
                                         children: "Pass"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 911,
+                                        lineNumber: 973,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4843,24 +4872,24 @@ function GameBoard() {
                                         children: "Reset"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 922,
+                                        lineNumber: 984,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                lineNumber: 883,
+                                lineNumber: 945,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 882,
+                            lineNumber: 944,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 858,
+                    lineNumber: 904,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -4881,13 +4910,13 @@ function GameBoard() {
                                                     children: gameState.round
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 932,
+                                                    lineNumber: 994,
                                                     columnNumber: 49
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 932,
+                                            lineNumber: 994,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4898,13 +4927,13 @@ function GameBoard() {
                                                     children: gameState.turn
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 933,
+                                                    lineNumber: 995,
                                                     columnNumber: 48
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 933,
+                                            lineNumber: 995,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4915,13 +4944,13 @@ function GameBoard() {
                                                     children: gameState.priorityPlayerId
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 934,
+                                                    lineNumber: 996,
                                                     columnNumber: 52
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 934,
+                                            lineNumber: 996,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4932,13 +4961,13 @@ function GameBoard() {
                                                     children: gameState.phase
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 935,
+                                                    lineNumber: 997,
                                                     columnNumber: 49
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 935,
+                                            lineNumber: 997,
                                             columnNumber: 15
                                         }, this),
                                         gameState.pendingDiscard ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4956,13 +4985,13 @@ function GameBoard() {
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 939,
+                                                    lineNumber: 1001,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 937,
+                                            lineNumber: 999,
                                             columnNumber: 17
                                         }, this) : null,
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4976,19 +5005,19 @@ function GameBoard() {
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 947,
+                                                    lineNumber: 1009,
                                                     columnNumber: 24
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 946,
+                                            lineNumber: 1008,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                    lineNumber: 931,
+                                    lineNumber: 993,
                                     columnNumber: 13
                                 }, this),
                                 gameState.winnerId ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4999,13 +5028,13 @@ function GameBoard() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                    lineNumber: 951,
+                                    lineNumber: 1013,
                                     columnNumber: 15
                                 }, this) : null
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 930,
+                            lineNumber: 992,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$HandView$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["HandView"], {
@@ -5015,7 +5044,7 @@ function GameBoard() {
                             onPlayCard: (card)=>playCard("P2", card)
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 955,
+                            lineNumber: 1017,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5031,7 +5060,7 @@ function GameBoard() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                    lineNumber: 965,
+                                    lineNumber: 1027,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5050,7 +5079,7 @@ function GameBoard() {
                                                             "aria-hidden": "true"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                                            lineNumber: 979,
+                                                            lineNumber: 1041,
                                                             columnNumber: 21
                                                         }, this),
                                                         " ",
@@ -5058,14 +5087,14 @@ function GameBoard() {
                                                             children: attackerCount
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                                            lineNumber: 979,
+                                                            lineNumber: 1041,
                                                             columnNumber: 61
                                                         }, this),
                                                         " attacking"
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 978,
+                                                    lineNumber: 1040,
                                                     columnNumber: 19
                                                 }, this) : null,
                                                 selectedBlocker ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5076,7 +5105,7 @@ function GameBoard() {
                                                             "aria-hidden": "true"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                                            lineNumber: 984,
+                                                            lineNumber: 1046,
                                                             columnNumber: 21
                                                         }, this),
                                                         " ",
@@ -5084,19 +5113,19 @@ function GameBoard() {
                                                             children: unitDef(selectedBlocker).name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                                            lineNumber: 984,
+                                                            lineNumber: 1046,
                                                             columnNumber: 61
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                                    lineNumber: 983,
+                                                    lineNumber: 1045,
                                                     columnNumber: 19
                                                 }, this) : null
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 976,
+                                            lineNumber: 1038,
                                             columnNumber: 15
                                         }, this),
                                         renderActiveRow("P1"),
@@ -5104,7 +5133,7 @@ function GameBoard() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                    lineNumber: 972,
+                                    lineNumber: 1034,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5126,7 +5155,7 @@ function GameBoard() {
                                                         children: action.label
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                                        lineNumber: 1008,
+                                                        lineNumber: 1070,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5134,13 +5163,13 @@ function GameBoard() {
                                                         children: action.sublabel
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                                        lineNumber: 1009,
+                                                        lineNumber: 1071,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/components/GameBoard.tsx",
-                                                lineNumber: 999,
+                                                lineNumber: 1061,
                                                 columnNumber: 19
                                             }, this);
                                         })(),
@@ -5149,13 +5178,13 @@ function GameBoard() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                    lineNumber: 993,
+                                    lineNumber: 1055,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 964,
+                            lineNumber: 1026,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$HandView$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["HandView"], {
@@ -5165,7 +5194,7 @@ function GameBoard() {
                             onPlayCard: (card)=>playCard("P1", card)
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 1018,
+                            lineNumber: 1080,
                             columnNumber: 11
                         }, this),
                         selectedSpell ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -5179,7 +5208,7 @@ function GameBoard() {
                                             children: cardDef(selectedSpell).name
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 1030,
+                                            lineNumber: 1092,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5190,13 +5219,13 @@ function GameBoard() {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/GameBoard.tsx",
-                                            lineNumber: 1031,
+                                            lineNumber: 1093,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                    lineNumber: 1029,
+                                    lineNumber: 1091,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5208,48 +5237,48 @@ function GameBoard() {
                                         children: "Cast Spell"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameBoard.tsx",
-                                        lineNumber: 1043,
+                                        lineNumber: 1105,
                                         columnNumber: 19
                                     }, this) : null
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/GameBoard.tsx",
-                                    lineNumber: 1041,
+                                    lineNumber: 1103,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/GameBoard.tsx",
-                            lineNumber: 1028,
+                            lineNumber: 1090,
                             columnNumber: 13
                         }, this) : null
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 929,
+                    lineNumber: 991,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("aside", {
                     className: "right-panel inspector-panel",
                     children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$CardInspector$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CardInspector"], {}, void 0, false, {
                         fileName: "[project]/src/components/GameBoard.tsx",
-                        lineNumber: 1057,
+                        lineNumber: 1119,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameBoard.tsx",
-                    lineNumber: 1056,
+                    lineNumber: 1118,
                     columnNumber: 9
                 }, this),
                 renderPendingChoice()
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/GameBoard.tsx",
-            lineNumber: 857,
+            lineNumber: 903,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/components/GameBoard.tsx",
-        lineNumber: 856,
+        lineNumber: 902,
         columnNumber: 5
     }, this);
 }
