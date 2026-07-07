@@ -1,31 +1,39 @@
 "use client";
 import { useHover } from "../contexts/HoverContext";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/cards";
-import { Shield, Swords, Zap } from "lucide-react";
+import { Shield, Swords, X, Zap } from "lucide-react";
 import { getCardDefinition } from "@backend/game/cardRegistry";
 
 export function CardInspector() {
-  const { hoveredCard, hoveredUnit } = useHover();
-  const cardId = hoveredUnit?.cardId ?? hoveredCard?.cardId;
+  const { selectedCard, selectedUnit, selectCard } = useHover();
+  const activeCard = selectedCard;
+  const activeUnit = selectedUnit;
+  const cardId = activeUnit?.cardId ?? activeCard?.cardId;
   const definition = cardId ? getCardDefinition(cardId) : undefined;
 
   if (!definition) {
-    return (
-      <div className="card-inspector empty">
-        <p>Hover over a card to view details</p>
-      </div>
-    );
+    return null;
   }
 
-  const attack = hoveredUnit ? getUnitAttack(hoveredUnit) : definition.attack;
-  const health = hoveredUnit ? getUnitHealth(hoveredUnit) : definition.health;
-  const maxHealth = hoveredUnit ? getUnitMaxHealth(hoveredUnit) : definition.health;
+  const attack = activeUnit ? getUnitAttack(activeUnit) : definition.attack;
+  const health = activeUnit ? getUnitHealth(activeUnit) : definition.health;
+  const maxHealth = activeUnit ? getUnitMaxHealth(activeUnit) : definition.health;
 
   return (
     <div className="card-inspector">
       <div className="inspector-header">
         <h2>{definition.name}</h2>
-        <span className="card-meta"><Zap size={14}/> {definition.cost}</span>
+        <div className="inspector-actions">
+          <span className="card-meta"><Zap size={14}/> {definition.cost}</span>
+          <button
+            type="button"
+            className="panel-close"
+            onClick={() => selectCard(undefined, undefined)}
+            aria-label="Close card details"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
       </div>
       
       <div className="inspector-type">
@@ -35,7 +43,7 @@ export function CardInspector() {
       {(attack !== undefined || health !== undefined) && (
         <div className="card-stats">
           <span className="card-stat attack"><Swords size={14}/> {attack}</span>
-          <span className="card-stat health"><Shield size={14}/> {health}{hoveredUnit && maxHealth !== undefined ? `/${maxHealth}` : ""}</span>
+          <span className="card-stat health"><Shield size={14}/> {health}{activeUnit && maxHealth !== undefined ? `/${maxHealth}` : ""}</span>
         </div>
       )}
 

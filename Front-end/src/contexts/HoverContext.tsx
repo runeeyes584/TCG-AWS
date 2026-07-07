@@ -5,7 +5,10 @@ import { CardInstance, UnitInstance } from "@backend/game/types";
 export interface HoverContextType {
   hoveredCard: CardInstance | undefined;
   hoveredUnit: UnitInstance | undefined;
+  selectedCard: CardInstance | undefined;
+  selectedUnit: UnitInstance | undefined;
   setHoveredCard: (card?: CardInstance, unit?: UnitInstance) => void;
+  selectCard: (card?: CardInstance, unit?: UnitInstance) => void;
 }
 
 const HoverContext = createContext<HoverContextType | undefined>(undefined);
@@ -13,9 +16,26 @@ const HoverContext = createContext<HoverContextType | undefined>(undefined);
 export function HoverProvider({ children }: { children: ReactNode }) {
   const [hoveredCard, setHoveredCardState] = useState<CardInstance>();
   const [hoveredUnit, setHoveredUnit] = useState<UnitInstance>();
+  const [selectedCard, setSelectedCard] = useState<CardInstance>();
+  const [selectedUnit, setSelectedUnit] = useState<UnitInstance>();
 
   return (
-    <HoverContext.Provider value={{ hoveredCard, hoveredUnit, setHoveredCard: (c, u) => { setHoveredCardState(c); setHoveredUnit(u); } }}>
+    <HoverContext.Provider
+      value={{
+        hoveredCard,
+        hoveredUnit,
+        selectedCard,
+        selectedUnit,
+        setHoveredCard: (c, u) => {
+          setHoveredCardState(c);
+          setHoveredUnit(u);
+        },
+        selectCard: (c, u) => {
+          setSelectedCard(c);
+          setSelectedUnit(u);
+        }
+      }}
+    >
       {children}
     </HoverContext.Provider>
   );

@@ -15,7 +15,7 @@ interface CardViewProps {
 }
 
 export function CardView({ card, unit, selected = false, onClick, visualEvents }: CardViewProps) {
-  const { setHoveredCard } = useHover();
+  const { selectCard, setHoveredCard } = useHover();
   const cardId = unit?.cardId ?? card?.cardId;
   if (!cardId) {
     return null;
@@ -30,7 +30,7 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
 
   const className = [
     "card-view",
-    onClick ? "is-clickable" : "",
+    "is-clickable",
     selected ? "is-selected" : "",
     unit?.attacking ? "is-attacking" : "",
     unit?.blockingUnitId ? "is-blocking" : "",
@@ -86,13 +86,33 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
     onMouseEnter: () => setHoveredCard(card, unit),
     onMouseLeave: () => setHoveredCard(undefined, undefined)
   };
+  const handleClick = () => {
+    selectCard(card, unit);
+    onClick?.();
+  };
 
   if (!onClick) {
-    return <div className={className} {...hoverProps}>{content}</div>;
+    return (
+      <div
+        className={className}
+        role="button"
+        tabIndex={0}
+        onClick={handleClick}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleClick();
+          }
+        }}
+        {...hoverProps}
+      >
+        {content}
+      </div>
+    );
   }
 
   return (
-    <button className={className} type="button" onClick={onClick} {...hoverProps}>
+    <button className={className} type="button" onClick={handleClick} {...hoverProps}>
       {content}
     </button>
   );
