@@ -23,8 +23,31 @@ import { CardInspector } from "./CardInspector";
 import { HandView } from "./HandView";
 import { getCardDefinition } from "../game/cardRegistry";
 
+export interface GameController {
+  gameState: ReturnType<typeof useLocalGame>["gameState"];
+  actionLog: ReturnType<typeof useLocalGame>["actionLog"];
+  dispatch: ReturnType<typeof useLocalGame>["dispatch"];
+  dispatchChain: ReturnType<typeof useLocalGame>["dispatchChain"];
+  resetGame: ReturnType<typeof useLocalGame>["resetGame"];
+}
+
+interface GameBoardViewProps {
+  controller: GameController;
+  localPlayerId?: PlayerId;
+  connectionStatus?: string;
+}
+
 export function GameBoard() {
-  const { gameState, actionLog, dispatch, dispatchChain, resetGame } = useLocalGame();
+  const controller = useLocalGame();
+  return <GameBoardView controller={controller} />;
+}
+
+export function GameBoardView({
+  controller,
+  localPlayerId,
+  connectionStatus
+}: GameBoardViewProps) {
+  const { gameState, actionLog, dispatch, dispatchChain, resetGame } = controller;
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
   const [selectedSpellTarget, setSelectedSpellTarget] = useState<SpellTarget>();
@@ -44,8 +67,14 @@ export function GameBoard() {
 
   const cardDef = (card: CardInstance) => getCardDefinition(card.cardId);
   const unitDef = (unit: UnitInstance) => getCardDefinition(unit.cardId);
+  const canControl = (playerId: PlayerId) => !localPlayerId || localPlayerId === playerId;
+  const shouldHideHand = (playerId: PlayerId) => Boolean(localPlayerId && localPlayerId !== playerId);
 
   function canPlay(playerId: PlayerId, card: CardInstance) {
+    if (!canControl(playerId) || shouldHideHand(playerId)) {
+      return false;
+    }
+
     const player = gameState.players[playerId];
     const definition = cardDef(card);
     const isSpell = definition.type === "spell";
@@ -69,6 +98,10 @@ export function GameBoard() {
   }
 
   function playCard(playerId: PlayerId, card: CardInstance) {
+    if (!canControl(playerId) || shouldHideHand(playerId)) {
+      return;
+    }
+
     const definition = cardDef(card);
     if (gameState.phase === "DISCARD") {
       dispatch(
@@ -101,6 +134,10 @@ export function GameBoard() {
   }
 
   function playOrSelectSpell(playerId: PlayerId, card: CardInstance) {
+    if (!canControl(playerId)) {
+      return;
+    }
+
     if (selectedSpell?.instanceId === card.instanceId) {
       setSelectedSpell(undefined);
       setSelectedSpellTarget(undefined);
@@ -240,6 +277,7 @@ export function GameBoard() {
     }
 
     if (
+      canControl(defenderId) &&
       playerId === attackPlayerId &&
       gameState.phase === "BLOCK" &&
       gameState.priorityPlayerId === defenderId &&
@@ -253,6 +291,10 @@ export function GameBoard() {
     }
 
     if (playerId === attackPlayerId && gameState.priorityPlayerId === playerId) {
+      if (!canControl(playerId)) {
+        return;
+      }
+
       if (gameState.phase !== "ACTION" || !gameState.attackTokenAvailable) {
         return;
       }
@@ -271,6 +313,10 @@ export function GameBoard() {
     }
 
     if (playerId === defenderId && gameState.priorityPlayerId === playerId) {
+      if (!canControl(playerId)) {
+        return;
+      }
+
       if (gameState.phase !== "BLOCK") {
         return;
       }
@@ -304,6 +350,10 @@ export function GameBoard() {
   }
 
   function commitAttack() {
+    if (!canControl(attackPlayerId)) {
+      return;
+    }
+
     setSelectedBlockerId(undefined);
     setSelectedSpell(undefined);
     setSelectedSpellTarget(undefined);
@@ -314,6 +364,10 @@ export function GameBoard() {
   }
 
   function passPriority() {
+    if (!canControl(gameState.priorityPlayerId)) {
+      return;
+    }
+
     setSelectedBlockerId(undefined);
     setSelectedSpell(undefined);
     setSelectedSpellTarget(undefined);
@@ -324,6 +378,10 @@ export function GameBoard() {
   }
 
   function commitBlocks() {
+    if (!canControl(defenderId)) {
+      return;
+    }
+
     setSelectedBlockerId(undefined);
     setSelectedSpell(undefined);
     setSelectedSpellTarget(undefined);
@@ -334,6 +392,10 @@ export function GameBoard() {
   }
 
   function startRound() {
+    if (localPlayerId && !canControl(gameState.priorityPlayerId)) {
+      return;
+    }
+
     setSelectedBlockerId(undefined);
     setSelectedSpell(undefined);
     setSelectedSpellTarget(undefined);
@@ -371,7 +433,7 @@ export function GameBoard() {
           label: "PASS",
           sublabel: "No attack",
           mode: "idle",
-          enabled: true,
+          enabled: canControl(attackPlayerId),
           onClick: passPriority
         };
       }
@@ -380,7 +442,7 @@ export function GameBoard() {
         label: "ATTACK",
         sublabel: `${attackerCount} unit${attackerCount > 1 ? "s" : ""}`,
         mode: "attack",
-        enabled: true,
+        enabled: canControl(attackPlayerId),
         onClick: commitAttack
       };
     }
@@ -400,7 +462,7 @@ export function GameBoard() {
           ? `${assignedBlockerIds.length} block${assignedBlockerIds.length > 1 ? "s" : ""}`
           : "No blocks",
         mode: "defend",
-        enabled: true,
+        enabled: canControl(defenderId),
         // Commit blocks then auto-resolve in one atomic step
         onClick: () => {
           setSelectedBlockerId(undefined);
@@ -420,7 +482,7 @@ export function GameBoard() {
         label: "ROUND",
         sublabel: `#${gameState.round}`,
         mode: "round",
-        enabled: true,
+        enabled: canControl(gameState.priorityPlayerId),
         onClick: startRound
       };
     }
@@ -941,12 +1003,19 @@ export function GameBoard() {
             </div>
           ) : null}
           <ActionLog entries={actionLog} />
+          {connectionStatus ? (
+            <section className="quick-controls multiplayer-status" aria-label="Connection">
+              <strong>Multiplayer</strong>
+              <span>{connectionStatus}</span>
+              {localPlayerId ? <span>You are {localPlayerId}</span> : null}
+            </section>
+          ) : null}
           <section className="quick-controls" aria-label="Game controls">
             <div className="button-row">
               <button
                 type="button"
                 onClick={() => dispatch({ type: "START_GAME", firstPlayerId: "P1" })}
-                disabled={gameState.started}
+                disabled={gameState.started || Boolean(localPlayerId && localPlayerId !== "P1")}
               >
                 <Zap size={16} aria-hidden="true" /> Start
               </button>
@@ -955,7 +1024,11 @@ export function GameBoard() {
                 onClick={() =>
                   dispatch({ type: "DRAW_CARD", playerId: gameState.priorityPlayerId })
                 }
-                disabled={!gameState.started || Boolean(gameState.winnerId)}
+                disabled={
+                  !gameState.started ||
+                  Boolean(gameState.winnerId) ||
+                  !canControl(gameState.priorityPlayerId)
+                }
               >
                 Draw
               </button>
@@ -965,7 +1038,8 @@ export function GameBoard() {
                 disabled={
                   !gameState.started ||
                   Boolean(gameState.winnerId) ||
-                  gameState.phase !== "ACTION"
+                  gameState.phase !== "ACTION" ||
+                  !canControl(gameState.priorityPlayerId)
                 }
               >
                 <RotateCcw size={16} aria-hidden="true" /> Round
@@ -976,7 +1050,8 @@ export function GameBoard() {
                 disabled={
                   !gameState.started ||
                   Boolean(gameState.winnerId) ||
-                  gameState.phase !== "ACTION"
+                  gameState.phase !== "ACTION" ||
+                  !canControl(gameState.priorityPlayerId)
                 }
               >
                 Pass
@@ -1016,6 +1091,7 @@ export function GameBoard() {
 
           <HandView
             cards={gameState.players.P2.hand}
+            hidden={shouldHideHand("P2")}
             selectedCardId={
               selectedSpell?.ownerId === "P2" ? selectedSpell.instanceId : undefined
             }
@@ -1079,6 +1155,7 @@ export function GameBoard() {
 
           <HandView
             cards={gameState.players.P1.hand}
+            hidden={shouldHideHand("P1")}
             selectedCardId={
               selectedSpell?.ownerId === "P1" ? selectedSpell.instanceId : undefined
             }
