@@ -35,6 +35,7 @@ tests/webhost/webtsc.js
 tests/cases/**/*.js
 tests/cases/**/*.js.map
 *.config
+Front-end/.next-dev*.log
 scripts/eslint/built/
 scripts/debug.bat
 scripts/run.bat

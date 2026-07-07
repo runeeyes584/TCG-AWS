@@ -2,6 +2,13 @@
 
 Local TypeScript card game prototype inspired by Legends of Runeterra.
 
+## Project Layout
+
+- `Back-end/src/server`: Socket.IO server and Next request handler.
+- `Back-end/src/game`: shared TypeScript game engine, rules, card data, and tests.
+- `Back-end/src/shared`: multiplayer event contracts used by both sides.
+- `Front-end/src`: Next app, React client, hooks, UI components, styles, and assets.
+
 ## Worklog - 2026-07-01
 
 ### Engine
@@ -12,7 +19,7 @@ Local TypeScript card game prototype inspired by Legends of Runeterra.
 - Normalized card type handling to lowercase `unit`, `spell`, and `champion`.
 
 ### Cards and Data
-- Moved card definitions toward JSON-driven data in `src/game/data/cards.json`.
+- Moved card definitions toward JSON-driven data in `Back-end/src/game/data/cards.json`.
 - Kept card instances ID-only with registry lookups for card definitions.
 - Added validation in the card registry to reject invalid card data.
 - Added spell speed and hand-card targeting support for future spell interactions.

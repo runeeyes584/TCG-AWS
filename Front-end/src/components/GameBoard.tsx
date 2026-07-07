@@ -11,17 +11,17 @@ import {
   SpellTargetKind,
   TargetDefinition,
   UnitInstance
-} from "../game/types";
+} from "@backend/game/types";
 import { useLocalGame } from "../hooks/useLocalGame";
-import type { GameAction } from "../game/types";
+import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { CardView } from "./CardView";
-import { getUnitAttack, getUnitHealth } from "../game/cards";
-import { hasKeyword } from "../game/engine";
+import { getUnitAttack, getUnitHealth } from "@backend/game/cards";
+import { hasKeyword } from "@backend/game/engine";
 import { HoverProvider } from "../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
 import { HandView } from "./HandView";
-import { getCardDefinition } from "../game/cardRegistry";
+import { getCardDefinition } from "@backend/game/cardRegistry";
 
 export interface GameController {
   gameState: ReturnType<typeof useLocalGame>["gameState"];
