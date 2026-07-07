@@ -1479,4 +1479,69 @@ button svg {
   background: #c890301a;
 }
 
+.pending-choice-overlay {
+  z-index: 1500;
+  background: #000000ad;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  display: flex;
+  position: fixed;
+  inset: 0;
+}
+
+.pending-choice-panel {
+  background: #12181f;
+  border: 1px solid #c8903073;
+  border-radius: 8px;
+  width: min(720px, 92vw);
+  max-height: min(620px, 86vh);
+  padding: 16px;
+  overflow: auto;
+  box-shadow: 0 18px 50px #0000008c;
+}
+
+.pending-choice-header {
+  color: var(--lor-text);
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 14px;
+  display: flex;
+}
+
+.pending-choice-header strong {
+  font-family: Cinzel, serif;
+  font-size: 18px;
+}
+
+.pending-choice-header span {
+  color: var(--lor-muted);
+  font-size: 13px;
+}
+
+.pending-choice-grid {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  min-height: 126px;
+  display: flex;
+}
+
+.pending-choice-grid .card-view {
+  width: 110px;
+  height: 146px;
+}
+
+.pending-choice-panel .empty-message {
+  color: var(--lor-muted);
+  text-align: center;
+  margin: 16px 0;
+}
+
+.pending-choice-panel .button-row {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
 /*# sourceMappingURL=src_app_globals_162hn9o.css.map*/

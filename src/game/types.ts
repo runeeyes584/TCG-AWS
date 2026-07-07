@@ -84,9 +84,10 @@ export type EffectDefinition =
       target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
       duration?: ModifierDuration;
     }
+
   | {
-      type: "BANISH_UNIT";
-      target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
+      type: "BANISH_GRAVEYARD";
+      target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
     }
   | {
       type: "GRANT_KEYWORD";
@@ -134,6 +135,7 @@ export type CostDefinition =
 
 export interface Ability {
   id: string;
+  onPlay?: boolean;
   when?: TriggerDefinition;
   runtimeCondition?: (state: GameState, event: GameEvent) => boolean;
   conditions?: ConditionDefinition[];
@@ -191,6 +193,9 @@ export interface PendingChoice {
   requiredTargets: TargetDefinition[];
   chosenTargets: AbilityTargetMap;
   returnPhase: GamePhase;
+  playUnit?: {
+    replaceUnitId?: string;
+  };
 }
 
 export interface CardDefinition {
@@ -324,7 +329,7 @@ export type GameAction =
   | { type: "DRAW_CARD"; playerId: PlayerId; count?: number }
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: string }
   | { type: "START_ROUND" }
-  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string }
+  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string; target?: SpellTarget }
   | {
       type: "PLAY_SPELL";
       playerId: PlayerId;

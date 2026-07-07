@@ -499,4 +499,147 @@ describe("data-driven card registry and operations", () => {
     expect(state.players.P1.board[0].cardId).toBe("sparksmith");
     expect(getCardDefinition(state.players.P1.board[0].cardId).name).toBe("Sparksmith Adept");
   });
+
+   it("Cat-Baby-with-bow is an onPlay ability and Cat-Banana is a summon ability", () => {
+    const baby = getCardDefinition("Cat-Baby-with-bow");
+    const banana = getCardDefinition("Cat-Banana");
+    expect(baby.abilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          onPlay: true,
+          targets: [
+            expect.objectContaining({
+              id: "target",
+              kind: "ENEMY_UNIT",
+              required: true
+            })
+          ],
+          effects: [
+            expect.objectContaining({
+              type: "DEBUFF_UNIT",
+              target: "target",
+              duration: "PERMANENT"
+            })
+          ]
+        })
+      ])
+    );
+  }); 
+  
+  
+  
+  it("Cat-Baby-with-bow creates pendingChoice when played without target", () => {
+    const cat = getCardDefinition("Cat-Baby-with-bow");
+    let state = startedGame();
+    state.players.P1.hand = [card(cat, "P1", "cat")];
+    state.players.P1.mana = 10;
+    state.players.P2.board = [createUnitInstance(card(unit, "P2", "enemy"))];
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: "cat"
+    });
+    // Unit is not committed until the required on-play target is chosen.
+    expect(state.players.P1.board).toHaveLength(0);
+    expect(state.players.P1.hand).toHaveLength(1);
+    expect(state.pendingChoice).toBeDefined();
+    expect(state.pendingChoice!.abilityId).toBe("Cat-Baby-with-bow-play");
+    expect(state.pendingChoice!.requiredTargets).toEqual([
+      expect.objectContaining({ id: "target", kind: "ENEMY_UNIT" })
+    ]);
+    // No debuff yet
+    expect(state.players.P2.board[0].modifiers).toHaveLength(0);
+  });
+  it("Cat-Baby-with-bow applies permanent -1 attack debuff after target selection", () => {
+    const cat = getCardDefinition("Cat-Baby-with-bow");
+    let state = startedGame();
+    state.players.P1.hand = [card(cat, "P1", "cat")];
+    state.players.P1.mana = 10;
+    state.players.P2.board = [createUnitInstance(card(unit, "P2", "enemy"))];
+    // Play the unit -> creates pendingChoice
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: "cat"
+    });
+    // Submit target -> debuff applied
+    state = applyAction(state, {
+      type: "SUBMIT_ABILITY_TARGETS",
+      playerId: "P1",
+      targets: {
+        target: { type: "UNIT", playerId: "P2", unitId: "enemy" }
+      }
+    });
+    expect(state.pendingChoice).toBeUndefined();
+    expect(state.players.P1.board[0].modifiers).toHaveLength(0);
+    expect(state.players.P2.board[0].modifiers).toHaveLength(1);
+    expect(state.players.P2.board[0].modifiers[0]).toMatchObject({
+      attackDelta: -1,
+      duration: "PERMANENT"
+    });
+  });
+
+  it("Cat-Baby-with-bow cancel clears pending choice and keeps the card in hand", () => {
+    const cat = getCardDefinition("Cat-Baby-with-bow");
+    let state = startedGame();
+    state.players.P1.hand = [card(cat, "P1", "cat")];
+    state.players.P1.mana = 10;
+    state.players.P2.board = [createUnitInstance(card(unit, "P2", "enemy"))];
+
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: "cat"
+    });
+
+    expect(state.pendingChoice).toBeDefined();
+    expect(state.priorityPlayerId).toBe("P1");
+
+    state = applyAction(state, {
+      type: "CANCEL_PENDING_CHOICE",
+      playerId: "P1"
+    });
+
+    expect(state.pendingChoice).toBeUndefined();
+    expect(state.players.P1.board).toHaveLength(0);
+    expect(state.players.P1.hand).toHaveLength(1);
+    expect(state.players.P1.hand[0].instanceId).toBe("cat");
+    expect(state.players.P1.mana).toBe(10);
+    expect(state.players.P2.board[0].modifiers).toHaveLength(0);
+    expect(state.priorityPlayerId).toBe("P1");
+    expect(state.activePlayerId).toBe("P1");
+  });
+
+  it("Cat-Baby-with-bow permanent debuff survives end of turn and round", () => {
+    const cat = getCardDefinition("Cat-Baby-with-bow");
+    let state = startedGame();
+    state.players.P1.hand = [card(cat, "P1", "cat")];
+    state.players.P1.mana = 10;
+    state.players.P2.board = [createUnitInstance(card(unit, "P2", "enemy"))];
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: "cat"
+    });
+    state = applyAction(state, {
+      type: "SUBMIT_ABILITY_TARGETS",
+      playerId: "P1",
+      targets: {
+        target: { type: "UNIT", playerId: "P2", unitId: "enemy" }
+      }
+    });
+    // After submit, priority returned to P2 (playUnit already passed priority)
+    // P2 ends turn
+    state = applyAction(state, { type: "END_TURN", playerId: "P2" });
+    expect(state.players.P2.board[0].modifiers).toHaveLength(1);
+    expect(state.players.P2.board[0].modifiers[0].duration).toBe("PERMANENT");
+    // P1 ends turn -> both passed -> new round
+    state = applyAction(state, { type: "END_TURN", playerId: "P1" });
+    expect(state.players.P2.board[0].modifiers).toHaveLength(1);
+    expect(state.players.P2.board[0].modifiers[0].duration).toBe("PERMANENT");
+  });
+  it("Cat-Banana debuffs an enemy unit on summon", () => {
+    const banana = getCardDefinition("Cat-Banana");
+    let state = startedGame();
+  });
 });

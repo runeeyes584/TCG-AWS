@@ -4,13 +4,16 @@ import { RotateCcw, Shield, Swords, X, Zap } from "lucide-react";
 import { useState } from "react";
 import type React from "react";
 import {
+  AbilityTargetMap,
   CardInstance,
   PlayerId,
   SpellTarget,
   SpellTargetKind,
+  TargetDefinition,
   UnitInstance
 } from "../game/types";
 import { useLocalGame } from "../hooks/useLocalGame";
+import type { GameAction } from "../game/types";
 import { ActionLog } from "./ActionLog";
 import { CardView } from "./CardView";
 import { getUnitAttack, getUnitHealth } from "../game/cards";
@@ -101,6 +104,7 @@ export function GameBoard() {
     if (selectedSpell?.instanceId === card.instanceId) {
       setSelectedSpell(undefined);
       setSelectedSpellTarget(undefined);
+      setViewingGraveyard(undefined);
       return;
     }
 
@@ -116,6 +120,13 @@ export function GameBoard() {
       const targetPlayerId =
         cardDef(card).effects?.[0]?.type === "HEAL" ? playerId : opponentOf(playerId);
       setSelectedSpellTarget({ type: "NEXUS", playerId: targetPlayerId });
+      return;
+    }
+
+    if (targetKind === "ALLY_GRAVEYARD" || targetKind === "ENEMY_GRAVEYARD") {
+      const graveyardPlayerId = getGraveyardTargetPlayer(playerId, targetKind);
+      setSelectedSpellTarget(undefined);
+      setViewingGraveyard(graveyardPlayerId);
       return;
     }
 
@@ -441,9 +452,148 @@ export function GameBoard() {
     setSelectedSpellTarget(undefined);
   }
 
-  function cancelSelectedSpell() {
-    setSelectedSpell(undefined);
-    setSelectedSpellTarget(undefined);
+  function getGraveyardTargetPlayer(
+    casterId: PlayerId,
+    targetKind: SpellTargetKind | undefined
+  ): PlayerId | undefined {
+    if (targetKind === "ALLY_GRAVEYARD") {
+      return casterId;
+    }
+
+    if (targetKind === "ENEMY_GRAVEYARD") {
+      return opponentOf(casterId);
+    }
+
+    return undefined;
+  }
+
+  function canSelectGraveyardCard(playerId: PlayerId) {
+    if (!selectedSpell || gameState.phase !== "ACTION") {
+      return false;
+    }
+
+    const targetKind = getPrimarySpellTarget(selectedSpell);
+    const targetPlayerId = getGraveyardTargetPlayer(selectedSpell.ownerId, targetKind);
+    return targetPlayerId === playerId;
+  }
+
+  function selectGraveyardCard(playerId: PlayerId, cardInstanceId: string) {
+    if (!canSelectGraveyardCard(playerId)) {
+      return;
+    }
+
+    setSelectedSpellTarget({
+      type: "GRAVEYARD",
+      playerId,
+      cardInstanceId
+    });
+    setViewingGraveyard(undefined);
+  }
+
+  function submitPendingAbilityTarget(targetId: string, target: SpellTarget) {
+    const pendingChoice = gameState.pendingChoice;
+    if (!pendingChoice) {
+      return;
+    }
+
+    const targets: AbilityTargetMap = {
+      [targetId]: target
+    };
+    dispatch(
+      {
+        type: "SUBMIT_ABILITY_TARGETS",
+        playerId: pendingChoice.playerId,
+        targets
+      },
+      `${pendingChoice.playerId} chose an ability target.`
+    );
+  }
+
+  function cancelPendingChoice() {
+    const pendingChoice = gameState.pendingChoice;
+    if (!pendingChoice) {
+      return;
+    }
+
+    dispatch(
+      { type: "CANCEL_PENDING_CHOICE", playerId: pendingChoice.playerId },
+      `${pendingChoice.playerId} cancelled the ability choice.`
+    );
+  }
+
+  function getPendingTargetUnits(targetDefinition: TargetDefinition): Array<{
+    playerId: PlayerId;
+    unit: UnitInstance;
+  }> {
+    const pendingChoice = gameState.pendingChoice;
+    if (!pendingChoice) {
+      return [];
+    }
+
+    const sourcePlayerId = pendingChoice.playerId;
+    const enemyPlayerId = opponentOf(sourcePlayerId);
+    const playerIds: PlayerId[] =
+      targetDefinition.kind === "ALLY_UNIT"
+        ? [sourcePlayerId]
+        : targetDefinition.kind === "ENEMY_UNIT"
+          ? [enemyPlayerId]
+          : targetDefinition.kind === "ANY_UNIT" || targetDefinition.kind === "ANY_TARGET"
+            ? ["P1", "P2"]
+            : [];
+
+    return playerIds.flatMap((playerId) =>
+      gameState.players[playerId].board.map((unit) => ({ playerId, unit }))
+    );
+  }
+
+  function renderPendingChoice() {
+    const pendingChoice = gameState.pendingChoice;
+    if (!pendingChoice) {
+      return null;
+    }
+
+    const targetDefinition = pendingChoice.requiredTargets[0];
+    const sourceName = getCardDefinition(pendingChoice.sourceCardId).name;
+
+    return (
+      <div
+        className="pending-choice-overlay"
+        role="dialog"
+        aria-modal="true"
+        onClick={cancelPendingChoice}
+      >
+        <div className="pending-choice-panel" onClick={(event) => event.stopPropagation()}>
+          <div className="pending-choice-header">
+            <strong>{sourceName}</strong>
+            <span>{describeAbilityTargetNeed(targetDefinition)}</span>
+          </div>
+
+          {targetDefinition ? (
+            <div className="pending-choice-grid">
+              {getPendingTargetUnits(targetDefinition).map(({ playerId, unit }) => (
+                <CardView
+                  key={unit.instanceId}
+                  unit={unit}
+                  onClick={() =>
+                    submitPendingAbilityTarget(targetDefinition.id, {
+                      type: "UNIT",
+                      playerId,
+                      unitId: unit.instanceId
+                    })
+                  }
+                  visualEvents={[]}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {targetDefinition && getPendingTargetUnits(targetDefinition).length === 0 ? (
+            <div className="empty-message">No valid targets.</div>
+          ) : null}
+
+        </div>
+      </div>
+    );
   }
 
   function renderPlayerStatus(playerId: PlayerId, label: string) {
@@ -765,7 +915,23 @@ export function GameBoard() {
                   ) : (
                     gameState.players[viewingGraveyard].graveyard.map((entry) => (
                       <div key={entry.id} className="graveyard-entry">
-                        <CardView card={{ instanceId: entry.id, cardId: entry.cardId, ownerId: entry.ownerId }} />
+                        <CardView
+                          card={{
+                            instanceId: entry.instanceId,
+                            cardId: entry.cardId,
+                            ownerId: entry.ownerId
+                          }}
+                          selected={
+                            selectedSpellTarget?.type === "GRAVEYARD" &&
+                            selectedSpellTarget.playerId === viewingGraveyard &&
+                            selectedSpellTarget.cardInstanceId === entry.instanceId
+                          }
+                          onClick={
+                            canSelectGraveyardCard(viewingGraveyard)
+                              ? () => selectGraveyardCard(viewingGraveyard, entry.instanceId)
+                              : undefined
+                          }
+                        />
                         <div className="cause-tag">{entry.cause} (R{entry.round})</div>
                       </div>
                     ))
@@ -944,9 +1110,6 @@ export function GameBoard() {
                     Cast Spell
                   </button>
                 ) : null}
-                <button type="button" onClick={cancelSelectedSpell}>
-                  Cancel
-                </button>
               </div>
             </section>
           ) : null}
@@ -955,6 +1118,8 @@ export function GameBoard() {
         <aside className="right-panel inspector-panel">
           <CardInspector />
         </aside>
+
+        {renderPendingChoice()}
       </main>
     </HoverProvider>
   );
@@ -980,6 +1145,34 @@ function describeNeededTarget(targetKind: SpellTargetKind | undefined): string {
       return "click a card in enemy graveyard";
     default:
       return "none";
+  }
+}
+
+function describeAbilityTargetNeed(targetDefinition: TargetDefinition | undefined): string {
+  if (!targetDefinition) {
+    return "Resolve ability choice";
+  }
+
+  switch (targetDefinition.kind) {
+    case "ALLY_UNIT":
+      return "Choose an allied unit";
+    case "ENEMY_UNIT":
+      return "Choose an enemy unit";
+    case "ANY_UNIT":
+    case "ANY_TARGET":
+      return "Choose a unit";
+    case "ALLY_NEXUS":
+      return "Choose your nexus";
+    case "ENEMY_NEXUS":
+      return "Choose the enemy nexus";
+    case "SELF":
+      return "Choose self";
+    case "ALLY_HAND_CARD":
+      return "Choose a card in your hand";
+    case "ENEMY_HAND_CARD":
+      return "Choose a card in enemy hand";
+    case "ANY_HAND_CARD":
+      return "Choose a hand card";
   }
 }
 
