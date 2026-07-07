@@ -8,15 +8,26 @@ interface HandViewProps {
   selectedCardId?: string;
   canPlay: (card: CardInstance) => boolean;
   onPlayCard: (card: CardInstance) => void;
+  hidden?: boolean;
 }
 
-export function HandView({ cards, selectedCardId, canPlay, onPlayCard }: HandViewProps) {
+export function HandView({ cards, selectedCardId, canPlay, onPlayCard, hidden = false }: HandViewProps) {
   return (
     <section className="lane" aria-label="Hand">
       <div className="lane-label">Hand</div>
       <div className="card-grid">
         {cards.length === 0 ? (
           <div className="empty-slot">No cards</div>
+        ) : hidden ? (
+          cards.map((card, index) => (
+            <div
+              aria-label={`Hidden card ${index + 1}`}
+              className="hidden-card-back"
+              key={card.instanceId}
+            >
+              <span>K</span>
+            </div>
+          ))
         ) : (
           cards.map((card) => (
             <CardView

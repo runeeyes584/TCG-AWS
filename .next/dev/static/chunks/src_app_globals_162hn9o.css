@@ -62,6 +62,173 @@ button svg {
   vertical-align: -2px;
 }
 
+.socket-lobby {
+  background: radial-gradient(circle at 70% 30%, #1cc8c82e, #0000 32%), radial-gradient(circle at 28% 64%, #c8903038, #0000 28%), linear-gradient(135deg, #070a10, #101528 52%, #130d22);
+  grid-template-columns: minmax(320px, 560px) minmax(260px, 380px);
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  min-height: 100vh;
+  padding: 32px;
+  display: grid;
+}
+
+.socket-lobby-panel, .socket-lobby-help {
+  border: 1px solid var(--lor-border);
+  background: #080e16e0;
+  border-radius: 8px;
+  box-shadow: 0 24px 80px #00000073;
+}
+
+.socket-lobby-panel {
+  padding: 30px;
+}
+
+.socket-lobby-kicker {
+  color: var(--lor-teal);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  display: inline-flex;
+}
+
+.socket-lobby h1 {
+  color: #fff;
+  text-transform: uppercase;
+  margin: 14px 0 10px;
+  font-family: Cinzel, serif;
+  font-size: clamp(40px, 6vw, 76px);
+  line-height: .95;
+}
+
+.socket-lobby p, .socket-lobby li {
+  color: #e8dcc8b8;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.socket-actions {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 24px;
+  display: grid;
+}
+
+.socket-actions button {
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  display: inline-flex;
+}
+
+.room-code-field {
+  gap: 6px;
+  display: grid;
+}
+
+.room-code-field span {
+  color: var(--lor-text-dim);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.room-code-field input {
+  color: #fff;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  background: #00000052;
+  border: 1px solid #1cc8c852;
+  border-radius: 4px;
+  min-height: 42px;
+  padding: 0 14px;
+  font: 900 22px / 1 Inter, sans-serif;
+}
+
+.socket-status {
+  color: #e8dcc8bd;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 18px;
+  display: flex;
+}
+
+.socket-status strong {
+  color: var(--lor-gold-bright);
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.socket-lobby-help {
+  padding: 22px;
+}
+
+.socket-lobby-help h2 {
+  margin: 0 0 12px;
+  font-family: Cinzel, serif;
+}
+
+.socket-command {
+  color: var(--lor-teal);
+  background: #00000047;
+  border: 1px solid #1cc8c83d;
+  border-radius: 4px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 12px;
+  display: inline-flex;
+}
+
+.multiplayer-status {
+  color: var(--lor-text-dim);
+  font-size: 10px;
+}
+
+.multiplayer-status strong, .multiplayer-status span {
+  display: block;
+}
+
+.multiplayer-status strong {
+  color: var(--lor-teal);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.hidden-card-back {
+  min-height: 86px;
+  box-shadow: var(--shadow-card);
+  background: linear-gradient(135deg, #1cc8c82e, #0000 42%), repeating-linear-gradient(45deg, #ffffff0a 0 4px, #0000 4px 9px), linear-gradient(160deg, #10182c, #221034);
+  border: 1px solid #1cc8c857;
+  border-radius: 7px;
+  place-items: center;
+  display: grid;
+}
+
+.hidden-card-back span {
+  width: 34px;
+  height: 34px;
+  color: var(--lor-gold-bright);
+  border: 1px solid #f0c0508c;
+  border-radius: 50%;
+  place-items: center;
+  font-family: Cinzel, serif;
+  font-weight: 900;
+  display: grid;
+}
+
+@media (max-width: 840px) {
+  .socket-lobby {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+}
+
 .app-shell {
   grid-template-columns: minmax(0, 1fr) 260px;
   gap: 12px;

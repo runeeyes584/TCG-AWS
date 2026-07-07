@@ -1,15 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createCardInstance } from "../game/cards";
+import { buildDefaultDeck } from "../game/defaultDeck";
 import { applyAction, createInitialGameState } from "../game/engine";
-import { sampleSpellCards, sampleUnitCards } from "../game/sampleCards";
 import {
-  CardDefinition,
   GameAction,
   GameState,
   GameValidationError,
-  PlayerId,
   VisualEvent
 } from "../game/types";
 
@@ -87,34 +84,7 @@ export function useLocalGame() {
   };
 }
 
-function buildDeck(playerId: PlayerId) {
-  return buildSampleLocalDeck().map((definition, index) => {
-    return createCardInstance(
-      definition,
-      playerId,
-      `${playerId}-${definition.id}-${index}`
-    );
-  });
-}
-
-function buildSampleLocalDeck(): CardDefinition[] {
-  const deck: CardDefinition[] = [];
-  let unitIndex = 0;
-  let spellIndex = 0;
-
-  for (let index = 0; index < 24; index += 1) {
-    const shouldAddSpell = (index + 1) % 3 === 0;
-    if (shouldAddSpell) {
-      deck.push(sampleSpellCards[spellIndex % sampleSpellCards.length]);
-      spellIndex += 1;
-    } else {
-      deck.push(sampleUnitCards[unitIndex % sampleUnitCards.length]);
-      unitIndex += 1;
-    }
-  }
-
-  return deck;
-}
+const buildDeck = buildDefaultDeck;
 
 function describeAction(action: GameAction): string {
   switch (action.type) {
