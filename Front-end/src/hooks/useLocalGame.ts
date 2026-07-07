@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { buildDefaultDeck } from "../game/defaultDeck";
-import { applyAction, createInitialGameState } from "../game/engine";
+import { buildDefaultDeck } from "@backend/game/defaultDeck";
+import { applyAction, createInitialGameState } from "@backend/game/engine";
 import {
   GameAction,
   GameState,
   GameValidationError,
   VisualEvent
-} from "../game/types";
+} from "@backend/game/types";
 
 export interface LogEntry {
   id: number;

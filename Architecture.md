@@ -1,11 +1,11 @@
 # TCG Game Architecture
 
-Tài liệu này mô tả kiến trúc của thư mục `src/game`, tập trung vào cấu trúc, chức năng của các file, các lệnh CLI và workflow của TCG engine.
+Tài liệu này mô tả kiến trúc của thư mục `Back-end/src/game`, tập trung vào cấu trúc, chức năng của các file, các lệnh CLI và workflow của TCG engine.
 
 ## 1. Cấu trúc thư mục (Trees case)
 
 ```text
-src/game/
+Back-end/src/game/
 ├── data/
 │   └── cards.json            # Dữ liệu định nghĩa gốc của tất cả các lá bài (JSON)
 ├── operations/               # Chứa các file logic xử lý các hành động cơ bản lên state

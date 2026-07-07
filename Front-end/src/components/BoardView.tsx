@@ -1,6 +1,6 @@
 "use client";
 
-import { UnitInstance, VisualEvent } from "../game/types";
+import { UnitInstance, VisualEvent } from "@backend/game/types";
 import { CardView } from "./CardView";
 
 interface BoardViewProps {

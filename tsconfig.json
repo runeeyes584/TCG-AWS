@@ -9,6 +9,12 @@
     "allowJs": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@backend/*": [
+        "Back-end/src/*"
+      ]
+    },
     "jsx": "react-jsx",
     "incremental": true,
     "isolatedModules": true,
@@ -25,12 +31,13 @@
     "resolveJsonModule": true
   },
   "include": [
-    "next-env.d.ts",
-    "src",
+    "Front-end/next-env.d.ts",
+    "Front-end/src",
+    "Back-end/src",
     "tests",
     "vitest.config.ts",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "Front-end/.next/types/**/*.ts",
+    "Front-end/.next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

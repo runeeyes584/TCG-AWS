@@ -1,6 +1,6 @@
 "use client";
 
-import { CardInstance } from "../game/types";
+import { CardInstance } from "@backend/game/types";
 import { CardView } from "./CardView";
 
 interface HandViewProps {

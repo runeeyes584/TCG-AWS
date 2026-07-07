@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { resolve } from "node:path";
 import next from "next";
 import { Server, Socket } from "socket.io";
 import { buildDefaultDeck } from "../game/defaultDeck";
@@ -28,7 +29,7 @@ type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 4000);
-const app = next({ dev, hostname, port });
+const app = next({ dev, hostname, port, dir: resolve(process.cwd(), "Front-end") });
 const handle = app.getRequestHandler();
 const rooms = new Map<string, Room>();
 const socketRooms = new Map<string, string>();

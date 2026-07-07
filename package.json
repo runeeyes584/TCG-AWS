@@ -16,10 +16,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev",
-    "dev:socket": "tsx src/server/index.ts",
-    "build": "next build",
-    "start": "next start",
+    "dev": "next dev Front-end",
+    "dev:socket": "tsx Back-end/src/server/index.ts",
+    "build": "next build Front-end",
+    "start": "next start Front-end",
     "test": "vitest run",
     "test:watch": "vitest"
   },

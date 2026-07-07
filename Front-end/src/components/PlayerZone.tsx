@@ -1,7 +1,7 @@
 "use client";
 
 import { Crown, Heart, Layers, Skull, Sparkles } from "lucide-react";
-import { CardInstance, GameState, PlayerId, PlayerState, UnitInstance } from "../game/types";
+import { CardInstance, GameState, PlayerId, PlayerState, UnitInstance } from "@backend/game/types";
 import { BoardView } from "./BoardView";
 import { HandView } from "./HandView";
 

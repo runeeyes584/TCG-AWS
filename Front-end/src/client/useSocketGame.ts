@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import type { GameController } from "../components/GameBoard";
-import { buildDefaultDeck } from "../game/defaultDeck";
-import { createInitialGameState } from "../game/engine";
-import type { GameAction, GameState, PlayerId } from "../game/types";
+import { buildDefaultDeck } from "@backend/game/defaultDeck";
+import { createInitialGameState } from "@backend/game/engine";
+import type { GameAction, GameState, PlayerId } from "@backend/game/types";
 import type {
   ClientToServerEvents,
   RoomUpdate,
   ServerToClientEvents
-} from "../shared/multiplayer";
+} from "@backend/shared/multiplayer";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

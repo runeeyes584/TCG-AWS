@@ -1,8 +1,8 @@
 "use client";
 import { useHover } from "../contexts/HoverContext";
-import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "../game/cards";
+import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/cards";
 import { Shield, Swords, Zap } from "lucide-react";
-import { getCardDefinition } from "../game/cardRegistry";
+import { getCardDefinition } from "@backend/game/cardRegistry";
 
 export function CardInspector() {
   const { hoveredCard, hoveredUnit } = useHover();

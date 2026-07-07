@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useState, ReactNode } from "react";
-import { CardInstance, UnitInstance } from "../game/types";
+import { CardInstance, UnitInstance } from "@backend/game/types";
 
 export interface HoverContextType {
   hoveredCard: CardInstance | undefined;
