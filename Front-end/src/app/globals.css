@@ -1,22 +1,25 @@
 /* ===== FONTS ===== */
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* ===== DESIGN TOKENS ===== */
 :root {
-  --lor-bg:          #0a0d12;
-  --lor-felt:        #0d2218;
-  --lor-gold:        #c89030;
-  --lor-gold-bright: #f0c050;
-  --lor-teal:        #1cc8c8;
-  --lor-red:         #c84040;
-  --lor-blue:        #3c78c8;
-  --lor-text:        #e8dcc8;
-  --lor-text-dim:    #8a7a60;
-  --lor-border:      rgba(200,144,48,0.3);
-  --lor-border-dim:  rgba(200,144,48,0.1);
-  --card-bg:         #141c2c;
-  --card-border:     rgba(200,144,48,0.4);
-  --shadow-card:     0 3px 12px rgba(0,0,0,0.7);
+  --lor-bg:          #07090d;
+  --lor-bg-2:        #0d1218;
+  --lor-felt:        #0b2418;
+  --lor-felt-deep:   #07170f;
+  --lor-gold:        #c79a45;
+  --lor-gold-bright: #f3cf72;
+  --lor-teal:        #3bd7c8;
+  --lor-red:         #d64f4f;
+  --lor-blue:        #4d86d9;
+  --lor-text:        #f0e4cf;
+  --lor-text-dim:    #9a8a70;
+  --lor-border:      rgba(199,154,69,0.34);
+  --lor-border-dim:  rgba(199,154,69,0.14);
+  --lor-ease:        cubic-bezier(0.32, 0.72, 0, 1);
+  --card-bg:         #121b27;
+  --card-border:     rgba(199,154,69,0.44);
+  --shadow-card:     0 12px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 /* ===== RESET ===== */
@@ -24,28 +27,38 @@
 html, body { min-height: 100%; margin: 0; }
 
 body {
-  background: var(--lor-bg);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(59,215,200,0.08), transparent 32rem),
+    radial-gradient(circle at 82% 70%, rgba(199,154,69,0.10), transparent 28rem),
+    linear-gradient(180deg, var(--lor-bg), var(--lor-bg-2));
   color: var(--lor-text);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
 }
 
 /* ===== BUTTONS ===== */
 button {
   border: 1px solid var(--lor-border);
-  border-radius: 4px;
-  background: linear-gradient(180deg, #252e3c 0%, #181e2a 100%);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0)),
+    linear-gradient(180deg, #232d39 0%, #151b25 100%);
   color: var(--lor-text);
   cursor: pointer;
-  font: 600 11px/1 'Inter', sans-serif;
+  font: 700 11px/1 'Plus Jakarta Sans', sans-serif;
   letter-spacing: 0.06em;
   min-height: 28px;
   padding: 0 10px;
   text-transform: uppercase;
-  transition: border-color 0.12s, color 0.12s;
+  transition: transform 0.18s var(--lor-ease), border-color 0.18s var(--lor-ease), color 0.18s var(--lor-ease), box-shadow 0.18s var(--lor-ease);
   white-space: nowrap;
 }
-button:hover:not(:disabled) { border-color: var(--lor-gold-bright); color: var(--lor-gold-bright); }
+button:hover:not(:disabled) {
+  border-color: var(--lor-gold-bright);
+  color: var(--lor-gold-bright);
+  box-shadow: 0 0 18px rgba(199,154,69,0.16);
+}
+button:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
 button:disabled { opacity: 0.3; cursor: not-allowed; }
 button svg { vertical-align: -2px; }
 
@@ -137,7 +150,7 @@ button svg { vertical-align: -2px; }
   border-radius: 4px;
   background: rgba(0,0,0,0.32);
   color: #fff;
-  font: 900 22px/1 'Inter', sans-serif;
+  font: 900 22px/1 'Plus Jakarta Sans', sans-serif;
   letter-spacing: 0.22em;
   padding: 0 14px;
   text-transform: uppercase;
@@ -523,7 +536,7 @@ button svg { vertical-align: -2px; }
 
 .battle-row-label strong {
   color: var(--lor-gold);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 10px;
   letter-spacing: 0;
 }
@@ -948,7 +961,7 @@ button svg { vertical-align: -2px; }
   line-height: 1;
   margin-top: 3px;
   opacity: 0.8;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   letter-spacing: 0.04em;
 }
 
