@@ -20,6 +20,7 @@
     "dev:socket": "tsx Back-end/src/server/index.ts",
     "build": "next build Front-end",
     "start": "next start Front-end",
+    "skills:add:taste": "npx skills add Leonxlnx/taste-skill",
     "test": "vitest run",
     "test:watch": "vitest"
   },
