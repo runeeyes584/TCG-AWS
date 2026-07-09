@@ -174,7 +174,7 @@ export function getGraveyardEntries(
 }
 
 /**
- * Return graveyard entries valid for revive: UNIT and CHAMPION only.
+ * Return graveyard entries valid for revive.
  */
 export function findReviveTargets(
   state: GameState,
