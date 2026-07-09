@@ -7,3 +7,4 @@ export { addModifier, grantKeyword } from "./buff";
 export { addDebuff, removeKeyword } from "./debuff";
 export { banishFromGraveyard } from "./banish";
 export { reviveFromGraveyardToHand } from "./revive";
+export { sacrificeUnit, sacrificeUnits } from "./sacrifice";
