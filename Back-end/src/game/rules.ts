@@ -4,7 +4,9 @@ import {
   isUnitCard
 } from "./cards";
 import {
+  AdditionalCostDefinition,
   CardInstance,
+  CardDefinition,
   GameAction,
   GameState,
   GameValidationError,
@@ -70,11 +72,23 @@ export function validateAction(state: GameState, action: GameAction): void {
       assertPriority(state, action.playerId);
       assertBoardSpace(state.players[action.playerId], action.replaceUnitId);
       assertPlayableUnit(state, action.playerId, action.cardInstanceId);
+      assertAdditionalCostTargets(
+        state,
+        action.playerId,
+        getCardDefinitionForInstance(assertCardInHand(state, action.playerId, action.cardInstanceId)),
+        action.costTargets
+      );
       return;
     case "PLAY_SPELL":
       assertPhase(state, "ACTION");
       assertPriority(state, action.playerId);
       assertPlayableSpell(state, action.playerId, action.cardInstanceId, action.target);
+      assertAdditionalCostTargets(
+        state,
+        action.playerId,
+        getCardDefinitionForInstance(assertCardInHand(state, action.playerId, action.cardInstanceId)),
+        action.costTargets
+      );
       return;
     case "SUBMIT_ABILITY_TARGETS":
       assertPendingChoicePlayer(state, action.playerId);
@@ -151,6 +165,50 @@ export function validateAction(state: GameState, action: GameAction): void {
   }
 }
 
+function assertAdditionalCostTargets(
+  state: GameState,
+  playerId: PlayerId,
+  definition: CardDefinition,
+  costTargets?: SpellTarget[]
+): void {
+  const cost = definition.additionalCost;
+  if (!cost) {
+    if (costTargets?.length) {
+      throw new GameValidationError("Card does not require additional cost targets.");
+    }
+    return;
+  }
+
+  switch (cost.type) {
+    case "SACRIFICE_UNITS":
+      assertSacrificeUnitCostTargets(state, playerId, cost, costTargets);
+      return;
+  }
+}
+
+function assertSacrificeUnitCostTargets(
+  state: GameState,
+  playerId: PlayerId,
+  cost: AdditionalCostDefinition & { type: "SACRIFICE_UNITS" },
+  costTargets?: SpellTarget[]
+): void {
+  if (!costTargets || costTargets.length !== cost.count) {
+    throw new GameValidationError(`Additional cost requires ${cost.count} allied unit(s).`);
+  }
+
+  const seen = new Set<string>();
+  for (const target of costTargets) {
+    if (target.type !== "UNIT" || target.playerId !== playerId) {
+      throw new GameValidationError("Additional cost requires allied unit targets.");
+    }
+    if (seen.has(target.unitId)) {
+      throw new GameValidationError("Additional cost targets must be unique.");
+    }
+    seen.add(target.unitId);
+    findUnit(state, playerId, target.unitId);
+  }
+}
+
 export function checkWinConditions(state: GameState): GameState {
   if (state.winnerId) {
     return state;
@@ -222,8 +280,12 @@ export function cloneState(state: GameState): GameState {
           ...state.pendingChoice,
           requiredTargets: state.pendingChoice.requiredTargets.map((target) => ({ ...target })),
           chosenTargets: cloneAbilityTargetMap(state.pendingChoice.chosenTargets),
+          costTargets: state.pendingChoice.costTargets?.map((target) => ({ ...target })),
           playUnit: state.pendingChoice.playUnit
-            ? { ...state.pendingChoice.playUnit }
+            ? {
+                ...state.pendingChoice.playUnit,
+                costTargets: state.pendingChoice.playUnit.costTargets?.map((target) => ({ ...target }))
+              }
             : undefined
         }
       : undefined,

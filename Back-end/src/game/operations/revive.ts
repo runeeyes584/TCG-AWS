@@ -3,7 +3,8 @@ import { CardInstance, GameState, PlayerId } from "../types";
 export function reviveFromGraveyardToHand(
   state: GameState,
   ownerId: PlayerId,
-  cardInstanceId: string
+  cardInstanceId: string,
+  allowedTypes?: ("UNIT" | "CHAMPION")[]
 ): CardInstance | undefined {
   const player = state.players[ownerId];
   const entryIndex = player.graveyard.findIndex(
@@ -11,8 +12,13 @@ export function reviveFromGraveyardToHand(
   );
   if (entryIndex === -1) return undefined;
 
-  // Only allow reviving UNIT and CHAMPION cards
-  if (player.graveyard[entryIndex].type === "SPELL") {
+  const entryType = player.graveyard[entryIndex].type;
+  // Never allow reviving SPELL cards
+  if (entryType === "SPELL") {
+    return undefined;
+  }
+  // Validate against allowedTypes if specified
+  if (allowedTypes && !allowedTypes.includes(entryType as any)) {
     return undefined;
   }
 
