@@ -52,6 +52,7 @@ export function GameBoardView({
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
   const [selectedSpellTarget, setSelectedSpellTarget] = useState<SpellTarget>();
+  const [selectedCostTargets, setSelectedCostTargets] = useState<SpellTarget[]>([]);
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | undefined>();
   const attackPlayerId = gameState.attackTokenPlayerId;
@@ -66,6 +67,9 @@ export function GameBoardView({
   const assignedBlockerIds = gameState.combat.attackers
     .map((lane) => lane.blockerId)
     .filter((blockerId): blockerId is string => Boolean(blockerId));
+  const selectedCostUnitIds = selectedCostTargets
+    .filter((target): target is Extract<SpellTarget, { type: "UNIT" }> => target.type === "UNIT")
+    .map((target) => target.unitId);
 
   const cardDef = (card: CardInstance) => getCardDefinition(card.cardId);
   const unitDef = (unit: UnitInstance) => getCardDefinition(unit.cardId);
@@ -124,8 +128,16 @@ export function GameBoardView({
       return;
     }
 
+    if (definition.additionalCost) {
+      selectCardForCosts(playerId, card);
+      return;
+    }
+
     if ((definition.type === "unit" || definition.type === "champion") && gameState.players[playerId].board.length >= 6) {
       setSelectedSpell(card); // Treat as spell to select replacement target
+      setSelectedSpellTarget(undefined);
+      setSelectedCostTargets([]);
+      setViewingGraveyard(undefined);
       return;
     }
 
@@ -141,14 +153,40 @@ export function GameBoardView({
     }
 
     if (selectedSpell?.instanceId === card.instanceId) {
-      setSelectedSpell(undefined);
-      setSelectedSpellTarget(undefined);
+      clearSelectedCard();
+      return;
+    }
+
+    setSelectedSpell(card);
+    setSelectedSpellTarget(undefined);
+    setSelectedCostTargets([]);
+
+    if (cardDef(card).additionalCost) {
       setViewingGraveyard(undefined);
       return;
     }
 
-    const targetKind = getPrimarySpellTarget(card);
+    beginPrimaryTargetSelection(playerId, card);
+  }
+
+  function selectCardForCosts(playerId: PlayerId, card: CardInstance) {
+    if (!canControl(playerId)) {
+      return;
+    }
+
+    if (selectedSpell?.instanceId === card.instanceId) {
+      clearSelectedCard();
+      return;
+    }
+
     setSelectedSpell(card);
+    setSelectedSpellTarget(undefined);
+    setSelectedCostTargets([]);
+    setViewingGraveyard(undefined);
+  }
+
+  function beginPrimaryTargetSelection(playerId: PlayerId, card: CardInstance) {
+    const targetKind = getPrimarySpellTarget(card);
 
     if (targetKind === "SELF") {
       setSelectedSpellTarget({ type: "SELF", playerId });
@@ -170,6 +208,13 @@ export function GameBoardView({
     }
 
     setSelectedSpellTarget(undefined);
+  }
+
+  function clearSelectedCard() {
+    setSelectedSpell(undefined);
+    setSelectedSpellTarget(undefined);
+    setSelectedCostTargets([]);
+    setViewingGraveyard(undefined);
   }
 
   function getDamagePreview(attacker: UnitInstance, blocker?: UnitInstance) {
@@ -253,14 +298,60 @@ export function GameBoardView({
       const casterId = selectedSpell.ownerId;
       
       const selectedDefinition = cardDef(selectedSpell);
+      const additionalCost = selectedDefinition.additionalCost;
+      if (
+        additionalCost?.type === "SACRIFICE_UNITS" &&
+        selectedCostTargets.length < additionalCost.count
+      ) {
+        if (playerId !== casterId) {
+          return;
+        }
+        if (
+          selectedCostTargets.some(
+            (target) => target.type === "UNIT" && target.unitId === unit.instanceId
+          )
+        ) {
+          return;
+        }
+
+        const nextCostTargets: SpellTarget[] = [
+          ...selectedCostTargets,
+          { type: "UNIT", playerId, unitId: unit.instanceId }
+        ];
+        setSelectedCostTargets(nextCostTargets);
+
+        if (nextCostTargets.length === additionalCost.count) {
+          if (selectedDefinition.type === "spell") {
+            beginPrimaryTargetSelection(casterId, selectedSpell);
+          } else if (selectedDefinition.type === "unit" || selectedDefinition.type === "champion") {
+            dispatch(
+              {
+                type: "PLAY_UNIT",
+                playerId: casterId,
+                cardInstanceId: selectedSpell.instanceId,
+                costTargets: nextCostTargets
+              },
+              `${casterId} played ${selectedDefinition.name}.`
+            );
+            clearSelectedCard();
+          }
+        }
+        return;
+      }
+
       if (selectedDefinition.type === "unit" || selectedDefinition.type === "champion") {
         if (playerId === casterId) {
           dispatch(
-            { type: "PLAY_UNIT", playerId: casterId, cardInstanceId: selectedSpell.instanceId, replaceUnitId: unit.instanceId },
+            {
+              type: "PLAY_UNIT",
+              playerId: casterId,
+              cardInstanceId: selectedSpell.instanceId,
+              replaceUnitId: unit.instanceId,
+              costTargets: selectedCostTargets
+            },
             `${casterId} played ${selectedDefinition.name}, replacing ${unitDef(unit).name}.`
           );
-          setSelectedSpell(undefined);
-          setSelectedSpellTarget(undefined);
+          clearSelectedCard();
         }
         return;
       }
@@ -357,8 +448,7 @@ export function GameBoardView({
     }
 
     setSelectedBlockerId(undefined);
-    setSelectedSpell(undefined);
-    setSelectedSpellTarget(undefined);
+    clearSelectedCard();
     dispatch(
       { type: "COMMIT_ATTACK", playerId: attackPlayerId },
       `${attackPlayerId} committed attackers. ${defenderId} may block.`
@@ -371,8 +461,7 @@ export function GameBoardView({
     }
 
     setSelectedBlockerId(undefined);
-    setSelectedSpell(undefined);
-    setSelectedSpellTarget(undefined);
+    clearSelectedCard();
     dispatch(
       { type: "END_TURN", playerId: gameState.priorityPlayerId },
       `${gameState.priorityPlayerId} passed priority.`
@@ -385,8 +474,7 @@ export function GameBoardView({
     }
 
     setSelectedBlockerId(undefined);
-    setSelectedSpell(undefined);
-    setSelectedSpellTarget(undefined);
+    clearSelectedCard();
     dispatch(
       { type: "COMMIT_BLOCKS", playerId: defenderId },
       `${defenderId} committed blocks. Combat is ready.`
@@ -399,15 +487,13 @@ export function GameBoardView({
     }
 
     setSelectedBlockerId(undefined);
-    setSelectedSpell(undefined);
-    setSelectedSpellTarget(undefined);
+    clearSelectedCard();
     dispatch({ type: "START_ROUND" }, "Round advanced. Mana refilled and attack token rotated.");
   }
 
   function resolveCombat() {
     setSelectedBlockerId(undefined);
-    setSelectedSpell(undefined);
-    setSelectedSpellTarget(undefined);
+    clearSelectedCard();
     dispatch({ type: "RESOLVE_COMBAT" }, "Combat resolved.");
   }
 
@@ -468,8 +554,7 @@ export function GameBoardView({
         // Commit blocks then auto-resolve in one atomic step
         onClick: () => {
           setSelectedBlockerId(undefined);
-          setSelectedSpell(undefined);
-          setSelectedSpellTarget(undefined);
+          clearSelectedCard();
           dispatchChain([
             { action: { type: "COMMIT_BLOCKS", playerId: defenderId }, label: `${defenderId} committed blocks.` },
             { action: { type: "RESOLVE_COMBAT" }, label: "Combat resolved." }
@@ -508,13 +593,12 @@ export function GameBoardView({
         type: "PLAY_SPELL",
         playerId: selectedSpell.ownerId,
         cardInstanceId: selectedSpell.instanceId,
-        target: selectedSpellTarget
+        target: selectedSpellTarget,
+        costTargets: selectedCostTargets.length > 0 ? selectedCostTargets : undefined
       },
       `${selectedSpell.ownerId} played ${cardDef(selectedSpell).name}.`
     );
-    setSelectedSpell(undefined);
-    setSelectedSpellTarget(undefined);
-    setViewingGraveyard(undefined);
+    clearSelectedCard();
   }
 
   function getGraveyardTargetPlayer(
@@ -559,13 +643,12 @@ export function GameBoardView({
           type: "PLAY_SPELL",
           playerId: selectedSpell.ownerId,
           cardInstanceId: selectedSpell.instanceId,
-          target
+          target,
+          costTargets: selectedCostTargets.length > 0 ? selectedCostTargets : undefined
         },
         `${selectedSpell.ownerId} played ${cardDef(selectedSpell).name}.`
       );
-      setSelectedSpell(undefined);
-      setSelectedSpellTarget(undefined);
-      setViewingGraveyard(undefined);
+      clearSelectedCard();
       return;
     }
 
@@ -575,6 +658,15 @@ export function GameBoardView({
 
   function isReviveCardSpell(card: CardInstance) {
     return cardDef(card).effects?.some((effect) => effect.type === "REVIVE_CARD") ?? false;
+  }
+
+  function getGraveyardAllowedTypes(): ("UNIT" | "CHAMPION")[] | undefined {
+    if (!selectedSpell) return undefined;
+    const reviveEffect = cardDef(selectedSpell).effects?.find((effect) => effect.type === "REVIVE_CARD");
+    if (reviveEffect && reviveEffect.type === "REVIVE_CARD") {
+      return reviveEffect.allowedTypes;
+    }
+    return undefined;
   }
 
   function submitPendingAbilityTarget(targetId: string, target: SpellTarget) {
@@ -628,8 +720,16 @@ export function GameBoardView({
             ? ["P1", "P2"]
             : [];
 
+    const chosenUnitIds = new Set(
+      Object.values(pendingChoice.chosenTargets)
+        .filter((target): target is Extract<SpellTarget, { type: "UNIT" }> => target.type === "UNIT")
+        .map((target) => `${target.playerId}:${target.unitId}`)
+    );
+
     return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].board.map((unit) => ({ playerId, unit }))
+      gameState.players[playerId].board
+        .filter((unit) => !chosenUnitIds.has(`${playerId}:${unit.instanceId}`))
+        .map((unit) => ({ playerId, unit }))
     );
   }
 
@@ -849,7 +949,10 @@ export function GameBoardView({
   function renderWaitingRow(playerId: PlayerId) {
     const units = getRecallUnits(playerId);
     const isEnemy = playerId === "P2";
-    const selectedIds = playerId === attackPlayerId ? attackerIds : assignedBlockerIds;
+    const selectedIds = [
+      ...(playerId === attackPlayerId ? attackerIds : assignedBlockerIds),
+      ...selectedCostUnitIds
+    ];
 
     return (
       <div
@@ -939,7 +1042,8 @@ export function GameBoardView({
           selected={
             unit.instanceId === selectedBlockerId ||
             attackerIds.includes(unit.instanceId) ||
-            assignedBlockerIds.includes(unit.instanceId)
+            assignedBlockerIds.includes(unit.instanceId) ||
+            selectedCostUnitIds.includes(unit.instanceId)
           }
           onClick={
             canToggleAttacker
@@ -1095,6 +1199,7 @@ export function GameBoardView({
                 : undefined
             }
             canSelect={canSelectGraveyardCard(viewingGraveyard)}
+            allowedTypes={getGraveyardAllowedTypes()}
             onSelectCard={(cardInstanceId) =>
               selectGraveyardCard(viewingGraveyard, cardInstanceId)
             }
@@ -1210,10 +1315,10 @@ export function GameBoardView({
                   Target:{" "}
                   {cardDef(selectedSpell).type === "unit" ||
                   cardDef(selectedSpell).type === "champion"
-                    ? "click one of your 6 units to replace it"
+                    ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
                     : selectedSpellTarget
                       ? describeSpellTarget(selectedSpellTarget)
-                      : describeNeededTarget(getPrimarySpellTarget(selectedSpell))}
+                      : describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}
                 </span>
               </div>
               <div className="button-row">
@@ -1260,6 +1365,20 @@ function describeNeededTarget(targetKind: SpellTargetKind | undefined): string {
     default:
       return "none";
   }
+}
+
+function describeSelectedCardPrompt(card: CardInstance, costTargets: SpellTarget[]): string {
+  const definition = getCardDefinition(card.cardId);
+  const cost = definition.additionalCost;
+  if (cost?.type === "SACRIFICE_UNITS" && costTargets.length < cost.count) {
+    return `choose allied unit ${costTargets.length + 1}/${cost.count} to sacrifice`;
+  }
+
+  if (definition.type === "unit" || definition.type === "champion") {
+    return "click one of your 6 units to replace it";
+  }
+
+  return describeNeededTarget(definition.effects?.[0]?.target as SpellTargetKind | undefined);
 }
 
 function describeAbilityTargetNeed(targetDefinition: TargetDefinition | undefined): string {

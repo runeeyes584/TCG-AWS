@@ -9,6 +9,7 @@ interface GraveyardPickerModalProps {
   entries: GraveyardEntry[];
   selectedCardInstanceId?: string;
   canSelect?: boolean;
+  allowedTypes?: ("UNIT" | "CHAMPION")[];
   onSelectCard?: (cardInstanceId: string) => void;
   onClose: () => void;
 }
@@ -18,6 +19,7 @@ export function GraveyardPickerModal({
   entries,
   selectedCardInstanceId,
   canSelect = false,
+  allowedTypes,
   onSelectCard,
   onClose
 }: GraveyardPickerModalProps) {
@@ -44,7 +46,10 @@ export function GraveyardPickerModal({
                   }}
                   selected={entry.instanceId === selectedCardInstanceId}
                   onClick={
-                    canSelect && entry.type !== "SPELL" && onSelectCard
+                    canSelect && 
+                    entry.type !== "SPELL" && 
+                    (!allowedTypes || allowedTypes.includes(entry.type as any)) && 
+                    onSelectCard
                       ? () => onSelectCard(entry.instanceId)
                       : undefined
                   }
