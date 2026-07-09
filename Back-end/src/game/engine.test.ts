@@ -853,6 +853,99 @@ describe("game engine", () => {
     expect(state.players.P1.graveyard).toHaveLength(0);
   });
 
+  it("collects multiple on-play targets before resolving a unit ability", () => {
+    const catChampion: CardDefinition = {
+      id: "cat-champion-test",
+      name: "Cat Champion Test",
+      cost: 5,
+      type: "champion",
+      attack: 2,
+      health: 6,
+      abilities: [
+        {
+          id: "cat-champion-test-play",
+          onPlay: true,
+          targets: [
+            { id: "enemy-target-1", kind: "ENEMY_UNIT", required: true },
+            { id: "enemy-target-2", kind: "ENEMY_UNIT", required: true }
+          ],
+          effects: [
+            {
+              type: "BUFF_ACTIVE_ALLIES",
+              attack: 2,
+              health: 2,
+              duration: "THIS_ROUND"
+            },
+            {
+              type: "DEBUFF_UNIT",
+              attackDelta: -2,
+              healthDelta: 0,
+              target: "enemy-target-1",
+              duration: "THIS_ROUND"
+            },
+            {
+              type: "DEBUFF_UNIT",
+              attackDelta: -2,
+              healthDelta: 0,
+              target: "enemy-target-2",
+              duration: "THIS_ROUND"
+            }
+          ]
+        }
+      ]
+    };
+    let state = applyAction(
+      createInitialGameState(deck("P1", 10), deck("P2", 10), 1, {
+        [catChampion.id]: catChampion
+      }),
+      { type: "START_GAME", firstPlayerId: "P1" }
+    );
+    state = withHand(state, "P1", [card(catChampion, "P1", "cat")]);
+    state = withBoard(state, "P1", [createUnitInstance(card(soldier, "P1", "ally"))]);
+    state = withBoard(state, "P2", [
+      createUnitInstance(card(bruiser, "P2", "enemy-1")),
+      createUnitInstance(card(bruiser, "P2", "enemy-2"))
+    ]);
+
+    state = applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "cat" });
+
+    expect(state.pendingChoice?.requiredTargets.map((target) => target.id)).toEqual([
+      "enemy-target-1",
+      "enemy-target-2"
+    ]);
+
+    state = applyAction(state, {
+      type: "SUBMIT_ABILITY_TARGETS",
+      playerId: "P1",
+      targets: {
+        "enemy-target-1": { type: "UNIT", playerId: "P2", unitId: "enemy-1" }
+      }
+    });
+
+    expect(state.pendingChoice?.requiredTargets.map((target) => target.id)).toEqual([
+      "enemy-target-2"
+    ]);
+    expect(state.players.P1.board.some((unit) => unit.instanceId === "cat")).toBe(false);
+
+    state = applyAction(state, {
+      type: "SUBMIT_ABILITY_TARGETS",
+      playerId: "P1",
+      targets: {
+        "enemy-target-2": { type: "UNIT", playerId: "P2", unitId: "enemy-2" }
+      }
+    });
+
+    expect(state.pendingChoice).toBeUndefined();
+    expect(state.players.P1.hand).toHaveLength(0);
+    expect(state.players.P1.board.map((unit) => unit.instanceId)).toContain("cat");
+    expect(getUnitAttack(state.players.P1.board.find((unit) => unit.instanceId === "ally")!)).toBe(4);
+    expect(getUnitHealth(state.players.P1.board.find((unit) => unit.instanceId === "ally")!)).toBe(4);
+    expect(getUnitAttack(state.players.P1.board.find((unit) => unit.instanceId === "cat")!)).toBe(4);
+    expect(getUnitHealth(state.players.P1.board.find((unit) => unit.instanceId === "cat")!)).toBe(8);
+    expect(getUnitAttack(state.players.P2.board.find((unit) => unit.instanceId === "enemy-1")!)).toBe(1);
+    expect(getUnitAttack(state.players.P2.board.find((unit) => unit.instanceId === "enemy-2")!)).toBe(1);
+  });
+
   it("unrelated actions are rejected while pendingChoice exists", () => {
     const research = forbiddenResearchSpell();
     let state = withHand(startedGame(), "P1", [card(research, "P1", "research")]);

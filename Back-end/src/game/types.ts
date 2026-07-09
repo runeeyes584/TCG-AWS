@@ -12,6 +12,9 @@ export type SpellSpeed = "burst" | "fast" | "slow";
 
 export type SpellTargetKind = "ENEMY_UNIT" | "ALLY_UNIT" | "NEXUS" | "SELF" | "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD";
 
+export type AdditionalCostDefinition =
+  | { type: "SACRIFICE_UNITS"; count: number };
+
 export type TriggerTargetKind =
   | "EVENT_UNIT"
   | "SOURCE"
@@ -78,11 +81,23 @@ export type EffectDefinition =
       duration?: ModifierDuration;
     }
   | {
+      type: "BUFF_ACTIVE_ALLIES";
+      attack: number;
+      health: number;
+      target?: "SELF" | string;
+      duration?: ModifierDuration;
+    }
+  | {
       type: "DEBUFF_UNIT";
       attackDelta: number;
       healthDelta: number;
       target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
       duration?: ModifierDuration;
+    }
+  | {
+      type: "BURN_ACTIVE_ENEMIES";
+      amount: number;
+      target?: "ENEMY_UNIT" | string;
     }
 
   | {
@@ -102,6 +117,7 @@ export type EffectDefinition =
   | {
       type: "REVIVE_CARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
+      allowedTypes?: ("UNIT" | "CHAMPION")[];
     };
 
 export type SpellEffect = EffectDefinition;
@@ -195,7 +211,9 @@ export interface PendingChoice {
   returnPhase: GamePhase;
   playUnit?: {
     replaceUnitId?: string;
+    costTargets?: SpellTarget[];
   };
+  costTargets?: SpellTarget[];
 }
 
 export interface CardDefinition {
@@ -215,6 +233,7 @@ export interface CardDefinition {
   health?: number;
   keywords?: Keyword[];
   effects?: EffectDefinition[];
+  additionalCost?: AdditionalCostDefinition;
   /**
    * @deprecated Use abilities with `when` instead.
    * Legacy triggers are normalized into abilities by cardRegistry.
@@ -329,12 +348,13 @@ export type GameAction =
   | { type: "DRAW_CARD"; playerId: PlayerId; count?: number }
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: string }
   | { type: "START_ROUND" }
-  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string; target?: SpellTarget }
+  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string; target?: SpellTarget; costTargets?: SpellTarget[] }
   | {
       type: "PLAY_SPELL";
       playerId: PlayerId;
       cardInstanceId: string;
       target: SpellTarget;
+      costTargets?: SpellTarget[];
     }
   | {
       type: "SUBMIT_ABILITY_TARGETS";
