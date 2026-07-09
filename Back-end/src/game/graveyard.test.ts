@@ -203,7 +203,7 @@ describe("Graveyard and Death Pipeline", () => {
     expect(activated).toBeDefined();
   });
 
-  it("REVIVE_CARD returns unit and spell cards from graveyard to hand", () => {
+  it("REVIVE_CARD returns unit cards but ignores spell cards from graveyard", () => {
     let state = setupGame();
     state.players.P1.graveyard = [
       {
@@ -255,16 +255,9 @@ describe("Graveyard and Death Pipeline", () => {
     });
 
     expect(state.players.P1.board).toHaveLength(0);
-    expect(state.players.P1.hand).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          instanceId: "dead-spell",
-          cardId: killSpell.id,
-          ownerId: "P1"
-        })
-      ])
-    );
-    expect(state.players.P1.graveyard.map((entry) => entry.instanceId)).not.toContain("dead-spell");
+    const revivedSpell = state.players.P1.hand.find(c => c.instanceId === "dead-spell");
+    expect(revivedSpell).toBeUndefined();
+    expect(state.players.P1.graveyard.map((entry) => entry.instanceId)).toContain("dead-spell");
   });
 
   // ─── NEW TESTS: rich GraveyardEntry metadata ──────────────────────────────
@@ -368,14 +361,14 @@ describe("Graveyard and Death Pipeline", () => {
     expect(new Set(allIds).size).toBe(allIds.length);
   });
 
-  it("findReviveTargets returns unit, champion, and spell cards", () => {
+  it("findReviveTargets returns unit and champion cards, but not spell cards", () => {
     let state = setupGame();
     state.players.P1.graveyard = [
       { id: "u1-gy", instanceId: "u1", cardId: "dummy-unit", ownerId: "P1", type: "UNIT",  round: 1, cause: "COMBAT" },
       { id: "s1-gy", instanceId: "s1", cardId: "kill-spell",  ownerId: "P1", type: "SPELL", round: 1, cause: "SPELL" },
     ];
     const targets = findReviveTargets(state, "P1");
-    expect(targets.map((target) => target.type)).toEqual(["UNIT", "SPELL"]);
+    expect(targets.map((target) => target.type)).toEqual(["UNIT"]);
   });
 
   it("getGraveyardEntries filter by type and round", () => {

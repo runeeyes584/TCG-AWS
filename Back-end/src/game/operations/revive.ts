@@ -1,4 +1,4 @@
-﻿import { CardInstance, GameState, PlayerId } from "../types";
+import { CardInstance, GameState, PlayerId } from "../types";
 
 export function reviveFromGraveyardToHand(
   state: GameState,
@@ -10,6 +10,11 @@ export function reviveFromGraveyardToHand(
     (entry) => entry.instanceId === cardInstanceId
   );
   if (entryIndex === -1) return undefined;
+
+  // Only allow reviving UNIT and CHAMPION cards
+  if (player.graveyard[entryIndex].type === "SPELL") {
+    return undefined;
+  }
 
   const [entry] = player.graveyard.splice(entryIndex, 1);
   const revivedCard: CardInstance = {
