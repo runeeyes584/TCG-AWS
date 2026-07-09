@@ -1,7 +1,7 @@
 import { getUnitHealth } from "../cards";
 import { emitEvent } from "../triggers";
 import { GameState, PlayerId, SpellTarget, UnitInstance } from "../types";
-import { findUnit } from "../rules";
+import { findUnit } from "../rules/gameRules";
 
 export type DamageSource =
   | {

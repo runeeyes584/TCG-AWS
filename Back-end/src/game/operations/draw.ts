@@ -1,6 +1,6 @@
 import { emitEvent } from "../triggers";
 import { GameState, PlayerId } from "../types";
-import { opponentOf } from "../rules";
+import { opponentOf } from "../rules/gameRules";
 
 export function drawCards(state: GameState, playerId: PlayerId, amount: number): void {
   const player = state.players[playerId];

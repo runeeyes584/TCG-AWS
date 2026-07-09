@@ -4,16 +4,16 @@ import {
   createUnitInstance,
   isChampionCard,
   isUnitCard
-} from "./cards";
+} from "../cards";
 import {
   getCardDefinition,
   hasCard,
   listCards,
   registerCardDefinition
-} from "./cardRegistry";
-import cardsJson from "./data/cards.json";
-import { applyAction, createInitialGameState } from "./engine";
-import { CardDefinition, GameValidationError, PlayerId } from "./types";
+} from "../cardRegistry";
+import cardsJson from "./cards.json";
+import { applyAction, createInitialGameState } from "../engine";
+import { CardDefinition, GameValidationError, PlayerId } from "../types";
 
 const unit: CardDefinition = {
   id: "data-test-unit",

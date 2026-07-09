@@ -1,6 +1,6 @@
 import { emitEvent } from "../triggers";
 import { GameState, SpellTarget } from "../types";
-import { findUnit, STARTING_NEXUS_HP } from "../rules";
+import { findUnit, STARTING_NEXUS_HP } from "../rules/gameRules";
 
 export function healTarget(state: GameState, target: SpellTarget, amount: number): void {
   if (amount <= 0) {

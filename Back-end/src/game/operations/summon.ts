@@ -1,7 +1,7 @@
 import { createCardInstance, createUnitInstance } from "../cards";
 import { emitEvent } from "../triggers";
 import { GameState, PlayerId } from "../types";
-import { BOARD_LIMIT } from "../rules";
+import { BOARD_LIMIT } from "../rules/gameRules";
 import { getCardDefinition } from "../cardRegistry";
 
 export function summonUnit(
