@@ -8,14 +8,11 @@ import {
   UnitModifier
 } from "./types";
 import {
-  BOARD_LIMIT,
   checkWinConditions,
   findUnit,
   opponentOf
 } from "./rules";
 import { runCleanupPipeline } from "./engine";
-import { createCardInstance, createUnitInstance } from "./cards";
-import { emitEvent } from "./triggers";
 import {
   addDebuff,
   addModifier,
@@ -25,6 +22,7 @@ import {
   drawCards,
   grantKeyword,
   healTarget,
+  reviveFromGraveyardToHand,
   summonUnit
 } from "./operations";
 
@@ -188,30 +186,19 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       }
       return;
     }
-    case "REVIVE_UNIT": {
-      const targetPlayerId = effect.target === "ALLY_GRAVEYARD" ? casterId : opponentOf(casterId);
-      const player = state.players[targetPlayerId];
-      if (player.graveyard.length === 0 || player.board.length >= BOARD_LIMIT) return;
-      
-      let entryIndex = player.graveyard.length - 1; // Default to most recently dead
-      if (target?.type === "GRAVEYARD" && target.cardInstanceId) {
-        const found = player.graveyard.findIndex(c => c.instanceId === target.cardInstanceId);
-        if (found !== -1) entryIndex = found;
+    case "REVIVE_CARD": {
+      if (target?.type !== "GRAVEYARD" || !target.cardInstanceId) {
+        return;
       }
-      
-      const [entry] = player.graveyard.splice(entryIndex, 1);
-      
-      const instance = createUnitInstance(
-        createCardInstance(
-          entry.cardId,
-          targetPlayerId,
-          createGeneratedInstanceId(state, entry.cardId)
-        )
+
+      const revivedCard = reviveFromGraveyardToHand(
+        state,
+        target.playerId,
+        target.cardInstanceId
       );
-      player.board.push(instance);
-      state.visualEvents.push({ type: "DRAW", playerId: targetPlayerId, count: 0 }); // Placeholder for summon animation? We don't have SUMMON_UNIT visual event.
-      // Wait, let's emit UNIT_SUMMONED event.
-      emitEvent(state, { type: "UNIT_SUMMONED", playerId: targetPlayerId, cardInstanceId: entry.instanceId, unitInstanceId: instance.instanceId });
+      if (revivedCard) {
+        state.visualEvents.push({ type: "DRAW", playerId: target.playerId, count: 1 });
+      }
       return;
     }
   }

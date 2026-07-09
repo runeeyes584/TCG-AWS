@@ -20,6 +20,7 @@ import { getUnitAttack, getUnitHealth } from "@backend/game/cards";
 import { hasKeyword } from "@backend/game/engine";
 import { HoverProvider } from "../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
+import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { HandView } from "./HandView";
 import { getCardDefinition } from "@backend/game/cardRegistry";
 
@@ -513,6 +514,7 @@ export function GameBoardView({
     );
     setSelectedSpell(undefined);
     setSelectedSpellTarget(undefined);
+    setViewingGraveyard(undefined);
   }
 
   function getGraveyardTargetPlayer(
@@ -545,12 +547,34 @@ export function GameBoardView({
       return;
     }
 
-    setSelectedSpellTarget({
+    const target: SpellTarget = {
       type: "GRAVEYARD",
       playerId,
       cardInstanceId
-    });
+    };
+
+    if (selectedSpell && isReviveCardSpell(selectedSpell)) {
+      dispatch(
+        {
+          type: "PLAY_SPELL",
+          playerId: selectedSpell.ownerId,
+          cardInstanceId: selectedSpell.instanceId,
+          target
+        },
+        `${selectedSpell.ownerId} played ${cardDef(selectedSpell).name}.`
+      );
+      setSelectedSpell(undefined);
+      setSelectedSpellTarget(undefined);
+      setViewingGraveyard(undefined);
+      return;
+    }
+
+    setSelectedSpellTarget(target);
     setViewingGraveyard(undefined);
+  }
+
+  function isReviveCardSpell(card: CardInstance) {
+    return cardDef(card).effects?.some((effect) => effect.type === "REVIVE_CARD") ?? false;
   }
 
   function submitPendingAbilityTarget(targetId: string, target: SpellTarget) {
@@ -1061,42 +1085,21 @@ export function GameBoardView({
         ) : null}
 
         {viewingGraveyard ? (
-          <div className="graveyard-modal-overlay" onClick={() => setViewingGraveyard(undefined)}>
-            <div className="graveyard-modal-content" onClick={(e) => e.stopPropagation()}>
-              <header>
-                <h2>{viewingGraveyard}'s Graveyard</h2>
-                <button onClick={() => setViewingGraveyard(undefined)}><X size={20} /></button>
-              </header>
-              <div className="graveyard-grid">
-                {gameState.players[viewingGraveyard].graveyard.length === 0 ? (
-                  <div className="empty-message">Graveyard is empty.</div>
-                ) : (
-                  gameState.players[viewingGraveyard].graveyard.map((entry) => (
-                    <div key={entry.id} className="graveyard-entry">
-                      <CardView
-                        card={{
-                          instanceId: entry.instanceId,
-                          cardId: entry.cardId,
-                          ownerId: entry.ownerId
-                        }}
-                        selected={
-                          selectedSpellTarget?.type === "GRAVEYARD" &&
-                          selectedSpellTarget.playerId === viewingGraveyard &&
-                          selectedSpellTarget.cardInstanceId === entry.instanceId
-                        }
-                        onClick={
-                          canSelectGraveyardCard(viewingGraveyard)
-                            ? () => selectGraveyardCard(viewingGraveyard, entry.instanceId)
-                            : undefined
-                        }
-                      />
-                      <div className="cause-tag">{entry.cause} (R{entry.round})</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+          <GraveyardPickerModal
+            playerId={viewingGraveyard}
+            entries={gameState.players[viewingGraveyard].graveyard}
+            selectedCardInstanceId={
+              selectedSpellTarget?.type === "GRAVEYARD" &&
+              selectedSpellTarget.playerId === viewingGraveyard
+                ? selectedSpellTarget.cardInstanceId
+                : undefined
+            }
+            canSelect={canSelectGraveyardCard(viewingGraveyard)}
+            onSelectCard={(cardInstanceId) =>
+              selectGraveyardCard(viewingGraveyard, cardInstanceId)
+            }
+            onClose={() => setViewingGraveyard(undefined)}
+          />
         ) : null}
 
         <section className="battle-table lor-table" aria-label="Local battle board">
