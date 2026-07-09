@@ -174,14 +174,14 @@ export function getGraveyardEntries(
 }
 
 /**
- * Return graveyard entries valid for revive: UNIT and CHAMPION only.
+ * Return graveyard entries valid for revive.
  */
 export function findReviveTargets(
   state: GameState,
   playerId: PlayerId
 ): GraveyardEntry[] {
   return state.players[playerId].graveyard.filter(
-    (e) => e.type === "UNIT" || e.type === "CHAMPION"
+    (e) => e.type === "UNIT" || e.type === "CHAMPION" || e.type === "SPELL"
   );
 }
 
