@@ -141,6 +141,19 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       } catch (e) {}
       return;
     }
+    case "BUFF_ACTIVE_ALLIES": {
+      for (const unit of state.players[casterId].board) {
+        addModifier(state, unit.instanceId, {
+          sourceCardId: sourceCardId ?? sourceId,
+          sourceName: sourceName ?? sourceId,
+          type: "BUFF",
+          attackDelta: effect.attack,
+          healthDelta: effect.health,
+          duration: effect.duration ?? "THIS_ROUND"
+        });
+      }
+      return;
+    }
     case "DEBUFF_UNIT": {
       if (target?.type !== "UNIT") {
         return;
@@ -156,6 +169,24 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
           duration: effect.duration ?? "THIS_ROUND"
         });
       } catch (e) {}
+      return;
+    }
+    case "BURN_ACTIVE_ENEMIES": {
+      const opponentId = opponentOf(casterId);
+      for (const unit of [...state.players[opponentId].board]) {
+        dealDamage(
+          state,
+          {
+            playerId: casterId,
+            sourceId,
+            sourceInstanceId: sourceId,
+            sourceCardId,
+            damageType: "EFFECT"
+          },
+          { type: "UNIT", playerId: opponentId, unitId: unit.instanceId },
+          effect.amount
+        );
+      }
       return;
     }
     case "BANISH_GRAVEYARD": {
@@ -194,7 +225,8 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       const revivedCard = reviveFromGraveyardToHand(
         state,
         target.playerId,
-        target.cardInstanceId
+        target.cardInstanceId,
+        effect.allowedTypes
       );
       if (revivedCard) {
         state.visualEvents.push({ type: "DRAW", playerId: target.playerId, count: 1 });

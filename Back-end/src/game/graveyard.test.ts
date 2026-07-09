@@ -3,7 +3,7 @@ import { applyAction, createInitialGameState } from "./engine";
 import { getGraveyardEntries, findReviveTargets } from "./graveyard";
 import { GameState, CardDefinition, PlayerId, GameAction } from "./types";
 import { findUnit } from "./rules";
-import { createCardInstance } from "./cards";
+import { createCardInstance, createUnitInstance } from "./cards";
 import { getCardDefinition } from "./cardRegistry";
 
 describe("Graveyard and Death Pipeline", () => {
@@ -35,6 +35,30 @@ describe("Graveyard and Death Pipeline", () => {
     name: "Revive Card Spell",
     type: "spell",
     cost: 2,
+    effects: [
+      {
+        type: "REVIVE_CARD",
+        target: "ALLY_GRAVEYARD",
+      },
+    ],
+  };
+
+  const championCard: CardDefinition = {
+    id: "dummy-champion",
+    name: "Dummy Champion",
+    type: "champion",
+    cost: 3,
+    attack: 3,
+    health: 3,
+    level: 1
+  };
+
+  const sacrificeReviveSpell: CardDefinition = {
+    id: "sacrifice-revive-spell",
+    name: "Sacrifice Revive Spell",
+    type: "spell",
+    cost: 2,
+    additionalCost: { type: "SACRIFICE_UNITS", count: 2 },
     effects: [
       {
         type: "REVIVE_CARD",
@@ -87,7 +111,13 @@ describe("Graveyard and Death Pipeline", () => {
     return cardInstanceId;
   }
 
-  function playCard(state: GameState, playerId: PlayerId, cardInstanceId: string, target?: any) {
+  function playCard(
+    state: GameState,
+    playerId: PlayerId,
+    cardInstanceId: string,
+    target?: any,
+    costTargets?: any[]
+  ) {
     const card = state.players[playerId].hand.find((c) => c.instanceId === cardInstanceId);
     if (!card) throw new Error("Card not found");
     const definition = getCardDefinition(card.cardId);
@@ -97,6 +127,7 @@ describe("Graveyard and Death Pipeline", () => {
       playerId,
       cardInstanceId,
       target,
+      costTargets,
     } as GameAction);
   }
 
@@ -258,6 +289,52 @@ describe("Graveyard and Death Pipeline", () => {
     const revivedSpell = state.players.P1.hand.find(c => c.instanceId === "dead-spell");
     expect(revivedSpell).toBeUndefined();
     expect(state.players.P1.graveyard.map((entry) => entry.instanceId)).toContain("dead-spell");
+  });
+
+  it("additional cost sacrifices allied units before resolving revive", () => {
+    let state = setupGame();
+    state.players.P1.board = [
+      createUnitInstance(createCardInstance(dummyUnit, "P1", "cost-unit-1")),
+      createUnitInstance(createCardInstance(dummyUnit, "P1", "cost-unit-2"))
+    ];
+    state.players.P1.graveyard = [
+      {
+        id: "dead-champion-gy",
+        instanceId: "dead-champion",
+        cardId: championCard.id,
+        ownerId: "P1",
+        type: "CHAMPION",
+        round: 1,
+        cause: "COMBAT"
+      }
+    ];
+
+    const spellId = addCardToHand(state, "P1", sacrificeReviveSpell);
+    state = playCard(state, "P1", spellId, {
+      type: "GRAVEYARD",
+      playerId: "P1",
+      cardInstanceId: "dead-champion"
+    }, [
+      { type: "UNIT", playerId: "P1", unitId: "cost-unit-1" },
+      { type: "UNIT", playerId: "P1", unitId: "cost-unit-2" }
+    ]);
+
+    expect(state.players.P1.board).toHaveLength(0);
+    expect(state.players.P1.hand).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceId: "dead-champion",
+          cardId: championCard.id
+        })
+      ])
+    );
+    expect(state.players.P1.graveyard).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: "cost-unit-1", cause: "EFFECT" }),
+        expect.objectContaining({ instanceId: "cost-unit-2", cause: "EFFECT" }),
+        expect.objectContaining({ instanceId: spellId, cause: "SPELL" })
+      ])
+    );
   });
 
   // ─── NEW TESTS: rich GraveyardEntry metadata ──────────────────────────────

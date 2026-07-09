@@ -1,7 +1,7 @@
 [
 
     {
-    "id": "Cat-Black-Fat-Cat",
+    "id": "cat-banish",
     "name": "Black Fat Cat",
     "cost": 5,
     "type": "spell",
@@ -17,7 +17,7 @@
   },
 
   {
-    "id": "Cat-Curse-Paw",
+    "id": "cat-debuff",
     "name": "Cat Curse Paw",
     "cost": 3,
     "type": "spell",
@@ -36,24 +36,24 @@
   },
 
   {
-    "id": "Cat-Grave-Seal",
-    "name": "Grave Seal",
-    "cost": 2,
+    "id": "cat-revive-unit-champion",
+    "name": "Cat Goat",
+    "cost": 6,
     "type": "spell",
     "effects": [
       {
-        "type": "BANISH_GRAVEYARD",
-        "target": "ENEMY_GRAVEYARD"
+        "type": "REVIVE_CARD",
+        "target": "ALLY_GRAVEYARD"
       }
     ],
-    "imageUrl": "https://media1.tenor.com/m/5n8PMeGmltAAAAAC/cat-stare.gif",
-    "description": "Mark an enemy card in the graveyard with Banish, preventing that card from ever being revived.",
+    "imageUrl": "https://i.pinimg.com/1200x/0e/4e/16/0e4e1693a9c045b028565c59e377b1ba.jpg",
+    "description": "An adorable and noble Goat cat—beloved by its teammates—whose appearance causes cats in the graveyard to return to your hand and provide support.",
     "spellSpeed": "slow"
   },
 
 
   {
-    "id": "Cat-Baby-with-bow",
+    "id": "cat-debuff-unit",
     "name": "Baby Cat with Bow",
     "cost": 2,
     "type": "unit",
@@ -86,7 +86,7 @@
   },
 
   {
-    "id": "Cat-Banana",
+    "id": "cat-debuff-unit",
     "name": "Cat Banana",
     "cost": 4,
     "type": "unit",
@@ -119,7 +119,7 @@
   },
 
   {
-    "id": "Cat-hold-gun",
+    "id": "cat-unit",
     "name": "Cat Holding a Gun",
     "cost": 1,
     "type": "unit",
@@ -137,11 +137,75 @@
     "effects": [
       {
         "type": "REVIVE_CARD",
-        "target": "ALLY_GRAVEYARD"
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": ["UNIT"]
       }
     ],
     "imageUrl": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMnZocXVtdHdidmpuNTRkcHFpdXc3dzBveDZqbGpwZ250OG03bmVhaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/z85Z93M2jZg0hE5RSZ/giphy.gif",
     "description": "An adorably chubby cat that makes its owner unable to resist rising from the grave just to give it a hug [Revive].",
     "spellSpeed": "slow"
+  },
+
+ 
+  {
+    "id": "cat-champion",
+    "name": "Angry cat sit on the throne",
+    "cost": 7,
+    "type": "champion",
+    "attack": 2,
+    "health": 6,
+    "abilities": [
+      {
+        "id": "Cat-Champion-play",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "enemy-target-1",
+            "kind": "ENEMY_UNIT",
+            "required": true
+          },
+          {
+            "id": "enemy-target-2",
+            "kind": "ENEMY_UNIT",
+            "required": true
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 2,
+            "health": 2,
+            "duration": "THIS_ROUND"
+          },
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -2,
+            "healthDelta": 0,
+            "target": "enemy-target-1",
+            "duration": "THIS_ROUND"
+          },
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -2,
+            "healthDelta": 0,
+            "target": "enemy-target-2",
+            "duration": "THIS_ROUND"
+          }
+        ]
+      },
+      {
+        "id": "Cat-Champion-burn-round-end",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "BURN_ACTIVE_ENEMIES",
+            "amount": 1
+          }
+        ]
+      }
+    ]
   }
+
 ]

@@ -16,8 +16,7 @@ import {
 } from "./types";
 import { findCardInHand, findUnit, opponentOf } from "./rules";
 import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth } from "./cards";
-import { moveUnitToGraveyard } from "./graveyard";
-import { discardCards } from "./operations";
+import { discardCards, sacrificeUnit } from "./operations";
 
 export interface AbilityContext {
   sourceId: string;
@@ -372,10 +371,7 @@ function payCosts(
       case "SACRIFICE_UNIT":
       case "DESTROY_ALLY": {
         const unit = requireAlliedUnitTarget(state, context.sourcePlayerId, targets[cost.target]);
-        state.players[context.sourcePlayerId].board = state.players[
-          context.sourcePlayerId
-        ].board.filter((candidate) => candidate.instanceId !== unit.instanceId);
-        moveUnitToGraveyard(state, unit, "EFFECT");
+        sacrificeUnit(state, context.sourcePlayerId, unit.instanceId, "EFFECT");
         break;
       }
       case "EXHAUST_UNIT": {
@@ -394,6 +390,9 @@ function resolveEffectTarget(
   targets: AbilityTargetMap
 ): SpellTarget | undefined {
   const effectTarget = effect.target;
+  if (!effectTarget) {
+    return undefined;
+  }
   if (targets[effectTarget]) {
     return targets[effectTarget];
   }

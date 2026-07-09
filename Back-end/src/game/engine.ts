@@ -22,6 +22,7 @@ import {
 } from "./rules";
 import {
   AbilityTargetMap,
+  AdditionalCostDefinition,
   CardDefinition,
   CardInstance,
   GameAction,
@@ -45,15 +46,15 @@ import { GameEvent } from "./events";
 import {
   cleanupDeadUnits,
   moveCardToGraveyard,
-  moveSpellToGraveyard,
-  moveUnitToGraveyard
+  moveSpellToGraveyard
 } from "./graveyard";
 import {
   dealDamage,
   dealDamageToUnitState,
   discardCards as discardCardsOperation,
   drawCards as drawCardsOperation,
-  healTarget
+  healTarget,
+  sacrificeUnit
 } from "./operations";
 export {
   getGraveyardEntries,
@@ -238,10 +239,17 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       next = startRound(cleanState);
       break;
     case "PLAY_UNIT":
-      next = playUnit(cleanState, action.playerId, action.cardInstanceId, action.replaceUnitId, action.target);
+      next = playUnit(
+        cleanState,
+        action.playerId,
+        action.cardInstanceId,
+        action.replaceUnitId,
+        action.target,
+        action.costTargets
+      );
       break;
     case "PLAY_SPELL":
-      next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target);
+      next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target, action.costTargets);
       break;
     case "SUBMIT_ABILITY_TARGETS":
       next = submitAbilityTargets(cleanState, action.playerId, action.targets);
@@ -397,7 +405,9 @@ function playUnit(
   playerId: PlayerId,
   cardInstanceId: string,
   replaceUnitId?: string,
-  target?: SpellTarget
+  target?: SpellTarget,
+  costTargets?: SpellTarget[],
+  abilityTargets?: AbilityTargetMap
 ): GameState {
   const next = cloneState(state);
   const player = next.players[playerId];
@@ -409,7 +419,7 @@ function playUnit(
   const onPlayAbilities = (definition.abilities ?? []).filter((ability) => ability.onPlay);
 
   for (const ability of onPlayAbilities) {
-    const selectedTargets: AbilityTargetMap = target ? { target } : {};
+    const selectedTargets: AbilityTargetMap = abilityTargets ?? (target ? { target } : {});
     const missingTargets = getMissingRequiredTargets(ability, selectedTargets);
     if (missingTargets.length > 0) {
       player.hand.splice(handIndex, 0, card);
@@ -421,7 +431,7 @@ function playUnit(
         requiredTargets: missingTargets,
         chosenTargets: selectedTargets,
         returnPhase: next.phase,
-        playUnit: { replaceUnitId }
+        playUnit: { replaceUnitId, costTargets }
       };
       next.priorityPlayerId = playerId;
       next.activePlayerId = playerId;
@@ -429,19 +439,11 @@ function playUnit(
     }
   }
 
+  payAdditionalCost(next, playerId, definition.additionalCost, costTargets);
   player.mana -= definition.cost;
   
   if (replaceUnitId) {
-    const replaceIndex = player.board.findIndex(u => u.instanceId === replaceUnitId);
-    if (replaceIndex !== -1) {
-      const replacedUnit = player.board[replaceIndex];
-      // Note: we're directly splicing it out of the array before adding to graveyard
-      // to ensure it is actually gone, but moveUnitToGraveyard also expects unit to be 
-      // removed externally from board usually (cleanupDeadUnits does this).
-      player.board.splice(replaceIndex, 1);
-      // Move it to graveyard (cause=EFFECT since it's a replacement sacrifice)
-      moveUnitToGraveyard(next, replacedUnit, "EFFECT");
-    }
+    sacrificeUnit(next, playerId, replaceUnitId, "EFFECT");
   }
   
   player.board.push(createUnitInstance(card));
@@ -472,7 +474,7 @@ function playUnit(
 
   // Handle on-play abilities that require player targeting
   for (const ability of onPlayAbilities) {
-    const selectedTargets: AbilityTargetMap = target ? { target } : {};
+    const selectedTargets: AbilityTargetMap = abilityTargets ?? (target ? { target } : {});
     const unit = player.board.find((candidate) => candidate.instanceId === card.instanceId);
     executeAbility(next, ability, {
       sourceId: card.instanceId,
@@ -516,7 +518,8 @@ function playSpell(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: string,
-  target: SpellTarget
+  target: SpellTarget,
+  costTargets?: SpellTarget[]
 ): GameState {
   const next = cloneState(state);
   const player = next.players[playerId];
@@ -545,6 +548,7 @@ function playSpell(
       abilityId: pendingAbility.ability.id,
       requiredTargets: pendingAbility.missingTargets,
       chosenTargets: selectedTargets,
+      costTargets,
       returnPhase: next.phase
     };
     next.priorityPlayerId = playerId;
@@ -552,6 +556,7 @@ function playSpell(
     return next;
   }
 
+  payAdditionalCost(next, playerId, definition.additionalCost, costTargets);
   spendSpellMana(player, definition.cost);
   if (definition.abilities?.length) {
     executePlayedSpellAbilities(next, card, target);
@@ -597,10 +602,18 @@ function submitAbilityTargets(
       ...pendingChoice.chosenTargets,
       ...targets
     };
-    const primaryTargetId = pendingChoice.requiredTargets[0]?.id ?? "target";
-    const target = selectedTargets[primaryTargetId] ?? selectedTargets.target;
-    if (!target) {
-      throw new GameValidationError("Ability requires a target.");
+    assertUniqueUnitTargets(selectedTargets);
+    const remainingTargets = pendingChoice.requiredTargets.filter(
+      (targetDefinition) => !selectedTargets[targetDefinition.id]
+    );
+
+    if (remainingTargets.length > 0) {
+      next.pendingChoice = {
+        ...pendingChoice,
+        chosenTargets: selectedTargets,
+        requiredTargets: remainingTargets
+      };
+      return next;
     }
 
     next.pendingChoice = undefined;
@@ -609,7 +622,9 @@ function submitAbilityTargets(
       playerId,
       pendingChoice.sourceInstanceId,
       pendingChoice.playUnit.replaceUnitId,
-      target
+      undefined,
+      pendingChoice.playUnit.costTargets,
+      selectedTargets
     );
   }
 
@@ -647,6 +662,7 @@ function submitAbilityTargets(
     throw new GameValidationError("Not enough mana.");
   }
 
+  payAdditionalCost(next, playerId, definition.additionalCost, pendingChoice.costTargets);
   executeAbility(next, ability, {
     sourceId: card.instanceId,
     sourceName: definition.name,
@@ -762,6 +778,42 @@ function emitPlayedSpellEvents(
     sourceInstanceId: card.instanceId,
     sourceCardId: card.cardId
   });
+}
+
+function payAdditionalCost(
+  state: GameState,
+  playerId: PlayerId,
+  cost?: AdditionalCostDefinition,
+  costTargets: SpellTarget[] = []
+): void {
+  if (!cost) {
+    return;
+  }
+
+  switch (cost.type) {
+    case "SACRIFICE_UNITS":
+      for (const target of costTargets) {
+        if (target.type !== "UNIT") {
+          continue;
+        }
+        sacrificeUnit(state, playerId, target.unitId, "EFFECT");
+      }
+      return;
+  }
+}
+
+function assertUniqueUnitTargets(targets: AbilityTargetMap): void {
+  const seen = new Set<string>();
+  for (const target of Object.values(targets)) {
+    if (target.type !== "UNIT") {
+      continue;
+    }
+    const key = `${target.playerId}:${target.unitId}`;
+    if (seen.has(key)) {
+      throw new GameValidationError("Ability targets must be unique.");
+    }
+    seen.add(key);
+  }
 }
 
 function declareAttacker(
