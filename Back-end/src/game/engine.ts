@@ -19,7 +19,7 @@ import {
   STARTING_HAND_SIZE,
   STARTING_NEXUS_HP,
   validateAction
-} from "./rules";
+} from "./rules/gameRules";
 import {
   AbilityTargetMap,
   AdditionalCostDefinition,
