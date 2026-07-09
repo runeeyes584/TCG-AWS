@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { applyAction, createInitialGameState } from "./engine";
 import { getGraveyardEntries, findReviveTargets } from "./graveyard";
 import { GameState, CardDefinition, PlayerId, GameAction } from "./types";
-import { findUnit } from "./rules";
+import { findUnit } from "./rules/gameRules";
 import { createCardInstance, createUnitInstance } from "./cards";
 import { getCardDefinition } from "./cardRegistry";
 

@@ -14,7 +14,7 @@ import {
   TargetDefinition,
   UnitInstance
 } from "./types";
-import { findCardInHand, findUnit, opponentOf } from "./rules";
+import { findCardInHand, findUnit, opponentOf } from "./rules/gameRules";
 import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth } from "./cards";
 import { discardCards, sacrificeUnit } from "./operations";
 

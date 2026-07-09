@@ -11,7 +11,7 @@ import {
   checkWinConditions,
   findUnit,
   opponentOf
-} from "./rules";
+} from "./rules/gameRules";
 import { runCleanupPipeline } from "./engine";
 import {
   addDebuff,
