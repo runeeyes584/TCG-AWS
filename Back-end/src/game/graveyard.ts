@@ -181,7 +181,7 @@ export function findReviveTargets(
   playerId: PlayerId
 ): GraveyardEntry[] {
   return state.players[playerId].graveyard.filter(
-    (e) => e.type === "UNIT" || e.type === "CHAMPION" || e.type === "SPELL"
+    (e) => e.type === "UNIT" || e.type === "CHAMPION"
   );
 }
 

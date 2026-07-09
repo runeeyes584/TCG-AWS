@@ -44,7 +44,7 @@ export function GraveyardPickerModal({
                   }}
                   selected={entry.instanceId === selectedCardInstanceId}
                   onClick={
-                    canSelect && onSelectCard
+                    canSelect && entry.type !== "SPELL" && onSelectCard
                       ? () => onSelectCard(entry.instanceId)
                       : undefined
                   }
