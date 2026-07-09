@@ -2,7 +2,7 @@ import {
   getCardDefinitionForInstance,
   getUnitHealth,
   isUnitCard
-} from "./cards";
+} from "../cards";
 import {
   AdditionalCostDefinition,
   CardInstance,
@@ -15,7 +15,7 @@ import {
   SpellEffect,
   SpellTarget,
   UnitInstance
-} from "./types";
+} from "../types";
 
 export const PLAYER_IDS: PlayerId[] = ["P1", "P2"];
 export const STARTING_NEXUS_HP = 20;
@@ -560,8 +560,8 @@ function cloneCard(card: CardInstance): CardInstance {
 }
 
 function cloneAbilityTargetMap(
-  targets: import("./types").AbilityTargetMap
-): import("./types").AbilityTargetMap {
+  targets: import("../types").AbilityTargetMap
+): import("../types").AbilityTargetMap {
   return Object.fromEntries(
     Object.entries(targets).map(([key, target]) => [key, { ...target }])
   );

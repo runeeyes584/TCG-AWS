@@ -1,4 +1,4 @@
-import { findUnit, PLAYER_IDS } from "../rules";
+import { findUnit, PLAYER_IDS } from "../rules/gameRules";
 import {
   GameState,
   Keyword,

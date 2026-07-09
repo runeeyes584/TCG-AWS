@@ -1,6 +1,6 @@
-import { getCardDefinition, hasCard } from "./cardRegistry";
-import { isChampionCard } from "./cards";
-import { GameValidationError } from "./types";
+import { getCardDefinition, hasCard } from "../cardRegistry";
+import { isChampionCard } from "../cards";
+import { GameValidationError } from "../types";
 
 export interface DeckValidationRules {
   deckSize: number;
