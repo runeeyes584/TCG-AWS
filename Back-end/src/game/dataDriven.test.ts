@@ -343,7 +343,7 @@ describe("data-driven card registry and operations", () => {
       name: "Data Revive",
       type: "spell",
       cost: 0,
-      effects: [{ type: "REVIVE_UNIT", target: "ALLY_GRAVEYARD" }]
+      effects: [{ type: "REVIVE_CARD", target: "ALLY_GRAVEYARD" }]
     };
     let state = startedGame();
     state.players.P1.graveyard = [
@@ -367,7 +367,8 @@ describe("data-driven card registry and operations", () => {
       target: { type: "GRAVEYARD", playerId: "P1", cardInstanceId: "fallen" }
     });
 
-    expect(state.players.P1.board[0].cardId).toBe("data-test-unit");
+    const revivedCard = state.players.P1.hand.find(c => c.cardId === "data-test-unit");
+    expect(revivedCard).toBeDefined();
     expect(state.players.P1.graveyard.map((entry) => entry.cardId)).toEqual([
       "data-revive"
     ]);

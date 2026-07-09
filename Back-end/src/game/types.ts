@@ -100,7 +100,7 @@ export type EffectDefinition =
       target: "SELF" | string;
     }
   | {
-      type: "REVIVE_UNIT";
+      type: "REVIVE_CARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
     };
 
@@ -362,3 +362,4 @@ export class GameValidationError extends Error {
     this.name = "GameValidationError";
   }
 }
+
