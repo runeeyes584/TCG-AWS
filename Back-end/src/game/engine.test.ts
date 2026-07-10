@@ -925,7 +925,7 @@ describe("game engine", () => {
     expect(state.pendingChoice?.requiredTargets.map((target) => target.id)).toEqual([
       "enemy-target-2"
     ]);
-    expect(state.players.P1.board.some((unit) => unit.instanceId === "cat")).toBe(false);
+    expect(state.players.P1.board.some((unit) => unit.instanceId === "cat")).toBe(true);
 
     state = applyAction(state, {
       type: "SUBMIT_ABILITY_TARGETS",

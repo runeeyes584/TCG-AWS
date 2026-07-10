@@ -6,6 +6,7 @@ import type React from "react";
 import {
   AbilityTargetMap,
   CardInstance,
+  GraveyardEntryType,
   PlayerId,
   SpellTarget,
   SpellTargetKind,
@@ -683,7 +684,7 @@ export function GameBoardView({
     return cardDef(card).effects?.some((effect) => effect.type === "REVIVE_CARD") ?? false;
   }
 
-  function getGraveyardAllowedTypes(): ("UNIT" | "CHAMPION")[] | undefined {
+  function getGraveyardAllowedTypes(): GraveyardEntryType[] | undefined {
     if (!selectedSpell) return undefined;
     const reviveEffect = cardDef(selectedSpell).effects?.find((effect) => effect.type === "REVIVE_CARD");
     if (reviveEffect && reviveEffect.type === "REVIVE_CARD") {
@@ -756,6 +757,84 @@ export function GameBoardView({
     );
   }
 
+  function getPendingTargetDeckCards(targetDefinition: TargetDefinition): Array<{
+    playerId: PlayerId;
+    card: CardInstance;
+  }> {
+    const pendingChoice = gameState.pendingChoice;
+    if (!pendingChoice) {
+      return [];
+    }
+
+    const sourcePlayerId = pendingChoice.playerId;
+    const playerIds: PlayerId[] =
+      targetDefinition.kind === "ALLY_DECK_CARD"
+        ? [sourcePlayerId]
+        : targetDefinition.kind === "ANY_DECK_CARD"
+          ? ["P1", "P2"]
+          : [];
+
+    return playerIds.flatMap((playerId) =>
+      gameState.players[playerId].deck
+        .filter((card) => doesCardMatchTargetFilter(card, targetDefinition))
+        .map((card) => ({ playerId, card }))
+    );
+  }
+
+  function getPendingTargetHandCards(targetDefinition: TargetDefinition): Array<{
+    playerId: PlayerId;
+    card: CardInstance;
+  }> {
+    const pendingChoice = gameState.pendingChoice;
+    if (!pendingChoice) {
+      return [];
+    }
+
+    const sourcePlayerId = pendingChoice.playerId;
+    const enemyPlayerId = opponentOf(sourcePlayerId);
+    const playerIds: PlayerId[] =
+      targetDefinition.kind === "ALLY_HAND_CARD"
+        ? [sourcePlayerId]
+        : targetDefinition.kind === "ENEMY_HAND_CARD"
+          ? [enemyPlayerId]
+          : targetDefinition.kind === "ANY_HAND_CARD"
+            ? ["P1", "P2"]
+            : [];
+
+    const chosenCardIds = new Set(
+      Object.values(pendingChoice.chosenTargets)
+        .filter((target): target is Extract<SpellTarget, { type: "HAND_CARD" }> => target.type === "HAND_CARD")
+        .map((target) => `${target.playerId}:${target.cardInstanceId}`)
+    );
+
+    return playerIds.flatMap((playerId) =>
+      gameState.players[playerId].hand
+        .filter((card) => !chosenCardIds.has(`${playerId}:${card.instanceId}`))
+        .filter((card) => doesCardMatchTargetFilter(card, targetDefinition))
+        .map((card) => ({ playerId, card }))
+    );
+  }
+
+  function doesCardMatchTargetFilter(
+    card: CardInstance,
+    targetDefinition: TargetDefinition
+  ): boolean {
+    const filter = targetDefinition.filter;
+    if (!filter) {
+      return true;
+    }
+
+    const definition = cardDef(card);
+    return (
+      (!filter.archetype || definition.archetype === filter.archetype) &&
+      (!filter.cardType || definition.type === filter.cardType) &&
+      (!filter.cardTypes || filter.cardTypes.includes(definition.type)) &&
+      (!filter.spellSpeed || definition.spellSpeed === filter.spellSpeed) &&
+      (filter.maxCost === undefined || definition.cost <= filter.maxCost) &&
+      definition.level !== 2
+    );
+  }
+
   function renderPendingChoice() {
     const pendingChoice = gameState.pendingChoice;
     if (!pendingChoice) {
@@ -794,10 +873,45 @@ export function GameBoardView({
                   visualEvents={[]}
                 />
               ))}
+              {getPendingTargetDeckCards(targetDefinition).map(({ playerId, card }) => (
+                <div className="pending-choice-card" key={card.instanceId}>
+                  <span className="pending-choice-zone-label">{playerId} Deck</span>
+                  <CardView
+                    card={card}
+                    onClick={() =>
+                      submitPendingAbilityTarget(targetDefinition.id, {
+                        type: "DECK_CARD",
+                        playerId,
+                        cardInstanceId: card.instanceId
+                      })
+                    }
+                    visualEvents={[]}
+                  />
+                </div>
+              ))}
+              {getPendingTargetHandCards(targetDefinition).map(({ playerId, card }) => (
+                <div className="pending-choice-card" key={card.instanceId}>
+                  <span className="pending-choice-zone-label">{playerId} Hand</span>
+                  <CardView
+                    card={card}
+                    onClick={() =>
+                      submitPendingAbilityTarget(targetDefinition.id, {
+                        type: "HAND_CARD",
+                        playerId,
+                        cardInstanceId: card.instanceId
+                      })
+                    }
+                    visualEvents={[]}
+                  />
+                </div>
+              ))}
             </div>
           ) : null}
 
-          {targetDefinition && getPendingTargetUnits(targetDefinition).length === 0 ? (
+          {targetDefinition &&
+          getPendingTargetUnits(targetDefinition).length === 0 &&
+          getPendingTargetDeckCards(targetDefinition).length === 0 &&
+          getPendingTargetHandCards(targetDefinition).length === 0 ? (
             <div className="empty-message">No valid targets.</div>
           ) : null}
 
@@ -1497,6 +1611,10 @@ function describeAbilityTargetNeed(targetDefinition: TargetDefinition | undefine
       return "Choose the enemy nexus";
     case "SELF":
       return "Choose self";
+    case "ALLY_DECK_CARD":
+      return "Choose a card from your deck";
+    case "ANY_DECK_CARD":
+      return "Choose a card from a deck";
     case "ALLY_HAND_CARD":
       return "Choose a card in your hand";
     case "ENEMY_HAND_CARD":
@@ -1516,6 +1634,8 @@ function describeSpellTarget(target: SpellTarget): string {
       return `${target.playerId}`;
     case "GRAVEYARD":
       return `${target.playerId} graveyard`;
+    case "DECK_CARD":
+      return `${target.playerId} deck card`;
     case "HAND_CARD":
       return `${target.playerId} hand card`;
   }

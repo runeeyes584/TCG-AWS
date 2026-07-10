@@ -34,6 +34,7 @@ import {
   PendingChoice,
   PlayerState,
   SpellTarget,
+  TargetDefinition,
   UnitInstance
 } from "./types";
 import { enqueueEffect, resolveEffectQueue, resolvePlayedSpellEffectTarget } from "./effects";
@@ -528,27 +529,6 @@ function playUnit(
   const definition = getCardDefinitionForInstance(card);
   const onPlayAbilities = (definition.abilities ?? []).filter((ability) => ability.onPlay);
 
-  for (const ability of onPlayAbilities) {
-    const selectedTargets: AbilityTargetMap = abilityTargets ?? (target ? { target } : {});
-    const missingTargets = getMissingRequiredTargets(ability, selectedTargets);
-    if (missingTargets.length > 0) {
-      player.hand.splice(handIndex, 0, card);
-      next.pendingChoice = {
-        playerId,
-        sourceInstanceId: card.instanceId,
-        sourceCardId: card.cardId,
-        abilityId: ability.id,
-        requiredTargets: missingTargets,
-        chosenTargets: selectedTargets,
-        returnPhase: next.phase,
-        playUnit: { replaceUnitId, costTargets }
-      };
-      next.priorityPlayerId = playerId;
-      next.activePlayerId = playerId;
-      return next;
-    }
-  }
-
   payAdditionalCost(next, playerId, definition.additionalCost, costTargets);
   player.mana -= definition.cost;
   
@@ -586,42 +566,107 @@ function playUnit(
   for (const ability of onPlayAbilities) {
     const selectedTargets: AbilityTargetMap = abilityTargets ?? (target ? { target } : {});
     const unit = player.board.find((candidate) => candidate.instanceId === card.instanceId);
-    executeAbility(next, ability, {
-      sourceId: card.instanceId,
-      sourceName: definition.name,
-      sourcePlayerId: playerId,
-      sourceUnit: unit,
-      selectedTargets
-    });
-    continue;
     const missingTargets = getMissingRequiredTargets(ability, selectedTargets);
     if (missingTargets.length > 0) {
+      const availableTargets = missingTargets.filter((targetDefinition) =>
+        hasAvailableAbilityTarget(next, playerId, targetDefinition)
+      );
+      if (availableTargets.length === 0) {
+        continue;
+      }
       // Player must choose target → create pendingChoice
       next.pendingChoice = {
         playerId,
         sourceInstanceId: card.instanceId,
         sourceCardId: card.cardId,
         abilityId: ability.id,
-        requiredTargets: missingTargets,
+        requiredTargets: availableTargets,
         chosenTargets: selectedTargets,
         returnPhase: next.phase
       };
       next.priorityPlayerId = playerId;
       next.activePlayerId = playerId;
+      return next;
     } else {
       // All targets resolved → execute ability immediately
       const unit = player.board.find(u => u.instanceId === card.instanceId);
-      executeAbility(next, ability, {
-        sourceId: card.instanceId,
-        sourceName: definition.name,
-        sourcePlayerId: playerId,
-        sourceUnit: unit,
-        selectedTargets
-      });
+      try {
+        executeAbility(next, ability, {
+          sourceId: card.instanceId,
+          sourceName: definition.name,
+          sourcePlayerId: playerId,
+          sourceUnit: unit,
+          selectedTargets
+        });
+      } catch {
+        // A unit's on-play effect is optional for summoning. If its condition,
+        // target, or cost cannot be satisfied, the unit still enters play.
+      }
     }
   }
 
   return next;
+}
+
+function hasAvailableAbilityTarget(
+  state: GameState,
+  sourcePlayerId: PlayerId,
+  targetDefinition: TargetDefinition
+): boolean {
+  const ally = state.players[sourcePlayerId];
+  const enemyId = opponentOf(sourcePlayerId);
+  const enemy = state.players[enemyId];
+
+  switch (targetDefinition.kind) {
+    case "SELF":
+    case "ALLY_NEXUS":
+    case "ENEMY_NEXUS":
+      return true;
+    case "ALLY_UNIT":
+      return ally.board.length > 0;
+    case "ENEMY_UNIT":
+      return enemy.board.length > 0;
+    case "ANY_UNIT":
+    case "ANY_TARGET":
+      return ally.board.length + enemy.board.length > 0;
+    case "ALLY_HAND_CARD":
+      return ally.hand.some((card) => cardMatchesTargetFilter(card, targetDefinition, true));
+    case "ENEMY_HAND_CARD":
+      return enemy.hand.some((card) => cardMatchesTargetFilter(card, targetDefinition, true));
+    case "ANY_HAND_CARD":
+      return [...ally.hand, ...enemy.hand].some((card) =>
+        cardMatchesTargetFilter(card, targetDefinition, true)
+      );
+    case "ALLY_DECK_CARD":
+      return ally.deck.some((card) => cardMatchesTargetFilter(card, targetDefinition));
+    case "ANY_DECK_CARD":
+      return [...ally.deck, ...enemy.deck].some((card) =>
+        cardMatchesTargetFilter(card, targetDefinition)
+      );
+  }
+}
+
+function cardMatchesTargetFilter(
+  card: CardInstance,
+  targetDefinition: TargetDefinition,
+  allowLevelTwo = false
+): boolean {
+  const filter = targetDefinition.filter;
+  const definition = getCardDefinitionForInstance(card);
+  if (!allowLevelTwo && definition.level === 2) {
+    return false;
+  }
+  if (!filter) {
+    return true;
+  }
+
+  return (
+    (!filter.archetype || definition.archetype === filter.archetype) &&
+    (!filter.cardType || definition.type === filter.cardType) &&
+    (!filter.cardTypes || filter.cardTypes.includes(definition.type)) &&
+    (!filter.spellSpeed || definition.spellSpeed === filter.spellSpeed) &&
+    (filter.maxCost === undefined || definition.cost <= filter.maxCost)
+  );
 }
 
 function playSpell(
@@ -819,6 +864,20 @@ function submitOnPlayAbilityTargets(
     ...pendingChoice.chosenTargets,
     ...targets
   };
+  assertUniqueUnitTargets(selectedTargets);
+
+  const remainingTargets = pendingChoice.requiredTargets.filter(
+    (targetDefinition) => !selectedTargets[targetDefinition.id]
+  );
+  if (remainingTargets.length > 0) {
+    state.pendingChoice = {
+      ...pendingChoice,
+      chosenTargets: selectedTargets,
+      requiredTargets: remainingTargets
+    };
+    return state;
+  }
+
   executeAbility(state, ability, {
     sourceId: unit.instanceId,
     sourceName: definition.name,

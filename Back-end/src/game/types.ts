@@ -30,6 +30,8 @@ export type AbilityTargetKind =
   | "ALLY_NEXUS"
   | "ENEMY_NEXUS"
   | "ANY_TARGET"
+  | "ALLY_DECK_CARD"
+  | "ANY_DECK_CARD"
   | "ALLY_HAND_CARD"
   | "ENEMY_HAND_CARD"
   | "ANY_HAND_CARD";
@@ -154,7 +156,7 @@ export type EffectDefinition =
   | {
       type: "REVIVE_CARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
-      allowedTypes?: ("UNIT" | "CHAMPION")[];
+      allowedTypes?: GraveyardEntryType[];
     };
 
 export type SpellEffect = EffectDefinition;
@@ -177,6 +179,15 @@ export interface TargetDefinition {
   id: string;
   kind: AbilityTargetKind;
   required?: boolean;
+  filter?: CardFilterDefinition;
+}
+
+export interface CardFilterDefinition {
+  cardType?: CardType;
+  cardTypes?: CardType[];
+  spellSpeed?: SpellSpeed;
+  archetype?: string;
+  maxCost?: number;
 }
 
 export type CostDefinition =
@@ -229,6 +240,7 @@ export type SpellTarget =
   | { type: "NEXUS"; playerId: PlayerId }
   | { type: "SELF"; playerId: PlayerId }
   | { type: "GRAVEYARD"; playerId: PlayerId; cardInstanceId?: string }
+  | { type: "DECK_CARD"; playerId: PlayerId; cardInstanceId: string }
   | { type: "HAND_CARD"; playerId: PlayerId; cardInstanceId: string };
 
 export interface CombatAttacker {
