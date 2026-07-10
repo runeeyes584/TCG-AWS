@@ -127,6 +127,8 @@ function describeVisualEvent(event: VisualEvent): string | undefined {
   switch (event.type) {
     case "TRIGGER_ACTIVATED":
       return `Trigger activated: ${event.effectName}`;
+    case "HAND_LIMIT_DISCARD_REQUIRED":
+      return `${event.playerId} must discard from ${event.handSize} to ${event.downTo} cards.`;
     case "DAMAGE":
       return `${event.targetId} took ${event.amount} damage.`;
     case "HEAL":

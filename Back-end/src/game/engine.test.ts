@@ -1657,7 +1657,7 @@ describe("game engine", () => {
     ).toThrow(GameValidationError);
   });
 
-  it("requires discarding to 6 cards when a new action turn starts over hand limit", () => {
+  it("does not require hand-limit discard on a normal priority pass", () => {
     let state = startedGame();
     state = {
       ...state,
@@ -1674,24 +1674,95 @@ describe("game engine", () => {
 
     state = applyAction(state, { type: "END_TURN", playerId: "P1" });
 
+    expect(state.phase).toBe("ACTION");
+    expect(state.pendingDiscard).toBeUndefined();
+    expect(state.players.P2.hand).toHaveLength(7);
+  });
+
+  it("requires both players to discard to 6 only when the attack token changes", () => {
+    let state = startedGame();
+    state = {
+      ...state,
+      players: {
+        ...state.players,
+        P1: {
+          ...state.players.P1,
+          hand: Array.from({ length: 8 }, (_, index) =>
+            card(soldier, "P1", `p1-hand-${index}`)
+          )
+        },
+        P2: {
+          ...state.players.P2,
+          hand: Array.from({ length: 7 }, (_, index) =>
+            card(soldier, "P2", `p2-hand-${index}`)
+          )
+        }
+      }
+    };
+
+    state = applyAction(state, { type: "END_TURN", playerId: "P1" });
+    expect(state.phase).toBe("ACTION");
+    expect(state.pendingDiscard).toBeUndefined();
+
+    state = applyAction(state, { type: "END_TURN", playerId: "P2" });
+
     expect(state.phase).toBe("DISCARD");
     expect(state.pendingDiscard).toEqual({
-      playerId: "P2",
+      playerId: "P1",
       downTo: 6,
-      returnPhase: "ACTION"
+      returnPhase: "ACTION",
+      reason: "HAND_LIMIT",
+      remainingPlayerIds: ["P2"]
+    });
+    expect(state.attackTokenPlayerId).toBe("P2");
+    expect(state.visualEvents).toContainEqual({
+      type: "HAND_LIMIT_DISCARD_REQUIRED",
+      playerId: "P1",
+      handSize: 9,
+      downTo: 6
     });
     expect(() =>
-      applyAction(state, { type: "END_TURN", playerId: "P2" })
+      applyAction(state, { type: "END_TURN", playerId: "P1" })
     ).toThrow(GameValidationError);
+
+    state = applyAction(state, {
+      type: "DISCARD_CARD",
+      playerId: "P1",
+      cardInstanceId: "p1-hand-0"
+    });
+    state = applyAction(state, {
+      type: "DISCARD_CARD",
+      playerId: "P1",
+      cardInstanceId: "p1-hand-1"
+    });
+    state = applyAction(state, {
+      type: "DISCARD_CARD",
+      playerId: "P1",
+      cardInstanceId: "p1-hand-2"
+    });
+
+    expect(state.phase).toBe("DISCARD");
+    expect(state.pendingDiscard).toMatchObject({
+      playerId: "P2",
+      downTo: 6,
+      returnPhase: "ACTION",
+      reason: "HAND_LIMIT"
+    });
 
     state = applyAction(state, {
       type: "DISCARD_CARD",
       playerId: "P2",
       cardInstanceId: "p2-hand-0"
     });
+    state = applyAction(state, {
+      type: "DISCARD_CARD",
+      playerId: "P2",
+      cardInstanceId: "p2-hand-1"
+    });
 
     expect(state.phase).toBe("ACTION");
     expect(state.pendingDiscard).toBeUndefined();
+    expect(state.players.P1.hand).toHaveLength(6);
     expect(state.players.P2.hand).toHaveLength(6);
     expect(state.players.P2.graveyard[0]).toMatchObject({
       instanceId: "p2-hand-0",

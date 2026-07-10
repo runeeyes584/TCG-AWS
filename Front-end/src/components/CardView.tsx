@@ -9,6 +9,7 @@ import { getCardDefinition } from "@backend/game/cardRegistry";
 interface CardViewProps {
   card?: CardInstance;
   unit?: UnitInstance;
+  variant?: "default" | "hand";
   selected?: boolean;
   onClick?: () => void;
   onPreviewChange?: (previewing: boolean) => void;
@@ -18,6 +19,7 @@ interface CardViewProps {
 export function CardView({
   card,
   unit,
+  variant = "default",
   selected = false,
   onClick,
   onPreviewChange,
@@ -39,6 +41,7 @@ export function CardView({
   const className = [
     "card-view",
     "is-clickable",
+    variant === "hand" ? "card-view--hand" : "",
     `card-view--${definition.type}`,
     definition.spellSpeed ? `card-view--${definition.spellSpeed}` : "",
     definition.level ? `card-view--level-${definition.level}` : "",
@@ -86,8 +89,11 @@ export function CardView({
       {unit?.modifiers.length ? (
         <span className="effect-list">
           {unit.modifiers.map((modifier) => (
-            <span className="effect-chip" key={modifier.id}>
-              {modifier.sourceName}{" "}
+            <span
+              className="effect-chip"
+              key={modifier.id}
+              title={`${modifier.sourceName} ${formatEffect(modifier.attackDelta, modifier.healthDelta)}`}
+            >
               {formatEffect(modifier.attackDelta, modifier.healthDelta)}
             </span>
           ))}

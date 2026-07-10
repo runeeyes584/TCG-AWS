@@ -30,7 +30,7 @@ function buildSampleLocalDeck(): CardDefinition[] {
 
 
    //đảm bảo các card trong data xuất hiện ít nhất 1 lần trong deck
-  const allCards = sampleDeckCards;
+  const allCards = sampleDeckCards.filter((card) => card.level !== 2);
 
   // 1. Ensure at least 1 of every card is added (so they appear 100%)
   for (const card of allCards) {

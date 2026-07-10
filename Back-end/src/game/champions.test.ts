@@ -8,6 +8,7 @@ import {
 import { createCardInstance, createUnitInstance, getUnitAttack } from "./cards";
 import { GameState, CardDefinition, PlayerId, GameAction, UnitInstance } from "./types";
 import { getCardDefinition } from "./cardRegistry";
+import { buildDefaultDeck } from "./defaultDeck";
 
 describe("Champion System & Level Up", () => {
   const dummyUnit: CardDefinition = {
@@ -60,6 +61,55 @@ describe("Champion System & Level Up", () => {
       }
     };
   }
+
+  it("normalizes level 2 champions in starting decks back to level 1", () => {
+    const champ1: CardDefinition = {
+      id: "initial-champ-1",
+      name: "Initial Champ",
+      type: "champion",
+      championId: "initial-champ",
+      cost: 1,
+      attack: 2,
+      health: 2,
+      level: 1,
+      levelUpCondition: { type: "SPELLS_CAST", threshold: 1 },
+      level2CardCode: "initial-champ-2"
+    };
+    const champ2: CardDefinition = {
+      id: "initial-champ-2",
+      name: "Initial Champ",
+      type: "champion",
+      championId: "initial-champ",
+      cost: 1,
+      attack: 5,
+      health: 5,
+      level: 2
+    };
+
+    const state = createInitialGameState(
+      [createCardInstance(champ2, "P1", "level-2-copy")],
+      deck("P2"),
+      123,
+      { "initial-champ-1": champ1, "initial-champ-2": champ2 }
+    );
+
+    expect(state.players.P1.deck[0]).toMatchObject({
+      instanceId: "level-2-copy",
+      cardId: "initial-champ-1"
+    });
+  });
+
+  it("default local decks do not include level 2 champions at game start", () => {
+    const defaultDeck = buildDefaultDeck("P1");
+
+    expect(
+      defaultDeck.some((card) => {
+        const definition = getCardDefinition(card.cardId);
+        return definition.type === "champion" && definition.level === 2;
+      })
+    ).toBe(false);
+  });
+
   const dummySpell: CardDefinition = {
     id: "dummy-spell", name: "Dummy Spell", type: "spell", cost: 1,
     effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]

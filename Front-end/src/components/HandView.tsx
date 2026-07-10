@@ -47,6 +47,7 @@ export function HandView({
             <CardView
               key={card.instanceId}
               card={card}
+              variant="hand"
               selected={card.instanceId === selectedCardId}
               onClick={canPlay(card) ? () => onPlayCard(card) : undefined}
               onPreviewChange={(previewing) =>

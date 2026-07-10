@@ -274,7 +274,14 @@ export function cloneState(state: GameState): GameState {
       target: queuedEffect.target ? { ...queuedEffect.target } : undefined
     })),
     visualEvents: state.visualEvents.map((event) => ({ ...event })),
-    pendingDiscard: state.pendingDiscard ? { ...state.pendingDiscard } : undefined,
+    pendingDiscard: state.pendingDiscard
+      ? {
+          ...state.pendingDiscard,
+          remainingPlayerIds: state.pendingDiscard.remainingPlayerIds
+            ? [...state.pendingDiscard.remainingPlayerIds]
+            : undefined
+        }
+      : undefined,
     pendingChoice: state.pendingChoice
       ? {
           ...state.pendingChoice,
