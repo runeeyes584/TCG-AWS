@@ -2589,3 +2589,188 @@ button.card-view {
   border-color: rgba(243, 207, 114, 0.22);
   background: rgba(0, 0, 0, 0.32);
 }
+
+/* Pull nexus panels closer to the round/action orb */
+.status-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0;
+}
+
+.status-column .spell-stack,
+.status-column .spell-stack--empty {
+  width: 82px;
+  min-height: 30px;
+  height: 30px;
+}
+
+.status-column .nexus-orb {
+  width: 92px;
+  min-height: 88px;
+}
+
+.player-resource-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.mana-rack {
+  display: grid;
+  grid-template-columns: auto 12px;
+  gap: 8px;
+  align-items: center;
+  width: 74px;
+  min-height: 112px;
+  padding: 8px 8px 8px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)),
+    rgba(96, 96, 96, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.14),
+    0 10px 24px rgba(0, 0, 0, 0.36);
+}
+
+.mana-pips {
+  display: grid;
+  grid-template-columns: repeat(2, 20px);
+  grid-auto-rows: 20px;
+  gap: 7px 8px;
+}
+
+.mana-pip {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.16),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.mana-pip.is-filled {
+  background: linear-gradient(180deg, #15df83, #05a95f);
+  box-shadow:
+    0 0 9px rgba(5, 220, 130, 0.42),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.mana-pip.is-empty {
+  background: linear-gradient(180deg, rgba(8, 125, 78, 0.78), rgba(4, 82, 54, 0.84));
+}
+
+.mana-pip.is-locked {
+  background: rgba(38, 42, 42, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.spell-mana-bars {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  align-items: center;
+  height: 94px;
+  gap: 8px;
+}
+
+.spell-mana-bar {
+  width: 10px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(46, 42, 34, 0.72);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.spell-mana-bar.is-filled {
+  background: linear-gradient(180deg, #ffd37a, #ffab41);
+  box-shadow:
+    0 0 10px rgba(255, 184, 76, 0.38),
+    inset 0 1px 1px rgba(255, 255, 255, 0.28);
+}
+
+/* Arena-themed mana rack and spend preview */
+.mana-rack {
+  width: 76px;
+  min-height: 108px;
+  gap: 7px;
+  padding: 8px 8px 8px 10px;
+  border-color: rgba(225, 186, 104, 0.34);
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 230, 160, 0.12), transparent 45%),
+    linear-gradient(180deg, rgba(23, 31, 30, 0.96), rgba(8, 14, 16, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 22px rgba(5, 220, 130, 0.06),
+    0 12px 28px rgba(0, 0, 0, 0.48);
+}
+
+.mana-pips {
+  grid-template-columns: repeat(2, 18px);
+  grid-auto-rows: 18px;
+  gap: 7px 8px;
+}
+
+.mana-pip {
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mana-pip.is-filled {
+  background:
+    radial-gradient(circle at 35% 28%, rgba(220, 255, 235, 0.45), transparent 34%),
+    linear-gradient(180deg, #14dd87, #049f62);
+}
+
+.mana-pip.is-empty {
+  background:
+    radial-gradient(circle at 35% 28%, rgba(120, 255, 190, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(7, 102, 70, 0.76), rgba(4, 58, 46, 0.86));
+}
+
+.mana-pip.is-locked {
+  background:
+    linear-gradient(180deg, rgba(44, 50, 52, 0.82), rgba(20, 25, 27, 0.88));
+}
+
+.spell-mana-bars {
+  height: 90px;
+  gap: 7px;
+}
+
+.spell-mana-bar {
+  width: 9px;
+  height: 24px;
+  border: 1px solid rgba(255, 210, 126, 0.12);
+  background: rgba(36, 31, 27, 0.88);
+}
+
+.spell-mana-bar.is-filled {
+  background:
+    linear-gradient(180deg, #ffe09a, #ffad3d);
+}
+
+.mana-pip.is-previewed,
+.spell-mana-bar.is-previewed {
+  animation: manaSpendPreview 0.68s ease-in-out infinite;
+}
+
+@keyframes manaSpendPreview {
+  0%, 100% {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+  50% {
+    filter: brightness(1.55) saturate(1.2);
+    transform: scale(1.12);
+    box-shadow:
+      0 0 14px rgba(255, 222, 128, 0.74),
+      inset 0 1px 2px rgba(255, 255, 255, 0.24);
+  }
+}

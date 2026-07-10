@@ -55,6 +55,7 @@ export function GameBoardView({
   const [selectedCostTargets, setSelectedCostTargets] = useState<SpellTarget[]>([]);
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | undefined>();
+  const [previewCard, setPreviewCard] = useState<CardInstance>();
   const attackPlayerId = gameState.attackTokenPlayerId;
   const defenderId: PlayerId = attackPlayerId === "P1" ? "P2" : "P1";
   const attackerCount = gameState.combat.attackers.length;
@@ -220,6 +221,7 @@ export function GameBoardView({
     setSelectedSpellTarget(undefined);
     setSelectedCostTargets([]);
     setViewingGraveyard(undefined);
+    setPreviewCard(undefined);
   }
 
   function getDamagePreview(attacker: UnitInstance, blocker?: UnitInstance) {
@@ -806,6 +808,12 @@ export function GameBoardView({
 
   function renderPlayerStatus(playerId: PlayerId, label: string) {
     const player = gameState.players[playerId];
+    const resourcePreview =
+      previewCard?.ownerId === playerId
+        ? getResourcePreview(playerId, previewCard)
+        : selectedSpell?.ownerId === playerId
+          ? getResourcePreview(playerId, selectedSpell)
+          : { manaUsed: 0, spellManaUsed: 0 };
     const isAttacker = gameState.attackTokenPlayerId === playerId;
     const hasPriority = gameState.priorityPlayerId === playerId;
     const RoleIcon = isAttacker ? Swords : Shield;
@@ -816,26 +824,86 @@ export function GameBoardView({
       : "Defense";
 
     return (
-      <div
-        className={`nexus-orb ${hasPriority ? "is-priority" : ""} ${
-          isAttacker ? "is-attacker" : "is-defender"
-        }`}
-      >
-        <span>{label}</span>
-        <strong>{player.nexusHp}</strong>
-        <small>
-          {player.mana}/{player.maxMana} mana · {player.spellMana} spell
-        </small>
-        <small
-          className={`combat-role ${
+      <div className="player-resource-panel">
+        <div
+          className={`nexus-orb ${hasPriority ? "is-priority" : ""} ${
             isAttacker ? "is-attacker" : "is-defender"
           }`}
         >
-          <RoleIcon size={11} aria-hidden="true" />
-          {roleLabel}
-        </small>
+          <span>{label}</span>
+          <strong>{player.nexusHp}</strong>
+          <small
+            className={`combat-role ${
+              isAttacker ? "is-attacker" : "is-defender"
+            }`}
+          >
+            <RoleIcon size={11} aria-hidden="true" />
+            {roleLabel}
+          </small>
+        </div>
+        <div
+          className="mana-rack"
+          aria-label={`${playerId} mana ${player.mana}/${player.maxMana}, spell mana ${player.spellMana}/3`}
+          title={`${player.mana}/${player.maxMana} mana · ${player.spellMana}/3 spell mana`}
+        >
+          <div className="mana-pips" aria-hidden="true">
+            {Array.from({ length: 10 }).map((_, index) => {
+              const pipNumber = index + 1;
+              const pipState =
+                pipNumber <= player.mana
+                  ? "is-filled"
+                  : pipNumber <= player.maxMana
+                    ? "is-empty"
+                    : "is-locked";
+              const isPreviewed =
+                pipNumber <= player.mana &&
+                pipNumber > player.mana - resourcePreview.manaUsed;
+
+              return (
+                <span
+                  key={`mana-${pipNumber}`}
+                  className={`mana-pip ${pipState} ${
+                    isPreviewed ? "is-previewed" : ""
+                  }`}
+                />
+              );
+            })}
+          </div>
+          <div className="spell-mana-bars" aria-hidden="true">
+            {Array.from({ length: 3 }).map((_, index) => {
+              const isFilled = index < player.spellMana;
+              const isPreviewed =
+                isFilled &&
+                index >= player.spellMana - resourcePreview.spellManaUsed;
+
+              return (
+                <span
+                  key={`spell-${index}`}
+                  className={`spell-mana-bar ${isFilled ? "is-filled" : "is-empty"} ${
+                    isPreviewed ? "is-previewed" : ""
+                  }`}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
+  }
+
+  function getResourcePreview(playerId: PlayerId, card: CardInstance) {
+    const player = gameState.players[playerId];
+    const definition = cardDef(card);
+    if (definition.type === "spell") {
+      const spellManaUsed = Math.min(player.spellMana, definition.cost);
+      const manaUsed = Math.min(player.mana, Math.max(0, definition.cost - spellManaUsed));
+      return { manaUsed, spellManaUsed };
+    }
+
+    return {
+      manaUsed: Math.min(player.mana, definition.cost),
+      spellManaUsed: 0
+    };
   }
 
   function renderDeckStack(playerId: PlayerId, label: string) {
@@ -1244,6 +1312,7 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P2", card)}
             onPlayCard={(card) => playCard("P2", card)}
+            onPreviewCard={(card) => setPreviewCard(card)}
           />
 
           <div className="arena-grid">
@@ -1332,6 +1401,7 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P1", card)}
             onPlayCard={(card) => playCard("P1", card)}
+            onPreviewCard={(card) => setPreviewCard(card)}
           />
 
           {selectedSpell ? (
