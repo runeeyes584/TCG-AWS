@@ -24,6 +24,7 @@ import { CardInspector } from "./CardInspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { HandView } from "./HandView";
 import { getCardDefinition } from "@backend/game/cardRegistry";
+import { useBattleMusic } from "../hooks/useBattleMusic";
 
 export interface GameController {
   gameState: ReturnType<typeof useLocalGame>["gameState"];
@@ -50,6 +51,7 @@ export function GameBoardView({
   connectionStatus
 }: GameBoardViewProps) {
   const { gameState, actionLog, dispatch, dispatchChain, resetGame } = controller;
+  useBattleMusic(gameState);
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
   const [selectedSpellTarget, setSelectedSpellTarget] = useState<SpellTarget>();
