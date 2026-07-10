@@ -8,6 +8,7 @@ interface HandViewProps {
   selectedCardId?: string;
   canPlay: (card: CardInstance) => boolean;
   onPlayCard: (card: CardInstance) => void;
+  onPreviewCard?: (card?: CardInstance) => void;
   hidden?: boolean;
   side?: "opponent" | "player";
 }
@@ -17,6 +18,7 @@ export function HandView({
   selectedCardId,
   canPlay,
   onPlayCard,
+  onPreviewCard,
   hidden = false,
   side = "player"
 }: HandViewProps) {
@@ -47,6 +49,9 @@ export function HandView({
               card={card}
               selected={card.instanceId === selectedCardId}
               onClick={canPlay(card) ? () => onPlayCard(card) : undefined}
+              onPreviewChange={(previewing) =>
+                onPreviewCard?.(previewing ? card : undefined)
+              }
             />
           ))
         )}

@@ -11,10 +11,18 @@ interface CardViewProps {
   unit?: UnitInstance;
   selected?: boolean;
   onClick?: () => void;
+  onPreviewChange?: (previewing: boolean) => void;
   visualEvents?: VisualEvent[];
 }
 
-export function CardView({ card, unit, selected = false, onClick, visualEvents }: CardViewProps) {
+export function CardView({
+  card,
+  unit,
+  selected = false,
+  onClick,
+  onPreviewChange,
+  visualEvents
+}: CardViewProps) {
   const { selectCard, setHoveredCard } = useHover();
   const cardId = unit?.cardId ?? card?.cardId;
   if (!cardId) {
@@ -99,8 +107,16 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
   );
 
   const hoverProps = {
-    onMouseEnter: () => setHoveredCard(card, unit),
-    onMouseLeave: () => setHoveredCard(undefined, undefined)
+    onMouseEnter: () => {
+      setHoveredCard(card, unit);
+      onPreviewChange?.(true);
+    },
+    onMouseLeave: () => {
+      setHoveredCard(undefined, undefined);
+      onPreviewChange?.(false);
+    },
+    onFocus: () => onPreviewChange?.(true),
+    onBlur: () => onPreviewChange?.(false)
   };
   const handleClick = () => {
     selectCard(card, unit);
