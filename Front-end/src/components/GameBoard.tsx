@@ -1,7 +1,7 @@
 "use client";
 
 import { List, RotateCcw, Settings, Shield, Swords, X, Zap } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
   AbilityTargetMap,
@@ -59,6 +59,15 @@ export function GameBoardView({
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | undefined>();
   const [previewCard, setPreviewCard] = useState<CardInstance>();
+  const [championEntrance, setChampionEntrance] = useState<{
+    instanceId: string;
+    name: string;
+    imageUrl?: string;
+    ownerId: PlayerId;
+    attack?: number;
+    health?: number;
+  }>();
+  const previousChampionIdsRef = useRef<Set<string>>(new Set());
   const attackPlayerId = gameState.attackTokenPlayerId;
   const defenderId: PlayerId = attackPlayerId === "P1" ? "P2" : "P1";
   const attackerCount = gameState.combat.attackers.length;
@@ -79,6 +88,46 @@ export function GameBoardView({
   const unitDef = (unit: UnitInstance) => getCardDefinition(unit.cardId);
   const canControl = (playerId: PlayerId) => !localPlayerId || localPlayerId === playerId;
   const shouldHideHand = (playerId: PlayerId) => Boolean(localPlayerId && localPlayerId !== playerId);
+
+  useEffect(() => {
+    if (!gameState.started || gameState.winnerId) {
+      previousChampionIdsRef.current = new Set();
+      setChampionEntrance(undefined);
+      return;
+    }
+
+    const champions = (["P1", "P2"] as PlayerId[]).flatMap((playerId) =>
+      gameState.players[playerId].board
+        .map((unit) => ({ unit, definition: getCardDefinition(unit.cardId) }))
+        .filter(({ definition }) => definition.type === "champion")
+        .map(({ unit, definition }) => ({
+          instanceId: unit.instanceId,
+          name: definition.name,
+          imageUrl: definition.imageUrl,
+          ownerId: playerId,
+          attack: getUnitAttack(unit),
+          health: getUnitHealth(unit)
+        }))
+    );
+    const currentIds = new Set(champions.map((champion) => champion.instanceId));
+    const enteringChampion = champions.find(
+      (champion) => !previousChampionIdsRef.current.has(champion.instanceId)
+    );
+
+    previousChampionIdsRef.current = currentIds;
+    if (!enteringChampion) {
+      return;
+    }
+
+    setChampionEntrance(enteringChampion);
+    const timeout = window.setTimeout(() => {
+      setChampionEntrance((current) =>
+        current?.instanceId === enteringChampion.instanceId ? undefined : current
+      );
+    }, 2400);
+
+    return () => window.clearTimeout(timeout);
+  }, [gameState]);
 
   function canPlay(playerId: PlayerId, card: CardInstance) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
@@ -1007,6 +1056,59 @@ export function GameBoardView({
     );
   }
 
+  function renderPendingDiscard() {
+    const pendingDiscard = gameState.pendingDiscard;
+    if (!pendingDiscard) {
+      return null;
+    }
+
+    const player = gameState.players[pendingDiscard.playerId];
+    const cardsToDiscard = Math.max(0, player.hand.length - pendingDiscard.downTo);
+    const hidden = shouldHideHand(pendingDiscard.playerId);
+
+    return (
+      <div className="pending-choice-overlay" role="dialog" aria-modal="true">
+        <div className="pending-choice-panel hand-limit-panel">
+          <div className="pending-choice-header">
+            <strong>{pendingDiscard.playerId} Hand Limit</strong>
+            <span>
+              Attack token changed. Discard {cardsToDiscard} card
+              {cardsToDiscard === 1 ? "" : "s"} to keep {pendingDiscard.downTo}.
+            </span>
+          </div>
+
+          <div className="pending-choice-grid hand-limit-grid">
+            {hidden
+              ? player.hand.map((card, index) => (
+                  <div
+                    aria-label={`Hidden discard card ${index + 1}`}
+                    className="hidden-card-back"
+                    key={card.instanceId}
+                  >
+                    <span>K</span>
+                  </div>
+                ))
+              : player.hand.map((card) => (
+                  <div className="pending-choice-card" key={card.instanceId}>
+                    <span className="pending-choice-zone-label">Discard</span>
+                    <CardView
+                      card={card}
+                      onClick={() => playCard(pendingDiscard.playerId, card)}
+                      visualEvents={[]}
+                    />
+                  </div>
+                ))}
+          </div>
+          {hidden ? (
+            <div className="empty-message">
+              Waiting for {pendingDiscard.playerId} to discard down to {pendingDiscard.downTo}.
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   function getResourcePreview(playerId: PlayerId, card: CardInstance) {
     const player = gameState.players[playerId];
     const definition = cardDef(card);
@@ -1412,6 +1514,37 @@ export function GameBoardView({
           />
         ) : null}
 
+        {championEntrance ? (
+          <div className="champion-entrance-overlay" aria-live="polite">
+            <div
+              className={`champion-entrance-card champion-entrance-card--${championEntrance.ownerId.toLowerCase()}`}
+            >
+              {championEntrance.imageUrl ? (
+                <span
+                  className="champion-entrance-art"
+                  style={{ backgroundImage: `url(${championEntrance.imageUrl})` }}
+                  aria-hidden="true"
+                />
+              ) : (
+                <span className="champion-entrance-art champion-entrance-art--empty" aria-hidden="true" />
+              )}
+              <span
+                className="champion-entrance-copy"
+                style={
+                  {
+                    "--champion-name-length": championEntrance.name.length
+                  } as React.CSSProperties
+                }
+              >
+                <strong>{championEntrance.name}</strong>
+                <small>
+                  ATK {championEntrance.attack ?? "-"} / HP {championEntrance.health ?? "-"}
+                </small>
+              </span>
+            </div>
+          </div>
+        ) : null}
+
         <section className="battle-table lor-table" aria-label="Local battle board">
           {gameState.winnerId ? (
             <header className="topbar compact-topbar">
@@ -1551,6 +1684,7 @@ export function GameBoardView({
 
         <CardInspector />
 
+        {renderPendingDiscard()}
         {renderPendingChoice()}
       </main>
     </HoverProvider>

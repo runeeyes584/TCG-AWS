@@ -6,7 +6,12 @@ import {
   getUnitHealth,
   isChampionCard
 } from "./cards";
-import { getCardDefinition, registerCardDefinition, registerCardDefinitions } from "./cardRegistry";
+import {
+  getCardDefinition,
+  listCards,
+  registerCardDefinition,
+  registerCardDefinitions
+} from "./cardRegistry";
 import {
   checkWinConditions,
   cloneState,
@@ -26,6 +31,7 @@ import {
   CardDefinition,
   CardInstance,
   GameAction,
+  GamePhase,
   GameState,
   GameValidationError,
   GraveyardEntry,
@@ -242,6 +248,28 @@ function getLevel2ChampionDefinition(
   return level2Code ? getCardDefinition(level2Code) : undefined;
 }
 
+function getLevel1ChampionDefinition(
+  definition: CardDefinition
+): CardDefinition | undefined {
+  if (!isChampionCard(definition) || definition.level !== 2) {
+    return definition;
+  }
+
+  return listCards().find((candidate) => {
+    if (!isChampionCard(candidate) || candidate.level !== 1) {
+      return false;
+    }
+
+    const linkedLevel2Code = candidate.level2CardCode ?? candidate.leveledUpCardId;
+    const sameChampion =
+      Boolean(candidate.championId) &&
+      Boolean(definition.championId) &&
+      candidate.championId === definition.championId;
+
+    return linkedLevel2Code === definition.id || sameChampion;
+  });
+}
+
 function levelChampionUnit(
   state: GameState,
   playerId: PlayerId,
@@ -455,8 +483,8 @@ function beginNextRound(state: GameState): void {
   if (next.winnerId) {
     return;
   }
-  requestDiscardIfNeeded(next, next.priorityPlayerId);
   emitEvent(next, { type: "ROUND_STARTED" });
+  requestRoundDiscardsIfNeeded(next);
 }
 
 function refreshRound(state: GameState, draw: boolean): void {
@@ -499,9 +527,12 @@ function discardCard(
   discardCardsOperation(next, playerId, [cardInstanceId]);
 
   if (player.hand.length <= (next.pendingDiscard?.downTo ?? HAND_LIMIT)) {
-    const returnPhase = next.pendingDiscard?.returnPhase ?? "ACTION";
+    const pendingDiscard = next.pendingDiscard;
+    const returnPhase = pendingDiscard?.returnPhase ?? "ACTION";
+    const remainingPlayerIds = pendingDiscard?.remainingPlayerIds ?? [];
     next.pendingDiscard = undefined;
     next.phase = returnPhase;
+    requestNextPendingDiscard(next, remainingPlayerIds, returnPhase);
   }
 
   return next;
@@ -1255,12 +1286,39 @@ function endTurn(state: GameState, playerId: PlayerId): GameState {
 function passPriority(state: GameState, playerId: PlayerId): void {
   state.priorityPlayerId = opponentOf(playerId);
   state.activePlayerId = opponentOf(playerId);
-  if (state.phase === "ACTION") {
-    requestDiscardIfNeeded(state, state.priorityPlayerId);
-  }
 }
 
-function requestDiscardIfNeeded(state: GameState, playerId: PlayerId): void {
+function requestRoundDiscardsIfNeeded(state: GameState): void {
+  const pendingPlayerIds = PLAYER_IDS.filter(
+    (playerId) => state.players[playerId].hand.length > HAND_LIMIT
+  );
+  requestNextPendingDiscard(state, pendingPlayerIds, "ACTION");
+}
+
+function requestNextPendingDiscard(
+  state: GameState,
+  playerIds: PlayerId[],
+  returnPhase: Exclude<GamePhase, "DISCARD">
+): void {
+  const [playerId, ...remainingPlayerIds] = playerIds;
+  if (!playerId) {
+    return;
+  }
+
+  if (state.players[playerId].hand.length <= HAND_LIMIT) {
+    requestNextPendingDiscard(state, remainingPlayerIds, returnPhase);
+    return;
+  }
+
+  requestDiscardIfNeeded(state, playerId, returnPhase, remainingPlayerIds);
+}
+
+function requestDiscardIfNeeded(
+  state: GameState,
+  playerId: PlayerId,
+  returnPhase: Exclude<GamePhase, "DISCARD">,
+  remainingPlayerIds: PlayerId[] = []
+): void {
   if (state.players[playerId].hand.length <= HAND_LIMIT) {
     return;
   }
@@ -1268,11 +1326,19 @@ function requestDiscardIfNeeded(state: GameState, playerId: PlayerId): void {
   state.pendingDiscard = {
     playerId,
     downTo: HAND_LIMIT,
-    returnPhase: "ACTION"
+    returnPhase,
+    reason: "HAND_LIMIT",
+    remainingPlayerIds
   };
   state.phase = "DISCARD";
   state.priorityPlayerId = playerId;
   state.activePlayerId = playerId;
+  state.visualEvents.push({
+    type: "HAND_LIMIT_DISCARD_REQUIRED",
+    playerId,
+    handSize: state.players[playerId].hand.length,
+    downTo: HAND_LIMIT
+  });
 }
 
 
@@ -1332,15 +1398,30 @@ function normalizeDeck(
       if (!entry.cardId) {
         throw new Error("Card instance requires cardId.");
       }
-      getCardDefinition(entry.cardId);
-      return { instanceId: entry.instanceId, cardId: entry.cardId, ownerId: entry.ownerId };
+      const cardId = normalizeInitialDeckCardId(entry.cardId);
+      return { instanceId: entry.instanceId, cardId, ownerId: entry.ownerId };
     }
 
-    registerCardDefinition(entry);
+    const registeredDefinition = registerCardDefinition(entry);
+    const cardId = normalizeInitialDeckCardId(registeredDefinition.id);
     return {
-      instanceId: `${ownerId}-${entry.id}-${index}`,
-      cardId: entry.id,
+      instanceId: `${ownerId}-${cardId}-${index}`,
+      cardId,
       ownerId
     };
   });
+}
+
+function normalizeInitialDeckCardId(cardId: string): string {
+  const definition = getCardDefinition(cardId);
+  if (!isChampionCard(definition) || definition.level !== 2) {
+    return cardId;
+  }
+
+  const level1Definition = getLevel1ChampionDefinition(definition);
+  if (!level1Definition || level1Definition.id === definition.id) {
+    return cardId;
+  }
+
+  return level1Definition.id;
 }

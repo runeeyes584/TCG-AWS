@@ -370,6 +370,7 @@ export type VisualEvent =
   | { type: "BUFF"; targetId: string; attackDelta: number; healthDelta: number }
   | { type: "DEBUFF"; targetId: string; attackDelta: number; healthDelta: number }
   | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string }
+  | { type: "HAND_LIMIT_DISCARD_REQUIRED"; playerId: PlayerId; handSize: number; downTo: number }
   | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number };
 
 export interface GameState {
@@ -383,6 +384,8 @@ export interface GameState {
     playerId: PlayerId;
     downTo: number;
     returnPhase: Exclude<GamePhase, "DISCARD">;
+    reason?: "HAND_LIMIT";
+    remainingPlayerIds?: PlayerId[];
   };
   pendingChoice?: PendingChoice;
   combat: CombatState;
