@@ -244,10 +244,10 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       createRandomCard(state, casterId, effect.archetype, effect.cardType);
       return;
     case "SUMMON_FROM_DECK":
-      summonFromZones(state, casterId, effect, ["deck"]);
+      summonFromZones(state, casterId, effect, ["deck"], target);
       return;
     case "SUMMON_FROM_HAND_OR_DECK":
-      summonFromZones(state, casterId, effect, ["hand", "deck"]);
+      summonFromZones(state, casterId, effect, ["hand", "deck"], target);
       return;
     case "RECALL_UNIT": {
       if (target?.type === "UNIT") {
@@ -342,9 +342,20 @@ function summonFromZones(
     EffectDefinition,
     { type: "SUMMON_FROM_DECK" } | { type: "SUMMON_FROM_HAND_OR_DECK" }
   >,
-  zones: Array<"hand" | "deck">
+  zones: Array<"hand" | "deck">,
+  target?: SpellTarget
 ): void {
   if (state.players[playerId].board.length >= BOARD_LIMIT) {
+    return;
+  }
+
+  if (target?.type === "DECK_CARD" && target.playerId === playerId && zones.includes("deck")) {
+    summonChosenCardFromZone(state, playerId, "deck", target.cardInstanceId, filter);
+    return;
+  }
+
+  if (target?.type === "HAND_CARD" && target.playerId === playerId && zones.includes("hand")) {
+    summonChosenCardFromZone(state, playerId, "hand", target.cardInstanceId, filter);
     return;
   }
 
@@ -361,6 +372,33 @@ function summonFromZones(
     const [card] = cards.splice(index, 1);
     summonCardInstance(state, playerId, card);
     return;
+  }
+}
+
+function summonChosenCardFromZone(
+  state: GameState,
+  playerId: PlayerId,
+  zone: "hand" | "deck",
+  cardInstanceId: string,
+  filter: Extract<
+    EffectDefinition,
+    { type: "SUMMON_FROM_DECK" } | { type: "SUMMON_FROM_HAND_OR_DECK" }
+  >
+): void {
+  const cards = state.players[playerId][zone];
+  const index = cards.findIndex((card) => card.instanceId === cardInstanceId);
+  if (index === -1) {
+    return;
+  }
+
+  const card = cards[index];
+  const definition = getCardDefinitionForInstance(card);
+  if (
+    (zone !== "deck" || isCollectibleCardDefinition(definition)) &&
+    cardDefinitionMatches(definition, filter)
+  ) {
+    cards.splice(index, 1);
+    summonCardInstance(state, playerId, card);
   }
 }
 

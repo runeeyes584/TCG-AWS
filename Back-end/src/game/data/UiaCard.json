@@ -43,7 +43,8 @@
     "effects": [
       {
         "type": "REVIVE_CARD",
-        "target": "ALLY_GRAVEYARD"
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": ["UNIT", "CHAMPION", "SPELL"]
       }
     ],
     "imageUrl": "https://i.pinimg.com/1200x/0e/4e/16/0e4e1693a9c045b028565c59e377b1ba.jpg",
@@ -433,16 +434,32 @@
     "spellSpeed": "fast",
     "archetype": "Labrynth",
     "keywords": [],
-    "effects": [
+    "abilities": [
       {
-        "type": "SUMMON_FROM_DECK",
-        "archetype": "Labrynth",
-        "cardTypes": ["champion", "unit"]
-      },
-      {
-        "type": "DEAL_DAMAGE",
-        "amount": 2,
-        "target": "ENEMY_NEXUS"
+        "id": "welcome-labrynth-summon",
+        "targets": [
+          {
+            "id": "summonTarget",
+            "kind": "ALLY_DECK_CARD",
+            "filter": {
+              "archetype": "Labrynth",
+              "cardTypes": ["champion", "unit"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Labrynth",
+            "cardTypes": ["champion", "unit"],
+            "target": "summonTarget"
+          },
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 2,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
       }
     ],
     "imageUrl": "https://picsum.photos/seed/welcome-labrynth/200/300",

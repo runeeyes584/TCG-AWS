@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import type { GraveyardEntry, PlayerId } from "@backend/game/types";
+import type { GraveyardEntry, GraveyardEntryType, PlayerId } from "@backend/game/types";
 import { CardView } from "./CardView";
 
 interface GraveyardPickerModalProps {
@@ -9,7 +9,7 @@ interface GraveyardPickerModalProps {
   entries: GraveyardEntry[];
   selectedCardInstanceId?: string;
   canSelect?: boolean;
-  allowedTypes?: ("UNIT" | "CHAMPION")[];
+  allowedTypes?: GraveyardEntryType[];
   onSelectCard?: (cardInstanceId: string) => void;
   onClose: () => void;
 }
@@ -47,8 +47,7 @@ export function GraveyardPickerModal({
                   selected={entry.instanceId === selectedCardInstanceId}
                   onClick={
                     canSelect && 
-                    entry.type !== "SPELL" && 
-                    (!allowedTypes || allowedTypes.includes(entry.type as any)) && 
+                    (allowedTypes ?? ["UNIT", "CHAMPION"]).includes(entry.type) &&
                     onSelectCard
                       ? () => onSelectCard(entry.instanceId)
                       : undefined
