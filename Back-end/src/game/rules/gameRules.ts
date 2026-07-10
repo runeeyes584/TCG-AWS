@@ -429,6 +429,13 @@ function assertSpellTarget(
     case "ALLY_NEXUS":
     case "ENEMY_NEXUS":
     case "RANDOM_ENEMY_UNIT":
+    case undefined:
+      return;
+    case "RECALL_UNIT":
+      if (target.type !== "UNIT" || target.playerId !== casterId) {
+        throw new GameValidationError("Spell requires an ally unit target.");
+      }
+      findUnit(state, target.playerId, target.unitId);
       return;
     case "ENEMY_UNIT":
       if (target.type !== "UNIT" || target.playerId !== opponentOf(casterId)) {
@@ -548,7 +555,9 @@ function clonePlayer(player: PlayerState): PlayerState {
       modifiers: unit.modifiers.map((modifier) => ({ ...modifier }))
     } as UnitInstance)),
     graveyard: player.graveyard.map((entry) => ({ ...entry })),
-    abilityProgress: { ...player.abilityProgress }
+    championProgress: { ...(player.championProgress ?? {}) },
+    leveledChampionIds: { ...(player.leveledChampionIds ?? {}) },
+    abilityProgress: { ...(player.abilityProgress ?? {}) }
   };
 }
 
