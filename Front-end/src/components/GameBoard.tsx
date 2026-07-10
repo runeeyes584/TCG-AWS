@@ -188,6 +188,11 @@ export function GameBoardView({
   function beginPrimaryTargetSelection(playerId: PlayerId, card: CardInstance) {
     const targetKind = getPrimarySpellTarget(card);
 
+    if (!targetKind) {
+      setSelectedSpellTarget({ type: "SELF", playerId });
+      return;
+    }
+
     if (targetKind === "SELF") {
       setSelectedSpellTarget({ type: "SELF", playerId });
       return;
@@ -256,7 +261,23 @@ export function GameBoardView({
   }
 
   function getPrimarySpellTarget(card: CardInstance): SpellTargetKind | undefined {
-    const target = cardDef(card).effects?.[0]?.target;
+    const effects = cardDef(card).effects ?? [];
+    const target = effects
+      .map((effect) => effect.target)
+      .find((candidate) =>
+        candidate === "ENEMY_UNIT" ||
+        candidate === "ALLY_UNIT" ||
+        candidate === "NEXUS" ||
+        candidate === "SELF" ||
+        candidate === "ALLY_GRAVEYARD" ||
+        candidate === "ENEMY_GRAVEYARD" ||
+        candidate === "RECALL_UNIT"
+      );
+
+    if (target === "RECALL_UNIT") {
+      return "ALLY_UNIT";
+    }
+
     if (
       target === "ENEMY_UNIT" ||
       target === "ALLY_UNIT" ||
@@ -1208,33 +1229,15 @@ export function GameBoardView({
         ) : null}
 
         <section className="battle-table lor-table" aria-label="Local battle board">
-          <header className="topbar compact-topbar">
-            <div className="stat-row">
-              <span className="stat-pill">Round <strong>{gameState.round}</strong></span>
-              <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
-              <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
-              <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
-              {gameState.pendingDiscard ? (
-                <span className="stat-pill">
-                  Discard{" "}
-                  <strong>
-                    {gameState.pendingDiscard.playerId}{" "}
-                    {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
-                    {gameState.pendingDiscard.downTo}
-                  </strong>
-                </span>
-              ) : null}
-              <span className="stat-pill">
-                Attack <strong>{gameState.attackTokenPlayerId}{gameState.attackTokenAvailable ? "" : " spent"}</strong>
-              </span>
-            </div>
-            {gameState.winnerId ? (
+          {gameState.winnerId ? (
+            <header className="topbar compact-topbar">
               <div className="winner-banner">{gameState.winnerId} wins.</div>
-            ) : null}
-          </header>
+            </header>
+          ) : null}
 
           <HandView
             cards={gameState.players.P2.hand}
+            side="opponent"
             hidden={shouldHideHand("P2")}
             selectedCardId={
               selectedSpell?.ownerId === "P2" ? selectedSpell.instanceId : undefined
@@ -1256,6 +1259,29 @@ export function GameBoardView({
               {renderActiveRow("P2")}
 
               <div className="combat-status-bar">
+                <div className="arena-state-hud" aria-label="Game state">
+                  <span className="stat-pill">Round <strong>{gameState.round}</strong></span>
+                  <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
+                  <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
+                  <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
+                  {gameState.pendingDiscard ? (
+                    <span className="stat-pill">
+                      Discard{" "}
+                      <strong>
+                        {gameState.pendingDiscard.playerId}{" "}
+                        {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
+                        {gameState.pendingDiscard.downTo}
+                      </strong>
+                    </span>
+                  ) : null}
+                  <span className="stat-pill">
+                    Attack{" "}
+                    <strong>
+                      {gameState.attackTokenPlayerId}
+                      {gameState.attackTokenAvailable ? "" : " spent"}
+                    </strong>
+                  </span>
+                </div>
                 {gameState.phase === "BLOCK" && attackerCount > 0 ? (
                   <span className="stat-pill">
                     <Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking
@@ -1299,6 +1325,7 @@ export function GameBoardView({
 
           <HandView
             cards={gameState.players.P1.hand}
+            side="player"
             hidden={shouldHideHand("P1")}
             selectedCardId={
               selectedSpell?.ownerId === "P1" ? selectedSpell.instanceId : undefined

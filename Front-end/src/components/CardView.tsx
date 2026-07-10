@@ -31,6 +31,9 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
   const className = [
     "card-view",
     "is-clickable",
+    `card-view--${definition.type}`,
+    definition.spellSpeed ? `card-view--${definition.spellSpeed}` : "",
+    definition.level ? `card-view--level-${definition.level}` : "",
     selected ? "is-selected" : "",
     unit?.attacking ? "is-attacking" : "",
     unit?.blockingUnitId ? "is-blocking" : "",
@@ -44,12 +47,25 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
   const content = (
     <>
       {definition.imageUrl && <span className="card-bg-image" style={style} />}
+      <span className="card-rarity-glow" aria-hidden="true" />
       <span className="card-header-bg">
         <span className="card-meta">
           <Zap size={13} aria-hidden="true" /> {definition.cost}
         </span>
         <span className="card-name">{definition.name}</span>
       </span>
+      {definition.type === "spell" && definition.spellSpeed ? (
+        <span className="spell-speed-badge">{definition.spellSpeed}</span>
+      ) : null}
+      {definition.keywords?.length ? (
+        <span className="keyword-row">
+          {definition.keywords.map((keyword) => (
+            <span className="keyword-gem" key={keyword} title={keyword}>
+              {keyword.slice(0, 2)}
+            </span>
+          ))}
+        </span>
+      ) : null}
       <span className="card-stats">
         <span className="card-stat attack" title="Attack">
           <Swords size={14} aria-hidden="true" /> {attack ?? "-"}

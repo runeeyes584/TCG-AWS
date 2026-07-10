@@ -9,13 +9,25 @@ interface HandViewProps {
   canPlay: (card: CardInstance) => boolean;
   onPlayCard: (card: CardInstance) => void;
   hidden?: boolean;
+  side?: "opponent" | "player";
 }
 
-export function HandView({ cards, selectedCardId, canPlay, onPlayCard, hidden = false }: HandViewProps) {
+export function HandView({
+  cards,
+  selectedCardId,
+  canPlay,
+  onPlayCard,
+  hidden = false,
+  side = "player"
+}: HandViewProps) {
   return (
-    <section className="lane" aria-label="Hand">
+    <section className={`lane hand-dock hand-dock--${side}`} aria-label="Hand">
       <div className="lane-label">Hand</div>
-      <div className="card-grid">
+      <div
+        className={`card-grid hand-grid hand-grid--${side} ${
+          hidden ? "hand-grid--hidden" : ""
+        }`}
+      >
         {cards.length === 0 ? (
           <div className="empty-slot">No cards</div>
         ) : hidden ? (

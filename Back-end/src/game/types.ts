@@ -115,6 +115,43 @@ export type EffectDefinition =
       target: "SELF" | string;
     }
   | {
+      type: "RESTORE_SPELL_MANA";
+      amount: number;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "DRAW_CARD_BY_FILTER";
+      count: number;
+      cardType?: CardType;
+      spellSpeed?: SpellSpeed;
+      archetype?: string;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "CREATE_RANDOM_CARD";
+      archetype: string;
+      cardType?: CardType;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "SUMMON_FROM_DECK";
+      archetype?: string;
+      cardTypes?: CardType[];
+      maxCost?: number;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "SUMMON_FROM_HAND_OR_DECK";
+      archetype?: string;
+      cardTypes?: CardType[];
+      maxCost?: number;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "RECALL_UNIT";
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind | string;
+    }
+  | {
       type: "REVIVE_CARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
       allowedTypes?: ("UNIT" | "CHAMPION")[];
@@ -133,7 +170,8 @@ export type ConditionDefinition =
   | { type: "SPELLS_CAST_THIS_ROUND_AT_LEAST"; count: number }
   | { type: "UNIT_DIED_THIS_GAME_AT_LEAST"; count: number }
   | { type: "NEXUS_HEALTH_BELOW"; player: "SELF" | "ENEMY"; amount: number }
-  | { type: "UNIT_HAS_KEYWORD"; target: string; keyword: Keyword };
+  | { type: "UNIT_HAS_KEYWORD"; target: string; keyword: Keyword }
+  | { type: "EVENT_PLAYER_IS"; player: "SELF" | "ENEMY" };
 
 export interface TargetDefinition {
   id: string;
@@ -170,6 +208,7 @@ export type Trigger = {
 
 export type LevelUpCondition = 
   | { type: "ALLIES_DIED"; threshold: number }
+  | { type: "ENEMIES_DIED"; threshold: number }
   | { type: "SPELLS_CAST"; threshold: number }
   | { type: "NEXUS_DAMAGE_DEALT"; threshold: number }
   | { type: "THIS_CHAMPION_STRUCK"; threshold: number };
@@ -227,6 +266,7 @@ export interface CardDefinition {
   spellSpeed?: SpellSpeed;
   description?: string;
   imageUrl?: string;
+  archetype?: string;
   championId?: string;
   supertype?: "champion" | string;
   attack?: number;
@@ -307,6 +347,7 @@ export interface PlayerState {
   board: UnitInstance[];
   graveyard: GraveyardEntry[];
   championProgress: Record<string, number>;
+  leveledChampionIds: Record<string, boolean>;
   abilityProgress: Record<string, number>;
 }
 

@@ -194,6 +194,19 @@ function assertConditions(
         }
         break;
       }
+      case "EVENT_PLAYER_IS": {
+        if (!context.event?.playerId) {
+          throw new GameValidationError("Ability condition failed: missing event player.");
+        }
+        const expectedPlayerId =
+          condition.player === "SELF"
+            ? context.sourcePlayerId
+            : opponentOf(context.sourcePlayerId);
+        if (context.event.playerId !== expectedPlayerId) {
+          throw new GameValidationError("Ability condition failed: wrong event player.");
+        }
+        break;
+      }
     }
   }
 }

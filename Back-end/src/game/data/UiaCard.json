@@ -207,6 +207,268 @@
       }
     ],
     "imageUrl": "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExYmRtczd5aHVjeGxlZHZya280dmluNnp4MjBoM3VlYmZydGVmMG02aSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/MMquV2oInK40V86Q7g/giphy.gif",
-    "description": "A super super cute cat queen that sits on the throne, causing all allies to gain +2/+2 [Buff] and all enemies to lose -2 [Debuff] Attack for this round. At the end of the round, it burns all enemy units for 1 damage [Debuff]." }
+    "description": "A super super cute cat queen that sits on the throne, causing all allies to gain +2/+2 [Buff] and all enemies to lose -2 [Debuff] Attack for this round. At the end of the round, it burns all enemy units for 1 damage [Debuff]." },
+
+  {
+    "id": "LOR_LBR_001",
+    "name": "Lovely Labrynth of the Silver Castle",
+    "cost": 8,
+    "type": "champion",
+    "archetype": "Labrynth",
+    "championId": "lovely-labrynth",
+    "level": 1,
+    "leveledUpCardId": "LOR_LBR_001_LV2",
+    "levelUpCondition": {
+      "type": "ENEMIES_DIED",
+      "threshold": 4
+    },
+    "attack": 6,
+    "health": 6,
+    "keywords": [],
+    "abilities": [
+      {
+        "id": "lovely-labrynth-spell-slay-refund",
+        "when": {
+          "event": "UNIT_DIED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 2
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/lovely-labrynth/200/300",
+    "description": "Địch khó ngăn các Fast/Slow Spell của bạn. Khi một unit địch bị tiêu diệt bởi hiệu ứng của bạn, hồi 2 Spell Mana và rút 1 lá. Level Up: Bạn đã Slay 4+ unit địch bằng Spell hoặc hiệu ứng."
+  },
+  {
+    "id": "LOR_LBR_001_LV2",
+    "name": "Lovely Labrynth of the Silver Castle (Level 2)",
+    "cost": 8,
+    "type": "champion",
+    "archetype": "Labrynth",
+    "championId": "lovely-labrynth",
+    "level": 2,
+    "attack": 7,
+    "health": 7,
+    "keywords": [],
+    "abilities": [
+      {
+        "id": "lovely-labrynth-lv2-spell-slay-refund",
+        "when": {
+          "event": "UNIT_DIED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 2
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      },
+      {
+        "id": "lovely-labrynth-lv2-recover-fast-spell",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "REVIVE_CARD",
+            "target": "ALLY_GRAVEYARD",
+            "allowedTypes": ["SPELL"]
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/lovely-labrynth-level-2/200/300",
+    "description": "Địch khó ngăn các Fast/Slow Spell của bạn. Khi một unit địch bị tiêu diệt bởi hiệu ứng của bạn, hồi 2 Spell Mana và rút 1 lá. Round Start: Lấy lại 1 Spell từ mộ lên tay."
+  },
+  {
+    "id": "LOR_LBR_002",
+    "name": "Arianna the Labrynth Servant",
+    "cost": 4,
+    "type": "unit",
+    "archetype": "Labrynth",
+    "attack": 3,
+    "health": 4,
+    "keywords": [],
+    "abilities": [
+      {
+        "id": "arianna-draw-fast-spell",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "cardType": "spell",
+            "spellSpeed": "fast"
+          }
+        ]
+      },
+      {
+        "id": "arianna-create-labrynth",
+        "when": {
+          "event": "UNIT_DIED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Labrynth"
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/arianna-labrynth/200/300",
+    "description": "Play: Rút 1 Fast Spell từ bộ bài. Khi một unit địch bị tiêu diệt bởi hiệu ứng của bạn, tạo 1 lá Labrynth ngẫu nhiên trên tay."
+  },
+  {
+    "id": "LOR_LBR_003",
+    "name": "Ariane the Labrynth Servant",
+    "cost": 4,
+    "type": "unit",
+    "archetype": "Labrynth",
+    "attack": 4,
+    "health": 3,
+    "keywords": [],
+    "abilities": [
+      {
+        "id": "ariane-discard-summon-labrynth",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "discard",
+            "kind": "ALLY_HAND_CARD",
+            "required": true
+          }
+        ],
+        "costs": [
+          {
+            "type": "DISCARD",
+            "target": "discard"
+          }
+        ],
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Labrynth",
+            "cardTypes": ["unit"],
+            "maxCost": 4
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/ariane-labrynth/200/300",
+    "description": "Play: Bỏ 1 lá bài trên tay để triệu hồi 1 tùy tùng Labrynth cost 4 trở xuống từ bộ bài."
+  },
+  {
+    "id": "LOR_LBR_004",
+    "name": "Stovie Torbie",
+    "cost": 1,
+    "type": "unit",
+    "archetype": "Labrynth",
+    "attack": 1,
+    "health": 1,
+    "keywords": [],
+    "abilities": [
+      {
+        "id": "stovie-discard-refill-spell-mana",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "discard",
+            "kind": "ALLY_HAND_CARD",
+            "required": true
+          }
+        ],
+        "costs": [
+          {
+            "type": "DISCARD",
+            "target": "discard"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 3
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/stovie-torbie/200/300",
+    "description": "Play: Bỏ 1 lá bài trên tay, hồi đầy tối đa 3 Spell Mana."
+  },
+  {
+    "id": "LOR_LBR_005",
+    "name": "Welcome Labrynth",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Labrynth",
+    "keywords": [],
+    "effects": [
+      {
+        "type": "SUMMON_FROM_DECK",
+        "archetype": "Labrynth",
+        "cardTypes": ["champion", "unit"]
+      },
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 2,
+        "target": "ENEMY_NEXUS"
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/welcome-labrynth/200/300",
+    "description": "Fast: Triệu hồi 1 Champion hoặc unit Labrynth từ bộ bài. Sau đó gây 2 sát thương lên Nexus địch."
+  },
+  {
+    "id": "LOR_LBR_006",
+    "name": "Big Welcome Labrynth",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Labrynth",
+    "keywords": [],
+    "effects": [
+      {
+        "type": "SUMMON_FROM_HAND_OR_DECK",
+        "archetype": "Labrynth",
+        "cardTypes": ["champion", "unit"]
+      },
+      {
+        "type": "RECALL_UNIT",
+        "target": "ALLY_UNIT"
+      }
+    ],
+    "imageUrl": "https://picsum.photos/seed/big-welcome-labrynth/200/300",
+    "description": "Fast: Triệu hồi 1 Champion hoặc tùy tùng Labrynth từ tay hoặc bộ bài. Sau đó Recall 1 đồng minh về tay."
+  }
 
 ]

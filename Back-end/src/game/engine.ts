@@ -28,6 +28,7 @@ import {
   GameAction,
   GameState,
   GameValidationError,
+  GraveyardEntry,
   Keyword,
   PlayerId,
   PendingChoice,
@@ -71,6 +72,9 @@ export function updateChampionProgress(state: GameState, event: GameEvent): void
       if (event.playerId) {
         state.players[event.playerId].championProgress["ALLIES_DIED"] = 
           (state.players[event.playerId].championProgress["ALLIES_DIED"] || 0) + 1;
+        const enemyId = opponentOf(event.playerId);
+        state.players[enemyId].championProgress["ENEMIES_DIED"] =
+          (state.players[enemyId].championProgress["ENEMIES_DIED"] || 0) + 1;
       }
       break;
     case "SPELL_CAST":
@@ -103,23 +107,57 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     const player = state.players[playerId];
+
     for (const unit of player.board) {
-      if (!shouldLevelChampion(player, unit)) {
+      const definition = getCardDefinitionForUnit(unit);
+      if (shouldLevelChampionDefinition(player, definition, unit.instanceId)) {
+        markChampionLeveled(player, definition);
+      }
+    }
+
+    for (const card of [...player.deck, ...player.hand]) {
+      const definition = getCardDefinitionForInstance(card);
+      if (shouldLevelChampionDefinition(player, definition)) {
+        markChampionLeveled(player, definition);
+      }
+    }
+
+    for (const entry of player.graveyard) {
+      const definition = getCardDefinition(entry.cardId);
+      if (shouldLevelChampionDefinition(player, definition)) {
+        markChampionLeveled(player, definition);
+      }
+    }
+
+    for (const unit of player.board) {
+      const definition = getCardDefinitionForUnit(unit);
+      if (!shouldApplyChampionLevel(player, definition)) {
         continue;
       }
 
-      const definition = getCardDefinitionForUnit(unit);
-      const level2Code = definition.level2CardCode ?? definition.leveledUpCardId;
-      const level2Def = level2Code ? getCardDefinition(level2Code) : undefined;
+      const level2Def = getLevel2ChampionDefinition(definition);
       if (level2Def) {
         levelChampionUnit(state, playerId, unit, level2Def);
       }
     }
+
+    for (const card of player.deck) {
+      levelChampionCardInstance(player, card);
+    }
+    for (const card of player.hand) {
+      levelChampionCardInstance(player, card);
+    }
+    for (const entry of player.graveyard) {
+      levelChampionGraveyardEntry(player, entry);
+    }
   }
 }
 
-function shouldLevelChampion(player: PlayerState, unit: UnitInstance): boolean {
-  const definition = getCardDefinitionForUnit(unit);
+function shouldLevelChampionDefinition(
+  player: PlayerState,
+  definition: CardDefinition,
+  unitInstanceId?: string
+): boolean {
   if (
     !isChampionCard(definition) ||
     definition.level !== 1 ||
@@ -129,12 +167,78 @@ function shouldLevelChampion(player: PlayerState, unit: UnitInstance): boolean {
   }
 
   const condition = definition.levelUpCondition;
+  if (condition.type === "THIS_CHAMPION_STRUCK" && !unitInstanceId) {
+    return false;
+  }
+
   const key =
     condition.type === "THIS_CHAMPION_STRUCK"
-      ? championStrikeProgressKey(unit.instanceId)
+      ? championStrikeProgressKey(unitInstanceId as string)
       : condition.type;
 
   return (player.championProgress[key] || 0) >= condition.threshold;
+}
+
+function shouldApplyChampionLevel(
+  player: PlayerState,
+  definition: CardDefinition
+): boolean {
+  if (!isLevelOneChampion(definition)) {
+    return false;
+  }
+
+  return Boolean(player.leveledChampionIds?.[getChampionLevelKey(definition)]);
+}
+
+function levelChampionCardInstance(player: PlayerState, card: CardInstance): void {
+  const definition = getCardDefinitionForInstance(card);
+  if (!shouldApplyChampionLevel(player, definition)) {
+    return;
+  }
+
+  const level2Def = getLevel2ChampionDefinition(definition);
+  if (level2Def) {
+    card.cardId = level2Def.id;
+  }
+}
+
+function levelChampionGraveyardEntry(
+  player: PlayerState,
+  entry: GraveyardEntry
+): void {
+  const definition = getCardDefinition(entry.cardId);
+  if (!shouldApplyChampionLevel(player, definition)) {
+    return;
+  }
+
+  const level2Def = getLevel2ChampionDefinition(definition);
+  if (level2Def) {
+    entry.cardId = level2Def.id;
+  }
+}
+
+function markChampionLeveled(player: PlayerState, definition: CardDefinition): void {
+  if (!isLevelOneChampion(definition)) {
+    return;
+  }
+
+  player.leveledChampionIds ??= {};
+  player.leveledChampionIds[getChampionLevelKey(definition)] = true;
+}
+
+function isLevelOneChampion(definition: CardDefinition): boolean {
+  return isChampionCard(definition) && definition.level === 1;
+}
+
+function getChampionLevelKey(definition: CardDefinition): string {
+  return definition.championId ?? definition.id;
+}
+
+function getLevel2ChampionDefinition(
+  definition: CardDefinition
+): CardDefinition | undefined {
+  const level2Code = definition.level2CardCode ?? definition.leveledUpCardId;
+  return level2Code ? getCardDefinition(level2Code) : undefined;
 }
 
 function levelChampionUnit(
@@ -143,6 +247,11 @@ function levelChampionUnit(
   unit: UnitInstance,
   level2Def: CardDefinition
 ): void {
+  const currentDefinition = getCardDefinitionForUnit(unit);
+  if (currentDefinition.level === 2) {
+    return;
+  }
+
   unit.cardId = level2Def.id;
   unit.attack = level2Def.attack ?? unit.attack;
   unit.maxHealth = level2Def.health ?? unit.maxHealth;
@@ -180,6 +289,7 @@ export function createInitialPlayerState(
     board: [],
     graveyard: [],
     championProgress: {},
+    leveledChampionIds: {},
     abilityProgress: {}
   };
 }
