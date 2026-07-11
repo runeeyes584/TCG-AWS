@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "../libs/amplify";
 
 export const metadata: Metadata = {
   title: "Kaleidoscope TCG",
