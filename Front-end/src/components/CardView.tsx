@@ -9,12 +9,22 @@ import { getCardDefinition } from "@backend/game/cardRegistry";
 interface CardViewProps {
   card?: CardInstance;
   unit?: UnitInstance;
+  variant?: "default" | "hand";
   selected?: boolean;
   onClick?: () => void;
+  onPreviewChange?: (previewing: boolean) => void;
   visualEvents?: VisualEvent[];
 }
 
-export function CardView({ card, unit, selected = false, onClick, visualEvents }: CardViewProps) {
+export function CardView({
+  card,
+  unit,
+  variant = "default",
+  selected = false,
+  onClick,
+  onPreviewChange,
+  visualEvents
+}: CardViewProps) {
   const { selectCard, setHoveredCard } = useHover();
   const cardId = unit?.cardId ?? card?.cardId;
   if (!cardId) {
@@ -31,6 +41,10 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
   const className = [
     "card-view",
     "is-clickable",
+    variant === "hand" ? "card-view--hand" : "",
+    `card-view--${definition.type}`,
+    definition.spellSpeed ? `card-view--${definition.spellSpeed}` : "",
+    definition.level ? `card-view--level-${definition.level}` : "",
     selected ? "is-selected" : "",
     unit?.attacking ? "is-attacking" : "",
     unit?.blockingUnitId ? "is-blocking" : "",
@@ -44,12 +58,25 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
   const content = (
     <>
       {definition.imageUrl && <span className="card-bg-image" style={style} />}
+      <span className="card-rarity-glow" aria-hidden="true" />
       <span className="card-header-bg">
         <span className="card-meta">
           <Zap size={13} aria-hidden="true" /> {definition.cost}
         </span>
         <span className="card-name">{definition.name}</span>
       </span>
+      {definition.type === "spell" && definition.spellSpeed ? (
+        <span className="spell-speed-badge">{definition.spellSpeed}</span>
+      ) : null}
+      {definition.keywords?.length ? (
+        <span className="keyword-row">
+          {definition.keywords.map((keyword) => (
+            <span className="keyword-gem" key={keyword} title={keyword}>
+              {keyword.slice(0, 2)}
+            </span>
+          ))}
+        </span>
+      ) : null}
       <span className="card-stats">
         <span className="card-stat attack" title="Attack">
           <Swords size={14} aria-hidden="true" /> {attack ?? "-"}
@@ -62,8 +89,11 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
       {unit?.modifiers.length ? (
         <span className="effect-list">
           {unit.modifiers.map((modifier) => (
-            <span className="effect-chip" key={modifier.id}>
-              {modifier.sourceName}{" "}
+            <span
+              className="effect-chip"
+              key={modifier.id}
+              title={`${modifier.sourceName} ${formatEffect(modifier.attackDelta, modifier.healthDelta)}`}
+            >
               {formatEffect(modifier.attackDelta, modifier.healthDelta)}
             </span>
           ))}
@@ -83,8 +113,16 @@ export function CardView({ card, unit, selected = false, onClick, visualEvents }
   );
 
   const hoverProps = {
-    onMouseEnter: () => setHoveredCard(card, unit),
-    onMouseLeave: () => setHoveredCard(undefined, undefined)
+    onMouseEnter: () => {
+      setHoveredCard(card, unit);
+      onPreviewChange?.(true);
+    },
+    onMouseLeave: () => {
+      setHoveredCard(undefined, undefined);
+      onPreviewChange?.(false);
+    },
+    onFocus: () => onPreviewChange?.(true),
+    onBlur: () => onPreviewChange?.(false)
   };
   const handleClick = () => {
     selectCard(card, unit);

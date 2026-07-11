@@ -12,6 +12,9 @@ export type SpellSpeed = "burst" | "fast" | "slow";
 
 export type SpellTargetKind = "ENEMY_UNIT" | "ALLY_UNIT" | "NEXUS" | "SELF" | "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD";
 
+export type AdditionalCostDefinition =
+  | { type: "SACRIFICE_UNITS"; count: number };
+
 export type TriggerTargetKind =
   | "EVENT_UNIT"
   | "SOURCE"
@@ -27,6 +30,8 @@ export type AbilityTargetKind =
   | "ALLY_NEXUS"
   | "ENEMY_NEXUS"
   | "ANY_TARGET"
+  | "ALLY_DECK_CARD"
+  | "ANY_DECK_CARD"
   | "ALLY_HAND_CARD"
   | "ENEMY_HAND_CARD"
   | "ANY_HAND_CARD";
@@ -78,11 +83,23 @@ export type EffectDefinition =
       duration?: ModifierDuration;
     }
   | {
+      type: "BUFF_ACTIVE_ALLIES";
+      attack: number;
+      health: number;
+      target?: "SELF" | string;
+      duration?: ModifierDuration;
+    }
+  | {
       type: "DEBUFF_UNIT";
       attackDelta: number;
       healthDelta: number;
       target: "ALLY_UNIT" | "ENEMY_UNIT" | TriggerTargetKind | string;
       duration?: ModifierDuration;
+    }
+  | {
+      type: "BURN_ACTIVE_ENEMIES";
+      amount: number;
+      target?: "ENEMY_UNIT" | string;
     }
 
   | {
@@ -100,8 +117,46 @@ export type EffectDefinition =
       target: "SELF" | string;
     }
   | {
-      type: "REVIVE_UNIT";
+      type: "RESTORE_SPELL_MANA";
+      amount: number;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "DRAW_CARD_BY_FILTER";
+      count: number;
+      cardType?: CardType;
+      spellSpeed?: SpellSpeed;
+      archetype?: string;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "CREATE_RANDOM_CARD";
+      archetype: string;
+      cardType?: CardType;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "SUMMON_FROM_DECK";
+      archetype?: string;
+      cardTypes?: CardType[];
+      maxCost?: number;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "SUMMON_FROM_HAND_OR_DECK";
+      archetype?: string;
+      cardTypes?: CardType[];
+      maxCost?: number;
+      target?: "SELF" | string;
+    }
+  | {
+      type: "RECALL_UNIT";
+      target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind | string;
+    }
+  | {
+      type: "REVIVE_CARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
+      allowedTypes?: GraveyardEntryType[];
     };
 
 export type SpellEffect = EffectDefinition;
@@ -117,12 +172,22 @@ export type ConditionDefinition =
   | { type: "SPELLS_CAST_THIS_ROUND_AT_LEAST"; count: number }
   | { type: "UNIT_DIED_THIS_GAME_AT_LEAST"; count: number }
   | { type: "NEXUS_HEALTH_BELOW"; player: "SELF" | "ENEMY"; amount: number }
-  | { type: "UNIT_HAS_KEYWORD"; target: string; keyword: Keyword };
+  | { type: "UNIT_HAS_KEYWORD"; target: string; keyword: Keyword }
+  | { type: "EVENT_PLAYER_IS"; player: "SELF" | "ENEMY" };
 
 export interface TargetDefinition {
   id: string;
   kind: AbilityTargetKind;
   required?: boolean;
+  filter?: CardFilterDefinition;
+}
+
+export interface CardFilterDefinition {
+  cardType?: CardType;
+  cardTypes?: CardType[];
+  spellSpeed?: SpellSpeed;
+  archetype?: string;
+  maxCost?: number;
 }
 
 export type CostDefinition =
@@ -154,6 +219,7 @@ export type Trigger = {
 
 export type LevelUpCondition = 
   | { type: "ALLIES_DIED"; threshold: number }
+  | { type: "ENEMIES_DIED"; threshold: number }
   | { type: "SPELLS_CAST"; threshold: number }
   | { type: "NEXUS_DAMAGE_DEALT"; threshold: number }
   | { type: "THIS_CHAMPION_STRUCK"; threshold: number };
@@ -174,6 +240,7 @@ export type SpellTarget =
   | { type: "NEXUS"; playerId: PlayerId }
   | { type: "SELF"; playerId: PlayerId }
   | { type: "GRAVEYARD"; playerId: PlayerId; cardInstanceId?: string }
+  | { type: "DECK_CARD"; playerId: PlayerId; cardInstanceId: string }
   | { type: "HAND_CARD"; playerId: PlayerId; cardInstanceId: string };
 
 export interface CombatAttacker {
@@ -195,7 +262,9 @@ export interface PendingChoice {
   returnPhase: GamePhase;
   playUnit?: {
     replaceUnitId?: string;
+    costTargets?: SpellTarget[];
   };
+  costTargets?: SpellTarget[];
 }
 
 export interface CardDefinition {
@@ -209,12 +278,14 @@ export interface CardDefinition {
   spellSpeed?: SpellSpeed;
   description?: string;
   imageUrl?: string;
+  archetype?: string;
   championId?: string;
   supertype?: "champion" | string;
   attack?: number;
   health?: number;
   keywords?: Keyword[];
   effects?: EffectDefinition[];
+  additionalCost?: AdditionalCostDefinition;
   /**
    * @deprecated Use abilities with `when` instead.
    * Legacy triggers are normalized into abilities by cardRegistry.
@@ -288,6 +359,7 @@ export interface PlayerState {
   board: UnitInstance[];
   graveyard: GraveyardEntry[];
   championProgress: Record<string, number>;
+  leveledChampionIds: Record<string, boolean>;
   abilityProgress: Record<string, number>;
 }
 
@@ -298,6 +370,7 @@ export type VisualEvent =
   | { type: "BUFF"; targetId: string; attackDelta: number; healthDelta: number }
   | { type: "DEBUFF"; targetId: string; attackDelta: number; healthDelta: number }
   | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string }
+  | { type: "HAND_LIMIT_DISCARD_REQUIRED"; playerId: PlayerId; handSize: number; downTo: number }
   | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number };
 
 export interface GameState {
@@ -311,6 +384,8 @@ export interface GameState {
     playerId: PlayerId;
     downTo: number;
     returnPhase: Exclude<GamePhase, "DISCARD">;
+    reason?: "HAND_LIMIT";
+    remainingPlayerIds?: PlayerId[];
   };
   pendingChoice?: PendingChoice;
   combat: CombatState;
@@ -329,12 +404,13 @@ export type GameAction =
   | { type: "DRAW_CARD"; playerId: PlayerId; count?: number }
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: string }
   | { type: "START_ROUND" }
-  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string; target?: SpellTarget }
+  | { type: "PLAY_UNIT"; playerId: PlayerId; cardInstanceId: string; replaceUnitId?: string; target?: SpellTarget; costTargets?: SpellTarget[] }
   | {
       type: "PLAY_SPELL";
       playerId: PlayerId;
       cardInstanceId: string;
       target: SpellTarget;
+      costTargets?: SpellTarget[];
     }
   | {
       type: "SUBMIT_ABILITY_TARGETS";
@@ -362,3 +438,4 @@ export class GameValidationError extends Error {
     this.name = "GameValidationError";
   }
 }
+

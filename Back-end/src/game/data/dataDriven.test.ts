@@ -4,16 +4,16 @@ import {
   createUnitInstance,
   isChampionCard,
   isUnitCard
-} from "./cards";
+} from "../cards";
 import {
   getCardDefinition,
   hasCard,
   listCards,
   registerCardDefinition
-} from "./cardRegistry";
-import cardsJson from "./data/cards.json";
-import { applyAction, createInitialGameState } from "./engine";
-import { CardDefinition, GameValidationError, PlayerId } from "./types";
+} from "../cardRegistry";
+import cardsJson from "./cards.json";
+import { applyAction, createInitialGameState } from "../engine";
+import { CardDefinition, GameValidationError, PlayerId } from "../types";
 
 const unit: CardDefinition = {
   id: "data-test-unit",
@@ -343,7 +343,7 @@ describe("data-driven card registry and operations", () => {
       name: "Data Revive",
       type: "spell",
       cost: 0,
-      effects: [{ type: "REVIVE_UNIT", target: "ALLY_GRAVEYARD" }]
+      effects: [{ type: "REVIVE_CARD", target: "ALLY_GRAVEYARD" }]
     };
     let state = startedGame();
     state.players.P1.graveyard = [
@@ -367,7 +367,8 @@ describe("data-driven card registry and operations", () => {
       target: { type: "GRAVEYARD", playerId: "P1", cardInstanceId: "fallen" }
     });
 
-    expect(state.players.P1.board[0].cardId).toBe("data-test-unit");
+    const revivedCard = state.players.P1.hand.find(c => c.cardId === "data-test-unit");
+    expect(revivedCard).toBeDefined();
     expect(state.players.P1.graveyard.map((entry) => entry.cardId)).toEqual([
       "data-revive"
     ]);
@@ -528,7 +529,7 @@ describe("data-driven card registry and operations", () => {
   
   
   
-  it("Cat-Baby-with-bow creates pendingChoice when played without target", () => {
+  it("Cat-Baby-with-bow summons first, then creates pendingChoice when an effect target exists", () => {
     const cat = getCardDefinition("Cat-Baby-with-bow");
     let state = startedGame();
     state.players.P1.hand = [card(cat, "P1", "cat")];
@@ -539,9 +540,10 @@ describe("data-driven card registry and operations", () => {
       playerId: "P1",
       cardInstanceId: "cat"
     });
-    // Unit is not committed until the required on-play target is chosen.
-    expect(state.players.P1.board).toHaveLength(0);
-    expect(state.players.P1.hand).toHaveLength(1);
+    // Unit summon is not gated by the on-play effect.
+    expect(state.players.P1.board).toHaveLength(1);
+    expect(state.players.P1.board[0].instanceId).toBe("cat");
+    expect(state.players.P1.hand).toHaveLength(0);
     expect(state.pendingChoice).toBeDefined();
     expect(state.pendingChoice!.abilityId).toBe("Cat-Baby-with-bow-play");
     expect(state.pendingChoice!.requiredTargets).toEqual([
@@ -550,13 +552,32 @@ describe("data-driven card registry and operations", () => {
     // No debuff yet
     expect(state.players.P2.board[0].modifiers).toHaveLength(0);
   });
+
+  it("Cat-Baby-with-bow still summons when its on-play effect has no valid target", () => {
+    const cat = getCardDefinition("Cat-Baby-with-bow");
+    let state = startedGame();
+    state.players.P1.hand = [card(cat, "P1", "cat")];
+    state.players.P1.mana = 10;
+    state.players.P2.board = [];
+
+    state = applyAction(state, {
+      type: "PLAY_UNIT",
+      playerId: "P1",
+      cardInstanceId: "cat"
+    });
+
+    expect(state.players.P1.board).toHaveLength(1);
+    expect(state.players.P1.board[0].instanceId).toBe("cat");
+    expect(state.players.P1.hand).toHaveLength(0);
+    expect(state.pendingChoice).toBeUndefined();
+  });
   it("Cat-Baby-with-bow applies permanent -1 attack debuff after target selection", () => {
     const cat = getCardDefinition("Cat-Baby-with-bow");
     let state = startedGame();
     state.players.P1.hand = [card(cat, "P1", "cat")];
     state.players.P1.mana = 10;
     state.players.P2.board = [createUnitInstance(card(unit, "P2", "enemy"))];
-    // Play the unit -> creates pendingChoice
+    // Play the unit -> summons and creates pendingChoice for the on-play effect
     state = applyAction(state, {
       type: "PLAY_UNIT",
       playerId: "P1",
@@ -579,7 +600,7 @@ describe("data-driven card registry and operations", () => {
     });
   });
 
-  it("Cat-Baby-with-bow cancel clears pending choice and keeps the card in hand", () => {
+  it("Cat-Baby-with-bow cancel clears pending choice but keeps the summoned unit", () => {
     const cat = getCardDefinition("Cat-Baby-with-bow");
     let state = startedGame();
     state.players.P1.hand = [card(cat, "P1", "cat")];
@@ -594,6 +615,7 @@ describe("data-driven card registry and operations", () => {
 
     expect(state.pendingChoice).toBeDefined();
     expect(state.priorityPlayerId).toBe("P1");
+    expect(state.players.P1.board).toHaveLength(1);
 
     state = applyAction(state, {
       type: "CANCEL_PENDING_CHOICE",
@@ -601,10 +623,10 @@ describe("data-driven card registry and operations", () => {
     });
 
     expect(state.pendingChoice).toBeUndefined();
-    expect(state.players.P1.board).toHaveLength(0);
-    expect(state.players.P1.hand).toHaveLength(1);
-    expect(state.players.P1.hand[0].instanceId).toBe("cat");
-    expect(state.players.P1.mana).toBe(10);
+    expect(state.players.P1.board).toHaveLength(1);
+    expect(state.players.P1.board[0].instanceId).toBe("cat");
+    expect(state.players.P1.hand).toHaveLength(0);
+    expect(state.players.P1.mana).toBe(9);
     expect(state.players.P2.board[0].modifiers).toHaveLength(0);
     expect(state.priorityPlayerId).toBe("P1");
     expect(state.activePlayerId).toBe("P1");
