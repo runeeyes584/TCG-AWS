@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1085.0",
+    "@tailwindcss/postcss": "^4.3.2",
     "aws-amplify": "^6.18.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -35,10 +36,12 @@
     "lucide-react": "^1.22.0",
     "next": "^16.2.9",
     "openid-client": "^5.7.0",
+    "postcss": "^8.5.17",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
