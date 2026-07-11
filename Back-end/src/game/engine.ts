@@ -6,7 +6,12 @@ import {
   getUnitHealth,
   isChampionCard
 } from "./cards";
-import { getCardDefinition, registerCardDefinition, registerCardDefinitions } from "./cardRegistry";
+import {
+  getCardDefinition,
+  listCards,
+  registerCardDefinition,
+  registerCardDefinitions
+} from "./cardRegistry";
 import {
   checkWinConditions,
   cloneState,
@@ -19,19 +24,23 @@ import {
   STARTING_HAND_SIZE,
   STARTING_NEXUS_HP,
   validateAction
-} from "./rules";
+} from "./rules/gameRules";
 import {
   AbilityTargetMap,
+  AdditionalCostDefinition,
   CardDefinition,
   CardInstance,
   GameAction,
+  GamePhase,
   GameState,
   GameValidationError,
+  GraveyardEntry,
   Keyword,
   PlayerId,
   PendingChoice,
   PlayerState,
   SpellTarget,
+  TargetDefinition,
   UnitInstance
 } from "./types";
 import { enqueueEffect, resolveEffectQueue, resolvePlayedSpellEffectTarget } from "./effects";
@@ -45,15 +54,15 @@ import { GameEvent } from "./events";
 import {
   cleanupDeadUnits,
   moveCardToGraveyard,
-  moveSpellToGraveyard,
-  moveUnitToGraveyard
+  moveSpellToGraveyard
 } from "./graveyard";
 import {
   dealDamage,
   dealDamageToUnitState,
   discardCards as discardCardsOperation,
   drawCards as drawCardsOperation,
-  healTarget
+  healTarget,
+  sacrificeUnit
 } from "./operations";
 export {
   getGraveyardEntries,
@@ -70,6 +79,9 @@ export function updateChampionProgress(state: GameState, event: GameEvent): void
       if (event.playerId) {
         state.players[event.playerId].championProgress["ALLIES_DIED"] = 
           (state.players[event.playerId].championProgress["ALLIES_DIED"] || 0) + 1;
+        const enemyId = opponentOf(event.playerId);
+        state.players[enemyId].championProgress["ENEMIES_DIED"] =
+          (state.players[enemyId].championProgress["ENEMIES_DIED"] || 0) + 1;
       }
       break;
     case "SPELL_CAST":
@@ -102,23 +114,57 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     const player = state.players[playerId];
+
     for (const unit of player.board) {
-      if (!shouldLevelChampion(player, unit)) {
+      const definition = getCardDefinitionForUnit(unit);
+      if (shouldLevelChampionDefinition(player, definition, unit.instanceId)) {
+        markChampionLeveled(player, definition);
+      }
+    }
+
+    for (const card of [...player.deck, ...player.hand]) {
+      const definition = getCardDefinitionForInstance(card);
+      if (shouldLevelChampionDefinition(player, definition)) {
+        markChampionLeveled(player, definition);
+      }
+    }
+
+    for (const entry of player.graveyard) {
+      const definition = getCardDefinition(entry.cardId);
+      if (shouldLevelChampionDefinition(player, definition)) {
+        markChampionLeveled(player, definition);
+      }
+    }
+
+    for (const unit of player.board) {
+      const definition = getCardDefinitionForUnit(unit);
+      if (!shouldApplyChampionLevel(player, definition)) {
         continue;
       }
 
-      const definition = getCardDefinitionForUnit(unit);
-      const level2Code = definition.level2CardCode ?? definition.leveledUpCardId;
-      const level2Def = level2Code ? getCardDefinition(level2Code) : undefined;
+      const level2Def = getLevel2ChampionDefinition(definition);
       if (level2Def) {
         levelChampionUnit(state, playerId, unit, level2Def);
       }
     }
+
+    for (const card of player.deck) {
+      levelChampionCardInstance(player, card);
+    }
+    for (const card of player.hand) {
+      levelChampionCardInstance(player, card);
+    }
+    for (const entry of player.graveyard) {
+      levelChampionGraveyardEntry(player, entry);
+    }
   }
 }
 
-function shouldLevelChampion(player: PlayerState, unit: UnitInstance): boolean {
-  const definition = getCardDefinitionForUnit(unit);
+function shouldLevelChampionDefinition(
+  player: PlayerState,
+  definition: CardDefinition,
+  unitInstanceId?: string
+): boolean {
   if (
     !isChampionCard(definition) ||
     definition.level !== 1 ||
@@ -128,12 +174,100 @@ function shouldLevelChampion(player: PlayerState, unit: UnitInstance): boolean {
   }
 
   const condition = definition.levelUpCondition;
+  if (condition.type === "THIS_CHAMPION_STRUCK" && !unitInstanceId) {
+    return false;
+  }
+
   const key =
     condition.type === "THIS_CHAMPION_STRUCK"
-      ? championStrikeProgressKey(unit.instanceId)
+      ? championStrikeProgressKey(unitInstanceId as string)
       : condition.type;
 
   return (player.championProgress[key] || 0) >= condition.threshold;
+}
+
+function shouldApplyChampionLevel(
+  player: PlayerState,
+  definition: CardDefinition
+): boolean {
+  if (!isLevelOneChampion(definition)) {
+    return false;
+  }
+
+  return Boolean(player.leveledChampionIds?.[getChampionLevelKey(definition)]);
+}
+
+function levelChampionCardInstance(player: PlayerState, card: CardInstance): void {
+  const definition = getCardDefinitionForInstance(card);
+  if (!shouldApplyChampionLevel(player, definition)) {
+    return;
+  }
+
+  const level2Def = getLevel2ChampionDefinition(definition);
+  if (level2Def) {
+    card.cardId = level2Def.id;
+  }
+}
+
+function levelChampionGraveyardEntry(
+  player: PlayerState,
+  entry: GraveyardEntry
+): void {
+  const definition = getCardDefinition(entry.cardId);
+  if (!shouldApplyChampionLevel(player, definition)) {
+    return;
+  }
+
+  const level2Def = getLevel2ChampionDefinition(definition);
+  if (level2Def) {
+    entry.cardId = level2Def.id;
+  }
+}
+
+function markChampionLeveled(player: PlayerState, definition: CardDefinition): void {
+  if (!isLevelOneChampion(definition)) {
+    return;
+  }
+
+  player.leveledChampionIds ??= {};
+  player.leveledChampionIds[getChampionLevelKey(definition)] = true;
+}
+
+function isLevelOneChampion(definition: CardDefinition): boolean {
+  return isChampionCard(definition) && definition.level === 1;
+}
+
+function getChampionLevelKey(definition: CardDefinition): string {
+  return definition.championId ?? definition.id;
+}
+
+function getLevel2ChampionDefinition(
+  definition: CardDefinition
+): CardDefinition | undefined {
+  const level2Code = definition.level2CardCode ?? definition.leveledUpCardId;
+  return level2Code ? getCardDefinition(level2Code) : undefined;
+}
+
+function getLevel1ChampionDefinition(
+  definition: CardDefinition
+): CardDefinition | undefined {
+  if (!isChampionCard(definition) || definition.level !== 2) {
+    return definition;
+  }
+
+  return listCards().find((candidate) => {
+    if (!isChampionCard(candidate) || candidate.level !== 1) {
+      return false;
+    }
+
+    const linkedLevel2Code = candidate.level2CardCode ?? candidate.leveledUpCardId;
+    const sameChampion =
+      Boolean(candidate.championId) &&
+      Boolean(definition.championId) &&
+      candidate.championId === definition.championId;
+
+    return linkedLevel2Code === definition.id || sameChampion;
+  });
 }
 
 function levelChampionUnit(
@@ -142,6 +276,11 @@ function levelChampionUnit(
   unit: UnitInstance,
   level2Def: CardDefinition
 ): void {
+  const currentDefinition = getCardDefinitionForUnit(unit);
+  if (currentDefinition.level === 2) {
+    return;
+  }
+
   unit.cardId = level2Def.id;
   unit.attack = level2Def.attack ?? unit.attack;
   unit.maxHealth = level2Def.health ?? unit.maxHealth;
@@ -179,6 +318,7 @@ export function createInitialPlayerState(
     board: [],
     graveyard: [],
     championProgress: {},
+    leveledChampionIds: {},
     abilityProgress: {}
   };
 }
@@ -238,10 +378,17 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       next = startRound(cleanState);
       break;
     case "PLAY_UNIT":
-      next = playUnit(cleanState, action.playerId, action.cardInstanceId, action.replaceUnitId, action.target);
+      next = playUnit(
+        cleanState,
+        action.playerId,
+        action.cardInstanceId,
+        action.replaceUnitId,
+        action.target,
+        action.costTargets
+      );
       break;
     case "PLAY_SPELL":
-      next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target);
+      next = playSpell(cleanState, action.playerId, action.cardInstanceId, action.target, action.costTargets);
       break;
     case "SUBMIT_ABILITY_TARGETS":
       next = submitAbilityTargets(cleanState, action.playerId, action.targets);
@@ -336,8 +483,8 @@ function beginNextRound(state: GameState): void {
   if (next.winnerId) {
     return;
   }
-  requestDiscardIfNeeded(next, next.priorityPlayerId);
   emitEvent(next, { type: "ROUND_STARTED" });
+  requestRoundDiscardsIfNeeded(next);
 }
 
 function refreshRound(state: GameState, draw: boolean): void {
@@ -380,9 +527,12 @@ function discardCard(
   discardCardsOperation(next, playerId, [cardInstanceId]);
 
   if (player.hand.length <= (next.pendingDiscard?.downTo ?? HAND_LIMIT)) {
-    const returnPhase = next.pendingDiscard?.returnPhase ?? "ACTION";
+    const pendingDiscard = next.pendingDiscard;
+    const returnPhase = pendingDiscard?.returnPhase ?? "ACTION";
+    const remainingPlayerIds = pendingDiscard?.remainingPlayerIds ?? [];
     next.pendingDiscard = undefined;
     next.phase = returnPhase;
+    requestNextPendingDiscard(next, remainingPlayerIds, returnPhase);
   }
 
   return next;
@@ -397,7 +547,9 @@ function playUnit(
   playerId: PlayerId,
   cardInstanceId: string,
   replaceUnitId?: string,
-  target?: SpellTarget
+  target?: SpellTarget,
+  costTargets?: SpellTarget[],
+  abilityTargets?: AbilityTargetMap
 ): GameState {
   const next = cloneState(state);
   const player = next.players[playerId];
@@ -408,40 +560,11 @@ function playUnit(
   const definition = getCardDefinitionForInstance(card);
   const onPlayAbilities = (definition.abilities ?? []).filter((ability) => ability.onPlay);
 
-  for (const ability of onPlayAbilities) {
-    const selectedTargets: AbilityTargetMap = target ? { target } : {};
-    const missingTargets = getMissingRequiredTargets(ability, selectedTargets);
-    if (missingTargets.length > 0) {
-      player.hand.splice(handIndex, 0, card);
-      next.pendingChoice = {
-        playerId,
-        sourceInstanceId: card.instanceId,
-        sourceCardId: card.cardId,
-        abilityId: ability.id,
-        requiredTargets: missingTargets,
-        chosenTargets: selectedTargets,
-        returnPhase: next.phase,
-        playUnit: { replaceUnitId }
-      };
-      next.priorityPlayerId = playerId;
-      next.activePlayerId = playerId;
-      return next;
-    }
-  }
-
+  payAdditionalCost(next, playerId, definition.additionalCost, costTargets);
   player.mana -= definition.cost;
   
   if (replaceUnitId) {
-    const replaceIndex = player.board.findIndex(u => u.instanceId === replaceUnitId);
-    if (replaceIndex !== -1) {
-      const replacedUnit = player.board[replaceIndex];
-      // Note: we're directly splicing it out of the array before adding to graveyard
-      // to ensure it is actually gone, but moveUnitToGraveyard also expects unit to be 
-      // removed externally from board usually (cleanupDeadUnits does this).
-      player.board.splice(replaceIndex, 1);
-      // Move it to graveyard (cause=EFFECT since it's a replacement sacrifice)
-      moveUnitToGraveyard(next, replacedUnit, "EFFECT");
-    }
+    sacrificeUnit(next, playerId, replaceUnitId, "EFFECT");
   }
   
   player.board.push(createUnitInstance(card));
@@ -472,51 +595,117 @@ function playUnit(
 
   // Handle on-play abilities that require player targeting
   for (const ability of onPlayAbilities) {
-    const selectedTargets: AbilityTargetMap = target ? { target } : {};
+    const selectedTargets: AbilityTargetMap = abilityTargets ?? (target ? { target } : {});
     const unit = player.board.find((candidate) => candidate.instanceId === card.instanceId);
-    executeAbility(next, ability, {
-      sourceId: card.instanceId,
-      sourceName: definition.name,
-      sourcePlayerId: playerId,
-      sourceUnit: unit,
-      selectedTargets
-    });
-    continue;
     const missingTargets = getMissingRequiredTargets(ability, selectedTargets);
     if (missingTargets.length > 0) {
+      const availableTargets = missingTargets.filter((targetDefinition) =>
+        hasAvailableAbilityTarget(next, playerId, targetDefinition)
+      );
+      if (availableTargets.length === 0) {
+        continue;
+      }
       // Player must choose target → create pendingChoice
       next.pendingChoice = {
         playerId,
         sourceInstanceId: card.instanceId,
         sourceCardId: card.cardId,
         abilityId: ability.id,
-        requiredTargets: missingTargets,
+        requiredTargets: availableTargets,
         chosenTargets: selectedTargets,
         returnPhase: next.phase
       };
       next.priorityPlayerId = playerId;
       next.activePlayerId = playerId;
+      return next;
     } else {
       // All targets resolved → execute ability immediately
       const unit = player.board.find(u => u.instanceId === card.instanceId);
-      executeAbility(next, ability, {
-        sourceId: card.instanceId,
-        sourceName: definition.name,
-        sourcePlayerId: playerId,
-        sourceUnit: unit,
-        selectedTargets
-      });
+      try {
+        executeAbility(next, ability, {
+          sourceId: card.instanceId,
+          sourceName: definition.name,
+          sourcePlayerId: playerId,
+          sourceUnit: unit,
+          selectedTargets
+        });
+      } catch {
+        // A unit's on-play effect is optional for summoning. If its condition,
+        // target, or cost cannot be satisfied, the unit still enters play.
+      }
     }
   }
 
   return next;
 }
 
+function hasAvailableAbilityTarget(
+  state: GameState,
+  sourcePlayerId: PlayerId,
+  targetDefinition: TargetDefinition
+): boolean {
+  const ally = state.players[sourcePlayerId];
+  const enemyId = opponentOf(sourcePlayerId);
+  const enemy = state.players[enemyId];
+
+  switch (targetDefinition.kind) {
+    case "SELF":
+    case "ALLY_NEXUS":
+    case "ENEMY_NEXUS":
+      return true;
+    case "ALLY_UNIT":
+      return ally.board.length > 0;
+    case "ENEMY_UNIT":
+      return enemy.board.length > 0;
+    case "ANY_UNIT":
+    case "ANY_TARGET":
+      return ally.board.length + enemy.board.length > 0;
+    case "ALLY_HAND_CARD":
+      return ally.hand.some((card) => cardMatchesTargetFilter(card, targetDefinition, true));
+    case "ENEMY_HAND_CARD":
+      return enemy.hand.some((card) => cardMatchesTargetFilter(card, targetDefinition, true));
+    case "ANY_HAND_CARD":
+      return [...ally.hand, ...enemy.hand].some((card) =>
+        cardMatchesTargetFilter(card, targetDefinition, true)
+      );
+    case "ALLY_DECK_CARD":
+      return ally.deck.some((card) => cardMatchesTargetFilter(card, targetDefinition));
+    case "ANY_DECK_CARD":
+      return [...ally.deck, ...enemy.deck].some((card) =>
+        cardMatchesTargetFilter(card, targetDefinition)
+      );
+  }
+}
+
+function cardMatchesTargetFilter(
+  card: CardInstance,
+  targetDefinition: TargetDefinition,
+  allowLevelTwo = false
+): boolean {
+  const filter = targetDefinition.filter;
+  const definition = getCardDefinitionForInstance(card);
+  if (!allowLevelTwo && definition.level === 2) {
+    return false;
+  }
+  if (!filter) {
+    return true;
+  }
+
+  return (
+    (!filter.archetype || definition.archetype === filter.archetype) &&
+    (!filter.cardType || definition.type === filter.cardType) &&
+    (!filter.cardTypes || filter.cardTypes.includes(definition.type)) &&
+    (!filter.spellSpeed || definition.spellSpeed === filter.spellSpeed) &&
+    (filter.maxCost === undefined || definition.cost <= filter.maxCost)
+  );
+}
+
 function playSpell(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: string,
-  target: SpellTarget
+  target: SpellTarget,
+  costTargets?: SpellTarget[]
 ): GameState {
   const next = cloneState(state);
   const player = next.players[playerId];
@@ -545,6 +734,7 @@ function playSpell(
       abilityId: pendingAbility.ability.id,
       requiredTargets: pendingAbility.missingTargets,
       chosenTargets: selectedTargets,
+      costTargets,
       returnPhase: next.phase
     };
     next.priorityPlayerId = playerId;
@@ -552,6 +742,7 @@ function playSpell(
     return next;
   }
 
+  payAdditionalCost(next, playerId, definition.additionalCost, costTargets);
   spendSpellMana(player, definition.cost);
   if (definition.abilities?.length) {
     executePlayedSpellAbilities(next, card, target);
@@ -597,10 +788,18 @@ function submitAbilityTargets(
       ...pendingChoice.chosenTargets,
       ...targets
     };
-    const primaryTargetId = pendingChoice.requiredTargets[0]?.id ?? "target";
-    const target = selectedTargets[primaryTargetId] ?? selectedTargets.target;
-    if (!target) {
-      throw new GameValidationError("Ability requires a target.");
+    assertUniqueUnitTargets(selectedTargets);
+    const remainingTargets = pendingChoice.requiredTargets.filter(
+      (targetDefinition) => !selectedTargets[targetDefinition.id]
+    );
+
+    if (remainingTargets.length > 0) {
+      next.pendingChoice = {
+        ...pendingChoice,
+        chosenTargets: selectedTargets,
+        requiredTargets: remainingTargets
+      };
+      return next;
     }
 
     next.pendingChoice = undefined;
@@ -609,7 +808,9 @@ function submitAbilityTargets(
       playerId,
       pendingChoice.sourceInstanceId,
       pendingChoice.playUnit.replaceUnitId,
-      target
+      undefined,
+      pendingChoice.playUnit.costTargets,
+      selectedTargets
     );
   }
 
@@ -647,6 +848,7 @@ function submitAbilityTargets(
     throw new GameValidationError("Not enough mana.");
   }
 
+  payAdditionalCost(next, playerId, definition.additionalCost, pendingChoice.costTargets);
   executeAbility(next, ability, {
     sourceId: card.instanceId,
     sourceName: definition.name,
@@ -693,6 +895,20 @@ function submitOnPlayAbilityTargets(
     ...pendingChoice.chosenTargets,
     ...targets
   };
+  assertUniqueUnitTargets(selectedTargets);
+
+  const remainingTargets = pendingChoice.requiredTargets.filter(
+    (targetDefinition) => !selectedTargets[targetDefinition.id]
+  );
+  if (remainingTargets.length > 0) {
+    state.pendingChoice = {
+      ...pendingChoice,
+      chosenTargets: selectedTargets,
+      requiredTargets: remainingTargets
+    };
+    return state;
+  }
+
   executeAbility(state, ability, {
     sourceId: unit.instanceId,
     sourceName: definition.name,
@@ -762,6 +978,42 @@ function emitPlayedSpellEvents(
     sourceInstanceId: card.instanceId,
     sourceCardId: card.cardId
   });
+}
+
+function payAdditionalCost(
+  state: GameState,
+  playerId: PlayerId,
+  cost?: AdditionalCostDefinition,
+  costTargets: SpellTarget[] = []
+): void {
+  if (!cost) {
+    return;
+  }
+
+  switch (cost.type) {
+    case "SACRIFICE_UNITS":
+      for (const target of costTargets) {
+        if (target.type !== "UNIT") {
+          continue;
+        }
+        sacrificeUnit(state, playerId, target.unitId, "EFFECT");
+      }
+      return;
+  }
+}
+
+function assertUniqueUnitTargets(targets: AbilityTargetMap): void {
+  const seen = new Set<string>();
+  for (const target of Object.values(targets)) {
+    if (target.type !== "UNIT") {
+      continue;
+    }
+    const key = `${target.playerId}:${target.unitId}`;
+    if (seen.has(key)) {
+      throw new GameValidationError("Ability targets must be unique.");
+    }
+    seen.add(key);
+  }
 }
 
 function declareAttacker(
@@ -1034,12 +1286,39 @@ function endTurn(state: GameState, playerId: PlayerId): GameState {
 function passPriority(state: GameState, playerId: PlayerId): void {
   state.priorityPlayerId = opponentOf(playerId);
   state.activePlayerId = opponentOf(playerId);
-  if (state.phase === "ACTION") {
-    requestDiscardIfNeeded(state, state.priorityPlayerId);
-  }
 }
 
-function requestDiscardIfNeeded(state: GameState, playerId: PlayerId): void {
+function requestRoundDiscardsIfNeeded(state: GameState): void {
+  const pendingPlayerIds = PLAYER_IDS.filter(
+    (playerId) => state.players[playerId].hand.length > HAND_LIMIT
+  );
+  requestNextPendingDiscard(state, pendingPlayerIds, "ACTION");
+}
+
+function requestNextPendingDiscard(
+  state: GameState,
+  playerIds: PlayerId[],
+  returnPhase: Exclude<GamePhase, "DISCARD">
+): void {
+  const [playerId, ...remainingPlayerIds] = playerIds;
+  if (!playerId) {
+    return;
+  }
+
+  if (state.players[playerId].hand.length <= HAND_LIMIT) {
+    requestNextPendingDiscard(state, remainingPlayerIds, returnPhase);
+    return;
+  }
+
+  requestDiscardIfNeeded(state, playerId, returnPhase, remainingPlayerIds);
+}
+
+function requestDiscardIfNeeded(
+  state: GameState,
+  playerId: PlayerId,
+  returnPhase: Exclude<GamePhase, "DISCARD">,
+  remainingPlayerIds: PlayerId[] = []
+): void {
   if (state.players[playerId].hand.length <= HAND_LIMIT) {
     return;
   }
@@ -1047,11 +1326,19 @@ function requestDiscardIfNeeded(state: GameState, playerId: PlayerId): void {
   state.pendingDiscard = {
     playerId,
     downTo: HAND_LIMIT,
-    returnPhase: "ACTION"
+    returnPhase,
+    reason: "HAND_LIMIT",
+    remainingPlayerIds
   };
   state.phase = "DISCARD";
   state.priorityPlayerId = playerId;
   state.activePlayerId = playerId;
+  state.visualEvents.push({
+    type: "HAND_LIMIT_DISCARD_REQUIRED",
+    playerId,
+    handSize: state.players[playerId].hand.length,
+    downTo: HAND_LIMIT
+  });
 }
 
 
@@ -1111,15 +1398,30 @@ function normalizeDeck(
       if (!entry.cardId) {
         throw new Error("Card instance requires cardId.");
       }
-      getCardDefinition(entry.cardId);
-      return { instanceId: entry.instanceId, cardId: entry.cardId, ownerId: entry.ownerId };
+      const cardId = normalizeInitialDeckCardId(entry.cardId);
+      return { instanceId: entry.instanceId, cardId, ownerId: entry.ownerId };
     }
 
-    registerCardDefinition(entry);
+    const registeredDefinition = registerCardDefinition(entry);
+    const cardId = normalizeInitialDeckCardId(registeredDefinition.id);
     return {
-      instanceId: `${ownerId}-${entry.id}-${index}`,
-      cardId: entry.id,
+      instanceId: `${ownerId}-${cardId}-${index}`,
+      cardId,
       ownerId
     };
   });
+}
+
+function normalizeInitialDeckCardId(cardId: string): string {
+  const definition = getCardDefinition(cardId);
+  if (!isChampionCard(definition) || definition.level !== 2) {
+    return cardId;
+  }
+
+  const level1Definition = getLevel1ChampionDefinition(definition);
+  if (!level1Definition || level1Definition.id === definition.id) {
+    return cardId;
+  }
+
+  return level1Definition.id;
 }

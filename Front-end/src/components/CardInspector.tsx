@@ -21,10 +21,17 @@ export function CardInspector() {
 
   return (
     <div className="card-inspector">
+      {definition.imageUrl ? (
+        <div
+          className="inspector-art"
+          style={{ backgroundImage: `url(${definition.imageUrl})` }}
+          aria-hidden="true"
+        />
+      ) : null}
       <div className="inspector-header">
         <h2>{definition.name}</h2>
         <div className="inspector-actions">
-          <span className="card-meta"><Zap size={14}/> {definition.cost}</span>
+          <span className="inspector-cost"><Zap size={14}/> {definition.cost}</span>
           <button
             type="button"
             className="panel-close"
@@ -40,15 +47,8 @@ export function CardInspector() {
         {definition.supertype ? `${definition.supertype} ` : ""}{definition.type}
       </div>
 
-      {(attack !== undefined || health !== undefined) && (
-        <div className="card-stats">
-          <span className="card-stat attack"><Swords size={14}/> {attack}</span>
-          <span className="card-stat health"><Shield size={14}/> {health}{activeUnit && maxHealth !== undefined ? `/${maxHealth}` : ""}</span>
-        </div>
-      )}
-
       {definition.description && (
-        <div className="inspector-description" style={{ marginTop: '8px', fontStyle: 'italic', color: '#ccc' }}>
+        <div className="inspector-description">
           {definition.description}
         </div>
       )}
@@ -59,29 +59,13 @@ export function CardInspector() {
         </div>
       )}
 
-      {definition.effects && definition.effects.length > 0 && (
-        <div className="inspector-effects">
-          <strong>Effects:</strong>
-          <ul>
-            {definition.effects.map((eff, i) => (
-              <li key={i}>{eff.type} {eff.target && `(Target: ${eff.target})`} {"amount" in eff && `(${(eff as any).amount})`} {"count" in eff && `(${(eff as any).count})`}</li>
-            ))}
-          </ul>
+      {(attack !== undefined || health !== undefined) && (
+        <div className="inspector-stat-row">
+          <span className="inspector-stat attack"><Swords size={14}/> {attack ?? "-"}</span>
+          <span className="inspector-stat health"><Shield size={14}/> {health ?? "-"}{activeUnit && maxHealth !== undefined ? `/${maxHealth}` : ""}</span>
         </div>
       )}
 
-      {definition.triggers && definition.triggers.length > 0 && (
-        <div className="inspector-triggers">
-          <strong>Triggers:</strong>
-          <ul>
-            {definition.triggers.map((trig, i) => (
-              <li key={i}>
-                <em>{trig.event}</em>: {trig.effects.map(e => e.type).join(", ")}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

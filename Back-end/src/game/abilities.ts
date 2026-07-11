@@ -14,10 +14,9 @@ import {
   TargetDefinition,
   UnitInstance
 } from "./types";
-import { findCardInHand, findUnit, opponentOf } from "./rules";
+import { findCardInHand, findUnit, opponentOf } from "./rules/gameRules";
 import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth } from "./cards";
-import { moveUnitToGraveyard } from "./graveyard";
-import { discardCards } from "./operations";
+import { discardCards, sacrificeUnit } from "./operations";
 
 export interface AbilityContext {
   sourceId: string;
@@ -195,6 +194,19 @@ function assertConditions(
         }
         break;
       }
+      case "EVENT_PLAYER_IS": {
+        if (!context.event?.playerId) {
+          throw new GameValidationError("Ability condition failed: missing event player.");
+        }
+        const expectedPlayerId =
+          condition.player === "SELF"
+            ? context.sourcePlayerId
+            : opponentOf(context.sourcePlayerId);
+        if (context.event.playerId !== expectedPlayerId) {
+          throw new GameValidationError("Ability condition failed: wrong event player.");
+        }
+        break;
+      }
     }
   }
 }
@@ -290,25 +302,39 @@ function assertTargetDefinition(
         findUnit(state, target.playerId, target.unitId);
       } else if (target.type === "HAND_CARD") {
         findCardInHand(state, target.playerId, target.cardInstanceId);
+      } else if (target.type === "DECK_CARD") {
+        findCardInDeck(state, target.playerId, target.cardInstanceId);
       }
+      break;
+    case "ALLY_DECK_CARD":
+      if (target.type !== "DECK_CARD" || target.playerId !== sourcePlayerId) {
+        throw new GameValidationError("Ability target must be an allied deck card.");
+      }
+      assertDeckCardMatchesTarget(state, target.playerId, target.cardInstanceId, definition);
+      break;
+    case "ANY_DECK_CARD":
+      if (target.type !== "DECK_CARD") {
+        throw new GameValidationError("Ability target must be a deck card.");
+      }
+      assertDeckCardMatchesTarget(state, target.playerId, target.cardInstanceId, definition);
       break;
     case "ALLY_HAND_CARD":
       if (target.type !== "HAND_CARD" || target.playerId !== sourcePlayerId) {
         throw new GameValidationError("Ability target must be an allied hand card.");
       }
-      findCardInHand(state, target.playerId, target.cardInstanceId);
+      assertHandCardMatchesTarget(state, target.playerId, target.cardInstanceId, definition);
       break;
     case "ENEMY_HAND_CARD":
       if (target.type !== "HAND_CARD" || target.playerId !== opponentOf(sourcePlayerId)) {
         throw new GameValidationError("Ability target must be an enemy hand card.");
       }
-      findCardInHand(state, target.playerId, target.cardInstanceId);
+      assertHandCardMatchesTarget(state, target.playerId, target.cardInstanceId, definition);
       break;
     case "ANY_HAND_CARD":
       if (target.type !== "HAND_CARD") {
         throw new GameValidationError("Ability target must be a hand card.");
       }
-      findCardInHand(state, target.playerId, target.cardInstanceId);
+      assertHandCardMatchesTarget(state, target.playerId, target.cardInstanceId, definition);
       break;
   }
 }
@@ -372,10 +398,7 @@ function payCosts(
       case "SACRIFICE_UNIT":
       case "DESTROY_ALLY": {
         const unit = requireAlliedUnitTarget(state, context.sourcePlayerId, targets[cost.target]);
-        state.players[context.sourcePlayerId].board = state.players[
-          context.sourcePlayerId
-        ].board.filter((candidate) => candidate.instanceId !== unit.instanceId);
-        moveUnitToGraveyard(state, unit, "EFFECT");
+        sacrificeUnit(state, context.sourcePlayerId, unit.instanceId, "EFFECT");
         break;
       }
       case "EXHAUST_UNIT": {
@@ -394,6 +417,9 @@ function resolveEffectTarget(
   targets: AbilityTargetMap
 ): SpellTarget | undefined {
   const effectTarget = effect.target;
+  if (!effectTarget) {
+    return undefined;
+  }
   if (targets[effectTarget]) {
     return targets[effectTarget];
   }
@@ -478,4 +504,81 @@ function requireAlliedUnitTarget(
     throw new GameValidationError("Cost requires an allied unit target.");
   }
   return findUnit(state, playerId, target.unitId);
+}
+
+function findCardInDeck(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: string
+): CardInstance {
+  const card = state.players[playerId].deck.find(
+    (candidate) => candidate.instanceId === cardInstanceId
+  );
+  if (!card) {
+    throw new GameValidationError("Card is not in deck.");
+  }
+  return card;
+}
+
+function assertDeckCardMatchesTarget(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: string,
+  definition: TargetDefinition
+): void {
+  const card = findCardInDeck(state, playerId, cardInstanceId);
+  const cardDefinition = getCardDefinitionForInstance(card);
+  const filter = definition.filter;
+  if (cardDefinition.level === 2) {
+    throw new GameValidationError("Deck card target must be a collectible card.");
+  }
+  if (!filter) {
+    return;
+  }
+
+  if (filter.archetype && cardDefinition.archetype !== filter.archetype) {
+    throw new GameValidationError("Deck card target has the wrong archetype.");
+  }
+  if (filter.cardType && cardDefinition.type !== filter.cardType) {
+    throw new GameValidationError("Deck card target has the wrong card type.");
+  }
+  if (filter.cardTypes && !filter.cardTypes.includes(cardDefinition.type)) {
+    throw new GameValidationError("Deck card target has the wrong card type.");
+  }
+  if (filter.spellSpeed && cardDefinition.spellSpeed !== filter.spellSpeed) {
+    throw new GameValidationError("Deck card target has the wrong spell speed.");
+  }
+  if (filter.maxCost !== undefined && cardDefinition.cost > filter.maxCost) {
+    throw new GameValidationError("Deck card target costs too much.");
+  }
+}
+
+function assertHandCardMatchesTarget(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: string,
+  definition: TargetDefinition
+): void {
+  const card = findCardInHand(state, playerId, cardInstanceId);
+  const cardDefinition = getCardDefinitionForInstance(card);
+  const filter = definition.filter;
+  if (!filter) {
+    return;
+  }
+
+  if (filter.archetype && cardDefinition.archetype !== filter.archetype) {
+    throw new GameValidationError("Hand card target has the wrong archetype.");
+  }
+  if (filter.cardType && cardDefinition.type !== filter.cardType) {
+    throw new GameValidationError("Hand card target has the wrong card type.");
+  }
+  if (filter.cardTypes && !filter.cardTypes.includes(cardDefinition.type)) {
+    throw new GameValidationError("Hand card target has the wrong card type.");
+  }
+  if (filter.spellSpeed && cardDefinition.spellSpeed !== filter.spellSpeed) {
+    throw new GameValidationError("Hand card target has the wrong spell speed.");
+  }
+  if (filter.maxCost !== undefined && cardDefinition.cost > filter.maxCost) {
+    throw new GameValidationError("Hand card target costs too much.");
+  }
 }

@@ -26,10 +26,9 @@ export function BoardView({
     <section className="lane" aria-label="Board">
       <div className="lane-label">{label}</div>
       <div className="card-grid board-grid">
-        {units.length === 0 ? (
-          <div className="empty-slot">{emptyLabel}</div>
-        ) : (
-          units.map((unit) => (
+        {Array.from({ length: 6 }).map((_, index) => {
+          const unit = units[index];
+          return unit ? (
             <CardView
               key={unit.instanceId}
               unit={unit}
@@ -40,8 +39,12 @@ export function BoardView({
               onClick={onSelectUnit ? () => onSelectUnit(unit) : undefined}
               visualEvents={visualEvents?.filter(e => (e as any).targetId === unit.instanceId || (e as any).sourceId === unit.instanceId)}
             />
-          ))
-        )}
+          ) : (
+            <div className="empty-slot board-empty-slot" key={`empty-${index}`}>
+              {index === 0 && units.length === 0 ? emptyLabel : ""}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

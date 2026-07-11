@@ -348,6 +348,8 @@ function describeVisualEvent(event: GameState["visualEvents"][number]): string {
       return `${event.targetId} changed ${event.attackDelta}/${event.healthDelta}.`;
     case "TRIGGER_ACTIVATED":
       return `Trigger activated: ${event.effectName}.`;
+    case "HAND_LIMIT_DISCARD_REQUIRED":
+      return `${event.playerId} must discard from ${event.handSize} to ${event.downTo} cards.`;
     case "CHAMPION_LEVELED_UP":
       return `${event.playerId}'s champion leveled up.`;
   }

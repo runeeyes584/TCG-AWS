@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { applyAction, createInitialGameState } from "./engine";
+import {
+  applyAction,
+  checkChampionLevelUps,
+  createInitialGameState,
+  updateChampionProgress
+} from "./engine";
 import { createCardInstance, createUnitInstance, getUnitAttack } from "./cards";
 import { GameState, CardDefinition, PlayerId, GameAction, UnitInstance } from "./types";
 import { getCardDefinition } from "./cardRegistry";
+import { buildDefaultDeck } from "./defaultDeck";
 
 describe("Champion System & Level Up", () => {
   const dummyUnit: CardDefinition = {
@@ -55,6 +61,55 @@ describe("Champion System & Level Up", () => {
       }
     };
   }
+
+  it("normalizes level 2 champions in starting decks back to level 1", () => {
+    const champ1: CardDefinition = {
+      id: "initial-champ-1",
+      name: "Initial Champ",
+      type: "champion",
+      championId: "initial-champ",
+      cost: 1,
+      attack: 2,
+      health: 2,
+      level: 1,
+      levelUpCondition: { type: "SPELLS_CAST", threshold: 1 },
+      level2CardCode: "initial-champ-2"
+    };
+    const champ2: CardDefinition = {
+      id: "initial-champ-2",
+      name: "Initial Champ",
+      type: "champion",
+      championId: "initial-champ",
+      cost: 1,
+      attack: 5,
+      health: 5,
+      level: 2
+    };
+
+    const state = createInitialGameState(
+      [createCardInstance(champ2, "P1", "level-2-copy")],
+      deck("P2"),
+      123,
+      { "initial-champ-1": champ1, "initial-champ-2": champ2 }
+    );
+
+    expect(state.players.P1.deck[0]).toMatchObject({
+      instanceId: "level-2-copy",
+      cardId: "initial-champ-1"
+    });
+  });
+
+  it("default local decks do not include level 2 champions at game start", () => {
+    const defaultDeck = buildDefaultDeck("P1");
+
+    expect(
+      defaultDeck.some((card) => {
+        const definition = getCardDefinition(card.cardId);
+        return definition.type === "champion" && definition.level === 2;
+      })
+    ).toBe(false);
+  });
+
   const dummySpell: CardDefinition = {
     id: "dummy-spell", name: "Dummy Spell", type: "spell", cost: 1,
     effects: [{ type: "DRAW_CARD", count: 1, target: "SELF" }]
@@ -407,6 +462,162 @@ describe("Champion System & Level Up", () => {
       unitId: "P1-board-event-champ-1-0",
       newLevel: 2
     });
+  });
+
+  it("champion in hand levels up when global progress is met", () => {
+    const champ1: CardDefinition = {
+      id: "hand-champ-1",
+      name: "Hand Champ",
+      type: "champion",
+      championId: "hand-champ",
+      cost: 1,
+      attack: 1,
+      health: 2,
+      level: 1,
+      levelUpCondition: { type: "SPELLS_CAST", threshold: 1 },
+      level2CardCode: "hand-champ-2"
+    };
+    const champ2: CardDefinition = {
+      id: "hand-champ-2",
+      name: "Hand Champ",
+      type: "champion",
+      championId: "hand-champ",
+      cost: 1,
+      attack: 3,
+      health: 4,
+      level: 2
+    };
+    const state = started({ "hand-champ-1": champ1, "hand-champ-2": champ2 });
+    state.players.P1.hand = [createCardInstance(champ1, "P1", "hand-champ")];
+
+    updateChampionProgress(state, { type: "SPELL_CAST", playerId: "P1", cardInstanceId: "spell" });
+    checkChampionLevelUps(state);
+
+    expect(state.players.P1.hand[0].cardId).toBe("hand-champ-2");
+    expect(state.players.P1.leveledChampionIds["hand-champ"]).toBe(true);
+  });
+
+  it("champion in deck levels up when global progress is met", () => {
+    const champ1: CardDefinition = {
+      id: "deck-champ-1",
+      name: "Deck Champ",
+      type: "champion",
+      championId: "deck-champ",
+      cost: 1,
+      attack: 1,
+      health: 2,
+      level: 1,
+      levelUpCondition: { type: "NEXUS_DAMAGE_DEALT", threshold: 2 },
+      level2CardCode: "deck-champ-2"
+    };
+    const champ2: CardDefinition = {
+      id: "deck-champ-2",
+      name: "Deck Champ",
+      type: "champion",
+      championId: "deck-champ",
+      cost: 1,
+      attack: 4,
+      health: 4,
+      level: 2
+    };
+    const state = started({ "deck-champ-1": champ1, "deck-champ-2": champ2 });
+    state.players.P1.deck = [createCardInstance(champ1, "P1", "deck-champ")];
+
+    updateChampionProgress(state, {
+      type: "NEXUS_DAMAGED",
+      playerId: "P2",
+      sourcePlayerId: "P1",
+      amount: 2
+    });
+    checkChampionLevelUps(state);
+
+    expect(state.players.P1.deck[0].cardId).toBe("deck-champ-2");
+  });
+
+  it("champion in graveyard levels up when global progress is met", () => {
+    const champ1: CardDefinition = {
+      id: "grave-champ-1",
+      name: "Grave Champ",
+      type: "champion",
+      championId: "grave-champ",
+      cost: 1,
+      attack: 1,
+      health: 2,
+      level: 1,
+      levelUpCondition: { type: "ALLIES_DIED", threshold: 1 },
+      level2CardCode: "grave-champ-2"
+    };
+    const champ2: CardDefinition = {
+      id: "grave-champ-2",
+      name: "Grave Champ",
+      type: "champion",
+      championId: "grave-champ",
+      cost: 1,
+      attack: 4,
+      health: 4,
+      level: 2
+    };
+    const state = started({ "grave-champ-1": champ1, "grave-champ-2": champ2 });
+    state.players.P1.graveyard = [{
+      id: "grave-champ-gy",
+      instanceId: "grave-champ",
+      cardId: "grave-champ-1",
+      ownerId: "P1",
+      type: "CHAMPION",
+      round: state.round,
+      cause: "COMBAT"
+    }];
+
+    updateChampionProgress(state, {
+      type: "UNIT_DIED",
+      playerId: "P1",
+      unitInstanceId: "ally"
+    });
+    checkChampionLevelUps(state);
+
+    expect(state.players.P1.graveyard[0].cardId).toBe("grave-champ-2");
+  });
+
+  it("board level up upgrades copies in hand and deck", () => {
+    const champ1: CardDefinition = {
+      id: "global-champ-1",
+      name: "Global Champ",
+      type: "champion",
+      championId: "global-champ",
+      cost: 1,
+      attack: 1,
+      health: 2,
+      level: 1,
+      levelUpCondition: { type: "THIS_CHAMPION_STRUCK", threshold: 1 },
+      level2CardCode: "global-champ-2"
+    };
+    const champ2: CardDefinition = {
+      id: "global-champ-2",
+      name: "Global Champ",
+      type: "champion",
+      championId: "global-champ",
+      cost: 1,
+      attack: 5,
+      health: 5,
+      level: 2
+    };
+    const state = started({ "global-champ-1": champ1, "global-champ-2": champ2 });
+    state.players.P1.board = [
+      createUnitInstance(createCardInstance(champ1, "P1", "global-board"))
+    ];
+    state.players.P1.hand = [createCardInstance(champ1, "P1", "global-hand")];
+    state.players.P1.deck = [createCardInstance(champ1, "P1", "global-deck")];
+
+    updateChampionProgress(state, {
+      type: "UNIT_STRUCK",
+      playerId: "P1",
+      unitInstanceId: "global-board"
+    });
+    checkChampionLevelUps(state);
+
+    expect(state.players.P1.board[0].cardId).toBe("global-champ-2");
+    expect(state.players.P1.hand[0].cardId).toBe("global-champ-2");
+    expect(state.players.P1.deck[0].cardId).toBe("global-champ-2");
   });
 
   it("level 2 triggers replace level 1 behavior after level up", () => {
