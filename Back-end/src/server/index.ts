@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
-import { resolve } from "node:path";
-import next from "next";
+// import { resolve } from "node:path";
+// import next from "next";
 import { Server, Socket } from "socket.io";
 import { buildDefaultDeck } from "../game/defaultDeck";
 import { applyAction, createInitialGameState } from "../game/engine";
@@ -11,6 +11,10 @@ import type {
   RoomAck,
   ServerToClientEvents
 } from "../shared/multiplayer";
+import express from "express";
+import authRoutes from "../auth/auth.routes";
+import cookieParser from "cookie-parser";
+import cors from "cors";
 
 interface RoomPlayer {
   socketId: string;
@@ -26,18 +30,60 @@ interface Room {
 
 type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 
-const dev = process.env.NODE_ENV !== "production";
-const hostname = process.env.HOSTNAME ?? "127.0.0.1";
-const port = Number(process.env.PORT ?? 4000);
-const app = next({ dev, hostname, port, dir: resolve(process.cwd(), "Front-end") });
-const handle = app.getRequestHandler();
+// const dev = process.env.NODE_ENV !== "production";
+// const hostname = process.env.HOSTNAME ?? "127.0.0.1";
+const port = Number(process.env.PORT ?? 5000);
+const hostname = "localhost";
+// const app = next({ dev, hostname, port, dir: resolve(process.cwd(), "Front-end") });
+// const app = next({
+//     dev,
+//     hostname,
+//     port,
+//     dir: resolve(process.cwd(), "Front-end")
+// });
+// const handle = app.getRequestHandler();
 const rooms = new Map<string, Room>();
 const socketRooms = new Map<string, string>();
 
-await app.prepare();
+const expressApp = express();
 
-const httpServer = createServer((request, response) => {
-  handle(request, response);
+expressApp.use(
+    cors({
+        origin: "http://localhost:3000",
+        credentials: true
+    })
+);
+
+expressApp.use(express.json());
+
+expressApp.use(cookieParser());
+
+expressApp.use("/auth", authRoutes);
+
+const httpServer = createServer(expressApp);
+
+// await app.prepare();
+
+// const expressApp = express();
+
+// expressApp.use(express.json());
+// expressApp.use(cookieParser());
+
+// expressApp.use("/auth", authRoutes);
+
+// // Chuyển mọi request còn lại sang Next.js
+// expressApp.use((req, res) => {
+//     return handle(req, res);
+// });
+
+// const httpServer = createServer(expressApp);
+
+// const httpServer = createServer((request, response) => {
+//   handle(request, response);
+// });
+
+httpServer.listen(port, hostname, () => {
+    console.log(`Server running at http://${hostname}:${port}`);
 });
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
