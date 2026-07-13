@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { getCardDefinition } from "@backend/game/cardRegistry";
+import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import type { GameState, PlayerId } from "@backend/game/types";
 
 type MusicStage = "begin" | "keycard" | "climax";

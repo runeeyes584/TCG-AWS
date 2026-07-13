@@ -4,9 +4,9 @@ import {
   checkChampionLevelUps,
   createInitialGameState,
   updateChampionProgress
-} from "./engine";
+} from "../core/engine";
 import { createCardInstance, createUnitInstance, getUnitAttack } from "./cards";
-import { GameState, CardDefinition, PlayerId, GameAction, UnitInstance } from "./types";
+import { GameState, CardDefinition, PlayerId, GameAction, UnitInstance } from "../types";
 import { getCardDefinition } from "./cardRegistry";
 import { buildDefaultDeck } from "./defaultDeck";
 
@@ -157,7 +157,7 @@ describe("Champion System & Level Up", () => {
     const kalistaInstance = state.players.P1.board[0];
     expect(unitDef(kalistaInstance).level).toBe(1);
     
-    const { updateChampionProgress, checkChampionLevelUps } = await import("./engine");
+    const { updateChampionProgress, checkChampionLevelUps } = await import("../core/engine");
     
     updateChampionProgress(state, { type: "UNIT_DIED", playerId: "P1", unitInstanceId: "some-id" });
     updateChampionProgress(state, { type: "UNIT_DIED", playerId: "P1", unitInstanceId: "some-id2" });
@@ -184,7 +184,7 @@ describe("Champion System & Level Up", () => {
     state.players.P1.hand.push(createCardInstance(lux1, "P1", "lux"));
     state = applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "lux" });
     
-    const { updateChampionProgress, checkChampionLevelUps } = await import("./engine");
+    const { updateChampionProgress, checkChampionLevelUps } = await import("../core/engine");
     
     for (let i = 0; i < 3; i++) {
       updateChampionProgress(state, { type: "SPELL_CAST", playerId: "P1", cardInstanceId: "s" + i });
@@ -234,7 +234,7 @@ describe("Champion System & Level Up", () => {
     state.players.P1.board[0].damage = 2;
     expect(state.players.P1.board[0].maxHealth).toBe(5); 
     
-    const { updateChampionProgress, checkChampionLevelUps } = await import("./engine");
+    const { updateChampionProgress, checkChampionLevelUps } = await import("../core/engine");
     updateChampionProgress(state, { type: "NEXUS_DAMAGED", playerId: "P2", amount: 10 });
     checkChampionLevelUps(state);
     

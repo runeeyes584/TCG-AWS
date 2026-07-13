@@ -1,7 +1,7 @@
-import { GameEvent } from "./events";
+import { GameEvent } from "../core/events";
 import { executeTriggeredAbilities } from "./abilities";
-import { GameState } from "./types";
-import { updateChampionProgress } from "./engine";
+import { GameState } from "../types";
+import { updateChampionProgress } from "../core/engine";
 
 export function emitEvent(state: GameState, event: GameEvent): void {
   updateChampionProgress(state, event);

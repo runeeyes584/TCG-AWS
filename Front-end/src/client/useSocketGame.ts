@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import type { GameController } from "../components/GameBoard";
-import { buildDefaultDeck } from "@backend/game/defaultDeck";
-import { createInitialGameState } from "@backend/game/engine";
+import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
+import { createInitialGameState } from "@backend/game/core/engine";
 import type { GameAction, GameState, PlayerId } from "@backend/game/types";
 import type {
   ClientToServerEvents,

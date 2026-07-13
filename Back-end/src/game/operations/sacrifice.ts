@@ -1,4 +1,4 @@
-import { moveUnitToGraveyard } from "../graveyard";
+import { moveUnitToGraveyard } from "../mechanics/graveyard";
 import {
   GameState,
   GameValidationError,

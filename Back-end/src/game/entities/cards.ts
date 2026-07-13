@@ -5,7 +5,7 @@ import {
   PlayerId,
   UnitModifier,
   UnitInstance
-} from "./types";
+} from "../types";
 import { getCardDefinition, registerCardDefinition } from "./cardRegistry";
 
 export function isChampionCard(definition: CardDefinition): boolean {
@@ -51,6 +51,7 @@ export function createUnitInstance(card: CardInstance): UnitInstance {
     temporaryKeywords: [],
     modifiers: [],
     exhausted: false,
+    boardRow: "WAITING",
     attacking: false
   };
 }

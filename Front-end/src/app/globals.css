@@ -2814,6 +2814,15 @@ button.card-view {
   gap: 5px;
 }
 
+.pending-choice-card.is-disabled {
+  opacity: 0.36;
+  filter: grayscale(1) saturate(0.25);
+}
+
+.pending-choice-card.is-disabled .card-view {
+  pointer-events: none;
+}
+
 .pending-choice-zone-label {
   max-width: 110px;
   overflow: hidden;

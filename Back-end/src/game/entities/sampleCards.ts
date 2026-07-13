@@ -1,5 +1,5 @@
 import { listCards } from "./cardRegistry";
-import { CardDefinition } from "./types";
+import { CardDefinition } from "../types";
 
 export const sampleDeckCards: CardDefinition[] = listCards();
 

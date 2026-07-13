@@ -6,5 +6,6 @@ export { summonUnit } from "./summon";
 export { addModifier, grantKeyword } from "./buff";
 export { addDebuff, removeKeyword } from "./debuff";
 export { banishFromGraveyard } from "./banish";
-export { reviveFromGraveyardToHand } from "./revive";
+export { rebirthFromGraveyardToHand } from "./rebirth";
 export { sacrificeUnit, sacrificeUnits } from "./sacrifice";
+export { reviveFromGraveyardToBoard } from "./revive";

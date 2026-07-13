@@ -1,4 +1,4 @@
-import { emitEvent } from "../triggers";
+import { emitEvent } from "../mechanics/triggers";
 import { GameState, SpellTarget } from "../types";
 import { findUnit, STARTING_NEXUS_HP } from "../rules/gameRules";
 

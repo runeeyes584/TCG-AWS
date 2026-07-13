@@ -5,7 +5,7 @@ import {
   getUnitAttack,
   getUnitHealth,
   getUnitMaxHealth
-} from "./cards";
+} from "../entities/cards";
 import { applyAction, createInitialGameState } from "./engine";
 import {
   CardDefinition,
@@ -13,7 +13,7 @@ import {
   GameValidationError,
   PlayerId,
   SpellEffect
-} from "./types";
+} from "../types";
 
 const soldier: CardDefinition = {
   id: "soldier",
