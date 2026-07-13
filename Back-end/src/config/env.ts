@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config();
+dotenv.config({
+    path: path.resolve(process.cwd(), "Back-end/.env")
+});
 
 export const env = {
     region: process.env.COGNITO_REGION!,
