@@ -54,9 +54,9 @@
 
 
   {
-    "id": "cat-debuff-unit",
+    "id": "Cat-Baby-with-bow",
     "name": "Baby Cat with Bow",
-    "cost": 2,
+    "cost": 1,
     "type": "unit",
     "attack": 2,
     "health": 2,
@@ -87,7 +87,7 @@
   },
 
   {
-    "id": "cat-debuff-unit",
+    "id": "Cat-Banana",
     "name": "Cat Banana",
     "cost": 4,
     "type": "unit",

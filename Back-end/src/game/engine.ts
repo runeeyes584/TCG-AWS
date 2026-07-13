@@ -8,6 +8,7 @@ import {
 } from "./cards";
 import {
   getCardDefinition,
+  hasCard,
   listCards,
   registerCardDefinition,
   registerCardDefinitions
@@ -123,6 +124,9 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     for (const card of [...player.deck, ...player.hand]) {
+      if (!hasCard(card.cardId)) {
+        continue;
+      }
       const definition = getCardDefinitionForInstance(card);
       if (shouldLevelChampionDefinition(player, definition)) {
         markChampionLeveled(player, definition);
@@ -130,6 +134,9 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     for (const entry of player.graveyard) {
+      if (!hasCard(entry.cardId)) {
+        continue;
+      }
       const definition = getCardDefinition(entry.cardId);
       if (shouldLevelChampionDefinition(player, definition)) {
         markChampionLeveled(player, definition);
@@ -149,10 +156,14 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     for (const card of player.deck) {
-      levelChampionCardInstance(player, card);
+      if (hasCard(card.cardId)) {
+        levelChampionCardInstance(player, card);
+      }
     }
     for (const card of player.hand) {
-      levelChampionCardInstance(player, card);
+      if (hasCard(card.cardId)) {
+        levelChampionCardInstance(player, card);
+      }
     }
     for (const entry of player.graveyard) {
       levelChampionGraveyardEntry(player, entry);
@@ -213,6 +224,9 @@ function levelChampionGraveyardEntry(
   player: PlayerState,
   entry: GraveyardEntry
 ): void {
+  if (!hasCard(entry.cardId)) {
+    return;
+  }
   const definition = getCardDefinition(entry.cardId);
   if (!shouldApplyChampionLevel(player, definition)) {
     return;

@@ -2,14 +2,14 @@
 import { useHover } from "../contexts/HoverContext";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/cards";
 import { Shield, Swords, X, Zap } from "lucide-react";
-import { getCardDefinition } from "@backend/game/cardRegistry";
+import { getCardDefinition, hasCard } from "@backend/game/cardRegistry";
 
 export function CardInspector() {
   const { selectedCard, selectedUnit, selectCard } = useHover();
   const activeCard = selectedCard;
   const activeUnit = selectedUnit;
   const cardId = activeUnit?.cardId ?? activeCard?.cardId;
-  const definition = cardId ? getCardDefinition(cardId) : undefined;
+  const definition = cardId && hasCard(cardId) ? getCardDefinition(cardId) : undefined;
 
   if (!definition) {
     return null;

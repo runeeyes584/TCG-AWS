@@ -23,7 +23,7 @@ import { HoverProvider } from "../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { HandView } from "./HandView";
-import { getCardDefinition } from "@backend/game/cardRegistry";
+import { getCardDefinition, hasCard } from "@backend/game/cardRegistry";
 import { useBattleMusic } from "../hooks/useBattleMusic";
 
 export interface GameController {
@@ -906,6 +906,9 @@ export function GameBoardView({
     card: CardInstance,
     targetDefinition: TargetDefinition
   ): boolean {
+    if (!hasCard(card.cardId)) {
+      return false;
+    }
     const filter = targetDefinition.filter;
     if (!filter) {
       return true;
@@ -926,6 +929,19 @@ export function GameBoardView({
     const pendingChoice = gameState.pendingChoice;
     if (!pendingChoice) {
       return null;
+    }
+
+    if (!canControl(pendingChoice.playerId)) {
+      return (
+        <div className="pending-choice-overlay" role="dialog" aria-modal="true">
+          <div className="pending-choice-panel">
+            <div className="pending-choice-header">
+              <strong>Opponent is choosing a target</strong>
+              <span>Please wait for the action to resolve.</span>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     const targetDefinition = pendingChoice.requiredTargets[0];
