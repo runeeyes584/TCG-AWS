@@ -120,6 +120,8 @@ function describeAction(action: GameAction): string {
       return "Resolved combat.";
     case "END_TURN":
       return `${action.playerId} passed priority.`;
+    case "TIME_OUT":
+      return `${action.playerId} timed out.`;
   }
 }
 
@@ -129,6 +131,8 @@ function describeVisualEvent(event: VisualEvent): string | undefined {
       return `Trigger activated: ${event.effectName}`;
     case "HAND_LIMIT_DISCARD_REQUIRED":
       return `${event.playerId} must discard from ${event.handSize} to ${event.downTo} cards.`;
+    case "AFK_WARNING":
+      return `${event.playerId} timed out (${event.afkCount}/3).`;
     case "DAMAGE":
       return `${event.targetId} took ${event.amount} damage.`;
     case "HEAL":

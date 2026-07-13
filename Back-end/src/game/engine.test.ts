@@ -353,6 +353,38 @@ describe("game engine", () => {
     expect(state.consecutivePasses).toBe(0);
   });
 
+  it("penalizes timeouts, shortens the next AFK turn, and resets AFK after an action", () => {
+    let state = startedGame();
+    const initialStartTime = state.turnStartTime;
+
+    state = applyAction(state, { type: "TIME_OUT", playerId: "P1" });
+    expect(state.players.P1.consecutiveAfkCount).toBe(1);
+    expect(state.visualEvents).toContainEqual({
+      type: "AFK_WARNING",
+      playerId: "P1",
+      afkCount: 1
+    });
+    expect(state.turnStartTime).toBeGreaterThanOrEqual(initialStartTime);
+
+    state = applyAction(state, { type: "END_TURN", playerId: "P2" });
+    state = applyAction(state, { type: "END_TURN", playerId: "P2" });
+    expect(state.priorityPlayerId).toBe("P1");
+    expect(state.turnDuration).toBe(10_000);
+
+    state = applyAction(state, { type: "END_TURN", playerId: "P1" });
+    expect(state.players.P1.consecutiveAfkCount).toBe(0);
+  });
+
+  it("awards the game to the opponent after a third consecutive timeout", () => {
+    let state = startedGame();
+    state.players.P1.consecutiveAfkCount = 2;
+
+    state = applyAction(state, { type: "TIME_OUT", playerId: "P1" });
+
+    expect(state.players.P1.consecutiveAfkCount).toBe(3);
+    expect(state.winnerId).toBe("P2");
+  });
+
   it("declares attackers into combat state and commits to block phase", () => {
     let state = withBoard(startedGame(), "P1", [
       createUnitInstance(card(soldier, "P1", "attacker"))

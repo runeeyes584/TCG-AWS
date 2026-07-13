@@ -33,6 +33,7 @@ const app = next({ dev, hostname, port, dir: resolve(process.cwd(), "Front-end")
 const handle = app.getRequestHandler();
 const rooms = new Map<string, Room>();
 const socketRooms = new Map<string, string>();
+const roomTimers = new Map<string, NodeJS.Timeout>();
 
 await app.prepare();
 
@@ -81,6 +82,7 @@ io.on("connection", (socket) => {
     });
     ack({ ok: true, roomCode: room.code, playerId: "P2" });
     broadcastRoom(room);
+    refreshTimer(room);
   });
 
   socket.on("game:action", (action, ack) => {
@@ -101,6 +103,7 @@ io.on("connection", (socket) => {
       appendActionLog(room, action);
       ack?.({ ok: true });
       broadcastRoom(room);
+      refreshTimer(room);
     } catch (error) {
       replyError(
         socket,
@@ -121,6 +124,7 @@ io.on("connection", (socket) => {
     room.log = [{ id: Date.now(), message: "Room game reset." }];
     ack?.({ ok: true });
     broadcastRoom(room);
+    refreshTimer(room);
   });
 
   socket.on("disconnect", () => {
@@ -138,6 +142,7 @@ io.on("connection", (socket) => {
     room.players = room.players.filter((player) => player.socketId !== socket.id);
     room.log.unshift({ id: Date.now(), message: "A player disconnected." });
     if (room.players.length === 0) {
+      clearRoomTimer(room.code);
       rooms.delete(room.code);
       return;
     }
@@ -207,6 +212,40 @@ function broadcastRoom(room: Room) {
       state: redactStateForPlayer(room.state, player.playerId),
       log: room.log.slice(0, 80)
     });
+  }
+}
+
+function refreshTimer(room: Room): void {
+  clearRoomTimer(room.code);
+  if (!room.state.started || room.state.winnerId || room.players.length < 2) {
+    return;
+  }
+
+  const playerId = room.state.priorityPlayerId;
+  const timer = setTimeout(() => {
+    roomTimers.delete(room.code);
+    if (rooms.get(room.code) !== room || room.state.winnerId) {
+      return;
+    }
+
+    try {
+      room.state = applyAction(room.state, { type: "TIME_OUT", playerId });
+      appendActionLog(room, { type: "TIME_OUT", playerId });
+      broadcastRoom(room);
+      refreshTimer(room);
+    } catch {
+      // A player action may have resolved first; either way, preserve a timer for the current state.
+      refreshTimer(room);
+    }
+  }, room.state.turnDuration + 2_000);
+  roomTimers.set(room.code, timer);
+}
+
+function clearRoomTimer(roomCode: string): void {
+  const timer = roomTimers.get(roomCode);
+  if (timer) {
+    clearTimeout(timer);
+    roomTimers.delete(roomCode);
   }
 }
 
@@ -285,6 +324,8 @@ function describeAction(action: GameAction): string {
       return "Combat resolved.";
     case "END_TURN":
       return `${action.playerId} passed.`;
+    case "TIME_OUT":
+      return `${action.playerId} timed out.`;
   }
 }
 
@@ -306,6 +347,8 @@ function describeVisualEvent(event: GameState["visualEvents"][number]): string {
       return `${event.playerId} must discard from ${event.handSize} to ${event.downTo} cards.`;
     case "CHAMPION_LEVELED_UP":
       return `${event.playerId}'s champion leveled up.`;
+    case "AFK_WARNING":
+      return `${event.playerId} timed out (${event.afkCount}/3).`;
   }
 }
 
