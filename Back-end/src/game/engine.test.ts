@@ -369,7 +369,7 @@ describe("game engine", () => {
     state = applyAction(state, { type: "END_TURN", playerId: "P2" });
     state = applyAction(state, { type: "END_TURN", playerId: "P2" });
     expect(state.priorityPlayerId).toBe("P1");
-    expect(state.turnDuration).toBe(10_000);
+    expect(state.turnDuration).toBe(15_000);
 
     state = applyAction(state, { type: "END_TURN", playerId: "P1" });
     expect(state.players.P1.consecutiveAfkCount).toBe(0);

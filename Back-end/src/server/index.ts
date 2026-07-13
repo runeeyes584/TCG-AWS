@@ -265,6 +265,17 @@ function redactStateForPlayer(state: GameState, viewerId: PlayerId): GameState {
     ownerId: opponentId
   }));
 
+  if (visibleState.pendingChoice?.playerId !== viewerId && visibleState.pendingChoice) {
+    visibleState.pendingChoice = {
+      ...visibleState.pendingChoice,
+      chosenTargets: {},
+      costTargets: undefined,
+      playUnit: visibleState.pendingChoice.playUnit
+        ? { ...visibleState.pendingChoice.playUnit, costTargets: undefined }
+        : undefined
+    };
+  }
+
   return visibleState;
 }
 
