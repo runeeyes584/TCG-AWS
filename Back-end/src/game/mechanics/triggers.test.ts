@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { applyAction, createInitialGameState } from "./engine";
-import { createCardInstance, getUnitAttack, getUnitMaxHealth } from "./cards";
-import { CardDefinition, GameState, PlayerId } from "./types";
-import { sampleUnitCards, sampleSpellCards } from "./sampleCards";
+import { applyAction, createInitialGameState } from "../core/engine";
+import { createCardInstance, getUnitAttack, getUnitMaxHealth } from "../entities/cards";
+import { CardDefinition, GameState, PlayerId } from "../types";
+import { sampleUnitCards, sampleSpellCards } from "../entities/sampleCards";
 
 function card(definitionId: string, ownerId: PlayerId, id: string) {
   const definition = sampleUnitCards.find(c => c.id === definitionId) ?? sampleSpellCards.find(c => c.id === definitionId);

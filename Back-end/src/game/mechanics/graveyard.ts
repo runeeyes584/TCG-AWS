@@ -6,7 +6,7 @@
  * They are called from engine.ts after damage, spell resolution, and modifier expiry.
  */
 
-import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth, isChampionCard } from "./cards";
+import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth, isChampionCard } from "../entities/cards";
 import { emitEvent } from "./triggers";
 import {
   CardInstance,
@@ -17,7 +17,7 @@ import {
   PlayerId,
   PlayerState,
   UnitInstance
-} from "./types";
+} from "../types";
 
 // ---------------------------------------------------------------------------
 // Core helpers

@@ -2,8 +2,8 @@ import { createServer } from "node:http";
 import { resolve } from "node:path";
 import next from "next";
 import { Server, Socket } from "socket.io";
-import { buildDefaultDeck } from "../game/defaultDeck";
-import { applyAction, createInitialGameState } from "../game/engine";
+import { buildDefaultDeck } from "../game/entities/defaultDeck";
+import { applyAction, createInitialGameState } from "../game/core/engine";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
 import type {
   ActionAck,
@@ -392,6 +392,8 @@ function describeVisualEvent(event: GameState["visualEvents"][number]): string {
       return `${event.playerId} must discard from ${event.handSize} to ${event.downTo} cards.`;
     case "CHAMPION_LEVELED_UP":
       return `${event.playerId}'s champion leveled up.`;
+    case "SUMMON":
+      return `${event.playerId} revived a unit.`;
     case "AFK_WARNING":
       return `${event.playerId} timed out (${event.afkCount}/3).`;
   }

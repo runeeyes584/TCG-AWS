@@ -1,4 +1,4 @@
-import { GameEvent } from "./events";
+import { GameEvent } from "../core/events";
 import { enqueueEffect } from "./effects";
 import {
   Ability,
@@ -13,10 +13,10 @@ import {
   SpellTarget,
   TargetDefinition,
   UnitInstance
-} from "./types";
-import { findCardInHand, findUnit, opponentOf } from "./rules/gameRules";
-import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth } from "./cards";
-import { discardCards, sacrificeUnit } from "./operations";
+} from "../types";
+import { findCardInHand, findUnit, opponentOf } from "../rules/gameRules";
+import { getCardDefinitionForInstance, getCardDefinitionForUnit, getUnitHealth } from "../entities/cards";
+import { discardCards, sacrificeUnit } from "../operations";
 
 export interface AbilityContext {
   sourceId: string;
@@ -336,6 +336,32 @@ function assertTargetDefinition(
       }
       assertHandCardMatchesTarget(state, target.playerId, target.cardInstanceId, definition);
       break;
+    case "ALLY_GRAVEYARD":
+      assertGraveyardTarget(state, target, sourcePlayerId, "allied");
+      break;
+    case "ENEMY_GRAVEYARD":
+      assertGraveyardTarget(state, target, opponentOf(sourcePlayerId), "enemy");
+      break;
+    case "ANY_GRAVEYARD":
+      assertGraveyardTarget(state, target);
+      break;
+  }
+}
+
+function assertGraveyardTarget(
+  state: GameState,
+  target: SpellTarget,
+  expectedPlayerId?: PlayerId,
+  relation = "valid"
+): void {
+  if (target.type !== "GRAVEYARD" || (expectedPlayerId && target.playerId !== expectedPlayerId)) {
+    throw new GameValidationError(`Ability target must be a ${relation} graveyard card.`);
+  }
+  const entry = state.players[target.playerId].graveyard.find(
+    (candidate) => candidate.instanceId === target.cardInstanceId
+  );
+  if (!entry || entry.type === "SPELL") {
+    throw new GameValidationError("Ability target must be a unit or champion in a graveyard.");
   }
 }
 

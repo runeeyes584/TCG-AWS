@@ -1,4 +1,4 @@
-import { GameEventType, GameEvent } from "./events";
+import { GameEventType, GameEvent } from "./core/events";
 
 export type PlayerId = "P1" | "P2";
 
@@ -34,7 +34,10 @@ export type AbilityTargetKind =
   | "ANY_DECK_CARD"
   | "ALLY_HAND_CARD"
   | "ENEMY_HAND_CARD"
-  | "ANY_HAND_CARD";
+  | "ANY_HAND_CARD"
+  | "ALLY_GRAVEYARD"
+  | "ENEMY_GRAVEYARD"
+  | "ANY_GRAVEYARD";
 
 export type ModifierDuration =
   | "PERMANENT"
@@ -154,9 +157,15 @@ export type EffectDefinition =
       target: "ALLY_UNIT" | "ENEMY_UNIT" | "SELF" | TriggerTargetKind | string;
     }
   | {
-      type: "REVIVE_CARD";
+      type: "REBIRTH_CARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
       allowedTypes?: GraveyardEntryType[];
+    }
+  | {
+      type: "REVIVE_CARD";
+      target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
+      allowedTypes?: ("UNIT" | "CHAMPION")[]; //spell khong o tren board
+
     };
 
 export type SpellEffect = EffectDefinition;
@@ -315,6 +324,8 @@ export interface UnitInstance {
   temporaryKeywords: Keyword[];
   modifiers: UnitModifier[];
   exhausted: boolean;
+  /** Visual board placement outside combat. Revived units enter the active row. */
+  boardRow: "ACTIVE" | "WAITING";
   attacking: boolean;
   blockingUnitId?: string;
   blockedByUnitId?: string;
@@ -373,6 +384,7 @@ export type VisualEvent =
   | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string }
   | { type: "HAND_LIMIT_DISCARD_REQUIRED"; playerId: PlayerId; handSize: number; downTo: number }
   | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number }
+  | { type: "SUMMON"; playerId: PlayerId; instanceId: string }
   | { type: "AFK_WARNING"; playerId: PlayerId; afkCount: number };
 
 export interface GameState {

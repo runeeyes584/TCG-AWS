@@ -1,5 +1,5 @@
-import { getCardDefinition, hasCard } from "../cardRegistry";
-import { isChampionCard } from "../cards";
+import { getCardDefinition, hasCard } from "../entities/cardRegistry";
+import { isChampionCard } from "../entities/cards";
 import { GameValidationError } from "../types";
 
 export interface DeckValidationRules {

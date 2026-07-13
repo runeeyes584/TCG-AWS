@@ -1,5 +1,5 @@
-import { getUnitHealth } from "../cards";
-import { emitEvent } from "../triggers";
+import { getUnitHealth } from "../entities/cards";
+import { emitEvent } from "../mechanics/triggers";
 import { GameState, PlayerId, SpellTarget, UnitInstance } from "../types";
 import { findUnit } from "../rules/gameRules";
 

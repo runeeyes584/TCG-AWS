@@ -1,7 +1,7 @@
 [
 
     {
-    "id": "cat-banish",
+    "id": "cat-banish-01",
     "name": "Black Fat Cat",
     "cost": 5,
     "type": "spell",
@@ -17,7 +17,7 @@
   },
 
   {
-    "id": "cat-debuff",
+    "id": "cat-debuff-01",
     "name": "Cat Curse Paw",
     "cost": 3,
     "type": "spell",
@@ -36,25 +36,25 @@
   },
 
   {
-    "id": "cat-revive-unit-champion",
+    "id": "cat-rebirth-01",
     "name": "Cat Goat",
     "cost": 6,
     "type": "spell",
     "effects": [
       {
-        "type": "REVIVE_CARD",
+        "type": "REBIRTH_CARD",
         "target": "ALLY_GRAVEYARD",
         "allowedTypes": ["UNIT", "CHAMPION", "SPELL"]
       }
     ],
     "imageUrl": "https://i.pinimg.com/1200x/0e/4e/16/0e4e1693a9c045b028565c59e377b1ba.jpg",
-    "description": "An adorable and noble Goat cat—beloved by its teammates—whose appearance causes cats in the graveyard to return to your hand and provide support.",
+    "description": "An adorable and noble Goat cat—beloved by its teammates—whose appearance causes cats in the graveyard to return to your hand and provide support [Rebirth unit/champion/spell].",
     "spellSpeed": "slow"
   },
 
 
   {
-    "id": "Cat-Baby-with-bow",
+    "id": "cat-unit-03",
     "name": "Baby Cat with Bow",
     "cost": 1,
     "type": "unit",
@@ -87,7 +87,7 @@
   },
 
   {
-    "id": "Cat-Banana",
+    "id": "cat-unit-02",
     "name": "Cat Banana",
     "cost": 4,
     "type": "unit",
@@ -116,11 +116,11 @@
       }
     ],
     "imageUrl": "https://media1.tenor.com/m/JfrX5uK-_qIAAAAC/banana-cat.gif",
-    "description": "Summoning the cat causes the opponent to slip and fall (-1 Attack and -1 Health to a random enemy) [debuff]"
+    "description": "Summoning the cat causes the opponent to slip and fall (-1 Attack and -1 Health to a random enemy) [Debuff]"
   },
 
   {
-    "id": "cat-unit",
+    "id": "cat-unit-01",
     "name": "Cat Holding a Gun",
     "cost": 1,
     "type": "unit",
@@ -130,26 +130,60 @@
     "description": "A cat holding a gun with its tail."
   },
 
-    {
-    "id": "cat-revive",
+  {
+    "id": "cat-rebirth-02",
     "name": "Cat magic",
     "cost": 3,
     "type": "spell",
     "effects": [
       {
-        "type": "REVIVE_CARD",
+        "type": "REBIRTH_CARD",
         "target": "ALLY_GRAVEYARD",
         "allowedTypes": ["UNIT"]
       }
     ],
     "imageUrl": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMnZocXVtdHdidmpuNTRkcHFpdXc3dzBveDZqbGpwZ250OG03bmVhaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/z85Z93M2jZg0hE5RSZ/giphy.gif",
-    "description": "An adorably chubby cat that makes its owner unable to resist rising from the grave just to give it a hug [Revive].",
+    "description": "An adorably chubby cat that makes its owner unable to resist rising from the grave just to give it a hug [Rebirth unit].",
     "spellSpeed": "slow"
+  },
+
+  {
+    "id": "cat-revive-01",
+    "name": "Cat dance for revival",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "abilities": [
+      {
+        "id": "cat-dance-play",
+        "targets": [
+          {
+            "id": "reviveTarget",
+            "kind": "ALLY_GRAVEYARD",
+            "required": true
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "REVIVE_CARD",
+            "target": "reviveTarget",
+            "allowedTypes": ["UNIT", "CHAMPION"]
+          }
+        ]
+      }
+    ],
+    "imageUrl": "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbTFtMnU3MHAwMmk4d2NjZ2NyNHB3OXFsbDc5Y292c2ZyMXNhamVhaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tnHzL0nyqVnQBZVGhq/giphy.gif",
+    "description": "Deal 2 damage to your Nexus, then revive an allied unit or champion from your graveyard onto the active row."
   },
 
  
   {
-    "id": "cat-champion",
+    "id": "cat-champion-01",
     "name": "Angry cat sit on the throne",
     "cost": 7,
     "type": "champion",

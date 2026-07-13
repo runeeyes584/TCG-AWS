@@ -1,10 +1,10 @@
 "use client";
 
 import { Shield, Swords, Zap } from "lucide-react";
-import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/cards";
+import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/entities/cards";
 import { CardInstance, UnitInstance, VisualEvent } from "@backend/game/types";
 import { useHover } from "../contexts/HoverContext";
-import { getCardDefinition } from "@backend/game/cardRegistry";
+import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 
 interface CardViewProps {
   card?: CardInstance;

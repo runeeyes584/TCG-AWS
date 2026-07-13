@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { applyAction, createInitialGameState } from "./engine";
+import { applyAction, createInitialGameState } from "../core/engine";
 import { getGraveyardEntries, findReviveTargets } from "./graveyard";
-import { GameState, CardDefinition, PlayerId, GameAction } from "./types";
-import { findUnit } from "./rules/gameRules";
-import { createCardInstance, createUnitInstance } from "./cards";
-import { getCardDefinition } from "./cardRegistry";
+import { GameState, CardDefinition, PlayerId, GameAction } from "../types";
+import { findUnit } from "../rules/gameRules";
+import { createCardInstance, createUnitInstance } from "../entities/cards";
+import { getCardDefinition } from "../entities/cardRegistry";
 
 describe("Graveyard and Death Pipeline", () => {
   const dummyUnit: CardDefinition = {
@@ -97,7 +97,9 @@ describe("Graveyard and Death Pipeline", () => {
     const deck2 = Array(10).fill(null).map((_, i) =>
       createCardInstance(dummyUnit, "P2", `deck2-card-${i}`)
     );
-    let state = createInitialGameState(deck, deck2, 123);
+    let state = createInitialGameState(deck, deck2, 123, {
+      [championCard.id]: championCard
+    });
     state = applyAction(state, { type: "START_GAME", firstPlayerId: "P1" });
     // Give both players plenty of mana
     state.players.P1.mana = 10;
@@ -234,7 +236,7 @@ describe("Graveyard and Death Pipeline", () => {
     expect(activated).toBeDefined();
   });
 
-  it("REVIVE_CARD returns unit cards but ignores spell cards from graveyard", () => {
+  it("REVIVE_CARD places units in the active row and ignores spell cards", () => {
     let state = setupGame();
     state.players.P1.graveyard = [
       {
@@ -264,13 +266,13 @@ describe("Graveyard and Death Pipeline", () => {
       cardInstanceId: "dead-dummy"
     });
 
-    expect(state.players.P1.board).toHaveLength(0);
-    expect(state.players.P1.hand).toEqual(
+    expect(state.players.P1.board).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           instanceId: "dead-dummy",
           cardId: dummyUnit.id,
-          ownerId: "P1"
+          ownerId: "P1",
+          boardRow: "ACTIVE"
         })
       ])
     );
@@ -285,7 +287,7 @@ describe("Graveyard and Death Pipeline", () => {
       cardInstanceId: "dead-spell"
     });
 
-    expect(state.players.P1.board).toHaveLength(0);
+    expect(state.players.P1.board).toHaveLength(1);
     const revivedSpell = state.players.P1.hand.find(c => c.instanceId === "dead-spell");
     expect(revivedSpell).toBeUndefined();
     expect(state.players.P1.graveyard.map((entry) => entry.instanceId)).toContain("dead-spell");
@@ -319,15 +321,13 @@ describe("Graveyard and Death Pipeline", () => {
       { type: "UNIT", playerId: "P1", unitId: "cost-unit-2" }
     ]);
 
-    expect(state.players.P1.board).toHaveLength(0);
-    expect(state.players.P1.hand).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          instanceId: "dead-champion",
-          cardId: championCard.id
-        })
-      ])
-    );
+    expect(state.players.P1.board).toEqual([
+      expect.objectContaining({
+        instanceId: "dead-champion",
+        cardId: championCard.id,
+        boardRow: "ACTIVE"
+      })
+    ]);
     expect(state.players.P1.graveyard).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ instanceId: "cost-unit-1", cause: "EFFECT" }),

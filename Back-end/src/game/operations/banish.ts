@@ -1,4 +1,4 @@
-import { emitEvent } from "../triggers";
+import { emitEvent } from "../mechanics/triggers";
 import { GameState, PlayerId } from "../types";
 
 export function banishFromGraveyard(

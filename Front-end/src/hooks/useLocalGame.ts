@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { buildDefaultDeck } from "@backend/game/defaultDeck";
-import { applyAction, createInitialGameState } from "@backend/game/engine";
+import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
+import { applyAction, createInitialGameState } from "@backend/game/core/engine";
 import {
   GameAction,
   GameState,
@@ -145,5 +145,7 @@ function describeVisualEvent(event: VisualEvent): string | undefined {
       return `${event.targetId} gained ${event.attackDelta > 0 ? '+' : ''}${event.attackDelta}/${event.healthDelta > 0 ? '+' : ''}${event.healthDelta}.`;
     case "CHAMPION_LEVELED_UP":
       return `${event.playerId}'s champion leveled up to level ${event.newLevel}!`;
+    case "SUMMON":
+      return `${event.playerId} revived a unit.`;
   }
 }
