@@ -409,6 +409,40 @@ button svg { vertical-align: -2px; }
 }
 
 .stat-pill strong { color: var(--lor-gold-bright); font-weight: 700; }
+.stat-pill--timer strong { color: #9fe8ff; }
+
+.afk-notice {
+  position: fixed;
+  z-index: 50;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(90vw, 560px);
+  padding: 12px 16px;
+  border: 1px solid var(--lor-gold);
+  border-radius: 8px;
+  background: rgba(30, 20, 4, 0.96);
+  color: #fff5ce;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+.afk-notice--danger {
+  border-color: #ff5555;
+  background: rgba(75, 8, 8, 0.97);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+.afk-notice button {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
 
 /* ===== WINNER BANNER ===== */
 .winner-banner {

@@ -67,6 +67,11 @@ export function GameBoardView({
     attack?: number;
     health?: number;
   }>();
+  const [timeRemainingMs, setTimeRemainingMs] = useState(0);
+  const [afkNotice, setAfkNotice] = useState<{
+    level: "warning" | "danger";
+    message: string;
+  }>();
   const previousChampionIdsRef = useRef<Set<string>>(new Set());
   const attackPlayerId = gameState.attackTokenPlayerId;
   const defenderId: PlayerId = attackPlayerId === "P1" ? "P2" : "P1";
@@ -128,6 +133,37 @@ export function GameBoardView({
 
     return () => window.clearTimeout(timeout);
   }, [gameState]);
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      setTimeRemainingMs(Math.max(
+        0,
+        gameState.turnDuration - (Date.now() - gameState.turnStartTime)
+      ));
+    };
+    updateCountdown();
+    const interval = window.setInterval(updateCountdown, 100);
+    return () => window.clearInterval(interval);
+  }, [gameState.turnDuration, gameState.turnStartTime]);
+
+  useEffect(() => {
+    const warning = gameState.visualEvents.find(
+      (event): event is Extract<typeof event, { type: "AFK_WARNING" }> =>
+        event.type === "AFK_WARNING" && event.playerId === localPlayerId
+    );
+    if (!warning) {
+      return;
+    }
+
+    setAfkNotice(
+      warning.afkCount === 1
+        ? { level: "warning", message: "Bạn đã bỏ lỡ lượt. Lượt sau chỉ còn 10s." }
+        : {
+            level: "danger",
+            message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
+          }
+    );
+  }, [gameState.visualEvents, localPlayerId]);
 
   function canPlay(playerId: PlayerId, card: CardInstance) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
@@ -1545,6 +1581,15 @@ export function GameBoardView({
           </div>
         ) : null}
 
+        {afkNotice ? (
+          <div className={`afk-notice afk-notice--${afkNotice.level}`} role="alert">
+            <span>{afkNotice.message}</span>
+            <button type="button" onClick={() => setAfkNotice(undefined)} aria-label="Đóng cảnh báo AFK">
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
+
         <section className="battle-table lor-table" aria-label="Local battle board">
           {gameState.winnerId ? (
             <header className="topbar compact-topbar">
@@ -1582,6 +1627,11 @@ export function GameBoardView({
                   <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
                   <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
                   <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
+                  {gameState.started ? (
+                    <span className="stat-pill stat-pill--timer">
+                      Time <strong>{Math.ceil(timeRemainingMs / 1000)}s</strong>
+                    </span>
+                  ) : null}
                   {gameState.pendingDiscard ? (
                     <span className="stat-pill">
                       Discard{" "}
