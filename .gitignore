@@ -65,6 +65,7 @@ package-lock.json
 .eslintcache
 *v8.log
 /lib/
+.agents/
 .agents
 .next
 .env

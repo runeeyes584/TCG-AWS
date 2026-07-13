@@ -23,7 +23,7 @@ import { HoverProvider } from "../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { HandView } from "./HandView";
-import { getCardDefinition } from "@backend/game/cardRegistry";
+import { getCardDefinition, hasCard } from "@backend/game/cardRegistry";
 import { useBattleMusic } from "../hooks/useBattleMusic";
 
 export interface GameController {
@@ -38,6 +38,7 @@ interface GameBoardViewProps {
   controller: GameController;
   localPlayerId?: PlayerId;
   connectionStatus?: string;
+  opponentConnected?: boolean;
 }
 
 export function GameBoard() {
@@ -48,7 +49,8 @@ export function GameBoard() {
 export function GameBoardView({
   controller,
   localPlayerId,
-  connectionStatus
+  connectionStatus,
+  opponentConnected = true
 }: GameBoardViewProps) {
   const { gameState, actionLog, dispatch, dispatchChain, resetGame } = controller;
   useBattleMusic(gameState);
@@ -66,6 +68,11 @@ export function GameBoardView({
     ownerId: PlayerId;
     attack?: number;
     health?: number;
+  }>();
+  const [timeRemainingMs, setTimeRemainingMs] = useState(0);
+  const [afkNotice, setAfkNotice] = useState<{
+    level: "warning" | "danger";
+    message: string;
   }>();
   const previousChampionIdsRef = useRef<Set<string>>(new Set());
   const attackPlayerId = gameState.attackTokenPlayerId;
@@ -129,6 +136,37 @@ export function GameBoardView({
     return () => window.clearTimeout(timeout);
   }, [gameState]);
 
+  useEffect(() => {
+    const updateCountdown = () => {
+      setTimeRemainingMs(Math.max(
+        0,
+        gameState.turnDuration - (Date.now() - gameState.turnStartTime)
+      ));
+    };
+    updateCountdown();
+    const interval = window.setInterval(updateCountdown, 100);
+    return () => window.clearInterval(interval);
+  }, [gameState.turnDuration, gameState.turnStartTime]);
+
+  useEffect(() => {
+    const warning = gameState.visualEvents.find(
+      (event): event is Extract<typeof event, { type: "AFK_WARNING" }> =>
+        event.type === "AFK_WARNING" && event.playerId === localPlayerId
+    );
+    if (!warning) {
+      return;
+    }
+
+    setAfkNotice(
+      warning.afkCount === 1
+        ? { level: "warning", message: "Bạn đã bỏ lỡ lượt. Lượt sau chỉ còn 15s." }
+        : {
+            level: "danger",
+            message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
+          }
+    );
+  }, [gameState.visualEvents, localPlayerId]);
+
   function canPlay(playerId: PlayerId, card: CardInstance) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
       return false;
@@ -154,6 +192,14 @@ export function GameBoardView({
         ? player.mana + player.spellMana >= definition.cost
         : player.mana >= definition.cost)
     );
+  }
+
+  function surrender() {
+    if (!localPlayerId || !window.confirm("Bạn có chắc muốn đầu hàng không?")) {
+      return;
+    }
+
+    dispatch({ type: "SURRENDER", playerId: localPlayerId });
   }
 
   function playCard(playerId: PlayerId, card: CardInstance) {
@@ -870,6 +916,9 @@ export function GameBoardView({
     card: CardInstance,
     targetDefinition: TargetDefinition
   ): boolean {
+    if (!hasCard(card.cardId)) {
+      return false;
+    }
     const filter = targetDefinition.filter;
     if (!filter) {
       return true;
@@ -890,6 +939,19 @@ export function GameBoardView({
     const pendingChoice = gameState.pendingChoice;
     if (!pendingChoice) {
       return null;
+    }
+
+    if (!canControl(pendingChoice.playerId)) {
+      return (
+        <div className="pending-choice-overlay" role="dialog" aria-modal="true">
+          <div className="pending-choice-panel">
+            <div className="pending-choice-header">
+              <strong>Opponent is choosing a target</strong>
+              <span>Please wait for the action to resolve.</span>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     const targetDefinition = pendingChoice.requiredTargets[0];
@@ -1416,7 +1478,23 @@ export function GameBoardView({
           >
             <Settings size={18} aria-hidden="true" />
           </button>
+          {localPlayerId ? (
+            <button
+              type="button"
+              className="utility-dock__surrender"
+              onClick={surrender}
+              disabled={!gameState.started || Boolean(gameState.winnerId)}
+            >
+              Đầu hàng
+            </button>
+          ) : null}
         </div>
+
+        {connectionStatus && !opponentConnected ? (
+          <div className="opponent-disconnected-notice" role="status">
+            Đối thủ đã mất kết nối. Đang chờ kết nối lại...
+          </div>
+        ) : null}
 
         {openPanel ? (
           <aside className="floating-utility-panel" aria-label={openPanel === "log" ? "Action log" : "Dev tools"}>
@@ -1437,6 +1515,9 @@ export function GameBoardView({
                     <strong>Multiplayer</strong>
                     <span>{connectionStatus}</span>
                     {localPlayerId ? <span>You are {localPlayerId}</span> : null}
+                    {!opponentConnected ? (
+                      <span>Đối thủ đã mất kết nối. Đang chờ kết nối lại...</span>
+                    ) : null}
                   </section>
                 ) : null}
                 <section className="quick-controls" aria-label="Game controls">
@@ -1510,7 +1591,7 @@ export function GameBoardView({
             onSelectCard={(cardInstanceId) =>
               selectGraveyardCard(viewingGraveyard, cardInstanceId)
             }
-            onClose={() => setViewingGraveyard(undefined)}
+            onClose={clearSelectedCard}
           />
         ) : null}
 
@@ -1545,6 +1626,15 @@ export function GameBoardView({
           </div>
         ) : null}
 
+        {afkNotice ? (
+          <div className={`afk-notice afk-notice--${afkNotice.level}`} role="alert">
+            <span>{afkNotice.message}</span>
+            <button type="button" onClick={() => setAfkNotice(undefined)} aria-label="Đóng cảnh báo AFK">
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
+
         <section className="battle-table lor-table" aria-label="Local battle board">
           {gameState.winnerId ? (
             <header className="topbar compact-topbar">
@@ -1561,6 +1651,7 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P2", card)}
             onPlayCard={(card) => playCard("P2", card)}
+            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
@@ -1582,6 +1673,11 @@ export function GameBoardView({
                   <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
                   <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
                   <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
+                  {gameState.started ? (
+                    <span className="stat-pill stat-pill--timer">
+                      Time <strong>{Math.ceil(timeRemainingMs / 1000)}s</strong>
+                    </span>
+                  ) : null}
                   {gameState.pendingDiscard ? (
                     <span className="stat-pill">
                       Discard{" "}
@@ -1650,6 +1746,7 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P1", card)}
             onPlayCard={(card) => playCard("P1", card)}
+            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 

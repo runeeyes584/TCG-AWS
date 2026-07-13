@@ -361,6 +361,7 @@ export interface PlayerState {
   championProgress: Record<string, number>;
   leveledChampionIds: Record<string, boolean>;
   abilityProgress: Record<string, number>;
+  consecutiveAfkCount: number;
 }
 
 export type VisualEvent =
@@ -371,7 +372,8 @@ export type VisualEvent =
   | { type: "DEBUFF"; targetId: string; attackDelta: number; healthDelta: number }
   | { type: "TRIGGER_ACTIVATED"; sourceId: string; effectName: string }
   | { type: "HAND_LIMIT_DISCARD_REQUIRED"; playerId: PlayerId; handSize: number; downTo: number }
-  | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number };
+  | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number }
+  | { type: "AFK_WARNING"; playerId: PlayerId; afkCount: number };
 
 export interface GameState {
   players: Record<PlayerId, PlayerState>;
@@ -391,6 +393,8 @@ export interface GameState {
   combat: CombatState;
   round: number;
   turn: number;
+  turnStartTime: number;
+  turnDuration: number;
   consecutivePasses: number;
   rngSeed: number;
   started: boolean;
@@ -430,7 +434,9 @@ export type GameAction =
   | { type: "REMOVE_BLOCKER"; playerId: PlayerId; blockerId: string }
   | { type: "COMMIT_BLOCKS"; playerId: PlayerId }
   | { type: "RESOLVE_COMBAT" }
-  | { type: "END_TURN"; playerId: PlayerId };
+  | { type: "END_TURN"; playerId: PlayerId }
+  | { type: "TIME_OUT"; playerId: PlayerId }
+  | { type: "SURRENDER"; playerId: PlayerId };
 
 export class GameValidationError extends Error {
   constructor(message: string) {
