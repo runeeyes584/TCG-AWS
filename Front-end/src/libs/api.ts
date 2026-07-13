@@ -121,43 +121,24 @@ export async function me() {
 
 }
 
-// export async function forgotPassword(
-//     email: string
-// ) {
-//
-//     return request("/auth/forgot-password", {
-//
-//         method: "POST",
-//
-//         body: JSON.stringify({
-//
-//             email
-//
-//         })
-//
-//     });
-//
-// }
+export async function forgotPassword(email: string) {
+    return request("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email })
+    });
+}
 
-// export async function resetPassword(
-//     email: string,
-//     code: string,
-//     password: string
-// ) {
-//
-//     return request("/auth/reset-password", {
-//
-//         method: "POST",
-//
-//         body: JSON.stringify({
-//
-//             email,
-//             code,
-//             password
-//
-//         })
-//
-//     });
-//
-// }
-
+export async function resetPassword(
+    email: string,
+    code: string,
+    password: string
+) {
+    return request("/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({
+            email,
+            code,
+            password
+        })
+    });
+}
