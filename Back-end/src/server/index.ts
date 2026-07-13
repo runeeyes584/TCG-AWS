@@ -15,6 +15,7 @@ import type {
 interface RoomPlayer {
   socketId: string;
   playerId: PlayerId;
+  connected: boolean;
 }
 
 interface Room {
@@ -65,8 +66,28 @@ io.on("connection", (socket) => {
 
     if (room.players.some((player) => player.socketId === socket.id)) {
       const existing = room.players.find((player) => player.socketId === socket.id);
+      if (existing) {
+        existing.connected = true;
+        socketRooms.set(socket.id, room.code);
+      }
       ack({ ok: true, roomCode: room.code, playerId: existing?.playerId ?? "P1" });
       broadcastRoom(room);
+      return;
+    }
+
+    const disconnectedPlayer = room.players.find((player) => !player.connected);
+    if (disconnectedPlayer) {
+      disconnectedPlayer.socketId = socket.id;
+      disconnectedPlayer.connected = true;
+      socketRooms.set(socket.id, room.code);
+      socket.join(room.code);
+      room.log.unshift({
+        id: Date.now(),
+        message: `${disconnectedPlayer.playerId} rejoined the room.`
+      });
+      ack({ ok: true, roomCode: room.code, playerId: disconnectedPlayer.playerId });
+      broadcastRoom(room);
+      refreshTimer(room);
       return;
     }
 
@@ -139,9 +160,14 @@ io.on("connection", (socket) => {
       return;
     }
 
-    room.players = room.players.filter((player) => player.socketId !== socket.id);
+    const player = room.players.find((candidate) => candidate.socketId === socket.id);
+    if (!player) {
+      return;
+    }
+
+    player.connected = false;
     room.log.unshift({ id: Date.now(), message: "A player disconnected." });
-    if (room.players.length === 0) {
+    if (!room.players.some((candidate) => candidate.connected) || room.state.winnerId) {
       clearRoomTimer(room.code);
       rooms.delete(room.code);
       return;
@@ -189,7 +215,7 @@ function createRoomCode() {
 }
 
 function attachPlayer(socket: GameSocket, room: Room, playerId: PlayerId) {
-  room.players.push({ socketId: socket.id, playerId });
+  room.players.push({ socketId: socket.id, playerId, connected: true });
   socketRooms.set(socket.id, room.code);
   socket.join(room.code);
 }
@@ -205,10 +231,16 @@ function getSocketPlayerId(socket: GameSocket, room?: Room) {
 
 function broadcastRoom(room: Room) {
   for (const player of room.players) {
+    if (!player.connected) {
+      continue;
+    }
+    const opponentId = player.playerId === "P1" ? "P2" : "P1";
     io.to(player.socketId).emit("room:update", {
       roomCode: room.code,
       playerId: player.playerId,
-      opponentConnected: room.players.length === 2,
+      opponentConnected: room.players.some(
+        (candidate) => candidate.playerId === opponentId && candidate.connected
+      ),
       state: redactStateForPlayer(room.state, player.playerId),
       log: room.log.slice(0, 80)
     });
@@ -337,6 +369,8 @@ function describeAction(action: GameAction): string {
       return `${action.playerId} passed.`;
     case "TIME_OUT":
       return `${action.playerId} timed out.`;
+    case "SURRENDER":
+      return `${action.playerId} surrendered.`;
   }
 }
 

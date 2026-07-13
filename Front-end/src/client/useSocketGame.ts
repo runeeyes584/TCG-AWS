@@ -30,6 +30,7 @@ export function useSocketGame(): SocketGameController {
     []
   );
   const socketRef = useRef<GameSocket | undefined>(undefined);
+  const roomCodeRef = useRef<string | undefined>(undefined);
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [roomCode, setRoomCode] = useState<string>();
   const [localPlayerId, setLocalPlayerId] = useState<PlayerId>();
@@ -54,6 +55,14 @@ export function useSocketGame(): SocketGameController {
     socket.on("connect", () => {
       setStatus("Connected");
       setError(undefined);
+      if (roomCodeRef.current) {
+        socket.emit("room:join", roomCodeRef.current, (response) => {
+          if (!response.ok) {
+            setError(response.error);
+            addClientLog(response.error);
+          }
+        });
+      }
     });
 
     socket.on("disconnect", () => {
@@ -99,6 +108,7 @@ export function useSocketGame(): SocketGameController {
   return controller;
 
   function applyRoomUpdate(update: RoomUpdate) {
+    roomCodeRef.current = update.roomCode;
     setRoomCode(update.roomCode);
     setLocalPlayerId(update.playerId);
     setOpponentConnected(update.opponentConnected);

@@ -38,6 +38,7 @@ interface GameBoardViewProps {
   controller: GameController;
   localPlayerId?: PlayerId;
   connectionStatus?: string;
+  opponentConnected?: boolean;
 }
 
 export function GameBoard() {
@@ -48,7 +49,8 @@ export function GameBoard() {
 export function GameBoardView({
   controller,
   localPlayerId,
-  connectionStatus
+  connectionStatus,
+  opponentConnected = true
 }: GameBoardViewProps) {
   const { gameState, actionLog, dispatch, dispatchChain, resetGame } = controller;
   useBattleMusic(gameState);
@@ -157,7 +159,7 @@ export function GameBoardView({
 
     setAfkNotice(
       warning.afkCount === 1
-        ? { level: "warning", message: "Bạn đã bỏ lỡ lượt. Lượt sau chỉ còn 10s." }
+        ? { level: "warning", message: "Bạn đã bỏ lỡ lượt. Lượt sau chỉ còn 15s." }
         : {
             level: "danger",
             message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
@@ -190,6 +192,14 @@ export function GameBoardView({
         ? player.mana + player.spellMana >= definition.cost
         : player.mana >= definition.cost)
     );
+  }
+
+  function surrender() {
+    if (!localPlayerId || !window.confirm("Bạn có chắc muốn đầu hàng không?")) {
+      return;
+    }
+
+    dispatch({ type: "SURRENDER", playerId: localPlayerId });
   }
 
   function playCard(playerId: PlayerId, card: CardInstance) {
@@ -1468,7 +1478,23 @@ export function GameBoardView({
           >
             <Settings size={18} aria-hidden="true" />
           </button>
+          {localPlayerId ? (
+            <button
+              type="button"
+              className="utility-dock__surrender"
+              onClick={surrender}
+              disabled={!gameState.started || Boolean(gameState.winnerId)}
+            >
+              Đầu hàng
+            </button>
+          ) : null}
         </div>
+
+        {connectionStatus && !opponentConnected ? (
+          <div className="opponent-disconnected-notice" role="status">
+            Đối thủ đã mất kết nối. Đang chờ kết nối lại...
+          </div>
+        ) : null}
 
         {openPanel ? (
           <aside className="floating-utility-panel" aria-label={openPanel === "log" ? "Action log" : "Dev tools"}>
@@ -1489,6 +1515,9 @@ export function GameBoardView({
                     <strong>Multiplayer</strong>
                     <span>{connectionStatus}</span>
                     {localPlayerId ? <span>You are {localPlayerId}</span> : null}
+                    {!opponentConnected ? (
+                      <span>Đối thủ đã mất kết nối. Đang chờ kết nối lại...</span>
+                    ) : null}
                   </section>
                 ) : null}
                 <section className="quick-controls" aria-label="Game controls">
@@ -1562,7 +1591,7 @@ export function GameBoardView({
             onSelectCard={(cardInstanceId) =>
               selectGraveyardCard(viewingGraveyard, cardInstanceId)
             }
-            onClose={() => setViewingGraveyard(undefined)}
+            onClose={clearSelectedCard}
           />
         ) : null}
 
@@ -1622,6 +1651,7 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P2", card)}
             onPlayCard={(card) => playCard("P2", card)}
+            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
@@ -1716,6 +1746,7 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P1", card)}
             onPlayCard={(card) => playCard("P1", card)}
+            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 

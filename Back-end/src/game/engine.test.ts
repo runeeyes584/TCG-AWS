@@ -385,6 +385,12 @@ describe("game engine", () => {
     expect(state.winnerId).toBe("P2");
   });
 
+  it("awards the game to the opponent when a player surrenders", () => {
+    const state = applyAction(startedGame(), { type: "SURRENDER", playerId: "P1" });
+
+    expect(state.winnerId).toBe("P2");
+  });
+
   it("declares attackers into combat state and commits to block phase", () => {
     let state = withBoard(startedGame(), "P1", [
       createUnitInstance(card(soldier, "P1", "attacker"))

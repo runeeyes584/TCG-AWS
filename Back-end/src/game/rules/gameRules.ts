@@ -37,7 +37,8 @@ export function validateAction(state: GameState, action: GameAction): void {
   if (
     state.phase === "DISCARD" &&
     action.type !== "DISCARD_CARD" &&
-    action.type !== "TIME_OUT"
+    action.type !== "TIME_OUT" &&
+    action.type !== "SURRENDER"
   ) {
     throw new GameValidationError("Discard cards until your hand has 6 cards.");
   }
@@ -46,7 +47,8 @@ export function validateAction(state: GameState, action: GameAction): void {
     state.pendingChoice &&
     action.type !== "SUBMIT_ABILITY_TARGETS" &&
     action.type !== "CANCEL_PENDING_CHOICE" &&
-    action.type !== "TIME_OUT"
+    action.type !== "TIME_OUT" &&
+    action.type !== "SURRENDER"
   ) {
     throw new GameValidationError("Resolve the pending ability choice first.");
   }
@@ -169,6 +171,9 @@ export function validateAction(state: GameState, action: GameAction): void {
       return;
     case "TIME_OUT":
       assertPriority(state, action.playerId);
+      return;
+    case "SURRENDER":
+      assertPlayer(action.playerId);
       return;
   }
 }

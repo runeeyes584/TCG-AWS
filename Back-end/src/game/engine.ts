@@ -445,9 +445,12 @@ export function applyAction(state: GameState, action: GameAction): GameState {
     case "TIME_OUT":
       next = handleTimeout(cleanState, action.playerId);
       break;
+    case "SURRENDER":
+      next.winnerId = opponentOf(action.playerId);
+      break;
   }
 
-  if (action.type !== "TIME_OUT" && "playerId" in action) {
+  if (action.type !== "TIME_OUT" && action.type !== "SURRENDER" && "playerId" in action) {
     next.players[action.playerId].consecutiveAfkCount = 0;
   }
 
