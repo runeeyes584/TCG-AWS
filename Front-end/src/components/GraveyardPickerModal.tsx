@@ -23,6 +23,11 @@ export function GraveyardPickerModal({
   onSelectCard,
   onClose
 }: GraveyardPickerModalProps) {
+  const selectableTypes = allowedTypes ?? ["UNIT", "CHAMPION"];
+  const selectableEntries = entries.filter(
+    (entry) => canSelect && selectableTypes.includes(entry.type)
+  );
+
   return (
     <div className="graveyard-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="graveyard-modal-content" onClick={(event) => event.stopPropagation()}>
@@ -36,8 +41,14 @@ export function GraveyardPickerModal({
           {entries.length === 0 ? (
             <div className="empty-message">Graveyard is empty.</div>
           ) : (
-            entries.map((entry) => (
-              <div key={entry.id} className="graveyard-entry">
+            entries.map((entry) => {
+              const isSelectable = canSelect && selectableTypes.includes(entry.type);
+              return (
+              <div
+                key={entry.id}
+                className={`graveyard-entry ${isSelectable ? "" : "is-disabled"}`}
+                aria-disabled={!isSelectable}
+              >
                 <CardView
                   card={{
                     instanceId: entry.instanceId,
@@ -46,9 +57,7 @@ export function GraveyardPickerModal({
                   }}
                   selected={entry.instanceId === selectedCardInstanceId}
                   onClick={
-                    canSelect && 
-                    (allowedTypes ?? ["UNIT", "CHAMPION"]).includes(entry.type) &&
-                    onSelectCard
+                    isSelectable && onSelectCard
                       ? () => onSelectCard(entry.instanceId)
                       : undefined
                   }
@@ -57,9 +66,15 @@ export function GraveyardPickerModal({
                   {entry.cause} (R{entry.round})
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
+        {entries.length > 0 && canSelect && selectableEntries.length === 0 ? (
+          <div className="empty-message graveyard-empty-targets">
+            No compatible graveyard targets.
+          </div>
+        ) : null}
       </div>
     </div>
   );

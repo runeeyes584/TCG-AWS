@@ -1,5 +1,5 @@
-// import cardsJson from "./data/cards.json";
-import cardsJson from "./data/UiaCard.json";
+import coreCardsJson from "./data/cards.json";
+import customCardsJson from "./data/UiaCard.json";
 
 import {
   Ability,
@@ -12,7 +12,11 @@ import {
 
 const cardMap = new Map<string, CardDefinition>();
 
-for (const card of cardsJson as CardDefinition[]) {
+
+for (const card of [
+  ...(coreCardsJson as CardDefinition[]),
+  ...(customCardsJson as CardDefinition[])
+]) {
   registerCardDefinition(card);
 }
 
@@ -58,6 +62,7 @@ export function getCardDefinition(cardId: string): CardDefinition {
 export function hasCard(cardId: string): boolean {
   return cardMap.has(cardId);
 }
+
 
 export function listCards(): CardDefinition[] {
   return [...cardMap.values()];

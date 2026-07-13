@@ -294,6 +294,32 @@ button svg { vertical-align: -2px; }
   background: rgba(28, 200, 200, 0.12);
 }
 
+.utility-dock .utility-dock__surrender {
+  width: auto;
+  padding: 0 10px;
+  border-color: rgba(244, 97, 97, 0.54);
+  color: #ffd4d4;
+}
+
+.utility-dock .utility-dock__surrender:hover:not(:disabled) {
+  border-color: #ff8b8b;
+  background: rgba(201, 54, 54, 0.28);
+}
+
+.opponent-disconnected-notice {
+  position: fixed;
+  top: 66px;
+  left: 14px;
+  z-index: 1190;
+  max-width: min(360px, calc(100vw - 28px));
+  padding: 9px 12px;
+  border: 1px solid rgba(244, 184, 78, 0.64);
+  border-radius: 7px;
+  background: rgba(45, 30, 8, 0.94);
+  color: #ffe2a5;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
 .floating-utility-panel {
   position: fixed;
   left: 14px;
@@ -410,6 +436,40 @@ button svg { vertical-align: -2px; }
 }
 
 .stat-pill strong { color: var(--lor-gold-bright); font-weight: 700; }
+.stat-pill--timer strong { color: #9fe8ff; }
+
+.afk-notice {
+  position: fixed;
+  z-index: 50;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(90vw, 560px);
+  padding: 12px 16px;
+  border: 1px solid var(--lor-gold);
+  border-radius: 8px;
+  background: rgba(30, 20, 4, 0.96);
+  color: #fff5ce;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+.afk-notice--danger {
+  border-color: #ff5555;
+  background: rgba(75, 8, 8, 0.97);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+.afk-notice button {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
 
 /* ===== WINNER BANNER ===== */
 .winner-banner {
@@ -1684,6 +1744,22 @@ button svg { vertical-align: -2px; }
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+.graveyard-entry.is-disabled {
+  opacity: 0.36;
+  filter: grayscale(1) saturate(0.25);
+}
+
+.graveyard-entry.is-disabled .card-view {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.graveyard-empty-targets {
+  margin: 0 20px 20px;
+  color: var(--lor-muted);
+  text-align: center;
 }
 
 .cause-tag {

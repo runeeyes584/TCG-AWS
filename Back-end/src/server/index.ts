@@ -19,6 +19,7 @@ import cors from "cors";
 interface RoomPlayer {
   socketId: string;
   playerId: PlayerId;
+  connected: boolean;
 }
 
 interface Room {
@@ -44,6 +45,7 @@ const hostname = "localhost";
 // const handle = app.getRequestHandler();
 const rooms = new Map<string, Room>();
 const socketRooms = new Map<string, string>();
+const roomTimers = new Map<string, NodeJS.Timeout>();
 
 const expressApp = express();
 
@@ -110,8 +112,28 @@ io.on("connection", (socket) => {
 
     if (room.players.some((player) => player.socketId === socket.id)) {
       const existing = room.players.find((player) => player.socketId === socket.id);
+      if (existing) {
+        existing.connected = true;
+        socketRooms.set(socket.id, room.code);
+      }
       ack({ ok: true, roomCode: room.code, playerId: existing?.playerId ?? "P1" });
       broadcastRoom(room);
+      return;
+    }
+
+    const disconnectedPlayer = room.players.find((player) => !player.connected);
+    if (disconnectedPlayer) {
+      disconnectedPlayer.socketId = socket.id;
+      disconnectedPlayer.connected = true;
+      socketRooms.set(socket.id, room.code);
+      socket.join(room.code);
+      room.log.unshift({
+        id: Date.now(),
+        message: `${disconnectedPlayer.playerId} rejoined the room.`
+      });
+      ack({ ok: true, roomCode: room.code, playerId: disconnectedPlayer.playerId });
+      broadcastRoom(room);
+      refreshTimer(room);
       return;
     }
 
@@ -127,6 +149,7 @@ io.on("connection", (socket) => {
     });
     ack({ ok: true, roomCode: room.code, playerId: "P2" });
     broadcastRoom(room);
+    refreshTimer(room);
   });
 
   socket.on("game:action", (action, ack) => {
@@ -147,6 +170,7 @@ io.on("connection", (socket) => {
       appendActionLog(room, action);
       ack?.({ ok: true });
       broadcastRoom(room);
+      refreshTimer(room);
     } catch (error) {
       replyError(
         socket,
@@ -167,6 +191,7 @@ io.on("connection", (socket) => {
     room.log = [{ id: Date.now(), message: "Room game reset." }];
     ack?.({ ok: true });
     broadcastRoom(room);
+    refreshTimer(room);
   });
 
   socket.on("disconnect", () => {
@@ -181,9 +206,15 @@ io.on("connection", (socket) => {
       return;
     }
 
-    room.players = room.players.filter((player) => player.socketId !== socket.id);
+    const player = room.players.find((candidate) => candidate.socketId === socket.id);
+    if (!player) {
+      return;
+    }
+
+    player.connected = false;
     room.log.unshift({ id: Date.now(), message: "A player disconnected." });
-    if (room.players.length === 0) {
+    if (!room.players.some((candidate) => candidate.connected) || room.state.winnerId) {
+      clearRoomTimer(room.code);
       rooms.delete(room.code);
       return;
     }
@@ -230,7 +261,7 @@ function createRoomCode() {
 }
 
 function attachPlayer(socket: GameSocket, room: Room, playerId: PlayerId) {
-  room.players.push({ socketId: socket.id, playerId });
+  room.players.push({ socketId: socket.id, playerId, connected: true });
   socketRooms.set(socket.id, room.code);
   socket.join(room.code);
 }
@@ -246,13 +277,53 @@ function getSocketPlayerId(socket: GameSocket, room?: Room) {
 
 function broadcastRoom(room: Room) {
   for (const player of room.players) {
+    if (!player.connected) {
+      continue;
+    }
+    const opponentId = player.playerId === "P1" ? "P2" : "P1";
     io.to(player.socketId).emit("room:update", {
       roomCode: room.code,
       playerId: player.playerId,
-      opponentConnected: room.players.length === 2,
+      opponentConnected: room.players.some(
+        (candidate) => candidate.playerId === opponentId && candidate.connected
+      ),
       state: redactStateForPlayer(room.state, player.playerId),
       log: room.log.slice(0, 80)
     });
+  }
+}
+
+function refreshTimer(room: Room): void {
+  clearRoomTimer(room.code);
+  if (!room.state.started || room.state.winnerId || room.players.length < 2) {
+    return;
+  }
+
+  const playerId = room.state.priorityPlayerId;
+  const timer = setTimeout(() => {
+    roomTimers.delete(room.code);
+    if (rooms.get(room.code) !== room || room.state.winnerId) {
+      return;
+    }
+
+    try {
+      room.state = applyAction(room.state, { type: "TIME_OUT", playerId });
+      appendActionLog(room, { type: "TIME_OUT", playerId });
+      broadcastRoom(room);
+      refreshTimer(room);
+    } catch {
+      // A player action may have resolved first; either way, preserve a timer for the current state.
+      refreshTimer(room);
+    }
+  }, room.state.turnDuration + 2_000);
+  roomTimers.set(room.code, timer);
+}
+
+function clearRoomTimer(roomCode: string): void {
+  const timer = roomTimers.get(roomCode);
+  if (timer) {
+    clearTimeout(timer);
+    roomTimers.delete(roomCode);
   }
 }
 
@@ -271,6 +342,17 @@ function redactStateForPlayer(state: GameState, viewerId: PlayerId): GameState {
     cardId: "hidden-card",
     ownerId: opponentId
   }));
+
+  if (visibleState.pendingChoice?.playerId !== viewerId && visibleState.pendingChoice) {
+    visibleState.pendingChoice = {
+      ...visibleState.pendingChoice,
+      chosenTargets: {},
+      costTargets: undefined,
+      playUnit: visibleState.pendingChoice.playUnit
+        ? { ...visibleState.pendingChoice.playUnit, costTargets: undefined }
+        : undefined
+    };
+  }
 
   return visibleState;
 }
@@ -331,6 +413,10 @@ function describeAction(action: GameAction): string {
       return "Combat resolved.";
     case "END_TURN":
       return `${action.playerId} passed.`;
+    case "TIME_OUT":
+      return `${action.playerId} timed out.`;
+    case "SURRENDER":
+      return `${action.playerId} surrendered.`;
   }
 }
 
@@ -352,6 +438,8 @@ function describeVisualEvent(event: GameState["visualEvents"][number]): string {
       return `${event.playerId} must discard from ${event.handSize} to ${event.downTo} cards.`;
     case "CHAMPION_LEVELED_UP":
       return `${event.playerId}'s champion leveled up.`;
+    case "AFK_WARNING":
+      return `${event.playerId} timed out (${event.afkCount}/3).`;
   }
 }
 

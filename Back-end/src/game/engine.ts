@@ -8,6 +8,7 @@ import {
 } from "./cards";
 import {
   getCardDefinition,
+  hasCard,
   listCards,
   registerCardDefinition,
   registerCardDefinitions
@@ -123,6 +124,9 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     for (const card of [...player.deck, ...player.hand]) {
+      if (!hasCard(card.cardId)) {
+        continue;
+      }
       const definition = getCardDefinitionForInstance(card);
       if (shouldLevelChampionDefinition(player, definition)) {
         markChampionLeveled(player, definition);
@@ -130,6 +134,9 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     for (const entry of player.graveyard) {
+      if (!hasCard(entry.cardId)) {
+        continue;
+      }
       const definition = getCardDefinition(entry.cardId);
       if (shouldLevelChampionDefinition(player, definition)) {
         markChampionLeveled(player, definition);
@@ -149,10 +156,14 @@ export function checkChampionLevelUps(state: GameState): void {
     }
 
     for (const card of player.deck) {
-      levelChampionCardInstance(player, card);
+      if (hasCard(card.cardId)) {
+        levelChampionCardInstance(player, card);
+      }
     }
     for (const card of player.hand) {
-      levelChampionCardInstance(player, card);
+      if (hasCard(card.cardId)) {
+        levelChampionCardInstance(player, card);
+      }
     }
     for (const entry of player.graveyard) {
       levelChampionGraveyardEntry(player, entry);
@@ -213,6 +224,9 @@ function levelChampionGraveyardEntry(
   player: PlayerState,
   entry: GraveyardEntry
 ): void {
+  if (!hasCard(entry.cardId)) {
+    return;
+  }
   const definition = getCardDefinition(entry.cardId);
   if (!shouldApplyChampionLevel(player, definition)) {
     return;
@@ -319,7 +333,8 @@ export function createInitialPlayerState(
     graveyard: [],
     championProgress: {},
     leveledChampionIds: {},
-    abilityProgress: {}
+    abilityProgress: {},
+    consecutiveAfkCount: 0
   };
 }
 
@@ -349,6 +364,8 @@ export function createInitialGameState(
     },
     round: 0,
     turn: 0,
+    turnStartTime: Date.now(),
+    turnDuration: 30_000,
     consecutivePasses: 0,
     rngSeed,
     started: false,
@@ -425,11 +442,30 @@ export function applyAction(state: GameState, action: GameAction): GameState {
     case "END_TURN":
       next = endTurn(cleanState, action.playerId);
       break;
+    case "TIME_OUT":
+      next = handleTimeout(cleanState, action.playerId);
+      break;
+    case "SURRENDER":
+      next.winnerId = opponentOf(action.playerId);
+      break;
+  }
+
+  if (action.type !== "TIME_OUT" && action.type !== "SURRENDER" && "playerId" in action) {
+    next.players[action.playerId].consecutiveAfkCount = 0;
   }
 
   runCleanupPipeline(next);
   resolveEffectQueue(next);
-  return checkWinConditions(next);
+  const resolved = checkWinConditions(next);
+  refreshTurnTimer(resolved);
+  return resolved;
+}
+
+function refreshTurnTimer(state: GameState): void {
+  state.turnStartTime = Date.now();
+  state.turnDuration = state.players[state.priorityPlayerId].consecutiveAfkCount > 0
+    ? 15_000
+    : 30_000;
 }
 
 function startGame(state: GameState, firstPlayerId: PlayerId): GameState {
@@ -1281,6 +1317,24 @@ function endTurn(state: GameState, playerId: PlayerId): GameState {
   runCleanupPipeline(next, "END_TURN");
   emitEvent(next, { type: "TURN_STARTED" });
   return next;
+}
+
+function handleTimeout(state: GameState, playerId: PlayerId): GameState {
+  const next = cloneState(state);
+  const player = next.players[playerId];
+  player.consecutiveAfkCount += 1;
+
+  if (player.consecutiveAfkCount >= 3) {
+    next.winnerId = opponentOf(playerId);
+    return next;
+  }
+
+  next.visualEvents.push({
+    type: "AFK_WARNING",
+    playerId,
+    afkCount: player.consecutiveAfkCount
+  });
+  return endTurn(next, playerId);
 }
 
 function passPriority(state: GameState, playerId: PlayerId): void {
