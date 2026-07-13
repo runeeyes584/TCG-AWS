@@ -1,6 +1,6 @@
 import { createCardInstance } from "./cards";
 import { sampleDeckCards } from "./sampleCards";
-import { CardDefinition, PlayerId } from "./types";
+import { CardDefinition, PlayerId } from "../types";
 
 export function buildDefaultDeck(playerId: PlayerId) {
   return buildSampleLocalDeck().map((definition, index) =>

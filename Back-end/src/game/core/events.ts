@@ -1,4 +1,4 @@
-import { PlayerId, SpellTarget } from "./types";
+import { PlayerId, SpellTarget } from "../types";
 
 export type GameEventType =
   | "GAME_STARTED"

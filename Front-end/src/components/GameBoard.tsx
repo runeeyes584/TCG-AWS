@@ -17,13 +17,13 @@ import { useLocalGame } from "../hooks/useLocalGame";
 import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { CardView } from "./CardView";
-import { getUnitAttack, getUnitHealth } from "@backend/game/cards";
-import { hasKeyword } from "@backend/game/engine";
+import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
+import { hasKeyword } from "@backend/game/core/engine";
 import { HoverProvider } from "../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { HandView } from "./HandView";
-import { getCardDefinition, hasCard } from "@backend/game/cardRegistry";
+import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../hooks/useBattleMusic";
 
 export interface GameController {
@@ -778,14 +778,14 @@ export function GameBoardView({
   }
 
   function isReviveCardSpell(card: CardInstance) {
-    return cardDef(card).effects?.some((effect) => effect.type === "REVIVE_CARD") ?? false;
+    return cardDef(card).effects?.some((effect) => effect.type === "REVIVE_CARD" || effect.type === "REBIRTH_CARD") ?? false;
   }
 
   function getGraveyardAllowedTypes(): GraveyardEntryType[] | undefined {
     if (!selectedSpell) return undefined;
-    const reviveEffect = cardDef(selectedSpell).effects?.find((effect) => effect.type === "REVIVE_CARD");
-    if (reviveEffect && reviveEffect.type === "REVIVE_CARD") {
-      return reviveEffect.allowedTypes;
+    const reviveEffect = cardDef(selectedSpell).effects?.find((effect) => effect.type === "REVIVE_CARD" || effect.type === "REBIRTH_CARD");
+    if (reviveEffect && (reviveEffect.type === "REVIVE_CARD" || reviveEffect.type === "REBIRTH_CARD")) {
+      return reviveEffect.allowedTypes as GraveyardEntryType[];
     }
     return undefined;
   }
@@ -912,6 +912,30 @@ export function GameBoardView({
     );
   }
 
+  function getPendingTargetGraveyardCards(targetDefinition: TargetDefinition): Array<{
+    playerId: PlayerId;
+    entry: typeof gameState.players.P1.graveyard[number];
+  }> {
+    const pendingChoice = gameState.pendingChoice;
+    if (!pendingChoice) {
+      return [];
+    }
+
+    const sourcePlayerId = pendingChoice.playerId;
+    const playerIds: PlayerId[] =
+      targetDefinition.kind === "ALLY_GRAVEYARD"
+        ? [sourcePlayerId]
+        : targetDefinition.kind === "ENEMY_GRAVEYARD"
+          ? [opponentOf(sourcePlayerId)]
+          : targetDefinition.kind === "ANY_GRAVEYARD"
+            ? ["P1", "P2"]
+            : [];
+
+    return playerIds.flatMap((playerId) =>
+      gameState.players[playerId].graveyard.map((entry) => ({ playerId, entry }))
+    );
+  }
+
   function doesCardMatchTargetFilter(
     card: CardInstance,
     targetDefinition: TargetDefinition
@@ -1018,13 +1042,45 @@ export function GameBoardView({
                   />
                 </div>
               ))}
+              {getPendingTargetGraveyardCards(targetDefinition).map(({ playerId, entry }) => {
+                const canRevive = entry.type === "UNIT" || entry.type === "CHAMPION";
+                return (
+                  <div
+                    className={`pending-choice-card ${canRevive ? "" : "is-disabled"}`}
+                    key={entry.id}
+                  >
+                    <span className="pending-choice-zone-label">{playerId} Graveyard</span>
+                    <CardView
+                      card={{
+                        instanceId: entry.instanceId,
+                        cardId: entry.cardId,
+                        ownerId: entry.ownerId
+                      }}
+                      onClick={
+                        canRevive
+                          ? () =>
+                              submitPendingAbilityTarget(targetDefinition.id, {
+                                type: "GRAVEYARD",
+                                playerId,
+                                cardInstanceId: entry.instanceId
+                              })
+                          : undefined
+                      }
+                      visualEvents={[]}
+                    />
+                  </div>
+                );
+              })}
             </div>
           ) : null}
 
           {targetDefinition &&
           getPendingTargetUnits(targetDefinition).length === 0 &&
           getPendingTargetDeckCards(targetDefinition).length === 0 &&
-          getPendingTargetHandCards(targetDefinition).length === 0 ? (
+          getPendingTargetHandCards(targetDefinition).length === 0 &&
+          getPendingTargetGraveyardCards(targetDefinition).some(({ entry }) =>
+            entry.type === "UNIT" || entry.type === "CHAMPION"
+          ) === false ? (
             <div className="empty-message">No valid targets.</div>
           ) : null}
 
@@ -1233,12 +1289,23 @@ export function GameBoardView({
 
   function getRecallUnits(playerId: PlayerId) {
     const combatUnitIds = new Set([...attackerIds, ...assignedBlockerIds]);
+    const activeUnitIds = new Set(
+      getActiveUnits(playerId)
+        .filter((unit): unit is UnitInstance => Boolean(unit))
+        .map((unit) => unit.instanceId)
+    );
     return gameState.players[playerId].board.filter(
-      (unit) => !combatUnitIds.has(unit.instanceId)
+      (unit) => !combatUnitIds.has(unit.instanceId) && !activeUnitIds.has(unit.instanceId)
     );
   }
 
   function getActiveUnits(playerId: PlayerId): Array<UnitInstance | undefined> {
+    if (gameState.combat.attackers.length === 0) {
+      return gameState.players[playerId].board.filter(
+        (unit) => unit.boardRow === "ACTIVE"
+      );
+    }
+
     if (playerId === attackPlayerId) {
       return gameState.combat.attackers.map((lane) =>
         gameState.players[playerId].board.find(
@@ -1757,7 +1824,8 @@ export function GameBoardView({
                 <span>
                   Target:{" "}
                   {cardDef(selectedSpell).type === "unit" ||
-                  cardDef(selectedSpell).type === "champion"
+                  cardDef(selectedSpell).type === "champion" ||
+                  cardDef(selectedSpell).type === "spell"
                     ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
                     : selectedSpellTarget
                       ? describeSpellTarget(selectedSpellTarget)
@@ -1854,6 +1922,12 @@ function describeAbilityTargetNeed(targetDefinition: TargetDefinition | undefine
       return "Choose a card in enemy hand";
     case "ANY_HAND_CARD":
       return "Choose a hand card";
+    case "ALLY_GRAVEYARD":
+      return "Choose an allied unit or champion from the graveyard";
+    case "ENEMY_GRAVEYARD":
+      return "Choose an enemy unit or champion from the graveyard";
+    case "ANY_GRAVEYARD":
+      return "Choose a unit or champion from a graveyard";
   }
 }
 
