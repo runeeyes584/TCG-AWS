@@ -2,7 +2,7 @@ import {
   getCardDefinitionForInstance,
   getUnitHealth,
   isUnitCard
-} from "../cards";
+} from "../entities/cards";
 import {
   AdditionalCostDefinition,
   CardInstance,

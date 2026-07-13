@@ -9,16 +9,16 @@ import {
   QueuedEffect,
   SpellTarget,
   UnitModifier
-} from "./types";
+} from "../types";
 import {
   BOARD_LIMIT,
   checkWinConditions,
   findUnit,
   opponentOf
-} from "./rules/gameRules";
-import { runCleanupPipeline } from "./engine";
-import { createCardInstance, createUnitInstance, getCardDefinitionForInstance, isUnitCard } from "./cards";
-import { getCardDefinition, listCards } from "./cardRegistry";
+} from "../rules/gameRules";
+import { runCleanupPipeline } from "../core/engine";
+import { createCardInstance, createUnitInstance, getCardDefinitionForInstance, isUnitCard } from "../entities/cards";
+import { getCardDefinition, listCards } from "../entities/cardRegistry";
 import { emitEvent } from "./triggers";
 import {
   addDebuff,
@@ -29,9 +29,10 @@ import {
   drawCards,
   grantKeyword,
   healTarget,
-  reviveFromGraveyardToHand,
+  reviveFromGraveyardToBoard,
+  rebirthFromGraveyardToHand,
   summonUnit
-} from "./operations";
+} from "../operations";
 
 export function enqueueEffect(state: GameState, queuedEffect: QueuedEffect): void {
   state.effectQueue.push(queuedEffect);
@@ -255,12 +256,12 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       }
       return;
     }
-    case "REVIVE_CARD": {
+    case "REBIRTH_CARD": {
       if (target?.type !== "GRAVEYARD" || !target.cardInstanceId) {
         return;
       }
 
-      const revivedCard = reviveFromGraveyardToHand(
+      const revivedCard = rebirthFromGraveyardToHand(
         state,
         target.playerId,
         target.cardInstanceId,
@@ -268,6 +269,22 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
       );
       if (revivedCard) {
         state.visualEvents.push({ type: "DRAW", playerId: target.playerId, count: 1 });
+      }
+      return;
+    }
+    case "REVIVE_CARD": {
+      if (target?.type !== "GRAVEYARD" || !target.cardInstanceId) {
+        return;
+      }
+
+      const revivedUnit = reviveFromGraveyardToBoard(
+        state,
+        target.playerId,
+        target.cardInstanceId,
+        effect.allowedTypes
+      );
+      if (revivedUnit) {
+        state.visualEvents.push({ type: "SUMMON", playerId: target.playerId, instanceId: revivedUnit.instanceId });
       }
       return;
     }

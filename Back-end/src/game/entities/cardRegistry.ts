@@ -1,5 +1,5 @@
-import coreCardsJson from "./data/cards.json";
-import customCardsJson from "./data/UiaCard.json";
+import coreCardsJson from "../data/cards.json";
+import UiaCardsJson from "../data/UiaCard.json";
 
 import {
   Ability,
@@ -8,14 +8,14 @@ import {
   GameValidationError,
   SpellSpeed,
   Trigger
-} from "./types";
+} from "../types";
 
 const cardMap = new Map<string, CardDefinition>();
 
 
 for (const card of [
-  ...(coreCardsJson as CardDefinition[]),
-  ...(customCardsJson as CardDefinition[])
+  // ...(coreCardsJson as CardDefinition[]),
+  ...(UiaCardsJson as CardDefinition[])
 ]) {
   registerCardDefinition(card);
 }

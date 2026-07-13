@@ -1,6 +1,6 @@
-import { emitEvent } from "../triggers";
+import { emitEvent } from "../mechanics/triggers";
 import { GameState, PlayerId } from "../types";
-import { moveCardToGraveyard } from "../graveyard";
+import { moveCardToGraveyard } from "../mechanics/graveyard";
 
 export function discardCards(
   state: GameState,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { executeAbility } from "./abilities";
-import { createCardInstance, createUnitInstance, getUnitAttack } from "./cards";
-import { applyAction, createInitialGameState } from "./engine";
+import { createCardInstance, createUnitInstance, getUnitAttack } from "../entities/cards";
+import { applyAction, createInitialGameState } from "../core/engine";
 import { resolveEffectQueue } from "./effects";
 import {
   Ability,
@@ -9,7 +9,7 @@ import {
   GameState,
   GameValidationError,
   PlayerId
-} from "./types";
+} from "../types";
 
 const unit: CardDefinition = {
   id: "unit",

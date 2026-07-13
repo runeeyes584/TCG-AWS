@@ -4,15 +4,15 @@ import {
   createUnitInstance,
   isChampionCard,
   isUnitCard
-} from "../cards";
+} from "../entities/cards";
 import {
   getCardDefinition,
   hasCard,
   listCards,
   registerCardDefinition
-} from "../cardRegistry";
+} from "../entities/cardRegistry";
 import cardsJson from "./cards.json";
-import { applyAction, createInitialGameState } from "../engine";
+import { applyAction, createInitialGameState } from "../core/engine";
 import { CardDefinition, GameValidationError, PlayerId } from "../types";
 
 const unit: CardDefinition = {
@@ -367,8 +367,8 @@ describe("data-driven card registry and operations", () => {
       target: { type: "GRAVEYARD", playerId: "P1", cardInstanceId: "fallen" }
     });
 
-    const revivedCard = state.players.P1.hand.find(c => c.cardId === "data-test-unit");
-    expect(revivedCard).toBeDefined();
+    const revivedUnit = state.players.P1.board.find(unit => unit.cardId === "data-test-unit");
+    expect(revivedUnit).toMatchObject({ boardRow: "ACTIVE" });
     expect(state.players.P1.graveyard.map((entry) => entry.cardId)).toEqual([
       "data-revive"
     ]);

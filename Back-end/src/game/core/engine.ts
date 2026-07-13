@@ -5,14 +5,14 @@ import {
   getUnitAttack,
   getUnitHealth,
   isChampionCard
-} from "./cards";
+} from "../entities/cards";
 import {
   getCardDefinition,
   hasCard,
   listCards,
   registerCardDefinition,
   registerCardDefinitions
-} from "./cardRegistry";
+} from "../entities/cardRegistry";
 import {
   checkWinConditions,
   cloneState,
@@ -25,7 +25,7 @@ import {
   STARTING_HAND_SIZE,
   STARTING_NEXUS_HP,
   validateAction
-} from "./rules/gameRules";
+} from "../rules/gameRules";
 import {
   AbilityTargetMap,
   AdditionalCostDefinition,
@@ -43,20 +43,20 @@ import {
   SpellTarget,
   TargetDefinition,
   UnitInstance
-} from "./types";
-import { enqueueEffect, resolveEffectQueue, resolvePlayedSpellEffectTarget } from "./effects";
+} from "../types";
+import { enqueueEffect, resolveEffectQueue, resolvePlayedSpellEffectTarget } from "../mechanics/effects";
 import {
   executeAbility,
   executePlayedSpellAbilities,
   getMissingRequiredTargets
-} from "./abilities";
-import { emitEvent } from "./triggers";
+} from "../mechanics/abilities";
+import { emitEvent } from "../mechanics/triggers";
 import { GameEvent } from "./events";
 import {
   cleanupDeadUnits,
   moveCardToGraveyard,
   moveSpellToGraveyard
-} from "./graveyard";
+} from "../mechanics/graveyard";
 import {
   dealDamage,
   dealDamageToUnitState,
@@ -64,7 +64,7 @@ import {
   drawCards as drawCardsOperation,
   healTarget,
   sacrificeUnit
-} from "./operations";
+} from "../operations";
 export {
   getGraveyardEntries,
   findReviveTargets,
@@ -72,7 +72,7 @@ export {
   moveCardToGraveyard,
   moveSpellToGraveyard,
   cleanupDeadUnits
-} from "./graveyard";
+} from "../mechanics/graveyard";
 
 export function updateChampionProgress(state: GameState, event: GameEvent): void {
   switch (event.type) {
@@ -710,6 +710,12 @@ function hasAvailableAbilityTarget(
       return [...ally.deck, ...enemy.deck].some((card) =>
         cardMatchesTargetFilter(card, targetDefinition)
       );
+    case "ALLY_GRAVEYARD":
+      return ally.graveyard.some((entry) => entry.type !== "SPELL");
+    case "ENEMY_GRAVEYARD":
+      return enemy.graveyard.some((entry) => entry.type !== "SPELL");
+    case "ANY_GRAVEYARD":
+      return [...ally.graveyard, ...enemy.graveyard].some((entry) => entry.type !== "SPELL");
   }
 }
 
@@ -879,6 +885,18 @@ function submitAbilityTargets(
     ...targets
   };
   rejectSourceCardAsHandTarget(selectedTargets, pendingChoice.sourceInstanceId);
+
+  const remainingTargets = pendingChoice.requiredTargets.filter(
+    (targetDefinition) => !selectedTargets[targetDefinition.id]
+  );
+  if (remainingTargets.length > 0) {
+    next.pendingChoice = {
+      ...pendingChoice,
+      chosenTargets: selectedTargets,
+      requiredTargets: remainingTargets
+    };
+    return next;
+  }
 
   if (player.mana + player.spellMana < definition.cost) {
     throw new GameValidationError("Not enough mana.");
@@ -1399,7 +1417,7 @@ function requestDiscardIfNeeded(
 export function runCleanupPipeline(
   state: GameState,
   timing?: "END_TURN" | "END_ROUND" | "COMBAT_END",
-  cause: import("./types").GraveyardCause = "EFFECT"
+  cause: import("../types").GraveyardCause = "EFFECT"
 ): void {
   if (timing === "END_TURN") {
     expireModifiers(state, "THIS_TURN");

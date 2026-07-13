@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCardDefinition, listCards, registerCardDefinition } from "../cardRegistry";
+import { getCardDefinition, listCards, registerCardDefinition } from "../entities/cardRegistry";
 import { validateDeck } from "./deckRules";
 
 function validThirtyCardDeck(): string[] {
