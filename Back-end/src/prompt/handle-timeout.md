@@ -3,8 +3,8 @@ This is a multiplayer Turn-based Card Game (TCG) using a TypeScript state machin
 Your task is to implement an AFK/Timeout system (Option 1: Reduced Time Penalty).
 
 # Game Rules
-- Normal turn duration: 25 seconds.
-- If a player times out without taking any action, their turn ends. Their next turn will be reduced to 10 seconds.
+- Normal turn duration: 30 seconds.
+- If a player times out without taking any action, their turn ends. Their next turn will be reduced to 15 seconds.
 - If they take a valid action, their AFK streak resets, and subsequent turns return to 25 seconds.
 - If they time out 3 times in a row, they immediately lose the game.
 - Server must add a 2-second buffer to the timer to account for network latency.
@@ -21,7 +21,7 @@ Add the following fields to track timer and AFK state:
 - `VisualEvent`: Add `{ type: "AFK_WARNING"; playerId: PlayerId; afkCount: number }`.
 
 ### Step 2: Update Engine Logic (`Back-end/src/game/engine.ts`)
-- **Initialization:** In `createInitialGameState`, set `consecutiveAfkCount = 0` for all players, `turnStartTime = Date.now()`, and `turnDuration = 25000`.
+- **Initialization:** In `createInitialGameState`, set `consecutiveAfkCount = 0` for all players, `turnStartTime = Date.now()`, and `turnDuration = 30000`.
 - **Reset AFK Count:** In `applyAction`, for any valid player-driven action (e.g., `PLAY_UNIT`, `END_TURN`, etc., EXCEPT `TIME_OUT`), reset `consecutiveAfkCount = 0` for the `playerId` who made the action.
 - **Handle `TIME_OUT`:** Create logic for the `TIME_OUT` action:
   - Increment `consecutiveAfkCount` for the timed-out player.

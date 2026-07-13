@@ -122,6 +122,8 @@ function describeAction(action: GameAction): string {
       return `${action.playerId} passed priority.`;
     case "TIME_OUT":
       return `${action.playerId} timed out.`;
+    case "SURRENDER":
+      return `${action.playerId} surrendered.`;
   }
 }
 

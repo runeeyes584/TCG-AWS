@@ -14,6 +14,7 @@ export function MultiplayerDuel() {
       <GameBoardView
         controller={controller}
         localPlayerId={controller.localPlayerId}
+        opponentConnected={controller.opponentConnected}
         connectionStatus={`${controller.status} · Room ${controller.roomCode}`}
       />
     );

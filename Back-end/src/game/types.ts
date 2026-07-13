@@ -435,7 +435,8 @@ export type GameAction =
   | { type: "COMMIT_BLOCKS"; playerId: PlayerId }
   | { type: "RESOLVE_COMBAT" }
   | { type: "END_TURN"; playerId: PlayerId }
-  | { type: "TIME_OUT"; playerId: PlayerId };
+  | { type: "TIME_OUT"; playerId: PlayerId }
+  | { type: "SURRENDER"; playerId: PlayerId };
 
 export class GameValidationError extends Error {
   constructor(message: string) {
