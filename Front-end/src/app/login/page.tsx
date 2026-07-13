@@ -71,6 +71,16 @@ export default function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full rounded-lg border text-gray-900 border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
                         />
+
+                        <div className="mt-2 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => router.push("/forgot-password")}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                                Quên mật khẩu?
+                            </button>
+                        </div>
                     </div>
 
                     <button
