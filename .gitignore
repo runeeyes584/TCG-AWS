@@ -68,4 +68,4 @@ package-lock.json
 .agents/
 .agents
 .next
-
+.env
