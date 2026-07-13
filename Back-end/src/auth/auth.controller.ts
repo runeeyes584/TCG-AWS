@@ -229,3 +229,43 @@ export async function refresh(
     }
 
 }
+
+export async function forgotPassword(
+    req: Request<{}, {}, ForgotPasswordRequest>,
+    res: Response
+) {
+    try {
+        const result = await authService.forgotPassword(req.body.email);
+
+        return res.json(result);
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error instanceof Error
+                ? error.message
+                : "Unknown error"
+        });
+    }
+}
+
+export async function resetPassword(
+    req: Request<{}, {}, ResetPasswordRequest>,
+    res: Response
+) {
+    try {
+        const result = await authService.resetPassword(
+            req.body.email,
+            req.body.code,
+            req.body.password
+        );
+
+        return res.json(result);
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error instanceof Error
+                ? error.message
+                : "Unknown error"
+        });
+    }
+}

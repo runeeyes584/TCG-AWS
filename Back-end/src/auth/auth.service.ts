@@ -7,7 +7,9 @@ import {
     InitiateAuthCommand,
     NotAuthorizedException,
     UserNotConfirmedException,
-    GlobalSignOutCommand
+    GlobalSignOutCommand,
+    ForgotPasswordCommand,
+    ConfirmForgotPasswordCommand
 } from "@aws-sdk/client-cognito-identity-provider";
 
 import { cognito } from "./cognito";
@@ -214,3 +216,40 @@ export async function logout(
     await cognito.send(command);
 
 }
+
+export async function forgotPassword(email: string) {
+    const command = new ForgotPasswordCommand({
+        ClientId: env.clientId,
+        Username: email,
+        SecretHash: secretHash(email)
+    });
+
+    await cognito.send(command);
+
+    return {
+        success: true,
+        message: "Verification code has been sent."
+    };
+}
+
+export async function resetPassword(
+    email: string,
+    code: string,
+    password: string
+) {
+    const command = new ConfirmForgotPasswordCommand({
+        ClientId: env.clientId,
+        Username: email,
+        ConfirmationCode: code,
+        Password: password,
+        SecretHash: secretHash(email)
+    });
+
+    await cognito.send(command);
+
+    return {
+        success: true,
+        message: "Password changed successfully."
+    };
+}
+
