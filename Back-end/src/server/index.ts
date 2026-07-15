@@ -1,10 +1,9 @@
 import { createServer } from "node:http";
-// import { resolve } from "node:path";
-// import next from "next";
 import { Server, Socket } from "socket.io";
 import { buildDefaultDeck } from "../game/entities/defaultDeck";
 import { applyAction, createInitialGameState } from "../game/core/engine";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
+import { MatchmakingService } from "../matchmaking/matchmaking.service";
 import type {
   ActionAck,
   ClientToServerEvents,
@@ -15,6 +14,9 @@ import express from "express";
 import authRoutes from "../auth/auth.routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { verifyToken } from "@backend/auth/verifyToken";
+import { getUserById } from "@backend/user/user.repository";
+import { OnlinePlayerManager } from "@backend/matchmaking/onlinePlayers";
 
 interface RoomPlayer {
   socketId: string;
@@ -46,6 +48,7 @@ const hostname = "localhost";
 const rooms = new Map<string, Room>();
 const socketRooms = new Map<string, string>();
 const roomTimers = new Map<string, NodeJS.Timeout>();
+// const onlinePlayers = new Map<string, OnlinePlayer>();
 
 const expressApp = express();
 
@@ -101,6 +104,78 @@ io.on("connection", (socket) => {
     ack({ ok: true, roomCode: room.code, playerId: "P1" });
     broadcastRoom(room);
   });
+
+  socket.on("matchmaking:start", () => {
+    const match = MatchmakingService.enqueue(socket.id);
+
+    if (!match) {
+
+        socket.emit("matchmaking:searching");
+
+        return;
+    }
+
+
+    const room = createRoom();
+
+    const socket1 = io.sockets.sockets.get(match.player1.socketId);
+    const socket2 = io.sockets.sockets.get(match.player2.socketId);
+
+    if (!socket1 || !socket2) {
+        return;
+    }
+
+    attachPlayer(socket1, room, "P1");
+    attachPlayer(socket2, room, "P2");
+
+    room.log.unshift({
+        id: Date.now(),
+        message: "Match found."
+    });
+
+    broadcastRoom(room);
+
+    socket1.emit("matchmaking:found");
+    socket2.emit("matchmaking:found");
+  });
+
+  socket.on("matchmaking:cancel", () => {
+    MatchmakingService.remove(socket.id);
+  });
+
+  io.use(async (socket, next) => {
+    try {
+        const token = socket.handshake.auth.token;
+
+        const payload = await verifyToken(token);
+
+        const email = payload.username as string;
+
+        const user = await getUserById(payload.sub as string);
+        console.log("User:", user?.username);
+
+        if (!user) {
+            return next(new Error("User not found"));
+        }
+
+        OnlinePlayerManager.add({
+          socketId: socket.id,
+          user,
+          searching: false,
+          connectedAt: Date.now()
+      });
+
+        console.table([...OnlinePlayerManager.getAll()]);
+
+        socket.data.email = email;
+
+        next();
+
+    } catch (err) {
+        console.error("Socket auth error:", err);
+        next(err instanceof Error ? err : new Error("Unauthorized"));
+    }
+});
 
   socket.on("room:join", (roomCode, ack) => {
     const normalizedCode = roomCode.trim().toUpperCase();
@@ -218,6 +293,10 @@ io.on("connection", (socket) => {
       rooms.delete(room.code);
       return;
     }
+
+    MatchmakingService.remove(socket.id);
+
+OnlinePlayerManager.remove(socket.id);
 
     broadcastRoom(room);
   });

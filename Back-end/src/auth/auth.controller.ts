@@ -8,28 +8,20 @@ export async function register(
 ) {
 
     try {
-console.log(req.headers);
-console.log(req.body);
+        console.log(req.headers);
+        console.log(req.body);
         const result = await authService.register(req.body);
-
         return res.status(201).json(result);
-
     }
     catch (error) {
-
         return res.status(400).json({
-
             success: false,
-
             message:
                 error instanceof Error
                     ? error.message
                     : "Unknown error"
-
         });
-
     }
-
 }
 
 export async function verify(
@@ -71,7 +63,7 @@ export async function login(
         const result = await authService.login(req.body);
 
         // return res.json(result);
-        console.log(req.cookies);
+        // console.log(req.cookies);
 
         res.cookie(
             "access_token",
@@ -103,7 +95,9 @@ export async function login(
 
         return res.json({
             success: true,
-            message: "Login successful."
+            message: "Login successful.",
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken
         });
 
     }

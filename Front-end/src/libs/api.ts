@@ -1,5 +1,13 @@
 const API_URL = "http://localhost:5000";
 
+export interface LoginResponse {
+    success: boolean;
+    accessToken: string;
+    idToken: string;
+    refreshToken: string;
+    expiresIn: number;
+}
+
 interface ApiResponse<T = any> {
     success: boolean;
     message?: string;
@@ -9,7 +17,7 @@ interface ApiResponse<T = any> {
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
-): Promise<ApiResponse<T>> {
+): Promise<T> {
 
     const response = await fetch(`${API_URL}${url}`, {
         credentials: "include",
@@ -77,22 +85,15 @@ export async function verify(
 export async function login(
     email: string,
     password: string
-) {
+): Promise<LoginResponse> {
 
-    return request("/auth/login", {
-
+    return request<LoginResponse>("/auth/login", {
         method: "POST",
-
         body: JSON.stringify({
-
             email,
-
             password
-
         })
-
     });
-
 }
 
 export async function logout() {

@@ -21,10 +21,12 @@ export default function LoginPage() {
             setLoading(true);
 
             const result = await login(email, password);
+            localStorage.setItem("accessToken", result.accessToken);
+            localStorage.setItem("refreshToken", result.refreshToken);
+            localStorage.setItem("email", email);
+            router.push("/play");
 
-            alert(result.message || "Đăng nhập thành công!");
-
-            router.push("/");
+            // alert(result.message || "Đăng nhập thành công!");
         } catch (err: any) {
             alert(err.message);
         } finally {
