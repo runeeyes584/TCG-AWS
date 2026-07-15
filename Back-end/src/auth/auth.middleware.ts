@@ -9,38 +9,25 @@ export async function authenticate(
 ) {
 
     try {
-
         const token = req.cookies.access_token;
 
         if (!token) {
-
             return res.status(401).json({
-
                 success: false,
-
                 message: "Unauthorized."
-
             });
-
         }
 
         const payload = await verifyToken(token);
-
         (req as any).user = payload;
 
         next();
 
     }
     catch {
-
         return res.status(401).json({
-
             success: false,
-
             message: error instanceof Error ? error.message : "Invalid token."
-
         });
-
     }
-
 }

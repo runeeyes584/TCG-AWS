@@ -1,0 +1,18 @@
+[
+    {
+        "id": "997e7438-c061-70a7-a040-0bb741e9235c",
+        "email": "datteo192004@gmail.com",
+        "username": "VictorTran",
+        "elo": 1200,
+        "wins": 10,
+        "losses": 6
+    },
+    {
+        "id": "09ae6468-d081-7027-6767-d3b760917e03",
+        "email": "trandat2280600642@gmail.com",
+        "username": "DatTran",
+        "elo": 1350,
+        "wins": 23,
+        "losses": 15
+    }
+]

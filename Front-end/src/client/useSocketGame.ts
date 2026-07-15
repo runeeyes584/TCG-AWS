@@ -11,6 +11,8 @@ import type {
   RoomUpdate,
   ServerToClientEvents
 } from "@backend/shared/multiplayer";
+import { useRouter } from "next/router";
+import router from "@backend/auth/auth.routes";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -22,6 +24,11 @@ export interface SocketGameController extends GameController {
   error?: string;
   createRoom: () => void;
   joinRoom: (roomCode: string) => void;
+  startMatchmaking(): void;
+  cancelMatchmaking(): void;
+  searching: boolean;
+  queueTime: number;
+  inGame: boolean;
 }
 
 export function useSocketGame(): SocketGameController {
@@ -29,6 +36,9 @@ export function useSocketGame(): SocketGameController {
     () => createInitialGameState(buildDefaultDeck("P1"), buildDefaultDeck("P2")),
     []
   );
+  const [searching, setSearching] = useState(false);
+  const [queueTime, setQueueTime] = useState(0);
+  const [inGame, setInGame] = useState(false);
   const socketRef = useRef<GameSocket | undefined>(undefined);
   const roomCodeRef = useRef<string | undefined>(undefined);
   const [gameState, setGameState] = useState<GameState>(initialState);
@@ -41,14 +51,20 @@ export function useSocketGame(): SocketGameController {
     { id: 1, message: "Socket duel client loaded." }
   ]);
 
-  const socketUrl =
+  const socketUrl = 
     process.env.NEXT_PUBLIC_SOCKET_URL ||
-    "http://127.0.0.1:4000";
+    "http://localhost:5000";
 
   useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+
     const socket: GameSocket = io(socketUrl, {
       autoConnect: false,
-      transports: ["websocket", "polling"]
+      transports: ["websocket", "polling"],
+      auth: {
+        token: token,
+        email: localStorage.getItem("email"),
+      }
     });
     socketRef.current = socket;
 
@@ -80,12 +96,39 @@ export function useSocketGame(): SocketGameController {
     });
 
     socket.on("room:update", applyRoomUpdate);
+    socket.on("matchmaking:searching", () => {
+      setSearching(true);
+      setStatus("Searching for opponent...");
+    });
+
+    socket.on("matchmaking:cancelled", () => {
+      setSearching(false);
+      setQueueTime(0);
+      setStatus("Matchmaking cancelled");
+    });
+
+    socket.on("matchmaking:found", () => {
+      setSearching(false);
+      setQueueTime(0);
+      setStatus("Match Found!");
+      setInGame(true);
+    });
     socket.connect();
 
     return () => {
       socket.disconnect();
     };
   }, [socketUrl]);
+
+  useEffect(()=>{
+    if(!searching)  return;
+
+    const timer = setInterval(()=>{
+      setQueueTime((t) => t + 1);
+    }, 1000);
+    return ()=>clearInterval(timer);
+    
+},[searching]);
 
   const controller = useMemo<SocketGameController>(
     () => ({
@@ -100,9 +143,14 @@ export function useSocketGame(): SocketGameController {
       status,
       error,
       createRoom,
-      joinRoom
+      joinRoom,
+      searching,
+      queueTime,
+      startMatchmaking,
+      cancelMatchmaking,
+      inGame
     }),
-    [actionLog, error, gameState, localPlayerId, opponentConnected, roomCode, status]
+    [actionLog, error, gameState, localPlayerId, opponentConnected, roomCode, status, searching, queueTime, inGame]
   );
 
   return controller;
@@ -165,5 +213,16 @@ export function useSocketGame(): SocketGameController {
 
   function addClientLog(message: string) {
     setActionLog((current) => [{ id: Date.now() + Math.random(), message }, ...current]);
+  }
+
+  function startMatchmaking() {
+    setError(undefined);
+    socketRef.current?.emit("matchmaking:start");
+  }
+
+  function cancelMatchmaking() {
+    socketRef.current?.emit("matchmaking:cancel");
+    setSearching(false);
+    setQueueTime(0);
   }
 }
