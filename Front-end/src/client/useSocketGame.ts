@@ -11,8 +11,6 @@ import type {
   RoomUpdate,
   ServerToClientEvents
 } from "@backend/shared/multiplayer";
-import { useRouter } from "next/router";
-import router from "@backend/auth/auth.routes";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

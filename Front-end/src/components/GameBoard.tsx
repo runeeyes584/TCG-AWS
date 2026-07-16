@@ -176,6 +176,10 @@ export function GameBoardView({
       return false;
     }
 
+    if (card.cardId === "hidden-card") {
+      return false;
+    }
+
     const player = gameState.players[playerId];
     const definition = cardDef(card);
     const isSpell = definition.type === "spell";
@@ -1228,6 +1232,12 @@ export function GameBoardView({
   }
 
   function getResourcePreview(playerId: PlayerId, card: CardInstance) {
+    if (card.cardId === "hidden-card") {
+      return {
+        manaUsed: 0,
+        spellManaUsed: 0
+      };
+    }
     const player = gameState.players[playerId];
     const definition = cardDef(card);
     if (definition.type === "spell") {
