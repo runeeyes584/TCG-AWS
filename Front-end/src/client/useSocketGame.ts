@@ -56,6 +56,12 @@ export function useSocketGame(): SocketGameController {
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
 
+    if (typeof token !== "string" || token.trim().length === 0 || token.split(".").length !== 3) {
+      setStatus("Login required");
+      setError("Please sign in again before opening Duel.");
+      return;
+    }
+
     const socket: GameSocket = io(socketUrl, {
       autoConnect: false,
       transports: ["websocket", "polling"],
@@ -85,7 +91,17 @@ export function useSocketGame(): SocketGameController {
 
     socket.on("connect_error", (connectError) => {
       setStatus("Connection failed");
-      setError(connectError.message);
+      const message =
+        connectError.message === "Unauthorized: missing access token."
+          ? "Please sign in again to open Duel."
+          : connectError.message;
+
+      if (message !== connectError.message) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+      }
+
+      setError(message);
     });
 
     socket.on("game:error", (message) => {
