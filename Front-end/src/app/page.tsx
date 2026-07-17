@@ -1,5 +1,8 @@
 import { GameBoard } from "../components/GameBoard";
+import { useSocketGame } from "../client/useSocketGame";
 
 export default function Home() {
-  return <GameBoard />;
+  const controller = useSocketGame();
+
+  return <GameBoard controller={controller} />;
 }

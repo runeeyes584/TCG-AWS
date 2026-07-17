@@ -26,6 +26,10 @@ import { HandView } from "./HandView";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../hooks/useBattleMusic";
 
+interface Props {
+  controller: GameController;
+}
+
 export interface GameController {
   gameState: ReturnType<typeof useLocalGame>["gameState"];
   actionLog: ReturnType<typeof useLocalGame>["actionLog"];
@@ -41,8 +45,8 @@ interface GameBoardViewProps {
   opponentConnected?: boolean;
 }
 
-export function GameBoard() {
-  const controller = useLocalGame();
+export function GameBoard({ controller }: Props) {
+  // const controller = useLocalGame();
   return <GameBoardView controller={controller} />;
 }
 
@@ -80,8 +84,8 @@ export function GameBoardView({
   const attackerCount = gameState.combat.attackers.length;
   const selectedBlocker = selectedBlockerId
     ? gameState.players[defenderId].board.find(
-        (unit) => unit.instanceId === selectedBlockerId
-      )
+      (unit) => unit.instanceId === selectedBlockerId
+    )
     : undefined;
   const attackerIds = gameState.combat.attackers.map((lane) => lane.attackerId);
   const assignedBlockerIds = gameState.combat.attackers
@@ -161,14 +165,18 @@ export function GameBoardView({
       warning.afkCount === 1
         ? { level: "warning", message: "Bạn đã bỏ lỡ lượt. Lượt sau chỉ còn 15s." }
         : {
-            level: "danger",
-            message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
-          }
+          level: "danger",
+          message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
+        }
     );
   }, [gameState.visualEvents, localPlayerId]);
 
   function canPlay(playerId: PlayerId, card: CardInstance) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
+      return false;
+    }
+
+    if (card.cardId === "hidden-card") {
       return false;
     }
 
@@ -328,17 +336,17 @@ export function GameBoardView({
     }
     const atk = getUnitAttack(attacker);
     const blkAtk = getUnitAttack(blocker);
-    
+
     let attackerTakes = 0;
     let blockerTakes = 0;
     let nexusTakes = 0;
-    
+
     const calcDamage = (amount: number, unit: UnitInstance) => {
       if (amount <= 0) return 0;
       if (hasKeyword(unit, "BARRIER")) return 0;
       return hasKeyword(unit, "TOUGH") ? Math.max(0, amount - 1) : amount;
     };
-    
+
     if (hasKeyword(attacker, "QUICK_ATTACK")) {
       const dmgToBlocker = calcDamage(atk, blocker);
       blockerTakes = Math.min(getUnitHealth(blocker), dmgToBlocker);
@@ -356,7 +364,7 @@ export function GameBoardView({
         nexusTakes = Math.max(0, dmgToBlocker - getUnitHealth(blocker));
       }
     }
-    
+
     return { attackerTakes, blockerTakes, nexusTakes };
   }
 
@@ -417,7 +425,7 @@ export function GameBoardView({
 
     if (selectedSpell && gameState.phase === "ACTION") {
       const casterId = selectedSpell.ownerId;
-      
+
       const selectedDefinition = cardDef(selectedSpell);
       const additionalCost = selectedDefinition.additionalCost;
       if (
@@ -700,7 +708,7 @@ export function GameBoardView({
       sublabel: `#${gameState.round}`,
       mode: "idle",
       enabled: false,
-      onClick: () => {}
+      onClick: () => { }
     };
   }
 
@@ -1059,11 +1067,11 @@ export function GameBoardView({
                       onClick={
                         canRevive
                           ? () =>
-                              submitPendingAbilityTarget(targetDefinition.id, {
-                                type: "GRAVEYARD",
-                                playerId,
-                                cardInstanceId: entry.instanceId
-                              })
+                            submitPendingAbilityTarget(targetDefinition.id, {
+                              type: "GRAVEYARD",
+                              playerId,
+                              cardInstanceId: entry.instanceId
+                            })
                           : undefined
                       }
                       visualEvents={[]}
@@ -1075,12 +1083,12 @@ export function GameBoardView({
           ) : null}
 
           {targetDefinition &&
-          getPendingTargetUnits(targetDefinition).length === 0 &&
-          getPendingTargetDeckCards(targetDefinition).length === 0 &&
-          getPendingTargetHandCards(targetDefinition).length === 0 &&
-          getPendingTargetGraveyardCards(targetDefinition).some(({ entry }) =>
-            entry.type === "UNIT" || entry.type === "CHAMPION"
-          ) === false ? (
+            getPendingTargetUnits(targetDefinition).length === 0 &&
+            getPendingTargetDeckCards(targetDefinition).length === 0 &&
+            getPendingTargetHandCards(targetDefinition).length === 0 &&
+            getPendingTargetGraveyardCards(targetDefinition).some(({ entry }) =>
+              entry.type === "UNIT" || entry.type === "CHAMPION"
+            ) === false ? (
             <div className="empty-message">No valid targets.</div>
           ) : null}
 
@@ -1109,16 +1117,14 @@ export function GameBoardView({
     return (
       <div className="player-resource-panel">
         <div
-          className={`nexus-orb ${hasPriority ? "is-priority" : ""} ${
-            isAttacker ? "is-attacker" : "is-defender"
-          }`}
+          className={`nexus-orb ${hasPriority ? "is-priority" : ""} ${isAttacker ? "is-attacker" : "is-defender"
+            }`}
         >
           <span>{label}</span>
           <strong>{player.nexusHp}</strong>
           <small
-            className={`combat-role ${
-              isAttacker ? "is-attacker" : "is-defender"
-            }`}
+            className={`combat-role ${isAttacker ? "is-attacker" : "is-defender"
+              }`}
           >
             <RoleIcon size={11} aria-hidden="true" />
             {roleLabel}
@@ -1145,9 +1151,8 @@ export function GameBoardView({
               return (
                 <span
                   key={`mana-${pipNumber}`}
-                  className={`mana-pip ${pipState} ${
-                    isPreviewed ? "is-previewed" : ""
-                  }`}
+                  className={`mana-pip ${pipState} ${isPreviewed ? "is-previewed" : ""
+                    }`}
                 />
               );
             })}
@@ -1162,9 +1167,8 @@ export function GameBoardView({
               return (
                 <span
                   key={`spell-${index}`}
-                  className={`spell-mana-bar ${isFilled ? "is-filled" : "is-empty"} ${
-                    isPreviewed ? "is-previewed" : ""
-                  }`}
+                  className={`spell-mana-bar ${isFilled ? "is-filled" : "is-empty"} ${isPreviewed ? "is-previewed" : ""
+                    }`}
                 />
               );
             })}
@@ -1198,24 +1202,24 @@ export function GameBoardView({
           <div className="pending-choice-grid hand-limit-grid">
             {hidden
               ? player.hand.map((card, index) => (
-                  <div
-                    aria-label={`Hidden discard card ${index + 1}`}
-                    className="hidden-card-back"
-                    key={card.instanceId}
-                  >
-                    <span>K</span>
-                  </div>
-                ))
+                <div
+                  aria-label={`Hidden discard card ${index + 1}`}
+                  className="hidden-card-back"
+                  key={card.instanceId}
+                >
+                  <span>K</span>
+                </div>
+              ))
               : player.hand.map((card) => (
-                  <div className="pending-choice-card" key={card.instanceId}>
-                    <span className="pending-choice-zone-label">Discard</span>
-                    <CardView
-                      card={card}
-                      onClick={() => playCard(pendingDiscard.playerId, card)}
-                      visualEvents={[]}
-                    />
-                  </div>
-                ))}
+                <div className="pending-choice-card" key={card.instanceId}>
+                  <span className="pending-choice-zone-label">Discard</span>
+                  <CardView
+                    card={card}
+                    onClick={() => playCard(pendingDiscard.playerId, card)}
+                    visualEvents={[]}
+                  />
+                </div>
+              ))}
           </div>
           {hidden ? (
             <div className="empty-message">
@@ -1228,6 +1232,12 @@ export function GameBoardView({
   }
 
   function getResourcePreview(playerId: PlayerId, card: CardInstance) {
+    if (card.cardId === "hidden-card") {
+      return {
+        manaUsed: 0,
+        spellManaUsed: 0
+      };
+    }
     const player = gameState.players[playerId];
     const definition = cardDef(card);
     if (definition.type === "spell") {
@@ -1256,7 +1266,7 @@ export function GameBoardView({
   function renderGraveyard(playerId: PlayerId, label: string) {
     const entryCount = gameState.players[playerId].graveyard.length;
     return (
-      <div 
+      <div
         className={`deck-stack graveyard-stack ${entryCount > 0 ? "has-cards" : ""}`}
         onClick={() => setViewingGraveyard(playerId)}
         onKeyDown={(event) => {
@@ -1317,8 +1327,8 @@ export function GameBoardView({
     return gameState.combat.attackers.map((lane) =>
       lane.blockerId
         ? gameState.players[playerId].board.find(
-            (unit) => unit.instanceId === lane.blockerId
-          )
+          (unit) => unit.instanceId === lane.blockerId
+        )
         : undefined
     );
   }
@@ -1392,9 +1402,8 @@ export function GameBoardView({
 
     return (
       <div
-        className={`battle-row-wrap waiting-row-wrap ${
-          isEnemy ? "opponent-waiting" : "own-waiting"
-        }`}
+        className={`battle-row-wrap waiting-row-wrap ${isEnemy ? "opponent-waiting" : "own-waiting"
+          }`}
         aria-label={`${playerId} waiting row`}
       >
         <div className="battle-row-label">
@@ -1421,9 +1430,8 @@ export function GameBoardView({
 
     return (
       <div
-        className={`battle-row-wrap active-row-wrap ${
-          isEnemy ? "opponent-active" : "own-active"
-        }`}
+        className={`battle-row-wrap active-row-wrap ${isEnemy ? "opponent-active" : "own-active"
+          }`}
         aria-label={`${playerId} active row`}
       >
         <div className="battle-row-label">
@@ -1434,24 +1442,24 @@ export function GameBoardView({
           rowClassName: isEnemy ? "opponent-active-row" : "own-active-row",
           isEmptySlotEnabled: canAssignToEmptyLane
             ? (index) => {
-                const lane = gameState.combat.attackers[index];
-                return Boolean(lane && !lane.blockerId);
-              }
+              const lane = gameState.combat.attackers[index];
+              return Boolean(lane && !lane.blockerId);
+            }
             : undefined,
           onEmptySlotClick: canAssignToEmptyLane
             ? (index) => {
-                const lane = gameState.combat.attackers[index];
-                if (!lane || lane.blockerId || !selectedBlockerId) {
-                  return;
-                }
-
-                const attacker = gameState.players[attackPlayerId].board.find(
-                  (candidate) => candidate.instanceId === lane.attackerId
-                );
-                if (attacker) {
-                  assignBlocker(attacker, selectedBlockerId);
-                }
+              const lane = gameState.combat.attackers[index];
+              if (!lane || lane.blockerId || !selectedBlockerId) {
+                return;
               }
+
+              const attacker = gameState.players[attackPlayerId].board.find(
+                (candidate) => candidate.instanceId === lane.attackerId
+              );
+              if (attacker) {
+                assignBlocker(attacker, selectedBlockerId);
+              }
+            }
             : undefined,
           renderUnit: (unit, index) => renderActiveUnit(playerId, unit, index)
         })}
@@ -1486,15 +1494,15 @@ export function GameBoardView({
               ? () => selectBoardUnit(playerId, unit)
               : canRemoveBlocker
                 ? () => {
-                    dispatch(
-                      {
-                        type: "REMOVE_BLOCKER",
-                        playerId: defenderId,
-                        blockerId: unit.instanceId
-                      },
-                      `${defenderId} removed ${unitDef(unit).name} from blocking.`
-                    );
-                  }
+                  dispatch(
+                    {
+                      type: "REMOVE_BLOCKER",
+                      playerId: defenderId,
+                      blockerId: unit.instanceId
+                    },
+                    `${defenderId} removed ${unitDef(unit).name} from blocking.`
+                  );
+                }
                 : undefined
           }
           visualEvents={gameState.visualEvents.filter(
@@ -1649,7 +1657,7 @@ export function GameBoardView({
             entries={gameState.players[viewingGraveyard].graveyard}
             selectedCardInstanceId={
               selectedSpellTarget?.type === "GRAVEYARD" &&
-              selectedSpellTarget.playerId === viewingGraveyard
+                selectedSpellTarget.playerId === viewingGraveyard
                 ? selectedSpellTarget.cardInstanceId
                 : undefined
             }
@@ -1787,9 +1795,8 @@ export function GameBoardView({
                 return (
                   <button
                     type="button"
-                    className={`action-orb action-orb--${action.mode} ${
-                      action.enabled ? "action-orb--active" : ""
-                    }`}
+                    className={`action-orb action-orb--${action.mode} ${action.enabled ? "action-orb--active" : ""
+                      }`}
                     onClick={action.onClick}
                     disabled={!action.enabled}
                     aria-label={action.label}
@@ -1824,8 +1831,8 @@ export function GameBoardView({
                 <span>
                   Target:{" "}
                   {cardDef(selectedSpell).type === "unit" ||
-                  cardDef(selectedSpell).type === "champion" ||
-                  cardDef(selectedSpell).type === "spell"
+                    cardDef(selectedSpell).type === "champion" ||
+                    cardDef(selectedSpell).type === "spell"
                     ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
                     : selectedSpellTarget
                       ? describeSpellTarget(selectedSpellTarget)

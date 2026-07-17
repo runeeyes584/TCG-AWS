@@ -5,11 +5,16 @@ export interface ClientToServerEvents {
   "room:join": (roomCode: string, ack: RoomAck) => void;
   "game:action": (action: GameAction, ack?: ActionAck) => void;
   "game:reset": (ack?: ActionAck) => void;
+  "matchmaking:start": () => void;
+  "matchmaking:cancel": () => void;
 }
 
 export interface ServerToClientEvents {
   "room:update": (payload: RoomUpdate) => void;
   "game:error": (message: string) => void;
+  "matchmaking:searching": () => void;
+  "matchmaking:cancelled": () => void;
+  "matchmaking:found": () => void;
 }
 
 export interface RoomAckPayload {
