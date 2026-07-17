@@ -97,6 +97,46 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   }
 });
 
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+
+    if (typeof token !== "string" || token.trim().length === 0) {
+      return next(new Error("Unauthorized: missing access token."));
+    }
+
+    const payload = await verifyToken(token);
+
+    const email = payload.username as string;
+    const user = await getUserById(payload.sub as string);
+
+    if (!user) {
+      return next(new Error("Unauthorized: user not found."));
+    }
+
+    OnlinePlayerManager.add({
+      socketId: socket.id,
+      user,
+      searching: false,
+      connectedAt: Date.now()
+    });
+
+    socket.data.email = email;
+    next();
+  } catch (err) {
+    console.error("Socket auth error:", err);
+
+    const message =
+      err instanceof Error && /Compact JWS|JWT|token/i.test(err.message)
+        ? "Unauthorized: invalid access token."
+        : err instanceof Error
+          ? err.message
+          : "Unauthorized";
+
+    next(new Error(message));
+  }
+});
+
 io.on("connection", (socket) => {
   socket.on("room:create", (ack) => {
     const room = createRoom();
@@ -142,40 +182,6 @@ io.on("connection", (socket) => {
   socket.on("matchmaking:cancel", () => {
     MatchmakingService.remove(socket.id);
   });
-
-  io.use(async (socket, next) => {
-    try {
-        const token = socket.handshake.auth.token;
-
-        const payload = await verifyToken(token);
-
-        const email = payload.username as string;
-
-        const user = await getUserById(payload.sub as string);
-        console.log("User:", user?.username);
-
-        if (!user) {
-            return next(new Error("User not found"));
-        }
-
-        OnlinePlayerManager.add({
-          socketId: socket.id,
-          user,
-          searching: false,
-          connectedAt: Date.now()
-      });
-
-        console.table([...OnlinePlayerManager.getAll()]);
-
-        socket.data.email = email;
-
-        next();
-
-    } catch (err) {
-        console.error("Socket auth error:", err);
-        next(err instanceof Error ? err : new Error("Unauthorized"));
-    }
-});
 
   socket.on("room:join", (roomCode, ack) => {
     const normalizedCode = roomCode.trim().toUpperCase();
