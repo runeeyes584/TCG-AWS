@@ -12,5 +12,5 @@ export const env = {
     userPoolId: process.env.COGNITO_USER_POOL_ID!,
     clientId: process.env.COGNITO_CLIENT_ID!,
     clientSecret: process.env.COGNITO_CLIENT_SECRET!,
-    JWT_SECRET: process.env.JWT_SECRET ?? "",
+    JWT_SECRET: process.env.JWT_SECRET!,
 };
