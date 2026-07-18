@@ -1,29 +1,33 @@
-"use client";
+// src/components/game/zones/hand.tsx
+import React from "react";
+import { HandCard } from "../cards/hand-card";
+import { CardBack } from "../cards/card-back";
+import type { CardInstance } from "@backend/game/types";
 
-import { CardInstance } from "@backend/game/types";
-import { CardView } from "./CardView";
-
-interface HandViewProps {
+export interface HandProps {
   cards: CardInstance[];
+  side: "player" | "opponent";
+  hidden?: boolean;
   selectedCardId?: string;
-  canPlay: (card: CardInstance) => boolean;
-  onPlayCard: (card: CardInstance) => void;
+  canPlay?: (card: CardInstance) => boolean;
+  onPlayCard?: (card: CardInstance) => void;
   onUnavailableCardClick?: () => void;
   onPreviewCard?: (card?: CardInstance) => void;
-  hidden?: boolean;
-  side?: "opponent" | "player";
 }
 
-export function HandView({
+/**
+ * Render a player's hand. For the opponent we render only CardBack components.
+ */
+export const Hand: React.FC<HandProps> = ({
   cards,
+  side,
+  hidden = false,
   selectedCardId,
-  canPlay,
+  canPlay = () => false,
   onPlayCard,
   onUnavailableCardClick,
   onPreviewCard,
-  hidden = false,
-  side = "player"
-}: HandViewProps) {
+}) => {
   return (
     <section className={`lane hand-dock hand-dock--${side}`} aria-label="Hand">
       <div className="lane-label">Hand</div>
@@ -36,27 +40,25 @@ export function HandView({
           <div className="empty-slot">No cards</div>
         ) : hidden ? (
           cards.map((card, index) => (
-            <div
-              aria-label={`Hidden card ${index + 1}`}
-              className="hidden-card-back"
+            <CardBack
               key={card.instanceId}
-            >
-              <span>K</span>
-            </div>
+              variant="hand"
+              onMouseEnter={() => onPreviewCard?.(card)}
+              onMouseLeave={() => onPreviewCard?.(undefined)}
+            />
           ))
         ) : (
           cards.map((card) => (
-            <CardView
+            <HandCard
               key={card.instanceId}
               card={card}
-              variant="hand"
               selected={card.instanceId === selectedCardId}
               onClick={() => {
                 if (canPlay(card)) {
-                  onPlayCard(card);
-                  return;
+                  onPlayCard?.(card);
+                } else {
+                  onUnavailableCardClick?.();
                 }
-                onUnavailableCardClick?.();
               }}
               onPreviewChange={(previewing) =>
                 onPreviewCard?.(previewing ? card : undefined)
@@ -67,4 +69,4 @@ export function HandView({
       </div>
     </section>
   );
-}
+};

@@ -1,5 +1,5 @@
 "use client";
-import { useHover } from "../contexts/HoverContext";
+import { useHover } from "../../contexts/HoverContext";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/entities/cards";
 import { Shield, Swords, X, Zap } from "lucide-react";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";

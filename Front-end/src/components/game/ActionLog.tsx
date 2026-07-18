@@ -1,6 +1,6 @@
 "use client";
 
-import { LogEntry } from "../hooks/useLocalGame";
+import { LogEntry } from "../../hooks/useLocalGame";
 
 interface ActionLogProps {
   entries: LogEntry[];

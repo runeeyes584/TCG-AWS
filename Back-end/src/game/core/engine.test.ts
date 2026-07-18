@@ -482,6 +482,51 @@ describe("game engine", () => {
     ]);
   });
 
+  it("applies an enemy-targeted debuff spell to the selected unit", () => {
+    const catDebuff = spell("cat-debuff-01", {
+      type: "DEBUFF_UNIT",
+      attackDelta: -1,
+      healthDelta: 0,
+      target: "ENEMY_UNIT",
+      duration: "PERMANENT"
+    }, 3);
+    let state = withBoard(startedGame(), "P2", [
+      createUnitInstance(card(guardian, "P2", "enemy-target"))
+    ]);
+    state = withHand(state, "P1", [card(catDebuff, "P1", "cat-debuff")]);
+
+    state = applyAction(state, {
+      type: "PLAY_SPELL",
+      playerId: "P1",
+      cardInstanceId: "cat-debuff",
+      target: { type: "UNIT", playerId: "P2", unitId: "enemy-target" }
+    });
+
+    expect(getUnitAttack(state.players.P2.board[0])).toBe(2);
+  });
+
+  it("allows a waiting-row unit to block beside an active revived unit", () => {
+    let state = withBoard(startedGame(), "P1", [
+      createUnitInstance(card(soldier, "P1", "attacker"))
+    ]);
+    state = withBoard(state, "P2", [
+      { ...createUnitInstance(card(soldier, "P2", "revived-unit")), boardRow: "ACTIVE" },
+      createUnitInstance(card(soldier, "P2", "waiting-blocker"))
+    ]);
+    state = declareAndCommitAttack(state, "attacker");
+
+    state = applyAction(state, {
+      type: "DECLARE_BLOCKER",
+      playerId: "P2",
+      attackerId: "attacker",
+      blockerId: "waiting-blocker"
+    });
+
+    expect(state.combat.attackers).toEqual([
+      { attackerId: "attacker", blockerId: "waiting-blocker" }
+    ]);
+  });
+
   it("prevents assigning the same blocker twice", () => {
     let state = withBoard(startedGame(), "P1", [
       createUnitInstance(card(soldier, "P1", "attacker-1")),

@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import type { GraveyardEntry, GraveyardEntryType, PlayerId } from "@backend/game/types";
-import { CardView } from "./CardView";
+import { GameCard } from "./cards/game-card";
 
 interface GraveyardPickerModalProps {
   playerId: PlayerId;
@@ -49,7 +49,7 @@ export function GraveyardPickerModal({
                 className={`graveyard-entry ${isSelectable ? "" : "is-disabled"}`}
                 aria-disabled={!isSelectable}
               >
-                <CardView
+                <GameCard
                   card={{
                     instanceId: entry.instanceId,
                     cardId: entry.cardId,

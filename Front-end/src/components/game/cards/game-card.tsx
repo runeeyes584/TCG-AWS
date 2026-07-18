@@ -1,12 +1,12 @@
-"use client";
-
+import React from "react";
 import { Shield, Swords, Zap } from "lucide-react";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/entities/cards";
 import { CardInstance, UnitInstance, VisualEvent } from "@backend/game/types";
-import { useHover } from "../contexts/HoverContext";
+import { useHover } from "../../../contexts/HoverContext";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
+import { CardBack } from "./card-back";
 
-interface CardViewProps {
+export interface GameCardProps {
   card?: CardInstance;
   unit?: UnitInstance;
   variant?: "default" | "hand";
@@ -16,7 +16,7 @@ interface CardViewProps {
   visualEvents?: VisualEvent[];
 }
 
-export function CardView({
+export const GameCard: React.FC<GameCardProps> = ({
   card,
   unit,
   variant = "default",
@@ -24,46 +24,36 @@ export function CardView({
   onClick,
   onPreviewChange,
   visualEvents
-}: CardViewProps) {
+}) => {
   const { selectCard, setHoveredCard } = useHover();
   const cardId = unit?.cardId ?? card?.cardId;
+  
   if (!cardId) {
     return null;
   }
 
+  const hoverProps = {
+    onMouseEnter: () => {
+      if (cardId !== "hidden-card") {
+        setHoveredCard(card, unit);
+      }
+      onPreviewChange?.(true);
+    },
+    onMouseLeave: () => {
+      setHoveredCard(undefined, undefined);
+      onPreviewChange?.(false);
+    },
+    onFocus: () => onPreviewChange?.(true),
+    onBlur: () => onPreviewChange?.(false)
+  };
+
   if (cardId === "hidden-card") {
     return (
-      <div
-        className={`
-        relative aspect-[5/7] w-28 rounded-xl
-        border-2 border-slate-600
-        bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950
-        shadow-lg
-        flex items-center justify-center
-        select-none
-        ${variant === "hand" ? "cursor-pointer" : ""}
-      `}
+      <CardBack
+        variant={variant}
         onClick={onClick}
-        onMouseEnter={() => {
-          setHoveredCard(undefined, undefined);
-          onPreviewChange?.(true);
-        }}
-        onMouseLeave={() => {
-          setHoveredCard(undefined, undefined);
-          onPreviewChange?.(false);
-        }}
-      >
-        {/* Viền phát sáng */}
-        <div className="absolute inset-1 rounded-lg border border-slate-500" />
-
-        {/* Logo / chữ */}
-        <div className="text-center">
-          <div className="text-4xl">🂠</div>
-          <div className="mt-2 text-xs font-semibold tracking-widest text-slate-300 uppercase">
-            Hidden
-          </div>
-        </div>
-      </div>
+        {...hoverProps}
+      />
     );
   }
 
@@ -149,18 +139,6 @@ export function CardView({
     </>
   );
 
-  const hoverProps = {
-    onMouseEnter: () => {
-      setHoveredCard(card, unit);
-      onPreviewChange?.(true);
-    },
-    onMouseLeave: () => {
-      setHoveredCard(undefined, undefined);
-      onPreviewChange?.(false);
-    },
-    onFocus: () => onPreviewChange?.(true),
-    onBlur: () => onPreviewChange?.(false)
-  };
   const handleClick = () => {
     selectCard(card, unit);
     onClick?.();
@@ -191,7 +169,7 @@ export function CardView({
       {content}
     </button>
   );
-}
+};
 
 function formatEffect(attackDelta: number, healthDelta: number): string {
   const attack = attackDelta >= 0 ? `+${attackDelta}` : `${attackDelta}`;

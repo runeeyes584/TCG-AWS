@@ -87,10 +87,6 @@ const httpServer = createServer(expressApp);
 //   handle(request, response);
 // });
 
-httpServer.listen(port, hostname, () => {
-    console.log(`Server running at http://${hostname}:${port}`);
-});
-
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
     origin: true
@@ -184,7 +180,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on("room:join", (roomCode, ack) => {
-    const normalizedCode = roomCode.trim().toUpperCase();
+    const normalizedCode = typeof roomCode === "string"
+      ? roomCode.trim().toUpperCase()
+      : "";
+
+    if (!normalizedCode) {
+      ack({ ok: false, error: "Room code is required." });
+      return;
+    }
+
     const room = rooms.get(normalizedCode);
     if (!room) {
       ack({ ok: false, error: "Room not found." });

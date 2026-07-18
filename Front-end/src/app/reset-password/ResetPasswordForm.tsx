@@ -13,7 +13,9 @@ export function ResetPasswordForm() {
     const [loading, setLoading] = useState(false);
 
     const submit = async () => {
-        if (!code || !password) {
+        const normalizedCode = code.trim();
+
+        if (!normalizedCode || !password) {
             alert("Vui lòng nhập đầy đủ thông tin.");
             return;
         }
@@ -21,7 +23,7 @@ export function ResetPasswordForm() {
         try {
             setLoading(true);
 
-            const result = await resetPassword(email, code, password);
+            const result = await resetPassword(email, normalizedCode, password);
 
             alert(result.message || "Password changed successfully.");
 
@@ -53,8 +55,12 @@ export function ResetPasswordForm() {
                         </label>
 
                         <input
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
                             value={code}
-                            onChange={(e) => setCode(e.target.value)}
+                            onChange={(e) => setCode(e.target.value.trim())}
                             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-center tracking-[0.3em] uppercase text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                         />
                     </div>
