@@ -17,6 +17,7 @@ import { env } from "../config/env";
 import { secretHash } from "./utils";
 import { validateRegister } from "./validators";
 import { LoginRequest, RegisterRequest, VerifyRequest } from "./types";
+import { normalizeConfirmationCode } from "./confirmationCode";
 
 export async function register(data: RegisterRequest) {
 
@@ -73,7 +74,8 @@ export async function register(data: RegisterRequest) {
 
 export async function verify(data: VerifyRequest) {
 
-    const { email, code } = data;
+    const { email } = data;
+    const code = normalizeConfirmationCode(data.code);
 
     try {
 
@@ -237,10 +239,12 @@ export async function resetPassword(
     code: string,
     password: string
 ) {
+    const normalizedCode = normalizeConfirmationCode(code);
+
     const command = new ConfirmForgotPasswordCommand({
         ClientId: env.clientId,
         Username: email,
-        ConfirmationCode: code,
+        ConfirmationCode: normalizedCode,
         Password: password,
         SecretHash: secretHash(email)
     });

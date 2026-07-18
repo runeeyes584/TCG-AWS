@@ -1,18 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
-import type { GameController } from "../components/GameBoard";
+import type { GameController } from "../components/game/GameBoard";
 import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { createInitialGameState } from "@backend/game/core/engine";
 import type { GameAction, GameState, PlayerId } from "@backend/game/types";
-import type {
-  ClientToServerEvents,
-  RoomUpdate,
-  ServerToClientEvents
-} from "@backend/shared/multiplayer";
-
-type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+import type { RoomUpdate } from "@backend/shared/multiplayer";
+import { socketManager } from "../libs/socket";
 
 export interface SocketGameController extends GameController {
   roomCode?: string;
@@ -29,32 +23,30 @@ export interface SocketGameController extends GameController {
   inGame: boolean;
 }
 
-export function useSocketGame(): SocketGameController {
+export function useGameMatch(): SocketGameController {
   const initialState = useMemo(
     () => createInitialGameState(buildDefaultDeck("P1"), buildDefaultDeck("P2")),
     []
   );
+  
+  // States
   const [searching, setSearching] = useState(false);
   const [queueTime, setQueueTime] = useState(0);
   const [inGame, setInGame] = useState(false);
-  const socketRef = useRef<GameSocket | undefined>(undefined);
-  const roomCodeRef = useRef<string | undefined>(undefined);
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [roomCode, setRoomCode] = useState<string>();
   const [localPlayerId, setLocalPlayerId] = useState<PlayerId>();
   const [opponentConnected, setOpponentConnected] = useState(false);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string>();
+  const roomCodeRef = useRef<string | undefined>(undefined);
   const [actionLog, setActionLog] = useState<Array<{ id: number; message: string }>>([
-    { id: 1, message: "Socket duel client loaded." }
+    { id: 1, message: "Game match hook loaded." }
   ]);
-
-  const socketUrl = 
-    process.env.NEXT_PUBLIC_SOCKET_URL ||
-    "http://localhost:5000";
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
+    const email = localStorage.getItem("email") || "";
 
     if (typeof token !== "string" || token.trim().length === 0 || token.split(".").length !== 3) {
       setStatus("Login required");
@@ -62,21 +54,16 @@ export function useSocketGame(): SocketGameController {
       return;
     }
 
-    const socket: GameSocket = io(socketUrl, {
-      autoConnect: false,
-      transports: ["websocket", "polling"],
-      auth: {
-        token: token,
-        email: localStorage.getItem("email"),
-      }
-    });
-    socketRef.current = socket;
+    // 1. Initialize API connection
+    const socket = socketManager.connect(token, email);
 
+    // 2. Setup Event Listeners (Handling Server -> Client)
     socket.on("connect", () => {
       setStatus("Connected");
       setError(undefined);
+      // Auto-rejoin if room code exists
       if (roomCodeRef.current) {
-        socket.emit("room:join", roomCodeRef.current, (response) => {
+        socketManager.joinRoom(roomCodeRef.current, (response: any) => {
           if (!response.ok) {
             setError(response.error);
             addClientLog(response.error);
@@ -89,10 +76,9 @@ export function useSocketGame(): SocketGameController {
       setStatus("Disconnected");
     });
 
-    socket.on("connect_error", (connectError) => {
+    socket.on("connect_error", (connectError: any) => {
       setStatus("Connection failed");
-      const message =
-        connectError.message === "Unauthorized: missing access token."
+      const message = connectError.message === "Unauthorized: missing access token."
           ? "Please sign in again to open Duel."
           : connectError.message;
 
@@ -100,16 +86,24 @@ export function useSocketGame(): SocketGameController {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
       }
-
       setError(message);
     });
 
-    socket.on("game:error", (message) => {
+    socket.on("game:error", (message: string) => {
       setError(message);
       addClientLog(message);
     });
 
-    socket.on("room:update", applyRoomUpdate);
+    socket.on("room:update", (update: RoomUpdate) => {
+      roomCodeRef.current = update.roomCode;
+      setRoomCode(update.roomCode);
+      setLocalPlayerId(update.playerId);
+      setOpponentConnected(update.opponentConnected);
+      setGameState(update.state);
+      setActionLog(update.log);
+      setStatus(update.opponentConnected ? "Opponent connected" : "Waiting for opponent");
+    });
+
     socket.on("matchmaking:searching", () => {
       setSearching(true);
       setStatus("Searching for opponent...");
@@ -127,23 +121,108 @@ export function useSocketGame(): SocketGameController {
       setStatus("Match Found!");
       setInGame(true);
     });
-    socket.connect();
 
+    // Cleanup on unmount
     return () => {
-      socket.disconnect();
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("connect_error");
+      socket.off("game:error");
+      socket.off("room:update");
+      socket.off("matchmaking:searching");
+      socket.off("matchmaking:cancelled");
+      socket.off("matchmaking:found");
+      socketManager.disconnect();
     };
-  }, [socketUrl]);
+    }, []);
 
-  useEffect(()=>{
-    if(!searching)  return;
+  // Queue Timer
+  useEffect(() => {
+    if (!searching) return;
+    const timer = setInterval(() => setQueueTime((t) => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [searching]);
 
-    const timer = setInterval(()=>{
-      setQueueTime((t) => t + 1);
-    }, 1000);
-    return ()=>clearInterval(timer);
-    
-},[searching]);
+  // --- Handlers (Client -> Server via API layer) ---
+  function addClientLog(message: string) {
+    setActionLog((current) => [{ id: Date.now() + Math.random(), message }, ...current]);
+  }
 
+  function createRoom() {
+    setError(undefined);
+    socketManager.createRoom((response: any) => {
+      if (!response.ok) {
+        setError(response.error);
+        addClientLog(response.error);
+        return;
+      }
+
+      roomCodeRef.current = response.roomCode;
+      setRoomCode(response.roomCode);
+      setLocalPlayerId(response.playerId);
+      setOpponentConnected(false);
+      setStatus(`Room ${response.roomCode} created. Waiting for opponent`);
+    });
+  }
+
+  function joinRoom(inputRoomCode: string) {
+    setError(undefined);
+    const normalizedRoomCode = inputRoomCode.trim().toUpperCase();
+
+    if (!normalizedRoomCode) {
+      setError("Enter a room code.");
+      return;
+    }
+
+    socketManager.joinRoom(normalizedRoomCode, (response: any) => {
+      if (!response.ok) {
+        setError(response.error);
+        addClientLog(response.error);
+        return;
+      }
+
+      roomCodeRef.current = response.roomCode;
+      setRoomCode(response.roomCode);
+      setLocalPlayerId(response.playerId);
+    });
+  }
+
+  function dispatch(action: GameAction): boolean {
+    socketManager.dispatchAction(action, (response: any) => {
+      if (!response.ok) {
+        setError(response.error);
+        addClientLog(response.error);
+      }
+    });
+    return true;
+  }
+
+  function dispatchChain(actions: Array<{ action: GameAction }>): boolean {
+    actions.forEach(({ action }) => dispatch(action));
+    return true;
+  }
+
+  function resetGame() {
+    socketManager.resetGame((response: any) => {
+      if (!response.ok) {
+        setError(response.error);
+        addClientLog(response.error);
+      }
+    });
+  }
+
+  function startMatchmaking() {
+    setError(undefined);
+    socketManager.startMatchmaking();
+  }
+
+  function cancelMatchmaking() {
+    socketManager.cancelMatchmaking();
+    setSearching(false);
+    setQueueTime(0);
+  }
+
+  // Return the controller object
   const controller = useMemo<SocketGameController>(
     () => ({
       gameState,
@@ -168,75 +247,4 @@ export function useSocketGame(): SocketGameController {
   );
 
   return controller;
-
-  function applyRoomUpdate(update: RoomUpdate) {
-    roomCodeRef.current = update.roomCode;
-    setRoomCode(update.roomCode);
-    setLocalPlayerId(update.playerId);
-    setOpponentConnected(update.opponentConnected);
-    setGameState(update.state);
-    setActionLog(update.log);
-    setStatus(update.opponentConnected ? "Opponent connected" : "Waiting for opponent");
-  }
-
-  function createRoom() {
-    setError(undefined);
-    socketRef.current?.emit("room:create", (response) => {
-      if (!response.ok) {
-        setError(response.error);
-        addClientLog(response.error);
-      }
-    });
-  }
-
-  function joinRoom(inputRoomCode: string) {
-    setError(undefined);
-    socketRef.current?.emit("room:join", inputRoomCode, (response) => {
-      if (!response.ok) {
-        setError(response.error);
-        addClientLog(response.error);
-      }
-    });
-  }
-
-  function dispatch(action: GameAction): boolean {
-    socketRef.current?.emit("game:action", action, (response) => {
-      if (!response.ok) {
-        setError(response.error);
-        addClientLog(response.error);
-      }
-    });
-    return true;
-  }
-
-  function dispatchChain(actions: Array<{ action: GameAction }>): boolean {
-    for (const { action } of actions) {
-      dispatch(action);
-    }
-    return true;
-  }
-
-  function resetGame() {
-    socketRef.current?.emit("game:reset", (response) => {
-      if (!response.ok) {
-        setError(response.error);
-        addClientLog(response.error);
-      }
-    });
-  }
-
-  function addClientLog(message: string) {
-    setActionLog((current) => [{ id: Date.now() + Math.random(), message }, ...current]);
-  }
-
-  function startMatchmaking() {
-    setError(undefined);
-    socketRef.current?.emit("matchmaking:start");
-  }
-
-  function cancelMatchmaking() {
-    socketRef.current?.emit("matchmaking:cancel");
-    setSearching(false);
-    setQueueTime(0);
-  }
 }

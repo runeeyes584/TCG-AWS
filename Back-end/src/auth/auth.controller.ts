@@ -8,8 +8,6 @@ export async function register(
 ) {
 
     try {
-        console.log(req.headers);
-        console.log(req.body);
         const result = await authService.register(req.body);
         return res.status(201).json(result);
     }
@@ -32,8 +30,6 @@ export async function verify(
     try {
 
         const result = await authService.verify(req.body);
-        console.log(result);
-        console.log(req.body);
         return res.json(result);
 
     } catch (error) {
