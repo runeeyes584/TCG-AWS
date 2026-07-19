@@ -13,6 +13,7 @@ export interface NexusPanelProps {
   playerName: string;
   playerAvatar?: string;
   playerElo?: number;
+  bottomAligned?: boolean;
   isAttacker: boolean;
   hasPriority: boolean;
   attackTokenAvailable: boolean;
@@ -27,6 +28,7 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
   playerName,
   playerAvatar,
   playerElo,
+  bottomAligned = false,
   isAttacker,
   hasPriority,
   attackTokenAvailable,
@@ -39,11 +41,11 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
 
   return (
     <section
-      className="nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2"
+      className={clsx("nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2", bottomAligned && "nexus-panel-v2--bottom")}
       data-effect-target-id={`nexus-${playerId}`}
       aria-label={`${label} status`}
     >
-      <div className="flex min-w-0 items-center gap-2 px-1">
+      <div className="nexus-panel-v2__identity flex min-w-0 items-center justify-center gap-2 px-1">
         <span className="relative grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card text-[10px] font-bold text-primary">
           {initial}
           {playerAvatar ? (
@@ -62,7 +64,7 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
       </div>
       <div
         className={clsx(
-          "rounded-lg border bg-card/70 px-3 py-2 text-center backdrop-blur-sm transition-all",
+          "nexus-panel-v2__core rounded-lg border bg-card/70 px-3 py-2 text-center backdrop-blur-sm transition-all",
           hasPriority
             ? "border-primary/70 shadow-[0_0_16px_oklch(0.62_0.19_300/0.4)]"
             : "border-border"
@@ -88,7 +90,7 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
 
       <div
         className={clsx(
-          "flex flex-col items-center gap-2 rounded-lg border bg-card/60 px-3 py-3 backdrop-blur-sm transition-colors",
+          "nexus-panel-v2__resources flex flex-col items-center gap-2 rounded-lg border bg-card/60 px-3 py-3 backdrop-blur-sm transition-colors",
           hasPriority ? "border-primary/50" : "border-border"
         )}
         aria-label={accessibleMana}

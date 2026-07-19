@@ -1681,6 +1681,7 @@ export function GameBoardView({
                 rowType="waiting"
                 units={getRecallUnits(opponentPlayerId)}
                 isEnemy={true}
+                hasPriority={gameState.priorityPlayerId === opponentPlayerId}
                 selectedUnitIds={[
                   ...(attackPlayerId === opponentPlayerId ? attackerIds : assignedBlockerIds),
                   ...selectedCostUnitIds
@@ -1693,6 +1694,7 @@ export function GameBoardView({
                 rowType="active"
                 units={getActiveUnits(opponentPlayerId)}
                 isEnemy={true}
+                hasPriority={gameState.priorityPlayerId === opponentPlayerId}
                 isEmptySlotEnabled={
                   opponentPlayerId === defenderId &&
                   gameState.phase === "BLOCK" &&
@@ -1760,6 +1762,7 @@ export function GameBoardView({
                 rowType="active"
                 units={getActiveUnits(viewerPlayerId)}
                 isEnemy={false}
+                hasPriority={gameState.priorityPlayerId === viewerPlayerId}
                 isEmptySlotEnabled={
                   viewerPlayerId === defenderId &&
                   gameState.phase === "BLOCK" &&
@@ -1799,6 +1802,7 @@ export function GameBoardView({
                 rowType="waiting"
                 units={getRecallUnits(viewerPlayerId)}
                 isEnemy={false}
+                hasPriority={gameState.priorityPlayerId === viewerPlayerId}
                 selectedUnitIds={[
                   ...(attackPlayerId === viewerPlayerId ? attackerIds : assignedBlockerIds),
                   ...selectedCostUnitIds
@@ -1847,6 +1851,7 @@ export function GameBoardView({
                 playerName={getPlayerName(viewerPlayerId)}
                 playerAvatar={getPlayerProfile(viewerPlayerId)?.avatar}
                 playerElo={getPlayerProfile(viewerPlayerId)?.elo}
+                bottomAligned
                 isAttacker={gameState.attackTokenPlayerId === viewerPlayerId}
                 hasPriority={gameState.priorityPlayerId === viewerPlayerId}
                 attackTokenAvailable={gameState.attackTokenAvailable}
