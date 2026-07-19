@@ -69,3 +69,4 @@ package-lock.json
 .agents
 .next
 .env
+tsconfig.tsbuildinfo

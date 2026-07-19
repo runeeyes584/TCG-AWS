@@ -555,6 +555,13 @@ function assertAssignedBlocker(state: GameState, blockerId: string): void {
   }
 }
 
+function assertCombatIndex(index: number, laneCount: number, allowAppend: boolean): void {
+  const upperBound = allowAppend ? laneCount : laneCount - 1;
+  if (!Number.isInteger(index) || index < 0 || index > upperBound || index >= BOARD_LIMIT) {
+    throw new GameValidationError("Combat position is outside the available lanes.");
+  }
+}
+
 function hasAttackers(state: GameState): boolean {
   return state.combat.attackers.length > 0;
 }

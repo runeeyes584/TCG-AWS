@@ -1,10 +1,10 @@
 "use client";
 
-import { GameBoard } from "../components/GameBoard";
-import { useSocketGame } from "../client/useSocketGame";
+import { GameBoard } from "../components/game/GameBoard";
+import { useGameMatch } from "../hooks/useGameMatch";
 
 export default function Home() {
-  const controller = useSocketGame();
+  const controller = useGameMatch();
 
   return <GameBoard controller={controller} />;
 }

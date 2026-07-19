@@ -14,7 +14,9 @@ export function VerifyForm() {
     const [loading, setLoading] = useState(false);
 
     const submit = async () => {
-        if (!code) {
+        const normalizedCode = code.trim();
+
+        if (!normalizedCode) {
             alert("Vui lòng nhập mã xác thực.");
             return;
         }
@@ -22,7 +24,7 @@ export function VerifyForm() {
         try {
             setLoading(true);
 
-            const result = await verify(email, code);
+            const result = await verify(email, normalizedCode);
 
             alert(result.message || "Verified successfully!");
 
@@ -63,9 +65,12 @@ export function VerifyForm() {
 
                         <input
                             type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
                             placeholder=""
                             value={code}
-                            onChange={(e) => setCode(e.target.value)}
+                            onChange={(e) => setCode(e.target.value.trim())}
                             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-lg tracking-[0.3em] uppercase text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                         />
                     </div>

@@ -13,18 +13,25 @@ import {
   TargetDefinition,
   UnitInstance
 } from "@backend/game/types";
-import { useLocalGame } from "../hooks/useLocalGame";
+import { useLocalGame } from "../../hooks/useLocalGame";
 import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
-import { CardView } from "./CardView";
+import { GameCard } from "./cards/game-card";
+import { BoardRow } from "./zones/board-row";
+import { CenterInfo } from "./zones/center-info";
+import { Hand } from "./zones/hand";
+import { NexusPanel } from "./hud/nexus-panel";
+import { PassButton } from "./hud/pass-button";
 import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
 import { hasKeyword } from "@backend/game/core/engine";
-import { HoverProvider } from "../contexts/HoverContext";
-import { CardInspector } from "./CardInspector";
+import { HoverProvider } from "../../contexts/HoverContext";
+import { DetailPanel } from "./hud/detail-panel";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
-import { HandView } from "./HandView";
+import { DeckPile, GraveyardPile } from "./hud/side-piles";
+import { SpellEffectLayer } from "./spell-effect-layer";
+import { ParticlesBackground } from "./particles-background";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
-import { useBattleMusic } from "../hooks/useBattleMusic";
+import { useBattleMusic } from "../../hooks/useBattleMusic";
 
 interface Props {
   controller: GameController;
@@ -74,6 +81,7 @@ export function GameBoardView({
     health?: number;
   }>();
   const [timeRemainingMs, setTimeRemainingMs] = useState(0);
+  const battleTableRef = useRef<HTMLElement>(null);
   const [afkNotice, setAfkNotice] = useState<{
     level: "warning" | "danger";
     message: string;
@@ -551,20 +559,6 @@ export function GameBoardView({
         return;
       }
 
-      const unblockedAttackers = gameState.combat.attackers
-        .filter((lane) => !lane.blockerId)
-        .map((lane) =>
-          gameState.players[attackPlayerId].board.find(
-            (attacker) => attacker.instanceId === lane.attackerId
-          )
-        )
-        .filter((attacker): attacker is UnitInstance => Boolean(attacker));
-
-      if (unblockedAttackers.length === 1) {
-        assignBlocker(unblockedAttackers[0], unit.instanceId);
-        return;
-      }
-
       setSelectedBlockerId(
         unit.instanceId === selectedBlockerId ? undefined : unit.instanceId
       );
@@ -610,16 +604,6 @@ export function GameBoardView({
     );
   }
 
-  function startRound() {
-    if (localPlayerId && !canControl(gameState.priorityPlayerId)) {
-      return;
-    }
-
-    setSelectedBlockerId(undefined);
-    clearSelectedCard();
-    dispatch({ type: "START_ROUND" }, "Round advanced. Mana refilled and attack token rotated.");
-  }
-
   function resolveCombat() {
     setSelectedBlockerId(undefined);
     clearSelectedCard();
@@ -630,7 +614,7 @@ export function GameBoardView({
   type SmartAction = {
     label: string;
     sublabel: string;
-    mode: "attack" | "defend" | "round" | "idle";
+    mode: "attack" | "defend" | "idle";
     enabled: boolean;
     onClick: () => void;
   };
@@ -695,16 +679,16 @@ export function GameBoardView({
     // ROUND: action phase — advance the round
     if (started && gameState.phase === "ACTION") {
       return {
-        label: "ROUND",
-        sublabel: `#${gameState.round}`,
-        mode: "round",
+        label: "PASS",
+        sublabel: "Pass priority",
+        mode: "idle",
         enabled: canControl(gameState.priorityPlayerId),
-        onClick: startRound
+        onClick: passPriority
       };
     }
 
     return {
-      label: "ROUND",
+      label: "WAITING",
       sublabel: `#${gameState.round}`,
       mode: "idle",
       enabled: false,
@@ -1005,7 +989,7 @@ export function GameBoardView({
           {targetDefinition ? (
             <div className="pending-choice-grid">
               {getPendingTargetUnits(targetDefinition).map(({ playerId, unit }) => (
-                <CardView
+                <GameCard
                   key={unit.instanceId}
                   unit={unit}
                   onClick={() =>
@@ -1021,7 +1005,7 @@ export function GameBoardView({
               {getPendingTargetDeckCards(targetDefinition).map(({ playerId, card }) => (
                 <div className="pending-choice-card" key={card.instanceId}>
                   <span className="pending-choice-zone-label">{playerId} Deck</span>
-                  <CardView
+                  <GameCard
                     card={card}
                     onClick={() =>
                       submitPendingAbilityTarget(targetDefinition.id, {
@@ -1037,7 +1021,7 @@ export function GameBoardView({
               {getPendingTargetHandCards(targetDefinition).map(({ playerId, card }) => (
                 <div className="pending-choice-card" key={card.instanceId}>
                   <span className="pending-choice-zone-label">{playerId} Hand</span>
-                  <CardView
+                  <GameCard
                     card={card}
                     onClick={() =>
                       submitPendingAbilityTarget(targetDefinition.id, {
@@ -1058,7 +1042,7 @@ export function GameBoardView({
                     key={entry.id}
                   >
                     <span className="pending-choice-zone-label">{playerId} Graveyard</span>
-                    <CardView
+                    <GameCard
                       card={{
                         instanceId: entry.instanceId,
                         cardId: entry.cardId,
@@ -1097,86 +1081,6 @@ export function GameBoardView({
     );
   }
 
-  function renderPlayerStatus(playerId: PlayerId, label: string) {
-    const player = gameState.players[playerId];
-    const resourcePreview =
-      previewCard?.ownerId === playerId
-        ? getResourcePreview(playerId, previewCard)
-        : selectedSpell?.ownerId === playerId
-          ? getResourcePreview(playerId, selectedSpell)
-          : { manaUsed: 0, spellManaUsed: 0 };
-    const isAttacker = gameState.attackTokenPlayerId === playerId;
-    const hasPriority = gameState.priorityPlayerId === playerId;
-    const RoleIcon = isAttacker ? Swords : Shield;
-    const roleLabel = isAttacker
-      ? gameState.attackTokenAvailable
-        ? "Attack"
-        : "Spent"
-      : "Defense";
-
-    return (
-      <div className="player-resource-panel">
-        <div
-          className={`nexus-orb ${hasPriority ? "is-priority" : ""} ${isAttacker ? "is-attacker" : "is-defender"
-            }`}
-        >
-          <span>{label}</span>
-          <strong>{player.nexusHp}</strong>
-          <small
-            className={`combat-role ${isAttacker ? "is-attacker" : "is-defender"
-              }`}
-          >
-            <RoleIcon size={11} aria-hidden="true" />
-            {roleLabel}
-          </small>
-        </div>
-        <div
-          className="mana-rack"
-          aria-label={`${playerId} mana ${player.mana}/${player.maxMana}, spell mana ${player.spellMana}/3`}
-          title={`${player.mana}/${player.maxMana} mana · ${player.spellMana}/3 spell mana`}
-        >
-          <div className="mana-pips" aria-hidden="true">
-            {Array.from({ length: 10 }).map((_, index) => {
-              const pipNumber = index + 1;
-              const pipState =
-                pipNumber <= player.mana
-                  ? "is-filled"
-                  : pipNumber <= player.maxMana
-                    ? "is-empty"
-                    : "is-locked";
-              const isPreviewed =
-                pipNumber <= player.mana &&
-                pipNumber > player.mana - resourcePreview.manaUsed;
-
-              return (
-                <span
-                  key={`mana-${pipNumber}`}
-                  className={`mana-pip ${pipState} ${isPreviewed ? "is-previewed" : ""
-                    }`}
-                />
-              );
-            })}
-          </div>
-          <div className="spell-mana-bars" aria-hidden="true">
-            {Array.from({ length: 3 }).map((_, index) => {
-              const isFilled = index < player.spellMana;
-              const isPreviewed =
-                isFilled &&
-                index >= player.spellMana - resourcePreview.spellManaUsed;
-
-              return (
-                <span
-                  key={`spell-${index}`}
-                  className={`spell-mana-bar ${isFilled ? "is-filled" : "is-empty"} ${isPreviewed ? "is-previewed" : ""
-                    }`}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   function renderPendingDiscard() {
     const pendingDiscard = gameState.pendingDiscard;
@@ -1213,9 +1117,10 @@ export function GameBoardView({
               : player.hand.map((card) => (
                 <div className="pending-choice-card" key={card.instanceId}>
                   <span className="pending-choice-zone-label">Discard</span>
-                  <CardView
-                    card={card}
-                    onClick={() => playCard(pendingDiscard.playerId, card)}
+                <GameCard
+                  card={card}
+                  compact
+                  onClick={() => playCard(pendingDiscard.playerId, card)}
                     visualEvents={[]}
                   />
                 </div>
@@ -1254,33 +1159,34 @@ export function GameBoardView({
 
   function renderDeckStack(playerId: PlayerId, label: string) {
     const player = gameState.players[playerId];
+    const canDraw =
+      gameState.started &&
+      !gameState.winnerId &&
+      gameState.priorityPlayerId === playerId &&
+      player.deck.length > 0 &&
+      canControl(playerId);
 
     return (
-      <div className="deck-stack">
-        <span>{label}</span>
-        <strong>{player.deck.length}</strong>
-      </div>
+      <DeckPile
+        count={player.deck.length}
+        label={label}
+        interactive={canDraw}
+        onDraw={
+          canDraw
+            ? () => dispatch({ type: "DRAW_CARD", playerId }, `${playerId} drew a card.`)
+            : undefined
+        }
+      />
     );
   }
 
   function renderGraveyard(playerId: PlayerId, label: string) {
-    const entryCount = gameState.players[playerId].graveyard.length;
     return (
-      <div
-        className={`deck-stack graveyard-stack ${entryCount > 0 ? "has-cards" : ""}`}
-        onClick={() => setViewingGraveyard(playerId)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setViewingGraveyard(playerId);
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        <span>{label}</span>
-        <strong>{entryCount}</strong>
-      </div>
+      <GraveyardPile
+        entries={gameState.players[playerId].graveyard}
+        label={label}
+        onOpen={() => setViewingGraveyard(playerId)}
+      />
     );
   }
 
@@ -1324,165 +1230,108 @@ export function GameBoardView({
       );
     }
 
-    return gameState.combat.attackers.map((lane) =>
-      lane.blockerId
-        ? gameState.players[playerId].board.find(
-          (unit) => unit.instanceId === lane.blockerId
-        )
-        : undefined
-    );
-  }
+    const slots: Array<UnitInstance | undefined> = Array(6).fill(undefined);
+    const assignedBlockerIds = new Set<string>();
 
-  function renderSixSlots(
-    slots: Array<UnitInstance | undefined>,
-    options: {
-      playerId: PlayerId;
-      rowClassName: string;
-      selectedUnitIds?: string[];
-      isEmptySlotEnabled?: (index: number) => boolean;
-      onEmptySlotClick?: (index: number) => void;
-      renderUnit?: (unit: UnitInstance, index: number) => React.ReactNode;
+    gameState.combat.attackers.forEach((lane, index) => {
+      if (!lane.blockerId) {
+        return;
+      }
+
+      const blocker = gameState.players[playerId].board.find(
+        (unit) => unit.instanceId === lane.blockerId
+      );
+      if (blocker) {
+        slots[index] = blocker;
+        assignedBlockerIds.add(blocker.instanceId);
+      }
+    });
+
+    // Keep unassigned revived units visible without occupying attacker lanes,
+    // so the defender can select one and then choose a blocking slot.
+    const activeUnits = gameState.players[playerId].board.filter(
+      (unit) => unit.boardRow === "ACTIVE" && !assignedBlockerIds.has(unit.instanceId)
+    );
+    let activeIndex = activeUnits.length - 1;
+    for (let index = slots.length - 1; index >= 0 && activeIndex >= 0; index -= 1) {
+      if (!slots[index]) {
+        slots[index] = activeUnits[activeIndex];
+        activeIndex -= 1;
+      }
     }
-  ) {
-    return (
-      <div className={`battle-row ${options.rowClassName}`}>
-        {Array.from({ length: 6 }).map((_, index) => {
-          const unit = slots[index];
 
-          if (!unit) {
-            const canUseEmptySlot =
-              Boolean(options.onEmptySlotClick) &&
-              (options.isEmptySlotEnabled?.(index) ?? true);
-
-            return (
-              <button
-                className="battle-slot battle-slot--empty"
-                type="button"
-                key={`${options.rowClassName}-empty-${index}`}
-                onClick={() => options.onEmptySlotClick?.(index)}
-                disabled={!canUseEmptySlot}
-                aria-label={`Empty slot ${index + 1}`}
-              />
-            );
-          }
-
-          return (
-            <div className="battle-slot" key={unit.instanceId}>
-              {options.renderUnit ? (
-                options.renderUnit(unit, index)
-              ) : (
-                <CardView
-                  unit={unit}
-                  selected={
-                    unit.instanceId === selectedBlockerId ||
-                    Boolean(options.selectedUnitIds?.includes(unit.instanceId))
-                  }
-                  onClick={() => selectBoardUnit(options.playerId, unit)}
-                  visualEvents={gameState.visualEvents.filter(
-                    (event) =>
-                      (event as any).targetId === unit.instanceId ||
-                      (event as any).sourceId === unit.instanceId
-                  )}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
+    return slots;
   }
 
-  function renderWaitingRow(playerId: PlayerId) {
-    const units = getRecallUnits(playerId);
-    const isEnemy = playerId === "P2";
-    const selectedIds = [
-      ...(playerId === attackPlayerId ? attackerIds : assignedBlockerIds),
-      ...selectedCostUnitIds
-    ];
+  function canSelectWaitingUnit(playerId: PlayerId): boolean {
+    if (!gameState.started || gameState.winnerId) {
+      return false;
+    }
 
-    return (
-      <div
-        className={`battle-row-wrap waiting-row-wrap ${isEnemy ? "opponent-waiting" : "own-waiting"
-          }`}
-        aria-label={`${playerId} waiting row`}
-      >
-        <div className="battle-row-label">
-          {isEnemy ? "Opponent waiting row" : "Your waiting row"}{" "}
-          <strong>{units.length}/6</strong>
-        </div>
-        {renderSixSlots(units, {
-          playerId,
-          rowClassName: isEnemy ? "opponent-waiting-row" : "own-waiting-row",
-          selectedUnitIds: selectedIds
-        })}
-      </div>
-    );
-  }
+    if (selectedSpell) {
+      return canSelectSpellUnit(playerId);
+    }
 
-  function renderActiveRow(playerId: PlayerId) {
-    const isEnemy = playerId === "P2";
-    const slots = getActiveUnits(playerId);
-    const canAssignToEmptyLane =
-      playerId === defenderId &&
-      gameState.phase === "BLOCK" &&
-      gameState.priorityPlayerId === defenderId &&
-      Boolean(selectedBlockerId);
+    if (!canControl(playerId)) {
+      return false;
+    }
 
-    return (
-      <div
-        className={`battle-row-wrap active-row-wrap ${isEnemy ? "opponent-active" : "own-active"
-          }`}
-        aria-label={`${playerId} active row`}
-      >
-        <div className="battle-row-label">
-          {isEnemy ? "Opponent active row" : "Your active row"}
-        </div>
-        {renderSixSlots(slots, {
-          playerId,
-          rowClassName: isEnemy ? "opponent-active-row" : "own-active-row",
-          isEmptySlotEnabled: canAssignToEmptyLane
-            ? (index) => {
-              const lane = gameState.combat.attackers[index];
-              return Boolean(lane && !lane.blockerId);
-            }
-            : undefined,
-          onEmptySlotClick: canAssignToEmptyLane
-            ? (index) => {
-              const lane = gameState.combat.attackers[index];
-              if (!lane || lane.blockerId || !selectedBlockerId) {
-                return;
-              }
-
-              const attacker = gameState.players[attackPlayerId].board.find(
-                (candidate) => candidate.instanceId === lane.attackerId
-              );
-              if (attacker) {
-                assignBlocker(attacker, selectedBlockerId);
-              }
-            }
-            : undefined,
-          renderUnit: (unit, index) => renderActiveUnit(playerId, unit, index)
-        })}
-      </div>
-    );
-  }
-
-  function renderActiveUnit(playerId: PlayerId, unit: UnitInstance, index: number) {
-    const lane = gameState.combat.attackers[index];
-    const canToggleAttacker =
-      playerId === attackPlayerId &&
+    if (
       gameState.phase === "ACTION" &&
+      playerId === attackPlayerId &&
       gameState.priorityPlayerId === attackPlayerId &&
-      gameState.attackTokenAvailable;
-    const canRemoveBlocker =
-      playerId === defenderId &&
-      gameState.phase === "BLOCK" &&
-      gameState.priorityPlayerId === defenderId;
+      gameState.attackTokenAvailable
+    ) {
+      return true;
+    }
 
+    if (
+      gameState.phase === "BLOCK" &&
+      playerId === defenderId &&
+      gameState.priorityPlayerId === defenderId
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function canSelectSpellUnit(playerId: PlayerId): boolean {
+    if (!selectedSpell || gameState.phase !== "ACTION") {
+      return false;
+    }
+
+    const casterId = selectedSpell.ownerId;
+    if (!canControl(casterId)) {
+      return false;
+    }
+
+    const definition = cardDef(selectedSpell);
+    const additionalCost = definition.additionalCost;
+    if (
+      additionalCost?.type === "SACRIFICE_UNITS" &&
+      selectedCostTargets.length < additionalCost.count
+    ) {
+      return playerId === casterId;
+    }
+
+    if (definition.type === "unit" || definition.type === "champion") {
+      return playerId === casterId;
+    }
+
+    const targetKind = getPrimarySpellTarget(selectedSpell);
     return (
-      <div className="active-unit-card">
-        <CardView
+      (targetKind === "ALLY_UNIT" && playerId === casterId) ||
+      (targetKind === "ENEMY_UNIT" && playerId !== casterId)
+    );
+  }
+
+  function renderWaitingUnit(playerId: PlayerId, unit: UnitInstance) {
+    return (
+      <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
+        <GameCard
           unit={unit}
+          compact
           selected={
             unit.instanceId === selectedBlockerId ||
             attackerIds.includes(unit.instanceId) ||
@@ -1490,20 +1339,58 @@ export function GameBoardView({
             selectedCostUnitIds.includes(unit.instanceId)
           }
           onClick={
-            canToggleAttacker
+            canSelectWaitingUnit(playerId)
               ? () => selectBoardUnit(playerId, unit)
-              : canRemoveBlocker
-                ? () => {
-                  dispatch(
-                    {
-                      type: "REMOVE_BLOCKER",
-                      playerId: defenderId,
-                      blockerId: unit.instanceId
-                    },
-                    `${defenderId} removed ${unitDef(unit).name} from blocking.`
-                  );
-                }
-                : undefined
+              : undefined
+          }
+        />
+      </div>
+    );
+  }
+
+  function startRound() {
+    if (!canControl(gameState.priorityPlayerId)) {
+      return;
+    }
+
+    setSelectedBlockerId(undefined);
+    clearSelectedCard();
+    dispatch(
+      { type: "START_ROUND" },
+      "Round advanced. Mana refilled and attack token rotated."
+    );
+  }
+
+  function renderActiveUnit(playerId: PlayerId, unit: UnitInstance, _index: number) {
+    const lane = gameState.combat.attackers.find(
+      (candidate) => candidate.blockerId === unit.instanceId
+    );
+    const canToggleAttacker =
+      playerId === attackPlayerId &&
+      gameState.phase === "ACTION" &&
+      gameState.priorityPlayerId === attackPlayerId &&
+      gameState.attackTokenAvailable;
+    const canSelectDefender =
+      playerId === defenderId &&
+      gameState.phase === "BLOCK" &&
+      gameState.priorityPlayerId === defenderId;
+    const canSelectForSpell = canSelectSpellUnit(playerId);
+
+    return (
+      <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
+        <GameCard
+          unit={unit}
+          compact
+          selected={
+            unit.instanceId === selectedBlockerId ||
+            attackerIds.includes(unit.instanceId) ||
+            assignedBlockerIds.includes(unit.instanceId) ||
+            selectedCostUnitIds.includes(unit.instanceId)
+          }
+          onClick={
+            canToggleAttacker || canSelectDefender || canSelectForSpell
+              ? () => selectBoardUnit(playerId, unit)
+              : undefined
           }
           visualEvents={gameState.visualEvents.filter(
             (event) =>
@@ -1535,7 +1422,7 @@ export function GameBoardView({
 
   return (
     <HoverProvider>
-      <main className="app-shell board-layout">
+      <main className="app-shell board-layout bg-dungeon">
         <div className="utility-dock" aria-label="Utility panels">
           <button
             type="button"
@@ -1619,18 +1506,6 @@ export function GameBoardView({
                     </button>
                     <button
                       type="button"
-                      onClick={startRound}
-                      disabled={
-                        !gameState.started ||
-                        Boolean(gameState.winnerId) ||
-                        gameState.phase !== "ACTION" ||
-                        !canControl(gameState.priorityPlayerId)
-                      }
-                    >
-                      <RotateCcw size={16} aria-hidden="true" /> Round
-                    </button>
-                    <button
-                      type="button"
                       onClick={passPriority}
                       disabled={
                         !gameState.started ||
@@ -1640,6 +1515,18 @@ export function GameBoardView({
                       }
                     >
                       Pass
+                    </button>
+                    <button
+                      type="button"
+                      onClick={startRound}
+                      disabled={
+                        !gameState.started ||
+                        Boolean(gameState.winnerId) ||
+                        gameState.phase !== "ACTION" ||
+                        !canControl(gameState.priorityPlayerId)
+                      }
+                    >
+                      <RotateCcw size={16} aria-hidden="true" /> Round
                     </button>
                     <button type="button" onClick={resetGame}>
                       Reset
@@ -1710,14 +1597,15 @@ export function GameBoardView({
           </div>
         ) : null}
 
-        <section className="battle-table lor-table" aria-label="Local battle board">
+        <section ref={battleTableRef} className="battle-table lor-table" aria-label="Local battle board">
+          <ParticlesBackground />
           {gameState.winnerId ? (
             <header className="topbar compact-topbar">
               <div className="winner-banner">{gameState.winnerId} wins.</div>
             </header>
           ) : null}
 
-          <HandView
+          <Hand
             cards={gameState.players.P2.hand}
             side="opponent"
             hidden={shouldHideHand("P2")}
@@ -1726,7 +1614,6 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P2", card)}
             onPlayCard={(card) => playCard("P2", card)}
-            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
@@ -1739,38 +1626,69 @@ export function GameBoardView({
             </div>
 
             <div className="center-board">
-              {renderWaitingRow("P2")}
-              {renderActiveRow("P2")}
+              <BoardRow
+                playerId="P2"
+                rowType="waiting"
+                units={getRecallUnits("P2")}
+                isEnemy={true}
+                selectedUnitIds={[
+                  ...(attackPlayerId === "P2" ? attackerIds : assignedBlockerIds),
+                  ...selectedCostUnitIds
+                ]}
+                renderUnit={(unit) => renderWaitingUnit("P2", unit)}
+              />
+
+              <BoardRow
+                playerId="P2"
+                rowType="active"
+                units={getActiveUnits("P2")}
+                isEnemy={true}
+                isEmptySlotEnabled={
+                  "P2" === defenderId &&
+                  gameState.phase === "BLOCK" &&
+                  gameState.priorityPlayerId === defenderId &&
+                  Boolean(selectedBlockerId)
+                    ? (index) => {
+                      const lane = gameState.combat.attackers[index];
+                      return Boolean(lane && !lane.blockerId);
+                    }
+                    : undefined
+                }
+                onEmptySlotClick={
+                  "P2" === defenderId &&
+                  gameState.phase === "BLOCK" &&
+                  gameState.priorityPlayerId === defenderId &&
+                  Boolean(selectedBlockerId)
+                    ? (index) => {
+                      const lane = gameState.combat.attackers[index];
+                      if (!lane || lane.blockerId || !selectedBlockerId) {
+                        return;
+                      }
+
+                      const attacker = gameState.players[attackPlayerId].board.find(
+                        (candidate) => candidate.instanceId === lane.attackerId
+                      );
+                      if (attacker) {
+                        assignBlocker(attacker, selectedBlockerId);
+                      }
+                    }
+                    : undefined
+                }
+                renderUnit={(unit, index) => renderActiveUnit("P2", unit, index)}
+              />
 
               <div className="combat-status-bar">
-                <div className="arena-state-hud" aria-label="Game state">
-                  <span className="stat-pill">Round <strong>{gameState.round}</strong></span>
-                  <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
-                  <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
-                  <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
-                  {gameState.started ? (
-                    <span className="stat-pill stat-pill--timer">
-                      Time <strong>{Math.ceil(timeRemainingMs / 1000)}s</strong>
-                    </span>
-                  ) : null}
-                  {gameState.pendingDiscard ? (
-                    <span className="stat-pill">
-                      Discard{" "}
-                      <strong>
-                        {gameState.pendingDiscard.playerId}{" "}
-                        {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
-                        {gameState.pendingDiscard.downTo}
-                      </strong>
-                    </span>
-                  ) : null}
+                <CenterInfo state={gameState} timeRemainingMs={timeRemainingMs} />
+                {gameState.pendingDiscard ? (
                   <span className="stat-pill">
-                    Attack{" "}
+                    Discard{" "}
                     <strong>
-                      {gameState.attackTokenPlayerId}
-                      {gameState.attackTokenAvailable ? "" : " spent"}
+                      {gameState.pendingDiscard.playerId}{" "}
+                      {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
+                      {gameState.pendingDiscard.downTo}
                     </strong>
                   </span>
-                </div>
+                ) : null}
                 {gameState.phase === "BLOCK" && attackerCount > 0 ? (
                   <span className="stat-pill">
                     <Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking
@@ -1783,35 +1701,107 @@ export function GameBoardView({
                 ) : null}
               </div>
 
-              {renderActiveRow("P1")}
-              {renderWaitingRow("P1")}
+              <BoardRow
+                playerId="P1"
+                rowType="active"
+                units={getActiveUnits("P1")}
+                isEnemy={false}
+                isEmptySlotEnabled={
+                  "P1" === defenderId &&
+                  gameState.phase === "BLOCK" &&
+                  gameState.priorityPlayerId === defenderId &&
+                  Boolean(selectedBlockerId)
+                    ? (index) => {
+                      const lane = gameState.combat.attackers[index];
+                      return Boolean(lane && !lane.blockerId);
+                    }
+                    : undefined
+                }
+                onEmptySlotClick={
+                  "P1" === defenderId &&
+                  gameState.phase === "BLOCK" &&
+                  gameState.priorityPlayerId === defenderId &&
+                  Boolean(selectedBlockerId)
+                    ? (index) => {
+                      const lane = gameState.combat.attackers[index];
+                      if (!lane || lane.blockerId || !selectedBlockerId) {
+                        return;
+                      }
+
+                      const attacker = gameState.players[attackPlayerId].board.find(
+                        (candidate) => candidate.instanceId === lane.attackerId
+                      );
+                      if (attacker) {
+                        assignBlocker(attacker, selectedBlockerId);
+                      }
+                    }
+                    : undefined
+                }
+                renderUnit={(unit, index) => renderActiveUnit("P1", unit, index)}
+              />
+
+              <BoardRow
+                playerId="P1"
+                rowType="waiting"
+                units={getRecallUnits("P1")}
+                isEnemy={false}
+                selectedUnitIds={[
+                  ...(attackPlayerId === "P1" ? attackerIds : assignedBlockerIds),
+                  ...selectedCostUnitIds
+                ]}
+                renderUnit={(unit) => renderWaitingUnit("P1", unit)}
+              />
             </div>
 
             <div className="status-column">
-              {renderPlayerStatus("P2", "Nexus")}
+              <NexusPanel
+                playerId="P2"
+                player={gameState.players.P2}
+                label="Nexus"
+                isAttacker={gameState.attackTokenPlayerId === "P2"}
+                hasPriority={gameState.priorityPlayerId === "P2"}
+                attackTokenAvailable={gameState.attackTokenAvailable}
+                resourcePreview={
+                  previewCard?.ownerId === "P2"
+                    ? getResourcePreview("P2", previewCard)
+                    : selectedSpell?.ownerId === "P2"
+                      ? getResourcePreview("P2", selectedSpell)
+                      : { manaUsed: 0, spellManaUsed: 0 }
+                }
+              />
               {renderSpellStack("Spell")}
               {(() => {
                 const action = getSmartAction();
                 return (
-                  <button
-                    type="button"
-                    className={`action-orb action-orb--${action.mode} ${action.enabled ? "action-orb--active" : ""
-                      }`}
+                  <PassButton
+                    mode={action.mode}
+                    label={action.label}
+                    sublabel={action.sublabel}
+                    enabled={action.enabled}
                     onClick={action.onClick}
-                    disabled={!action.enabled}
-                    aria-label={action.label}
-                  >
-                    <span className="action-orb__label">{action.label}</span>
-                    <span className="action-orb__sub">{action.sublabel}</span>
-                  </button>
+                  />
                 );
               })()}
               {renderSpellStack("Spell")}
-              {renderPlayerStatus("P1", "Nexus")}
+              <NexusPanel
+                playerId="P1"
+                player={gameState.players.P1}
+                label="Nexus"
+                isAttacker={gameState.attackTokenPlayerId === "P1"}
+                hasPriority={gameState.priorityPlayerId === "P1"}
+                attackTokenAvailable={gameState.attackTokenAvailable}
+                resourcePreview={
+                  previewCard?.ownerId === "P1"
+                    ? getResourcePreview("P1", previewCard)
+                    : selectedSpell?.ownerId === "P1"
+                      ? getResourcePreview("P1", selectedSpell)
+                      : { manaUsed: 0, spellManaUsed: 0 }
+                }
+              />
             </div>
           </div>
 
-          <HandView
+          <Hand
             cards={gameState.players.P1.hand}
             side="player"
             hidden={shouldHideHand("P1")}
@@ -1820,7 +1810,6 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P1", card)}
             onPlayCard={(card) => playCard("P1", card)}
-            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
@@ -1852,9 +1841,11 @@ export function GameBoardView({
               </div>
             </section>
           ) : null}
+
+          <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
         </section>
 
-        <CardInspector />
+        <DetailPanel />
 
         {renderPendingDiscard()}
         {renderPendingChoice()}
