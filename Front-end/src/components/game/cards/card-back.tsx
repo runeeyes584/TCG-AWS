@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React from "react";
 
 export interface CardBackProps {
@@ -16,12 +17,8 @@ export const CardBack: React.FC<CardBackProps> = ({
   return (
     <div
       className={`
-        relative aspect-[5/7] w-28 rounded-xl
-        border-2 border-slate-600
-        bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950
-        shadow-lg
-        flex items-center justify-center
-        select-none
+        relative aspect-[5/7] w-28 overflow-hidden rounded-xl
+        border-2 border-slate-600 shadow-lg select-none
         ${variant === "hand" ? "cursor-pointer" : ""}
       `}
       onClick={onClick}
@@ -29,16 +26,13 @@ export const CardBack: React.FC<CardBackProps> = ({
       onMouseLeave={onMouseLeave}
       aria-hidden="true"
     >
-      {/* Viền phát sáng */}
-      <div className="absolute inset-1 rounded-lg border border-slate-500" />
-
-      {/* Logo / chữ */}
-      <div className="text-center">
-        <div className="text-4xl">🂠</div>
-        <div className="mt-2 text-xs font-semibold tracking-widest text-slate-300 uppercase">
-          Hidden
-        </div>
-      </div>
+      <Image
+        src="/monster/card-back.png"
+        alt=""
+        fill
+        sizes="112px"
+        className="object-cover"
+      />
     </div>
   );
 };
