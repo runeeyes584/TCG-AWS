@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import type { GameState } from "@backend/game/types";
+import type { GameState, PlayerId } from "@backend/game/types";
 
 function Chip({
   label,
@@ -30,13 +30,16 @@ function Chip({
 export interface CenterInfoProps {
   state: GameState;
   timeRemainingMs: number;
+  playerNames?: Partial<Record<PlayerId, string>>;
 }
 
 /** Production battle-line status HUD rendered between the two active rows. */
-export function CenterInfo({ state, timeRemainingMs }: CenterInfoProps) {
+export function CenterInfo({ state, timeRemainingMs, playerNames = {} }: CenterInfoProps) {
   const remainingSeconds = Math.ceil(timeRemainingMs / 1000);
   const isTimeCritical = state.started && remainingSeconds <= 5;
-  const attackToken = `${state.attackTokenPlayerId}${state.attackTokenAvailable ? "" : " spent"}`;
+  const playerName = (playerId: PlayerId) =>
+    playerNames[playerId] ?? `Player ${playerId === "P1" ? "One" : "Two"}`;
+  const attackToken = `${playerName(state.attackTokenPlayerId)}${state.attackTokenAvailable ? "" : " spent"}`;
 
   return (
     <div className="battle-line-info relative z-[1] flex flex-col items-center gap-2 py-2" aria-label="Battle line status">
@@ -51,7 +54,7 @@ export function CenterInfo({ state, timeRemainingMs }: CenterInfoProps) {
       <div className="flex flex-wrap items-center justify-center gap-1.5">
         <Chip label="Round" value={String(state.round)} />
         <Chip label="Turn" value={String(state.turn)} />
-        <Chip label="Priority" value={state.priorityPlayerId} />
+        <Chip label="Priority" value={playerName(state.priorityPlayerId)} />
         <Chip label="Phase" value={state.phase} highlight />
         {state.started ? (
           <Chip label="Time" value={`${remainingSeconds}s`} highlight urgent={isTimeCritical} />

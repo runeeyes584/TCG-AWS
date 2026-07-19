@@ -6,6 +6,7 @@ import { GameCard } from "./cards/game-card";
 
 interface GraveyardPickerModalProps {
   playerId: PlayerId;
+  playerName: string;
   entries: GraveyardEntry[];
   selectedCardInstanceId?: string;
   canSelect?: boolean;
@@ -16,6 +17,7 @@ interface GraveyardPickerModalProps {
 
 export function GraveyardPickerModal({
   playerId,
+  playerName,
   entries,
   selectedCardInstanceId,
   canSelect = false,
@@ -34,7 +36,7 @@ export function GraveyardPickerModal({
     <div className="graveyard-modal-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onClose}>
       <div className="graveyard-modal-content graveyard-modal-v2" onClick={(event) => event.stopPropagation()}>
         <header>
-          <h2 id={titleId}>{playerId}&apos;s Graveyard</h2>
+          <h2 id={titleId}>{playerName}&apos;s Graveyard</h2>
           <button className="graveyard-modal__close" type="button" onClick={onClose} aria-label="Close graveyard">
             <X size={20} aria-hidden="true" />
           </button>

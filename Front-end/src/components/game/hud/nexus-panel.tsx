@@ -10,6 +10,9 @@ export interface NexusPanelProps {
   playerId: PlayerId;
   player: PlayerState;
   label: string;
+  playerName: string;
+  playerAvatar?: string;
+  playerElo?: number;
   isAttacker: boolean;
   hasPriority: boolean;
   attackTokenAvailable: boolean;
@@ -21,6 +24,9 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
   playerId,
   player,
   label,
+  playerName,
+  playerAvatar,
+  playerElo,
   isAttacker,
   hasPriority,
   attackTokenAvailable,
@@ -28,7 +34,8 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
 }) => {
   const RoleIcon = isAttacker ? Swords : Shield;
   const roleLabel = isAttacker ? (attackTokenAvailable ? "Attack" : "Spent") : "Defense";
-  const accessibleMana = `${playerId} mana ${player.mana}/${player.maxMana}, spell mana ${player.spellMana}/${MAX_SPELL_MANA}`;
+  const accessibleMana = `${playerName} mana ${player.mana}/${player.maxMana}, spell mana ${player.spellMana}/${MAX_SPELL_MANA}`;
+  const initial = playerName.trim().slice(0, 1).toUpperCase() || "?";
 
   return (
     <section
@@ -36,6 +43,23 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
       data-effect-target-id={`nexus-${playerId}`}
       aria-label={`${label} status`}
     >
+      <div className="flex min-w-0 items-center gap-2 px-1">
+        <span className="relative grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card text-[10px] font-bold text-primary">
+          {initial}
+          {playerAvatar ? (
+            <img
+              src={playerAvatar}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={(event) => event.currentTarget.remove()}
+            />
+          ) : null}
+        </span>
+        <span className="min-w-0 leading-tight">
+          <strong className="block truncate text-[10px] font-bold text-foreground" title={playerName}>{playerName}</strong>
+          {playerElo !== undefined ? <small className="block text-[9px] text-muted-foreground">{playerElo.toLocaleString()} ELO</small> : null}
+        </span>
+      </div>
       <div
         className={clsx(
           "rounded-lg border bg-card/70 px-3 py-2 text-center backdrop-blur-sm transition-all",

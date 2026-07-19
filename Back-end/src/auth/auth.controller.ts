@@ -94,7 +94,9 @@ export async function login(
             success: true,
             message: "Login successful.",
             accessToken: result.accessToken,
-            refreshToken: result.refreshToken
+            idToken: result.idToken,
+            refreshToken: result.refreshToken,
+            expiresIn: result.expiresIn
         });
 
     }
@@ -189,6 +191,10 @@ export async function refresh(
             email
         );
 
+        if (!result.accessToken) {
+            throw new Error("Refresh did not return an access token.");
+        }
+
         res.cookie(
             "access_token",
             result.accessToken,
@@ -204,7 +210,11 @@ export async function refresh(
 
             success: true,
 
-            message: "Token refreshed."
+            message: "Token refreshed.",
+
+            accessToken: result.accessToken,
+
+            expiresIn: result.expiresIn
 
         });
 

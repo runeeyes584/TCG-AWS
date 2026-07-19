@@ -15,7 +15,7 @@ import {
   VolumeX,
   X,
 } from "lucide-react";
-import { GameBoard } from "../../components/game/GameBoard";
+import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import { me, type PlayerProfile } from "../../libs/api";
@@ -85,7 +85,14 @@ export default function PlayPage() {
   };
 
   if (controller.roomCode && controller.opponentConnected) {
-    return <GameBoard controller={controller} />;
+    return (
+      <GameBoardView
+        controller={controller}
+        localPlayerId={controller.localPlayerId}
+        opponentConnected={controller.opponentConnected}
+        connectionStatus={`${controller.status} · Room ${controller.roomCode}`}
+      />
+    );
   }
 
   const playerName = profile?.username ?? "Prism Operative";
