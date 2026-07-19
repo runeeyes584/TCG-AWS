@@ -4,6 +4,7 @@ import React from "react";
 export interface CardBackProps {
   onClick?: () => void;
   variant?: "default" | "hand";
+  className?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }
@@ -11,6 +12,7 @@ export interface CardBackProps {
 export const CardBack: React.FC<CardBackProps> = ({
   onClick,
   variant = "default",
+  className,
   onMouseEnter,
   onMouseLeave
 }) => {
@@ -20,6 +22,7 @@ export const CardBack: React.FC<CardBackProps> = ({
         relative aspect-[5/7] w-28 overflow-hidden rounded-xl
         border-2 border-slate-600 shadow-lg select-none
         ${variant === "hand" ? "cursor-pointer" : ""}
+        ${className ?? ""}
       `}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
