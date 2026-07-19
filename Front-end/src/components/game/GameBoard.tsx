@@ -1413,7 +1413,7 @@ export function GameBoardView({
 
   return (
     <HoverProvider>
-      <main className="app-shell board-layout">
+      <main className="app-shell board-layout bg-dungeon">
         <div className="utility-dock" aria-label="Utility panels">
           <button
             type="button"

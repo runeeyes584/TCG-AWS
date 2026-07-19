@@ -1,6 +1,21 @@
 /* ===== FONTS ===== */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme {
+  --font-serif: var(--font-cinzel), 'Cinzel', serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --color-mana: var(--mana);
+  --color-mana-foreground: var(--mana-foreground);
+  --color-attack: var(--attack);
+  --color-hp: var(--hp);
+  --color-champion: var(--champion);
+  --color-danger: var(--danger);
+}
 
 /* ===== DESIGN TOKENS ===== */
 :root {
@@ -21,6 +36,35 @@
   --card-bg:         #121b27;
   --card-border:     rgba(199,154,69,0.44);
   --shadow-card:     0 12px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+
+  /* v0 design tokens */
+  color-scheme: dark;
+  --background: oklch(0.16 0.018 285);
+  --foreground: oklch(0.92 0.01 285);
+  --card: oklch(0.21 0.022 285);
+  --card-foreground: oklch(0.94 0.01 285);
+  --popover: oklch(0.18 0.02 285);
+  --popover-foreground: oklch(0.94 0.01 285);
+  --primary: oklch(0.62 0.19 300);
+  --primary-foreground: oklch(0.14 0.02 285);
+  --secondary: oklch(0.27 0.03 285);
+  --secondary-foreground: oklch(0.92 0.01 285);
+  --muted: oklch(0.24 0.02 285);
+  --muted-foreground: oklch(0.68 0.02 285);
+  --accent: oklch(0.3 0.05 300);
+  --accent-foreground: oklch(0.95 0.01 285);
+  --destructive: oklch(0.58 0.22 20);
+  --border: oklch(0.4 0.04 290 / 35%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.62 0.19 300);
+  --radius: 0.5rem;
+
+  --mana: oklch(0.72 0.13 210);
+  --mana-foreground: oklch(0.16 0.02 285);
+  --attack: oklch(0.68 0.2 30);
+  --hp: oklch(0.72 0.19 145);
+  --champion: oklch(0.78 0.15 78);
+  --danger: oklch(0.58 0.24 22);
 }
 
 /* ===== RESET ===== */
@@ -3396,4 +3440,64 @@ button.card-view {
 .hand-limit-grid {
   align-items: end;
   min-height: 210px;
+}
+
+/* ===== v0 UTILITIES & KEYFRAMES ===== */
+@utility bg-dungeon {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(
+      circle at 50% 0%,
+      oklch(0.28 0.06 300 / 0.4),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      oklch(0.26 0.05 285 / 0.35),
+      transparent 55%
+    );
+}
+
+@utility text-glow-champion {
+  text-shadow: 0 0 12px oklch(0.78 0.15 78 / 0.7);
+}
+
+@keyframes champion-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 12px oklch(0.78 0.15 78 / 0.35),
+      inset 0 0 18px oklch(0.78 0.15 78 / 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 26px oklch(0.8 0.16 78 / 0.65),
+      inset 0 0 26px oklch(0.8 0.16 78 / 0.3);
+  }
+}
+
+@utility animate-champion-glow {
+  animation: champion-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes danger-flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  45% {
+    opacity: 0.9;
+  }
+  55% {
+    opacity: 0.35;
+  }
+}
+
+@utility animate-danger-flicker {
+  animation: danger-flicker 3.5s ease-in-out infinite;
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
