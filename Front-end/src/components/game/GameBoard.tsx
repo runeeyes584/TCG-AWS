@@ -26,7 +26,8 @@ import { hasKeyword } from "@backend/game/core/engine";
 import { HoverProvider } from "../../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
-import { DeckPile, GraveyardPile } from "./side-piles";
+import { DeckPile, GraveyardPile } from "./hud/side-piles";
+import { SpellEffectLayer } from "./spell-effect-layer";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
 
@@ -78,6 +79,7 @@ export function GameBoardView({
     health?: number;
   }>();
   const [timeRemainingMs, setTimeRemainingMs] = useState(0);
+  const battleTableRef = useRef<HTMLElement>(null);
   const [afkNotice, setAfkNotice] = useState<{
     level: "warning" | "danger";
     message: string;
@@ -1323,7 +1325,7 @@ export function GameBoardView({
 
   function renderWaitingUnit(playerId: PlayerId, unit: UnitInstance) {
     return (
-      <div className="active-unit-card">
+      <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
         <GameCard
           unit={unit}
           selected={
@@ -1371,7 +1373,7 @@ export function GameBoardView({
     const canSelectForSpell = canSelectSpellUnit(playerId);
 
     return (
-      <div className="active-unit-card">
+      <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
         <GameCard
           unit={unit}
           selected={
@@ -1590,7 +1592,7 @@ export function GameBoardView({
           </div>
         ) : null}
 
-        <section className="battle-table lor-table" aria-label="Local battle board">
+        <section ref={battleTableRef} className="battle-table lor-table" aria-label="Local battle board">
           {gameState.winnerId ? (
             <header className="topbar compact-topbar">
               <div className="winner-banner">{gameState.winnerId} wins.</div>
@@ -1852,6 +1854,8 @@ export function GameBoardView({
               </div>
             </section>
           ) : null}
+
+          <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
         </section>
 
         <CardInspector />

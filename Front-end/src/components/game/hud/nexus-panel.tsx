@@ -31,7 +31,11 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
   const accessibleMana = `${playerId} mana ${player.mana}/${player.maxMana}, spell mana ${player.spellMana}/${MAX_SPELL_MANA}`;
 
   return (
-    <section className="nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2" aria-label={`${label} status`}>
+    <section
+      className="nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2"
+      data-effect-target-id={`nexus-${playerId}`}
+      aria-label={`${label} status`}
+    >
       <div
         className={clsx(
           "rounded-lg border bg-card/70 px-3 py-2 text-center backdrop-blur-sm transition-all",
