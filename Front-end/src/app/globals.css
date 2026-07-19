@@ -3847,12 +3847,19 @@ button.card-view.game-card-v2 {
 
 .hand-grid--motion .hand-motion-card {
   position: absolute;
-  top: 50%;
-  left: calc(50% - 52px);
-  width: clamp(76px, 6.9vw, 104px);
-  height: 128px;
+  left: calc(50% - 46px);
+  width: clamp(70px, 6vw, 92px);
+  height: 112px;
   transform-origin: 50% 110%;
   will-change: transform, opacity;
+}
+
+.hand-grid--motion.hand-grid--opponent .hand-motion-card {
+  top: -62px;
+}
+
+.hand-grid--motion.hand-grid--player .hand-motion-card {
+  top: -2px;
 }
 
 .hand-grid--motion .card-view.hand-card--motion,
@@ -3860,8 +3867,8 @@ button.card-view.game-card-v2 {
 .hand-grid--motion > .hand-motion-card > .hand-card--motion {
   width: 100%;
   min-width: 0;
-  height: 128px;
-  min-height: 128px;
+  height: 112px;
+  min-height: 112px;
   margin: 0;
   opacity: 1;
   transform: none;
@@ -3900,14 +3907,15 @@ button.card-view.game-card-v2 {
 
 @media (max-width: 720px) {
   .hand-grid--motion .hand-motion-card {
-    left: calc(50% - 42px);
-    width: 84px;
+    left: calc(50% - 38px);
+    width: 76px;
+    height: 100px;
   }
 
   .hand-grid--motion .card-view.hand-card--motion,
   .hand-grid--motion .hidden-card-back.hand-card--motion,
   .hand-grid--motion > .hand-motion-card > .hand-card--motion {
-    height: 112px;
-    min-height: 112px;
+    height: 100px;
+    min-height: 100px;
   }
 }
