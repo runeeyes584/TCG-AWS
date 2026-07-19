@@ -1,10 +1,181 @@
 "use client";
 
-import { GameBoard } from "../components/game/GameBoard";
-import { useGameMatch } from "../hooks/useGameMatch";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  BookOpen,
+  ChevronRight,
+  CircleHelp,
+  Layers3,
+  LogOut,
+  Menu,
+  Shield,
+  Sparkles,
+  Swords,
+  Trophy,
+} from "lucide-react";
+import { me, type PlayerProfile } from "../libs/api";
+import { PhaserSplash } from "../components/lobby/PhaserSplash";
+
+type LobbyTab = "duel" | "deck" | "collection";
+
+const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
+  { id: "duel", label: "Duel", icon: Swords },
+  { id: "deck", label: "Deck", icon: Layers3 },
+  { id: "collection", label: "Collection", icon: BookOpen },
+];
 
 export default function Home() {
-  const controller = useGameMatch();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<LobbyTab>("duel");
+  const [playerName, setPlayerName] = useState("Guest Operative");
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [elo, setElo] = useState(1200);
+  const [avatar, setAvatar] = useState<string | undefined>();
+  const [email, setEmail] = useState("guest@kaleidoscope.local");
+  const [wins, setWins] = useState(0);
+  const [losses, setLosses] = useState(0);
 
-  return <GameBoard controller={controller} />;
+  useEffect(() => {
+    const email = window.localStorage.getItem("email");
+    const token = window.localStorage.getItem("accessToken");
+
+    if (email) {
+      setPlayerName(email.split("@")[0]);
+      setEmail(email);
+    }
+
+    const signedIn = Boolean(token);
+    setIsSignedIn(signedIn);
+
+    if (!signedIn) return;
+
+    void me()
+      .then(({ user }) => {
+        if (!user) return;
+
+        const profile = user as PlayerProfile;
+        setPlayerName(profile.username || email?.split("@")[0] || "Operative");
+        setElo(profile.elo ?? 1200);
+        setAvatar(profile.avatar);
+        setEmail(profile.email || email || "guest@kaleidoscope.local");
+        setWins(profile.wins ?? 0);
+        setLosses(profile.losses ?? 0);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const startDuel = () => {
+    router.push(isSignedIn ? "/play" : "/login");
+  };
+
+  const signOut = () => {
+    window.localStorage.removeItem("accessToken");
+    window.localStorage.removeItem("refreshToken");
+    window.localStorage.removeItem("email");
+    setIsSignedIn(false);
+    setPlayerName("Guest Operative");
+    setElo(1200);
+    setAvatar(undefined);
+    setEmail("guest@kaleidoscope.local");
+    setWins(0);
+    setLosses(0);
+  };
+
+  return (
+    <main className="lobby-shell">
+      <div className="lobby-grid" aria-hidden="true" />
+      <div className="lobby-vignette" aria-hidden="true" />
+
+      <header className="lobby-topbar">
+        <button className="lobby-brand" onClick={() => setActiveTab("duel")} aria-label="Kaleidoscope home">
+          <span className="lobby-brand__mark"><Sparkles size={20} strokeWidth={2.4} /></span>
+          <span>
+            <strong>KALEIDOSCOPE</strong>
+            <small>TACTICAL CARD GAME</small>
+          </span>
+        </button>
+
+        <div className="lobby-topbar__actions">
+          <div className="elo-display" title="Player Elo">
+            <Trophy size={18} aria-hidden="true" />
+            <span><small>ELO</small><strong>{elo.toLocaleString()}</strong></span>
+          </div>
+          <button className="lobby-icon-button" title="Game guide" aria-label="Game guide"><CircleHelp size={19} /></button>
+          {isSignedIn ? (
+            <button className="lobby-icon-button" title="Sign out" aria-label="Sign out" onClick={signOut}><LogOut size={19} /></button>
+          ) : (
+            <button className="lobby-menu-button" onClick={() => router.push("/login")}><Menu size={18} /> Sign in</button>
+          )}
+        </div>
+      </header>
+
+      <section className="lobby-profile" aria-label="Player profile">
+        <div className="lobby-profile__avatar">
+          <span>{playerName.slice(0, 1).toUpperCase()}</span>
+          {avatar ? <img src={avatar} alt="" onError={(event) => event.currentTarget.remove()} /> : null}
+        </div>
+        <div className="lobby-profile__identity">
+          <strong>{playerName}</strong>
+          <span title={email}><Shield size={13} /> {email}</span>
+        </div>
+        <div className="lobby-profile__rank"><small>RANK</small><strong>VII</strong></div>
+        <div className="lobby-profile__stats" aria-label="Player statistics">
+          <span><b>{elo.toLocaleString()}</b><small>ELO</small></span>
+          <span><b>{wins}</b><small>WINS</small></span>
+          <span><b>{losses}</b><small>LOSSES</small></span>
+        </div>
+      </section>
+
+      <nav className="lobby-nav" aria-label="Main navigation">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            className={`lobby-nav__item ${activeTab === id ? "is-active" : ""}`}
+            onClick={() => setActiveTab(id)}
+          >
+            <Icon size={19} aria-hidden="true" />
+            <span>{label}</span>
+            <ChevronRight size={17} aria-hidden="true" />
+          </button>
+        ))}
+      </nav>
+
+      <section className="lobby-content">
+        {activeTab === "duel" ? (
+          <>
+            <p className="lobby-eyebrow">Season 01 <span /> Ascendant Circuit</p>
+            <h1>Enter the<br /><em>Prism Arena</em></h1>
+            <p className="lobby-lede">Command your deck, read the field, and turn a single shard of advantage into victory.</p>
+
+            <div className="lobby-queue">
+              <div className="queue-rank"><span>VII</span></div>
+              <div className="queue-copy"><small>Ranked Duel</small><strong>Prism Vanguard</strong></div>
+              <div className="queue-elo"><small>YOUR ELO</small><strong>{elo.toLocaleString()}</strong></div>
+              <button className="queue-action" onClick={startDuel}>
+                <Swords size={20} />
+                <span>{isSignedIn ? "Find Match" : "Sign in to Duel"}</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="lobby-placeholder">
+            <p className="lobby-eyebrow">Arsenal</p>
+            <h1>{activeTab === "deck" ? "Build your\nDeck" : "Your Card\nCollection"}</h1>
+            <p className="lobby-lede">The arena is ready. Deck construction and collection management will join this command station next.</p>
+            <button className="queue-action queue-action--small" onClick={() => setActiveTab("duel")}><Swords size={18} /> Return to Duel</button>
+          </div>
+        )}
+      </section>
+
+      <div className="lobby-art" aria-hidden="true">
+        <PhaserSplash />
+      </div>
+
+      <footer className="lobby-footer">
+        <span><i /> Online services operational</span>
+        <span>Kaleidoscope TCG <b>v0.1.0</b></span>
+      </footer>
+    </main>
+  );
 }

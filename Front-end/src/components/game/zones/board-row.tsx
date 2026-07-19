@@ -29,37 +29,15 @@ export function BoardRow({
   renderUnit
 }: BoardRowProps) {
   const isWaiting = rowType === "waiting";
-  const unitCount = units.filter(Boolean).length;
-  const label = isEnemy
-    ? `Opponent ${rowType} row`
-    : `Your ${rowType} row`;
-
   return (
     <section
       className={clsx(
-        "board-row-wrap relative min-w-0 overflow-hidden !bg-black/20 px-3 pb-2 pt-5 transition-colors",
+        "board-row-wrap relative min-w-0 overflow-hidden !bg-black/20 px-3 py-1 transition-colors",
         isWaiting ? "waiting-row-wrap" : "active-row-wrap",
         isEnemy ? "board-row-wrap--enemy" : "board-row-wrap--player"
       )}
       aria-label={`${playerId} ${rowType} row`}
     >
-      <div className="pointer-events-none absolute left-3 top-1.5 flex items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">
-          {label}
-        </span>
-        <span
-          className={clsx(
-            "size-1.5 rounded-full",
-            isEnemy ? "bg-red-400/70" : "bg-blue-400/70"
-          )}
-          aria-hidden="true"
-        />
-      </div>
-
-      <span className="pointer-events-none absolute right-3 top-1.5 font-mono text-[10px] text-white/55">
-        {unitCount}/{MAX_ROW_SIZE}
-      </span>
-
       <div
         className={clsx(
           "grid h-full min-h-[64px] grid-cols-6 gap-2",
