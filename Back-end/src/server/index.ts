@@ -2,11 +2,14 @@ import { createServer } from "node:http";
 import { Server, Socket } from "socket.io";
 import { buildDefaultDeck } from "../game/entities/defaultDeck";
 import { applyAction, createInitialGameState } from "../game/core/engine";
+import { MAX_MANA, MAX_SPELL_MANA } from "../game/rules/gameRules";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
 import { MatchmakingService } from "../matchmaking/matchmaking.service";
 import type {
   ActionAck,
   ClientToServerEvents,
+  DeveloperResourceUpdate,
+  MatchPlayerProfile,
   RoomAck,
   ServerToClientEvents
 } from "../shared/multiplayer";
@@ -22,6 +25,7 @@ interface RoomPlayer {
   socketId: string;
   playerId: PlayerId;
   connected: boolean;
+  profile: MatchPlayerProfile;
 }
 
 interface Room {
@@ -37,6 +41,7 @@ type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 // const hostname = process.env.HOSTNAME ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 5000);
 const hostname = "localhost";
+const developerToolsEnabled = process.env.ENABLE_DEVTOOLS === "true";
 // const app = next({ dev, hostname, port, dir: resolve(process.cwd(), "Front-end") });
 // const app = next({
 //     dev,
@@ -118,6 +123,11 @@ io.use(async (socket, next) => {
     });
 
     socket.data.email = email;
+    socket.data.profile = {
+      username: user.username,
+      avatar: user.avatar,
+      elo: user.elo
+    } satisfies MatchPlayerProfile;
     next();
   } catch (err) {
     console.error("Socket auth error:", err);
@@ -273,6 +283,37 @@ io.on("connection", (socket) => {
     refreshTimer(room);
   });
 
+  socket.on("developer:resources", (updates, ack) => {
+    if (!developerToolsEnabled) {
+      replyError(socket, ack, "Developer tools are disabled.");
+      return;
+    }
+
+    const room = getSocketRoom(socket);
+    if (!room) {
+      replyError(socket, ack, "Join a room first.");
+      return;
+    }
+
+    if (!areValidDeveloperResourceUpdates(updates)) {
+      replyError(socket, ack, "Invalid developer resource values.");
+      return;
+    }
+
+    const nextState = structuredClone(room.state);
+    for (const update of updates) {
+      const player = nextState.players[update.playerId];
+      player.mana = update.mana;
+      player.spellMana = update.spellMana;
+      player.maxMana = Math.max(player.maxMana, update.mana);
+    }
+    nextState.visualEvents = [];
+    room.state = nextState;
+    room.log.unshift({ id: Date.now(), message: "Developer resources updated." });
+    ack?.({ ok: true });
+    broadcastRoom(room);
+  });
+
   socket.on("disconnect", () => {
     const roomCode = socketRooms.get(socket.id);
     if (!roomCode) {
@@ -354,7 +395,13 @@ function createRoomCode() {
 }
 
 function attachPlayer(socket: GameSocket, room: Room, playerId: PlayerId) {
-  room.players.push({ socketId: socket.id, playerId, connected: true });
+  const profile = socket.data.profile as MatchPlayerProfile | undefined;
+  room.players.push({
+    socketId: socket.id,
+    playerId,
+    connected: true,
+    profile: profile ?? { username: "Unknown player", elo: 0 }
+  });
   socketRooms.set(socket.id, room.code);
   socket.join(room.code);
 }
@@ -369,6 +416,14 @@ function getSocketPlayerId(socket: GameSocket, room?: Room) {
 }
 
 function broadcastRoom(room: Room) {
+  const playerProfiles = room.players.reduce<Partial<Record<PlayerId, MatchPlayerProfile>>>(
+    (profiles, player) => {
+      profiles[player.playerId] = player.profile;
+      return profiles;
+    },
+    {}
+  );
+
   for (const player of room.players) {
     if (!player.connected) {
       continue;
@@ -380,6 +435,7 @@ function broadcastRoom(room: Room) {
       opponentConnected: room.players.some(
         (candidate) => candidate.playerId === opponentId && candidate.connected
       ),
+      players: playerProfiles,
       state: redactStateForPlayer(room.state, player.playerId),
       log: room.log.slice(0, 80)
     });
@@ -460,6 +516,33 @@ function canSubmitAction(playerId: PlayerId, action: GameAction) {
   }
 
   return true;
+}
+
+function areValidDeveloperResourceUpdates(
+  updates: DeveloperResourceUpdate[]
+): boolean {
+  if (!Array.isArray(updates) || updates.length !== 2) {
+    return false;
+  }
+
+  const updatedPlayers = new Set<PlayerId>();
+  for (const update of updates) {
+    if (
+      !update ||
+      (update.playerId !== "P1" && update.playerId !== "P2") ||
+      !Number.isInteger(update.mana) ||
+      !Number.isInteger(update.spellMana) ||
+      update.mana < 0 ||
+      update.mana > MAX_MANA ||
+      update.spellMana < 0 ||
+      update.spellMana > MAX_SPELL_MANA
+    ) {
+      return false;
+    }
+    updatedPlayers.add(update.playerId);
+  }
+
+  return updatedPlayers.size === 2;
 }
 
 function appendActionLog(room: Room, action: GameAction) {

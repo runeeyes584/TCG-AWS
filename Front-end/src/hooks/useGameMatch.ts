@@ -5,7 +5,8 @@ import type { GameController } from "../components/game/GameBoard";
 import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { createInitialGameState } from "@backend/game/core/engine";
 import type { GameAction, GameState, PlayerId } from "@backend/game/types";
-import type { RoomUpdate } from "@backend/shared/multiplayer";
+import type { DeveloperResourceUpdate, RoomUpdate } from "@backend/shared/multiplayer";
+import { accessTokenNeedsRefresh, refreshToken } from "../libs/api";
 import { socketManager } from "../libs/socket";
 
 export interface SocketGameController extends GameController {
@@ -36,6 +37,7 @@ export function useGameMatch(): SocketGameController {
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [roomCode, setRoomCode] = useState<string>();
   const [localPlayerId, setLocalPlayerId] = useState<PlayerId>();
+  const [playerProfiles, setPlayerProfiles] = useState<RoomUpdate["players"]>({});
   const [opponentConnected, setOpponentConnected] = useState(false);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string>();
@@ -45,20 +47,57 @@ export function useGameMatch(): SocketGameController {
   ]);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    let active = true;
+    let socket: ReturnType<typeof socketManager.connect> | undefined;
+    let refreshRetried = false;
     const email = localStorage.getItem("email") || "";
 
-    if (typeof token !== "string" || token.trim().length === 0 || token.split(".").length !== 3) {
+    const clearAuthentication = (message: string) => {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       setStatus("Login required");
-      setError("Please sign in again before opening Duel.");
-      return;
-    }
+      setSearching(false);
+      setQueueTime(0);
+      setError(message);
+    };
 
-    // 1. Initialize API connection
-    const socket = socketManager.connect(token, email);
+    const refreshAccessToken = async () => {
+      const result = await refreshToken();
+      if (!result.accessToken || result.accessToken.split(".").length !== 3) {
+        throw new Error("Refresh did not return a valid access token.");
+      }
+      localStorage.setItem("accessToken", result.accessToken);
+      return result.accessToken;
+    };
 
-    // 2. Setup Event Listeners (Handling Server -> Client)
-    socket.on("connect", () => {
+    const isRefreshableAuthError = (message: string) =>
+      /exp.*timestamp check failed|token expired|jwt expired|invalid access token/i.test(message);
+
+    const initializeSocket = async () => {
+      let token = localStorage.getItem("accessToken");
+      if (typeof token !== "string" || token.trim().length === 0 || token.split(".").length !== 3) {
+        clearAuthentication("Please sign in again before opening Duel.");
+        return;
+      }
+
+      try {
+        if (accessTokenNeedsRefresh(token)) {
+          token = await refreshAccessToken();
+        }
+      } catch {
+        if (active) {
+          clearAuthentication("Your session has expired. Please sign in again before opening Duel.");
+        }
+        return;
+      }
+
+      if (!active) {
+        return;
+      }
+
+      socket = socketManager.connect(token, email);
+
+      socket.on("connect", () => {
       setStatus("Connected");
       setError(undefined);
       // Auto-rejoin if room code exists
@@ -70,75 +109,93 @@ export function useGameMatch(): SocketGameController {
           }
         });
       }
-    });
+      });
 
-    socket.on("disconnect", () => {
+      socket.on("disconnect", () => {
       setStatus("Disconnected");
       setSearching(false);
       setQueueTime(0);
-    });
+      });
 
-    socket.on("connect_error", (connectError: any) => {
-      setStatus("Connection failed");
-      setSearching(false);
-      setQueueTime(0);
-      const message = connectError.message === "Unauthorized: missing access token."
-          ? "Please sign in again to open Duel."
-          : connectError.message;
+      socket.on("connect_error", (connectError: { message?: string }) => {
+        const message = connectError.message || "Unable to connect to the game server.";
+        if (isRefreshableAuthError(message) && !refreshRetried) {
+          refreshRetried = true;
+          setStatus("Refreshing session");
+          void refreshAccessToken()
+            .then((nextToken) => {
+              if (active) {
+                socketManager.connect(nextToken, email);
+              }
+            })
+            .catch(() => {
+              if (active) {
+                clearAuthentication("Your session has expired. Please sign in again to play.");
+              }
+            });
+          return;
+        }
 
-      if (message !== connectError.message) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-      }
-      setError(message);
-    });
+        setStatus("Connection failed");
+        setSearching(false);
+        setQueueTime(0);
+        setError(
+          message === "Unauthorized: missing access token."
+            ? "Please sign in again to open Duel."
+            : message
+        );
+      });
 
-    socket.on("game:error", (message: string) => {
+      socket.on("game:error", (message: string) => {
       setError(message);
       addClientLog(message);
-    });
+      });
 
-    socket.on("room:update", (update: RoomUpdate) => {
+      socket.on("room:update", (update: RoomUpdate) => {
       roomCodeRef.current = update.roomCode;
       setRoomCode(update.roomCode);
       setLocalPlayerId(update.playerId);
       setOpponentConnected(update.opponentConnected);
+      setPlayerProfiles(update.players);
       setGameState(update.state);
       setActionLog(update.log);
       setStatus(update.opponentConnected ? "Opponent connected" : "Waiting for opponent");
-    });
+      });
 
-    socket.on("matchmaking:searching", () => {
+      socket.on("matchmaking:searching", () => {
       setSearching(true);
       setStatus("Searching for opponent...");
-    });
+      });
 
-    socket.on("matchmaking:cancelled", () => {
+      socket.on("matchmaking:cancelled", () => {
       setSearching(false);
       setQueueTime(0);
       setStatus("Matchmaking cancelled");
-    });
+      });
 
-    socket.on("matchmaking:found", () => {
+      socket.on("matchmaking:found", () => {
       setSearching(false);
       setQueueTime(0);
       setStatus("Match Found!");
       setInGame(true);
-    });
+      });
+    };
 
-    // Cleanup on unmount
+    void initializeSocket();
+
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("connect_error");
-      socket.off("game:error");
-      socket.off("room:update");
-      socket.off("matchmaking:searching");
-      socket.off("matchmaking:cancelled");
-      socket.off("matchmaking:found");
+      active = false;
+      socket?.off("connect");
+      socket?.off("disconnect");
+      socket?.off("connect_error");
+      socket?.off("game:error");
+      socket?.off("room:update");
+      socket?.off("matchmaking:searching");
+      socket?.off("matchmaking:cancelled");
+      socket?.off("matchmaking:found");
       socketManager.disconnect();
     };
-    }, []);
+  }, []);
 
   // Queue Timer
   useEffect(() => {
@@ -227,6 +284,15 @@ export function useGameMatch(): SocketGameController {
     socketManager.startMatchmaking();
   }
 
+  function setDeveloperResources(updates: DeveloperResourceUpdate[]) {
+    socketManager.updateDeveloperResources(updates, (response: any) => {
+      if (!response.ok) {
+        setError(response.error);
+        addClientLog(response.error);
+      }
+    });
+  }
+
   function cancelMatchmaking() {
     socketManager.cancelMatchmaking();
     setSearching(false);
@@ -241,8 +307,10 @@ export function useGameMatch(): SocketGameController {
       dispatch,
       dispatchChain,
       resetGame,
+      setDeveloperResources,
       roomCode,
       localPlayerId,
+      playerProfiles,
       opponentConnected,
       status,
       error,
@@ -254,7 +322,7 @@ export function useGameMatch(): SocketGameController {
       cancelMatchmaking,
       inGame
     }),
-    [actionLog, error, gameState, localPlayerId, opponentConnected, roomCode, status, searching, queueTime, inGame]
+    [actionLog, error, gameState, localPlayerId, playerProfiles, opponentConnected, roomCode, status, searching, queueTime, inGame]
   );
 
   return controller;

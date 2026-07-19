@@ -8,6 +8,12 @@ export interface LoginResponse {
     expiresIn: number;
 }
 
+export interface RefreshTokenResponse {
+    success: boolean;
+    accessToken: string;
+    expiresIn?: number;
+}
+
 interface ApiResponse<T = any> {
     success: boolean;
     message?: string;
@@ -120,14 +126,35 @@ export async function logout() {
 
 }
 
-export async function refreshToken() {
+export async function refreshToken(): Promise<RefreshTokenResponse> {
 
-    return request("/auth/refresh", {
+    return request<RefreshTokenResponse>("/auth/refresh", {
 
         method: "POST"
 
     });
 
+}
+
+export function accessTokenNeedsRefresh(token: string, minimumValidityMs = 60_000): boolean {
+    try {
+        const payloadSegment = token.split(".")[1];
+        if (!payloadSegment) {
+            return true;
+        }
+
+        const normalizedPayload = payloadSegment.replace(/-/g, "+").replace(/_/g, "/");
+        const paddedPayload = normalizedPayload.padEnd(
+            normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+            "="
+        );
+        const payload = JSON.parse(window.atob(paddedPayload)) as { exp?: unknown };
+        const expiresAt = typeof payload.exp === "number" ? payload.exp * 1_000 : 0;
+
+        return expiresAt <= Date.now() + minimumValidityMs;
+    } catch {
+        return true;
+    }
 }
 
 export async function me(): Promise<ApiResponse<PlayerProfile>> {

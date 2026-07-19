@@ -5,8 +5,15 @@ export interface ClientToServerEvents {
   "room:join": (roomCode: string, ack: RoomAck) => void;
   "game:action": (action: GameAction, ack?: ActionAck) => void;
   "game:reset": (ack?: ActionAck) => void;
+  "developer:resources": (updates: DeveloperResourceUpdate[], ack?: ActionAck) => void;
   "matchmaking:start": () => void;
   "matchmaking:cancel": () => void;
+}
+
+export interface DeveloperResourceUpdate {
+  playerId: PlayerId;
+  mana: number;
+  spellMana: number;
 }
 
 export interface ServerToClientEvents {
@@ -31,10 +38,17 @@ export interface ErrorAckPayload {
 export type RoomAck = (payload: RoomAckPayload | ErrorAckPayload) => void;
 export type ActionAck = (payload: { ok: true } | ErrorAckPayload) => void;
 
+export interface MatchPlayerProfile {
+  username: string;
+  avatar?: string;
+  elo: number;
+}
+
 export interface RoomUpdate {
   roomCode: string;
   playerId: PlayerId;
   opponentConnected: boolean;
+  players: Partial<Record<PlayerId, MatchPlayerProfile>>;
   state: GameState;
   log: Array<{ id: number; message: string }>;
 }

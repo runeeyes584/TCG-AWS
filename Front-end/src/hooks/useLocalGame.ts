@@ -9,6 +9,7 @@ import {
   GameValidationError,
   VisualEvent
 } from "@backend/game/types";
+import type { DeveloperResourceUpdate } from "@backend/shared/multiplayer";
 
 export interface LogEntry {
   id: number;
@@ -71,6 +72,21 @@ export function useLocalGame() {
     setActionLog([{ id: Date.now(), message: "New local battle created." }]);
   }
 
+  function setDeveloperResources(updates: DeveloperResourceUpdate[]) {
+    setGameState((current) => {
+      const nextState = structuredClone(current);
+      for (const update of updates) {
+        const player = nextState.players[update.playerId];
+        player.mana = update.mana;
+        player.spellMana = update.spellMana;
+        player.maxMana = Math.max(player.maxMana, update.mana);
+      }
+      nextState.visualEvents = [];
+      return nextState;
+    });
+    addLog("Developer resources updated.");
+  }
+
   function addLog(message: string) {
     setActionLog((current) => [{ id: Date.now() + Math.random(), message }, ...current]);
   }
@@ -80,7 +96,8 @@ export function useLocalGame() {
     actionLog,
     dispatch,
     dispatchChain,
-    resetGame
+    resetGame,
+    setDeveloperResources
   };
 }
 

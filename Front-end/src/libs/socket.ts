@@ -1,6 +1,10 @@
 import { io, type Socket } from "socket.io-client";
 import type { GameAction } from "@backend/game/types";
-import type { ClientToServerEvents, ServerToClientEvents } from "@backend/shared/multiplayer";
+import type {
+  ClientToServerEvents,
+  DeveloperResourceUpdate,
+  ServerToClientEvents
+} from "@backend/shared/multiplayer";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -17,7 +21,8 @@ class SocketManager {
       });
     }
     
-    // Always call connect to ensure we're connected
+    // Socket.IO reads auth during its handshake, so refresh it before reconnecting.
+    this.socket.auth = { token, email };
     this.socket.connect();
     return this.socket;
   }
@@ -48,6 +53,13 @@ class SocketManager {
 
   public resetGame(callback: (response: any) => void) {
     this.socket?.emit("game:reset", callback);
+  }
+
+  public updateDeveloperResources(
+    updates: DeveloperResourceUpdate[],
+    callback: (response: any) => void
+  ) {
+    this.socket?.emit("developer:resources", updates, callback);
   }
 
   public startMatchmaking() {
