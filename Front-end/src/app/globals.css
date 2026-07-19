@@ -3268,6 +3268,19 @@ button.card-view.game-card-v2 {
   animation-delay: -1.1s;
 }
 
+/* Mirror the local player's HUD so both identities sit on the outer edge of the board. */
+.nexus-panel-v2--bottom .nexus-panel-v2__resources {
+  order: 1;
+}
+
+.nexus-panel-v2--bottom .nexus-panel-v2__core {
+  order: 2;
+}
+
+.nexus-panel-v2--bottom .nexus-panel-v2__identity {
+  order: 3;
+}
+
 @keyframes nexusVioletBluePulse {
   0%, 100% {
     border-color: rgba(139, 92, 246, 0.72);
@@ -3591,6 +3604,49 @@ button.card-view.game-card-v2 {
 
 .waiting-row-wrap { min-height: 54px; }
 .active-row-wrap { min-height: 106px; }
+
+/* Outer rows hold full cards without pushing into the hand zones. */
+.center-board {
+  grid-template-rows:
+    minmax(88px, 0.78fr)
+    minmax(106px, 1.08fr)
+    38px
+    minmax(106px, 1.08fr)
+    minmax(88px, 0.78fr);
+}
+
+.waiting-row-wrap {
+  min-height: 88px;
+}
+
+.waiting-row-wrap .board-empty-slot,
+.waiting-row-wrap > div > div {
+  min-height: 76px;
+}
+
+/* Priority lights the full half of the board, not just the small HUD indicator. */
+.board-row-wrap--priority {
+  position: relative;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(65, 222, 255, 0.2), rgba(44, 127, 255, 0.08) 45%, rgba(65, 222, 255, 0.2)),
+    rgba(8, 37, 68, 0.76) !important;
+  box-shadow: inset 0 1px rgba(126, 245, 255, 0.7), inset 0 -1px rgba(74, 157, 255, 0.48), 0 0 28px rgba(38, 193, 255, 0.16);
+  animation: activeBoardPulse 1.8s ease-in-out infinite;
+}
+
+.board-row-wrap--priority::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(112, 237, 255, 0.52);
+  content: "";
+  pointer-events: none;
+}
+
+@keyframes activeBoardPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.18); }
+}
 
 @media (max-width: 900px) {
   .lobby-art { width: 65vw; opacity: 0.62; }

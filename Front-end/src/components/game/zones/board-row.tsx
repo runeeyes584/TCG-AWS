@@ -12,6 +12,7 @@ export interface BoardRowProps {
   rowType: "active" | "waiting";
   units: (UnitInstance | undefined)[];
   isEnemy: boolean;
+  hasPriority?: boolean;
   selectedUnitIds?: string[];
   isEmptySlotEnabled?: (index: number) => boolean;
   onEmptySlotClick?: (index: number) => void;
@@ -23,6 +24,7 @@ export function BoardRow({
   rowType,
   units,
   isEnemy,
+  hasPriority = false,
   selectedUnitIds = [],
   isEmptySlotEnabled,
   onEmptySlotClick,
@@ -34,7 +36,8 @@ export function BoardRow({
       className={clsx(
         "board-row-wrap relative min-w-0 overflow-hidden !bg-black/20 px-3 py-1 transition-colors",
         isWaiting ? "waiting-row-wrap" : "active-row-wrap",
-        isEnemy ? "board-row-wrap--enemy" : "board-row-wrap--player"
+        isEnemy ? "board-row-wrap--enemy" : "board-row-wrap--player",
+        hasPriority && "board-row-wrap--priority"
       )}
       aria-label={`${playerId} ${rowType} row`}
     >
@@ -56,7 +59,7 @@ export function BoardRow({
               <button
                 className={clsx(
                   "board-empty-slot !min-h-0 !w-full !rounded-lg !border-2 !border-dashed !bg-transparent !p-0 !shadow-none !opacity-100",
-                  isWaiting ? "h-[54px]" : "h-full",
+                  "h-full",
                   canUseEmptySlot
                     ? "!border-cyan-400/45 hover:!border-cyan-300 hover:!bg-cyan-400/10"
                     : "!cursor-default !border-white/10"
@@ -74,7 +77,7 @@ export function BoardRow({
             <div
               className={clsx(
                 "relative grid min-h-0 min-w-0 overflow-hidden rounded-lg",
-                isWaiting ? "h-[54px]" : "h-full"
+                "h-full"
               )}
               key={unit.instanceId}
             >
