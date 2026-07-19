@@ -26,6 +26,7 @@ import { hasKeyword } from "@backend/game/core/engine";
 import { HoverProvider } from "../../contexts/HoverContext";
 import { CardInspector } from "./CardInspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
+import { DeckPile, GraveyardPile } from "./side-piles";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
 
@@ -1153,33 +1154,34 @@ export function GameBoardView({
 
   function renderDeckStack(playerId: PlayerId, label: string) {
     const player = gameState.players[playerId];
+    const canDraw =
+      gameState.started &&
+      !gameState.winnerId &&
+      gameState.priorityPlayerId === playerId &&
+      player.deck.length > 0 &&
+      canControl(playerId);
 
     return (
-      <div className="deck-stack">
-        <span>{label}</span>
-        <strong>{player.deck.length}</strong>
-      </div>
+      <DeckPile
+        count={player.deck.length}
+        label={label}
+        interactive={canDraw}
+        onDraw={
+          canDraw
+            ? () => dispatch({ type: "DRAW_CARD", playerId }, `${playerId} drew a card.`)
+            : undefined
+        }
+      />
     );
   }
 
   function renderGraveyard(playerId: PlayerId, label: string) {
-    const entryCount = gameState.players[playerId].graveyard.length;
     return (
-      <div
-        className={`deck-stack graveyard-stack ${entryCount > 0 ? "has-cards" : ""}`}
-        onClick={() => setViewingGraveyard(playerId)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setViewingGraveyard(playerId);
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        <span>{label}</span>
-        <strong>{entryCount}</strong>
-      </div>
+      <GraveyardPile
+        entries={gameState.players[playerId].graveyard}
+        label={label}
+        onOpen={() => setViewingGraveyard(playerId)}
+      />
     );
   }
 

@@ -28,12 +28,14 @@ export function GraveyardPickerModal({
     (entry) => canSelect && selectableTypes.includes(entry.type)
   );
 
+  const titleId = `graveyard-title-${playerId}`;
+
   return (
-    <div className="graveyard-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="graveyard-modal-content" onClick={(event) => event.stopPropagation()}>
+    <div className="graveyard-modal-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onClose}>
+      <div className="graveyard-modal-content graveyard-modal-v2" onClick={(event) => event.stopPropagation()}>
         <header>
-          <h2>{playerId}&apos;s Graveyard</h2>
-          <button type="button" onClick={onClose} aria-label="Close graveyard">
+          <h2 id={titleId}>{playerId}&apos;s Graveyard</h2>
+          <button className="graveyard-modal__close" type="button" onClick={onClose} aria-label="Close graveyard">
             <X size={20} aria-hidden="true" />
           </button>
         </header>
