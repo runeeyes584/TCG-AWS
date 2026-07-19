@@ -1,7 +1,7 @@
 "use client";
 
-import { GameBoard } from "../../components/GameBoard";
-import { useSocketGame } from "../../client/useSocketGame";
+import { GameBoard } from "../../components/game/GameBoard";
+import { useGameMatch } from "../../hooks/useGameMatch";
 
 function formatTime(seconds: number) {
     const m = Math.floor(seconds / 60);
@@ -11,7 +11,7 @@ function formatTime(seconds: number) {
 }
 
 export default function PlayPage() {
-    const controller = useSocketGame();
+    const controller = useGameMatch();
 
     if (controller.roomCode && controller.opponentConnected) {
         return <GameBoard controller={controller} />;

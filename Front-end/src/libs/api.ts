@@ -74,7 +74,7 @@ export async function verify(
 
             email,
 
-            code
+            code: code.trim()
 
         })
 
@@ -138,7 +138,7 @@ export async function resetPassword(
         method: "POST",
         body: JSON.stringify({
             email,
-            code,
+            code: code.trim(),
             password
         })
     });

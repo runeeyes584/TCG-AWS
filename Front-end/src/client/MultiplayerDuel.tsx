@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Copy, LogIn, Plus, Wifi } from "lucide-react";
-import { GameBoardView } from "../components/GameBoard";
-import { useSocketGame } from "./useSocketGame";
+import { GameBoardView } from "../components/game/GameBoard";
+import { useGameMatch } from "../hooks/useGameMatch";
 
 export function MultiplayerDuel() {
-  const controller = useSocketGame();
+  const controller = useGameMatch();
   const [joinCode, setJoinCode] = useState("");
 
   if (controller.roomCode && controller.localPlayerId) {
@@ -42,7 +42,7 @@ export function MultiplayerDuel() {
             <span>Room Code</span>
             <input
               maxLength={5}
-              onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+              onChange={(event) => setJoinCode(event.target.value.trim().toUpperCase())}
               placeholder="ABCDE"
               value={joinCode}
             />
