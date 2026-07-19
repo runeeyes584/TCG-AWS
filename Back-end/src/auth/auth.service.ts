@@ -9,7 +9,10 @@ import {
     UserNotConfirmedException,
     GlobalSignOutCommand,
     ForgotPasswordCommand,
-    ConfirmForgotPasswordCommand
+    ConfirmForgotPasswordCommand,
+    ResendConfirmationCodeCommand,
+    AdminGetUserCommand,
+    InvalidParameterException,
 } from "@aws-sdk/client-cognito-identity-provider";
 
 import { cognito } from "./cognito";
@@ -27,49 +30,65 @@ export async function register(data: RegisterRequest) {
 
     try {
 
-        const command = new SignUpCommand({
+        await cognito.send(
+            new SignUpCommand({
+                ClientId: env.clientId,
+                Username: email,
+                Password: password,
+                SecretHash: secretHash(email),
+                UserAttributes: [
+                    {
+                        Name: "email",
+                        Value: email,
+                    },
+                    {
+                        Name: "preferred_username",
+                        Value: username,
+                    },
+                ],
+            })
+        );
 
-            ClientId: env.clientId,
-
-            Username: email,
-
-            Password: password,
-
-            SecretHash: secretHash(email),
-
-            UserAttributes: [
-                {
-                    Name: "email",
-                    Value: email,
-                },
-                {
-                    Name: "preferred_username",
-                    Value: username,
-                },
-            ]
-
-        });
-
-        await cognito.send(command);
 
         return {
             success: true,
-            message: "Verification code has been sent to your email."
+            message: "Verification code has been sent to your email.",
         };
 
-    }
-    catch (error) {
+    } catch (error) {
 
         if (error instanceof UsernameExistsException) {
 
-            throw new Error("Email already exists.");
+            try {
 
+                await cognito.send(
+                    new ResendConfirmationCodeCommand({
+                        ClientId: env.clientId,
+                        Username: email,
+                        SecretHash: secretHash(email),
+                    })
+                );
+
+                return {
+                    success: true,
+                    message: "Your account is not verified. A new verification code has been sent.",
+                };
+
+            } catch (resendError) {
+
+                if (
+                    resendError instanceof InvalidParameterException ||
+                    resendError instanceof NotAuthorizedException
+                ) {
+                    throw new Error("Email already exists.");
+                }
+
+                throw resendError;
+            }
         }
 
         throw error;
-
     }
-
 }
 
 export async function verify(data: VerifyRequest) {
