@@ -9,6 +9,7 @@ export interface HandCardProps {
   playable?: boolean;
   className?: string;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   onPreviewChange?: (previewing: boolean) => void;
 }
 
@@ -20,6 +21,7 @@ export const HandCard: React.FC<HandCardProps> = ({
   playable = false,
   className,
   onClick,
+  onDoubleClick,
   onPreviewChange
 }) => {
   const cardClassName = [
@@ -37,11 +39,12 @@ export const HandCard: React.FC<HandCardProps> = ({
         selected={selected}
         className={cardClassName}
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         onPreviewChange={onPreviewChange}
       />
       {hovered ? (
         <span className="hand-card__hint" role="status">
-          {playable ? "Click to play" : "Card details"}
+          {playable ? "Double-click to play" : "Card details"}
         </span>
       ) : null}
     </>

@@ -2000,12 +2000,8 @@ body {
 }
 
 .combat-status-bar::before {
-  content: "BATTLE LINE";
-  color: rgba(243, 207, 114, 0.58);
-  font-family: "Cinzel", serif;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.2em;
+  content: none;
+  display: none;
 }
 
 .lor-table > .lane .card-grid.hand-grid {
@@ -2911,30 +2907,6 @@ button.card-view {
   position: static;
   display: block;
   line-height: 1;
-}
-
-.arena-state-hud {
-  display: flex;
-  max-width: min(100%, 760px);
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border: 1px solid rgba(243, 207, 114, 0.24);
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(15, 18, 20, 0.82), rgba(4, 7, 8, 0.72));
-  box-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(8px);
-}
-
-.arena-state-hud .stat-pill {
-  height: 20px;
-  border-color: rgba(243, 207, 114, 0.22);
-  background: rgba(0, 0, 0, 0.32);
 }
 
 /* Pull nexus panels closer to the round/action orb */

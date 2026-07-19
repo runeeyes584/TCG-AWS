@@ -18,13 +18,14 @@ import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { GameCard } from "./cards/game-card";
 import { BoardRow } from "./zones/board-row";
+import { CenterInfo } from "./zones/center-info";
 import { Hand } from "./zones/hand";
 import { NexusPanel } from "./hud/nexus-panel";
 import { PassButton } from "./hud/pass-button";
 import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
 import { hasKeyword } from "@backend/game/core/engine";
 import { HoverProvider } from "../../contexts/HoverContext";
-import { CardInspector } from "./CardInspector";
+import { DetailPanel } from "./hud/detail-panel";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { DeckPile, GraveyardPile } from "./hud/side-piles";
 import { SpellEffectLayer } from "./spell-effect-layer";
@@ -1608,7 +1609,6 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P2", card)}
             onPlayCard={(card) => playCard("P2", card)}
-            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
@@ -1673,34 +1673,17 @@ export function GameBoardView({
               />
 
               <div className="combat-status-bar">
-                <div className="arena-state-hud" aria-label="Game state">
-                  <span className="stat-pill">Round <strong>{gameState.round}</strong></span>
-                  <span className="stat-pill">Turn <strong>{gameState.turn}</strong></span>
-                  <span className="stat-pill">Priority <strong>{gameState.priorityPlayerId}</strong></span>
-                  <span className="stat-pill">Phase <strong>{gameState.phase}</strong></span>
-                  {gameState.started ? (
-                    <span className="stat-pill stat-pill--timer">
-                      Time <strong>{Math.ceil(timeRemainingMs / 1000)}s</strong>
-                    </span>
-                  ) : null}
-                  {gameState.pendingDiscard ? (
-                    <span className="stat-pill">
-                      Discard{" "}
-                      <strong>
-                        {gameState.pendingDiscard.playerId}{" "}
-                        {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
-                        {gameState.pendingDiscard.downTo}
-                      </strong>
-                    </span>
-                  ) : null}
+                <CenterInfo state={gameState} timeRemainingMs={timeRemainingMs} />
+                {gameState.pendingDiscard ? (
                   <span className="stat-pill">
-                    Attack{" "}
+                    Discard{" "}
                     <strong>
-                      {gameState.attackTokenPlayerId}
-                      {gameState.attackTokenAvailable ? "" : " spent"}
+                      {gameState.pendingDiscard.playerId}{" "}
+                      {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
+                      {gameState.pendingDiscard.downTo}
                     </strong>
                   </span>
-                </div>
+                ) : null}
                 {gameState.phase === "BLOCK" && attackerCount > 0 ? (
                   <span className="stat-pill">
                     <Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking
@@ -1822,7 +1805,6 @@ export function GameBoardView({
             }
             canPlay={(card) => canPlay("P1", card)}
             onPlayCard={(card) => playCard("P1", card)}
-            onUnavailableCardClick={clearSelectedCard}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
@@ -1858,7 +1840,7 @@ export function GameBoardView({
           <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
         </section>
 
-        <CardInspector />
+        <DetailPanel />
 
         {renderPendingDiscard()}
         {renderPendingChoice()}
