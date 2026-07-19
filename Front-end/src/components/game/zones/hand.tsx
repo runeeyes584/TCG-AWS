@@ -17,7 +17,6 @@ export interface HandProps {
   selectedCardId?: string;
   canPlay?: (card: CardInstance) => boolean;
   onPlayCard?: (card: CardInstance) => void;
-  onUnavailableCardClick?: () => void;
   onPreviewCard?: (card?: CardInstance) => void;
 }
 
@@ -38,7 +37,6 @@ export function Hand({
   selectedCardId,
   canPlay = () => false,
   onPlayCard,
-  onUnavailableCardClick,
   onPreviewCard
 }: HandProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number>();
@@ -108,10 +106,11 @@ export function Hand({
                       hovered={isHovered}
                       playable={playable}
                       onClick={() => {
+                        // GameCard handles selection for the detail panel on every click.
+                      }}
+                      onDoubleClick={() => {
                         if (canPlay(card)) {
                           onPlayCard?.(card);
-                        } else {
-                          onUnavailableCardClick?.();
                         }
                       }}
                       onPreviewChange={(previewing) => handlePreview(card, index, previewing)}

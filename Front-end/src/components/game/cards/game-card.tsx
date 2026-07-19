@@ -14,6 +14,7 @@ export interface GameCardProps {
   selected?: boolean;
   className?: string;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   onPreviewChange?: (previewing: boolean) => void;
   visualEvents?: VisualEvent[];
 }
@@ -38,6 +39,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   selected = false,
   className: cardClassName,
   onClick,
+  onDoubleClick,
   onPreviewChange,
   visualEvents
 }) => {
@@ -186,7 +188,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     onClick?.();
   };
 
-  if (!onClick) {
+  if (!onClick && !onDoubleClick) {
     return (
       <div
         className={className}
@@ -207,7 +209,13 @@ export const GameCard: React.FC<GameCardProps> = ({
   }
 
   return (
-    <button className={className} type="button" onClick={handleClick} {...hoverProps}>
+    <button
+      className={className}
+      type="button"
+      onClick={handleClick}
+      onDoubleClick={onDoubleClick}
+      {...hoverProps}
+    >
       {content}
     </button>
   );
