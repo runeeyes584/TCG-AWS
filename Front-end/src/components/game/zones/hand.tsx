@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { HandCard } from "../cards/hand-card";
 import { CardBack } from "../cards/card-back";
 import type { CardInstance } from "@backend/game/types";
+import { useHover } from "../../../contexts/HoverContext";
 
 const CARD_SPACING = 94;
 const ARC_LIFT = 8;
@@ -40,6 +41,7 @@ export function Hand({
   onPreviewCard
 }: HandProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number>();
+  const { selectedCard, selectCard } = useHover();
 
   const handlePreview = (card: CardInstance, index: number, previewing: boolean) => {
     setHoveredIndex(previewing ? index : undefined);
@@ -106,10 +108,8 @@ export function Hand({
                       hovered={isHovered}
                       playable={playable}
                       onClick={() => {
-                        // GameCard handles selection for the detail panel on every click.
-                      }}
-                      onDoubleClick={() => {
-                        if (canPlay(card)) {
+                        if (selectedCard?.instanceId === card.instanceId && canPlay(card)) {
+                          selectCard(undefined, undefined);
                           onPlayCard?.(card);
                         }
                       }}

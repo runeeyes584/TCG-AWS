@@ -57,6 +57,7 @@ export function GraveyardPickerModal({
                     cardId: entry.cardId,
                     ownerId: entry.ownerId
                   }}
+                  compact
                   selected={entry.instanceId === selectedCardInstanceId}
                   onClick={
                     isSelectable && onSelectCard

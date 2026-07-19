@@ -36,6 +36,7 @@ export const HandCard: React.FC<HandCardProps> = ({
       <GameCard
         card={card}
         variant="hand"
+        compact
         selected={selected}
         className={cardClassName}
         onClick={onClick}

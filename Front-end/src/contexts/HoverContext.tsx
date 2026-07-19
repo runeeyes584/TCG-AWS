@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { CardInstance, UnitInstance } from "@backend/game/types";
 
 export interface HoverContextType {
@@ -18,6 +18,21 @@ export function HoverProvider({ children }: { children: ReactNode }) {
   const [hoveredUnit, setHoveredUnit] = useState<UnitInstance>();
   const [selectedCard, setSelectedCard] = useState<CardInstance>();
   const [selectedUnit, setSelectedUnit] = useState<UnitInstance>();
+
+  useEffect(() => {
+    const clearPinnedDetails = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-card-ui]")) {
+        return;
+      }
+
+      setSelectedCard(undefined);
+      setSelectedUnit(undefined);
+    };
+
+    document.addEventListener("pointerdown", clearPinnedDetails);
+    return () => document.removeEventListener("pointerdown", clearPinnedDetails);
+  }, []);
 
   return (
     <HoverContext.Provider
