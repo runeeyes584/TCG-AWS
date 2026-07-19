@@ -65,8 +65,14 @@ export const GameCard: React.FC<GameCardProps> = ({
       setHoveredCard(undefined, undefined);
       onPreviewChange?.(false);
     },
-    onFocus: () => onPreviewChange?.(true),
-    onBlur: () => onPreviewChange?.(false)
+    onFocus: () => {
+      setHoveredCard(card, unit);
+      onPreviewChange?.(true);
+    },
+    onBlur: () => {
+      setHoveredCard(undefined, undefined);
+      onPreviewChange?.(false);
+    }
   };
 
   if (cardId === "hidden-card") {
