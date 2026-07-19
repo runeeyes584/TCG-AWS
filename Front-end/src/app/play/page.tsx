@@ -1,119 +1,202 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  CircleDotDashed,
+  Crown,
+  Headphones,
+  Radio,
+  Search,
+  ShieldCheck,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 import { GameBoard } from "../../components/game/GameBoard";
+import { PhaserSplash } from "../../components/lobby/PhaserSplash";
 import { useGameMatch } from "../../hooks/useGameMatch";
+import { me, type PlayerProfile } from "../../libs/api";
 
 function formatTime(seconds: number) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-
-    return `${m}:${s.toString().padStart(2, "0")}`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
 }
 
 export default function PlayPage() {
-    const controller = useGameMatch();
+  const router = useRouter();
+  const controller = useGameMatch();
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const [muted, setMuted] = useState(false);
+  const [profile, setProfile] = useState<PlayerProfile>();
 
-    if (controller.roomCode && controller.opponentConnected) {
-        return <GameBoard controller={controller} />;
+  useEffect(() => {
+    const audio = new Audio("/audio/findmatch.mp3");
+    audio.loop = true;
+    audio.preload = "auto";
+    audio.volume = 0.38;
+    musicRef.current = audio;
+
+    void me().then(({ user }) => setProfile(user)).catch(() => undefined);
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+      musicRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = musicRef.current;
+    if (!audio) return;
+
+    audio.muted = muted;
+    if (!controller.searching) {
+      audio.pause();
+      audio.currentTime = 0;
     }
+  }, [controller.searching, muted]);
 
-    return (
-        <main className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
-            <div className="w-full max-w-md rounded-2xl bg-slate-800 p-8 shadow-xl">
+  const startSearch = () => {
+    const audio = musicRef.current;
+    if (audio && !muted) {
+      audio.currentTime = 0;
+      void audio.play().catch(() => undefined);
+    }
+    controller.startMatchmaking();
+  };
 
-                <h1 className="text-center text-3xl font-bold text-white">
-                    Chrono Genesis
-                </h1>
+  const cancelSearch = () => {
+    controller.cancelMatchmaking();
+    musicRef.current?.pause();
+    if (musicRef.current) musicRef.current.currentTime = 0;
+  };
 
-                <p className="mt-2 text-center text-slate-300">
-                    Ranked Matchmaking
-                </p>
+  const toggleMusic = () => {
+    const nextMuted = !muted;
+    setMuted(nextMuted);
 
-                <div className="mt-8 rounded-xl bg-slate-700 p-5">
-                    <p className="text-slate-300">
-                        Connection
-                    </p>
+    if (!nextMuted && controller.searching) {
+      void musicRef.current?.play().catch(() => undefined);
+    }
+  };
 
-                    <p className="text-lg font-semibold text-green-400">
-                        {controller.status}
-                    </p>
+  if (controller.roomCode && controller.opponentConnected) {
+    return <GameBoard controller={controller} />;
+  }
 
-                    {controller.error && (
-                        <p className="mt-2 text-sm text-red-400">
-                            {controller.error}
-                        </p>
-                    )}
-                </div>
+  const playerName = profile?.username ?? "Prism Operative";
+  const playerInitial = playerName.slice(0, 1).toUpperCase();
+  const winRate = profile && profile.wins + profile.losses > 0
+    ? Math.round((profile.wins / (profile.wins + profile.losses)) * 100)
+    : 0;
 
-                {!controller.searching ? (
-                    <button
-                        onClick={controller.startMatchmaking}
-                        className="mt-8 w-full rounded-xl bg-blue-600 py-4 text-lg font-semibold text-white transition hover:bg-blue-700"
-                    >
-                        ▶ Play Game
-                    </button>
-                ) : (
-                    <div className="mt-8">
+  return (
+    <main className={`matchmaking-shell ${controller.searching ? "is-searching" : ""}`}>
+      <div className="matchmaking-grid" aria-hidden="true" />
+      <div className="matchmaking-art" aria-hidden="true"><PhaserSplash /></div>
+      <div className="matchmaking-shade" aria-hidden="true" />
 
-                        <button
-                            onClick={controller.cancelMatchmaking}
-                            className="w-full rounded-xl bg-red-600 py-4 text-lg font-semibold text-white transition hover:bg-red-700"
-                        >
-                            Cancel Search
-                        </button>
+      <header className="matchmaking-header">
+        <button className="matchmaking-back" onClick={() => router.push("/")} aria-label="Return to lobby" title="Return to lobby">
+          <ArrowLeft size={18} />
+          <span>Lobby</span>
+        </button>
+        <div className="matchmaking-title"><span>KALEIDOSCOPE</span><small>RANKED CIRCUIT</small></div>
+        <button className="matchmaking-audio" onClick={toggleMusic} aria-label={muted ? "Enable matchmaking music" : "Mute matchmaking music"} title={muted ? "Enable music" : "Mute music"}>
+          {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
+        </button>
+      </header>
 
-                        <div className="mt-6 text-center">
-                            <p className="text-slate-300">
-                                Searching for opponent...
-                            </p>
+      <section className="matchmaking-content">
+        <motion.div
+          className="matchmaking-kicker"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+        >
+          <Radio size={15} /> Ranked matchmaking
+        </motion.div>
 
-                            <p className="mt-2 text-4xl font-bold text-white">
-                                {formatTime(controller.queueTime)}
-                            </p>
-                        </div>
-                    </div>
-                )}
+        <motion.h1
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.08 }}
+        >
+          {controller.searching ? <>Seeking a <em>rival</em></> : <>Ready your <em>deck</em></>}
+        </motion.h1>
 
-                <div className="mt-10 rounded-xl border border-slate-600 p-4">
-                    <div className="flex justify-between">
-                        <span className="text-slate-400">
-                            Room
-                        </span>
+        <motion.p
+          className="matchmaking-lede"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.45, delay: 0.16 }}
+        >
+          {controller.searching ? "Scanning the circuit for a worthy opponent." : "Enter the ranked circuit and test your strategy under pressure."}
+        </motion.p>
 
-                        <span className="text-white">
-                            {controller.roomCode ?? "-"}
-                        </span>
-                    </div>
-
-                    <div className="mt-3 flex justify-between">
-                        <span className="text-slate-400">
-                            Player
-                        </span>
-
-                        <span className="text-white">
-                            {controller.localPlayerId ?? "-"}
-                        </span>
-                    </div>
-
-                    <div className="mt-3 flex justify-between">
-                        <span className="text-slate-400">
-                            Opponent
-                        </span>
-
-                        <span
-                            className={
-                                controller.opponentConnected
-                                    ? "font-semibold text-green-400"
-                                    : "text-yellow-400"
-                            }
-                        >
-                            {controller.opponentConnected
-                                ? "Connected"
-                                : "Waiting..."}
-                        </span>
-                    </div>
-                </div>
+        <motion.section
+          className="matchmaking-console"
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.2 }}
+          aria-label="Ranked matchmaking"
+        >
+          <div className="matchmaking-console__top">
+            <div className="matchmaking-player">
+              <div className="matchmaking-avatar">
+                <span>{playerInitial}</span>
+                {profile?.avatar ? <img src={profile.avatar} alt="" onError={(event) => event.currentTarget.remove()} /> : null}
+              </div>
+              <div>
+                <strong>{playerName}</strong>
+                <span><ShieldCheck size={13} /> Prism Vanguard</span>
+              </div>
             </div>
-        </main>
-    );
+            <div className="matchmaking-rank"><Crown size={16} /><span>VII</span></div>
+          </div>
+
+          <div className="matchmaking-scan" aria-live="polite">
+            <div className="scan-core">
+              <div className="scan-ring scan-ring--outer" />
+              <div className="scan-ring scan-ring--inner" />
+              {controller.searching ? <CircleDotDashed size={42} /> : <Search size={39} />}
+            </div>
+            <div className="scan-copy">
+              <small>{controller.searching ? "Queue time" : "Ranked Duel"}</small>
+              <strong>{controller.searching ? formatTime(controller.queueTime) : `${profile?.elo?.toLocaleString() ?? "1,200"} ELO`}</strong>
+              <span>{controller.searching ? "Match parameters synced" : controller.status}</span>
+            </div>
+          </div>
+
+          <div className="matchmaking-stats">
+            <span><small>Win rate</small><strong>{winRate}%</strong></span>
+            <span><small>Record</small><strong>{profile ? `${profile.wins} - ${profile.losses}` : "--"}</strong></span>
+            <span><small>Region</small><strong>SEA</strong></span>
+          </div>
+
+          {controller.error ? <p className="matchmaking-error">{controller.error}</p> : null}
+
+          {controller.searching ? (
+            <button className="matchmaking-command matchmaking-command--cancel" onClick={cancelSearch}>
+              <X size={19} /> Cancel search
+            </button>
+          ) : (
+            <button className="matchmaking-command" onClick={startSearch}>
+              <Search size={19} /> Find match
+            </button>
+          )}
+        </motion.section>
+
+        <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
+          <Headphones size={15} />
+          <span>{controller.searching ? "Find Match" : "Matchmaking signal ready"}</span>
+          <i />
+        </div>
+      </section>
+    </main>
+  );
 }

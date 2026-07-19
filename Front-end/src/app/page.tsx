@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen,
   ChevronRight,
-  CircleHelp,
   Layers3,
   LogOut,
   Menu,
@@ -13,9 +12,12 @@ import {
   Sparkles,
   Swords,
   Trophy,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { me, type PlayerProfile } from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
+import { useLoopingAudio } from "../hooks/useLoopingAudio";
 
 type LobbyTab = "duel" | "deck" | "collection";
 
@@ -35,6 +37,7 @@ export default function Home() {
   const [email, setEmail] = useState("guest@kaleidoscope.local");
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
+  const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
 
   useEffect(() => {
     const email = window.localStorage.getItem("email");
@@ -101,7 +104,9 @@ export default function Home() {
             <Trophy size={18} aria-hidden="true" />
             <span><small>ELO</small><strong>{elo.toLocaleString()}</strong></span>
           </div>
-          <button className="lobby-icon-button" title="Game guide" aria-label="Game guide"><CircleHelp size={19} /></button>
+          <button className="lobby-icon-button" title={muted ? "Enable lobby music" : "Mute lobby music"} aria-label={muted ? "Enable lobby music" : "Mute lobby music"} onClick={toggleMuted}>
+            {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
+          </button>
           {isSignedIn ? (
             <button className="lobby-icon-button" title="Sign out" aria-label="Sign out" onClick={signOut}><LogOut size={19} /></button>
           ) : (
@@ -154,7 +159,7 @@ export default function Home() {
               <div className="queue-elo"><small>YOUR ELO</small><strong>{elo.toLocaleString()}</strong></div>
               <button className="queue-action" onClick={startDuel}>
                 <Swords size={20} />
-                <span>{isSignedIn ? "Find Match" : "Sign in to Duel"}</span>
+                <span>{isSignedIn ? "Open matchmaking" : "Sign in to play"}</span>
               </button>
             </div>
           </>
@@ -163,7 +168,7 @@ export default function Home() {
             <p className="lobby-eyebrow">Arsenal</p>
             <h1>{activeTab === "deck" ? "Build your\nDeck" : "Your Card\nCollection"}</h1>
             <p className="lobby-lede">The arena is ready. Deck construction and collection management will join this command station next.</p>
-            <button className="queue-action queue-action--small" onClick={() => setActiveTab("duel")}><Swords size={18} /> Return to Duel</button>
+            <button className="queue-action queue-action--small" onClick={() => setActiveTab("duel")}><Swords size={18} /> Go to Duel</button>
           </div>
         )}
       </section>

@@ -74,10 +74,14 @@ export function useGameMatch(): SocketGameController {
 
     socket.on("disconnect", () => {
       setStatus("Disconnected");
+      setSearching(false);
+      setQueueTime(0);
     });
 
     socket.on("connect_error", (connectError: any) => {
       setStatus("Connection failed");
+      setSearching(false);
+      setQueueTime(0);
       const message = connectError.message === "Unauthorized: missing access token."
           ? "Please sign in again to open Duel."
           : connectError.message;
@@ -212,7 +216,14 @@ export function useGameMatch(): SocketGameController {
   }
 
   function startMatchmaking() {
+    if (!socketManager.getSocket()?.connected) {
+      setError("Connecting to the game server. Please try again in a moment.");
+      return;
+    }
+
     setError(undefined);
+    setQueueTime(0);
+    setSearching(true);
     socketManager.startMatchmaking();
   }
 
