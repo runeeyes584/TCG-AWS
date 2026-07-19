@@ -1,10 +1,6 @@
-import { io, Socket } from "socket.io-client";
-import type { GameAction, GameState, PlayerId } from "@backend/game/types";
-import type {
-  ClientToServerEvents,
-  RoomUpdate,
-  ServerToClientEvents
-} from "@backend/shared/multiplayer";
+import { io, type Socket } from "socket.io-client";
+import type { GameAction } from "@backend/game/types";
+import type { ClientToServerEvents, ServerToClientEvents } from "@backend/shared/multiplayer";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
