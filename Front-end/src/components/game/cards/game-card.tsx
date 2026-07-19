@@ -1,10 +1,11 @@
 import React from "react";
-import { Crown, ScrollText, Shield, Skull, Sparkles, Swords, Zap } from "lucide-react";
+import { Crown, ScrollText, Skull, Sparkles } from "lucide-react";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/entities/cards";
 import type { CardInstance, CardType, UnitInstance, VisualEvent } from "@backend/game/types";
 import { useHover } from "../../../contexts/HoverContext";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import { CardBack } from "./card-back";
+import { StatPip } from "../stat-pip";
 
 export interface GameCardProps {
   card?: CardInstance;
@@ -116,22 +117,27 @@ export const GameCard: React.FC<GameCardProps> = ({
         {description ? <span className="game-card-v2__description">{description}</span> : null}
       </span>
 
-      <span className="game-card-v2__pip game-card-v2__pip--mana" title="Mana cost">
-        <Zap size={11} aria-hidden="true" />
-        {definition.cost}
-      </span>
+      <StatPip
+        kind="mana"
+        value={definition.cost}
+        size="sm"
+        className="game-card-v2__stat-pip game-card-v2__stat-pip--mana"
+      />
 
       {!isSpell ? (
         <>
-          <span className="game-card-v2__pip game-card-v2__pip--attack" title="Attack">
-            <Swords size={11} aria-hidden="true" />
-            {attack ?? "-"}
-          </span>
-          <span className="game-card-v2__pip game-card-v2__pip--health" title="Health">
-            <Shield size={11} aria-hidden="true" />
-            {health ?? "-"}
-            {unit && maxHealth !== undefined ? `/${maxHealth}` : ""}
-          </span>
+          <StatPip
+            kind="attack"
+            value={attack ?? "-"}
+            size="sm"
+            className="game-card-v2__stat-pip game-card-v2__stat-pip--attack"
+          />
+          <StatPip
+            kind="hp"
+            value={health ?? "-"}
+            size="sm"
+            className="game-card-v2__stat-pip game-card-v2__stat-pip--health"
+          />
         </>
       ) : null}
 
