@@ -3905,6 +3905,102 @@ button.card-view.game-card-v2 {
   white-space: nowrap;
 }
 
+/* ===== PASS BUTTON V2 ===== */
+.pass-button-v2 {
+  display: flex;
+  width: 96px;
+  height: 96px;
+  min-height: 96px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: oklch(0.21 0.022 285 / 0.7);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.04), 0 0 24px rgba(0,0,0,0.52);
+  color: var(--muted-foreground);
+  cursor: default;
+  font-family: var(--font-serif);
+  letter-spacing: normal;
+  text-align: center;
+  text-transform: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.pass-button-v2:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pass-button-v2--active {
+  cursor: pointer;
+}
+
+.pass-button-v2--attack {
+  border-color: var(--attack);
+  background: oklch(0.68 0.2 30 / 0.2);
+  color: var(--attack);
+  box-shadow: 0 0 24px oklch(0.68 0.2 30 / 0.5);
+}
+
+.pass-button-v2--attack.pass-button-v2--active {
+  animation: passButtonAttackPulse 1.6s ease-in-out infinite;
+}
+
+.pass-button-v2--defend {
+  border-color: var(--mana);
+  background: oklch(0.72 0.13 210 / 0.15);
+  color: var(--mana);
+  box-shadow: 0 0 20px oklch(0.72 0.13 210 / 0.32);
+}
+
+.pass-button-v2--defend.pass-button-v2--active {
+  animation: passButtonDefendPulse 1.8s ease-in-out infinite;
+}
+
+.pass-button-v2--idle.pass-button-v2--active:hover {
+  border-color: oklch(0.62 0.19 300 / 0.6);
+  color: var(--foreground);
+}
+
+.pass-button-v2__icon {
+  flex: 0 0 auto;
+}
+
+.pass-button-v2__label {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.pass-button-v2__sub {
+  max-width: 78px;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.15;
+  opacity: 0.8;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@keyframes passButtonAttackPulse {
+  0%, 100% { box-shadow: 0 0 18px oklch(0.68 0.2 30 / 0.4); }
+  50% { box-shadow: 0 0 30px oklch(0.68 0.2 30 / 0.72); }
+}
+
+@keyframes passButtonDefendPulse {
+  0%, 100% { box-shadow: 0 0 16px oklch(0.72 0.13 210 / 0.28); }
+  50% { box-shadow: 0 0 28px oklch(0.72 0.13 210 / 0.58); }
+}
+
 @media (max-width: 720px) {
   .hand-grid--motion .hand-motion-card {
     left: calc(50% - 38px);
