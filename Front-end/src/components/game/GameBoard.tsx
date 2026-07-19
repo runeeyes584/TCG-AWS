@@ -29,6 +29,7 @@ import { DetailPanel } from "./hud/detail-panel";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { DeckPile, GraveyardPile } from "./hud/side-piles";
 import { SpellEffectLayer } from "./spell-effect-layer";
+import { ParticlesBackground } from "./particles-background";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
 
@@ -1597,6 +1598,7 @@ export function GameBoardView({
         ) : null}
 
         <section ref={battleTableRef} className="battle-table lor-table" aria-label="Local battle board">
+          <ParticlesBackground />
           {gameState.winnerId ? (
             <header className="topbar compact-topbar">
               <div className="winner-banner">{gameState.winnerId} wins.</div>
