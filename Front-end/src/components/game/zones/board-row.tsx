@@ -37,9 +37,9 @@ export function BoardRow({
   return (
     <section
       className={clsx(
-        "relative min-w-0 overflow-hidden rounded-xl border !bg-black/20 px-3 pb-2 pt-5 transition-colors",
-        isWaiting && "waiting-row-wrap",
-        isEnemy ? "border-red-400/25" : "border-blue-400/25"
+        "board-row-wrap relative min-w-0 overflow-hidden !bg-black/20 px-3 pb-2 pt-5 transition-colors",
+        isWaiting ? "waiting-row-wrap" : "active-row-wrap",
+        isEnemy ? "board-row-wrap--enemy" : "board-row-wrap--player"
       )}
       aria-label={`${playerId} ${rowType} row`}
     >
@@ -77,7 +77,7 @@ export function BoardRow({
             return (
               <button
                 className={clsx(
-                  "!min-h-0 !w-full !rounded-lg !border !border-dashed !bg-white/[0.02] !p-0 !shadow-none !opacity-100",
+                  "board-empty-slot !min-h-0 !w-full !rounded-lg !border-2 !border-dashed !bg-transparent !p-0 !shadow-none !opacity-100",
                   isWaiting ? "h-[54px]" : "h-full",
                   canUseEmptySlot
                     ? "!border-cyan-400/45 hover:!border-cyan-300 hover:!bg-cyan-400/10"

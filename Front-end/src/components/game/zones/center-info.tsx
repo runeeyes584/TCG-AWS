@@ -13,11 +13,11 @@ function Chip({
   urgent?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card/50 px-3 py-1 backdrop-blur-sm">
+    <span className="battle-info-chip flex items-center gap-1.5 rounded-full border border-border/70 bg-card/50 px-3 py-1 backdrop-blur-sm">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
       <strong
         className={clsx(
-          "font-mono text-xs font-bold tabular-nums",
+          "battle-info-chip__value font-mono text-xs font-bold tabular-nums",
           urgent ? "text-destructive" : highlight ? "text-primary" : "text-foreground"
         )}
       >
@@ -39,7 +39,7 @@ export function CenterInfo({ state, timeRemainingMs }: CenterInfoProps) {
   const attackToken = `${state.attackTokenPlayerId}${state.attackTokenAvailable ? "" : " spent"}`;
 
   return (
-    <div className="relative z-[1] flex flex-col items-center gap-2 py-2" aria-label="Battle line status">
+    <div className="battle-line-info relative z-[1] flex flex-col items-center gap-2 py-2" aria-label="Battle line status">
       <div className="flex items-center gap-3">
         <span className="h-px w-16 bg-gradient-to-r from-transparent to-primary/50 sm:w-24" />
         <h2 className="font-serif text-sm font-semibold uppercase tracking-[0.35em] text-primary/90">
