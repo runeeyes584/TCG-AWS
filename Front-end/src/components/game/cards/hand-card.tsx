@@ -45,7 +45,7 @@ export const HandCard: React.FC<HandCardProps> = ({
       />
       {hovered ? (
         <span className="hand-card__hint" role="status">
-          {playable ? "Double-click to play" : "Card details"}
+          {playable ? "Click again to play" : "Card details"}
         </span>
       ) : null}
     </>
