@@ -3287,3 +3287,117 @@ button.card-view.game-card-v2 {
   .queue-action { grid-column: 1 / -1; min-height: 43px; }
   .lobby-footer { right: 16px; bottom: 12px; left: 16px; font-size: 7px; }
 }
+
+/* ===== RANKED MATCHMAKING ===== */
+.matchmaking-shell {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #020613;
+  color: #edf5ff;
+  font-family: var(--font-sans);
+}
+
+.matchmaking-grid,
+.matchmaking-shade,
+.matchmaking-art { position: absolute; inset: 0; pointer-events: none; }
+.matchmaking-grid {
+  z-index: -3;
+  opacity: 0.46;
+  background:
+    linear-gradient(117deg, transparent 0 44%, rgba(106, 206, 255, 0.14) 44.08% 44.17%, transparent 44.25%),
+    linear-gradient(23deg, transparent 0 71%, rgba(164, 109, 255, 0.13) 71.08% 71.16%, transparent 71.24%),
+    repeating-linear-gradient(0deg, rgba(151, 198, 255, 0.055) 0 1px, transparent 1px 5px),
+    linear-gradient(112deg, #05091c, #091535 58%, #0b0926);
+}
+.matchmaking-art { z-index: -2; left: auto; width: min(58vw, 900px); opacity: 0.58; }
+.matchmaking-art::after { position: absolute; inset: 0; background: linear-gradient(90deg, #020613 1%, transparent 44%, rgba(2,6,19,0.12)), linear-gradient(0deg, #020613 0%, transparent 38%); content: ""; }
+.matchmaking-shade { z-index: -1; background: radial-gradient(ellipse at 42% 53%, transparent 0 25%, rgba(2,6,19,0.38) 62%, rgba(2,4,13,0.9) 100%); }
+
+.matchmaking-header {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  left: 28px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+.matchmaking-back,
+.matchmaking-audio,
+.matchmaking-command { border: 0; border-radius: 0; font-family: inherit; text-transform: uppercase; }
+.matchmaking-back { display: inline-flex; width: fit-content; align-items: center; gap: 8px; padding: 8px 0; color: #a9c0dc; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; }
+.matchmaking-back:hover:not(:disabled) { box-shadow: none; color: #fff; }
+.matchmaking-title { display: grid; justify-items: center; gap: 3px; }
+.matchmaking-title span { font-family: var(--font-serif); font-size: 14px; font-weight: 800; letter-spacing: 0.2em; }
+.matchmaking-title small { color: #8aa6ca; font-size: 7px; font-weight: 800; letter-spacing: 0.25em; }
+.matchmaking-audio { display: grid; width: 34px; height: 34px; place-self: end; place-items: center; border: 1px solid rgba(119, 200, 255, 0.34); background: rgba(8, 20, 49, 0.64); color: #aeefff; }
+.matchmaking-audio:hover:not(:disabled) { border-color: #b3f4ff; box-shadow: 0 0 17px rgba(69, 216, 255, 0.26); color: #fff; }
+
+.matchmaking-content { z-index: 2; align-self: center; width: min(100% - 64px, 560px); margin-left: clamp(34px, 11vw, 180px); padding-top: 44px; }
+.matchmaking-kicker { display: inline-flex; align-items: center; gap: 8px; color: #8eeeff; font-size: 10px; font-weight: 900; letter-spacing: 0.17em; text-transform: uppercase; }
+.matchmaking-content h1 { max-width: 520px; margin: 14px 0 0; color: #f0f7ff; font-family: var(--font-serif); font-size: clamp(42px, 5.2vw, 76px); font-weight: 600; letter-spacing: 0.01em; line-height: 0.96; text-transform: uppercase; text-shadow: 0 3px 22px rgba(48, 121, 255, 0.52); }
+.matchmaking-content h1 em { color: #b9f0ff; font-style: normal; }
+.matchmaking-lede { max-width: 395px; margin: 17px 0 25px; color: #a9bcd5; font-size: 13px; line-height: 1.65; }
+
+.matchmaking-console { overflow: hidden; border: 1px solid rgba(104, 205, 255, 0.48); background: linear-gradient(130deg, rgba(5, 25, 61, 0.92), rgba(11, 13, 45, 0.86)); box-shadow: inset 0 0 36px rgba(63, 144, 255, 0.13), 0 18px 48px rgba(0, 0, 0, 0.3); }
+.matchmaking-console__top { display: flex; align-items: center; justify-content: space-between; min-height: 72px; padding: 10px 13px; border-bottom: 1px solid rgba(120, 202, 255, 0.2); background: rgba(4, 13, 36, 0.46); }
+.matchmaking-player { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.matchmaking-player strong { display: block; overflow: hidden; max-width: 240px; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.matchmaking-player span { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: #9bb6d6; font-size: 8px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.matchmaking-avatar { position: relative; display: grid; width: 46px; height: 46px; flex: 0 0 auto; place-items: center; overflow: hidden; border: 1px solid #96ebff; background: radial-gradient(circle at 30% 20%, #e4fbff, #507be2 47%, #10143b 72%); color: #0b1737; font-family: var(--font-serif); font-size: 20px; font-weight: 900; clip-path: polygon(50% 0, 100% 24%, 100% 76%, 50% 100%, 0 76%, 0 24%); }
+.matchmaking-avatar span { position: absolute; z-index: 0; margin: 0; color: #0b1737; font-size: 20px; letter-spacing: 0; }
+.matchmaking-avatar img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: cover; }
+.matchmaking-rank { display: grid; width: 45px; height: 48px; place-items: center; border: 1px solid rgba(206, 247, 124, 0.72); background: rgba(57, 88, 33, 0.35); color: #d9ff72; clip-path: polygon(50% 0, 100% 23%, 85% 100%, 15% 100%, 0 23%); }
+.matchmaking-rank svg { margin-top: 5px; }
+.matchmaking-rank span { margin-bottom: 5px; font-family: var(--font-serif); font-size: 15px; font-weight: 900; line-height: 1; }
+
+.matchmaking-scan { display: grid; grid-template-columns: 136px 1fr; align-items: center; min-height: 170px; padding: 17px 20px; }
+.scan-core { position: relative; display: grid; width: 104px; height: 104px; place-items: center; justify-self: center; border: 1px solid rgba(126, 225, 255, 0.54); background: radial-gradient(circle, rgba(78, 173, 255, 0.32), rgba(10, 23, 65, 0.36) 58%, transparent 60%); color: #d5f9ff; clip-path: polygon(50% 0, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%); }
+.scan-core svg { z-index: 2; filter: drop-shadow(0 0 10px rgba(103, 232, 255, 0.75)); }
+.scan-ring { position: absolute; inset: -10px; border: 1px solid rgba(116, 215, 255, 0.36); border-radius: 50%; }
+.scan-ring--inner { inset: 12px; border-color: rgba(190, 119, 255, 0.54); }
+.is-searching .scan-core { animation: matchCorePulse 1.8s ease-in-out infinite; }
+.is-searching .scan-ring--outer { animation: matchSpin 6s linear infinite; border-style: dashed; }
+.is-searching .scan-ring--inner { animation: matchSpin 3.2s linear infinite reverse; border-style: dashed; }
+.is-searching .scan-core svg { animation: matchSpin 3s linear infinite; }
+.scan-copy { display: grid; gap: 6px; align-content: center; }
+.scan-copy small { color: #89a9ce; font-size: 9px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.scan-copy strong { color: #f5fbff; font-family: var(--font-mono); font-size: 31px; letter-spacing: 0.04em; line-height: 1; text-shadow: 0 0 16px rgba(111, 224, 255, 0.36); }
+.scan-copy span { color: #b0c6df; font-size: 10px; font-weight: 600; }
+.matchmaking-stats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid rgba(123, 194, 255, 0.2); border-bottom: 1px solid rgba(123, 194, 255, 0.2); background: rgba(4, 13, 36, 0.32); }
+.matchmaking-stats span { display: grid; justify-items: center; gap: 5px; padding: 10px 5px; border-right: 1px solid rgba(123, 194, 255, 0.14); }
+.matchmaking-stats span:last-child { border-right: 0; }
+.matchmaking-stats small { color: #819ac0; font-size: 8px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.matchmaking-stats strong { color: #edf9ff; font-family: var(--font-mono); font-size: 13px; }
+.matchmaking-error { margin: 10px 14px 0; color: #ffb5c1; font-size: 10px; line-height: 1.45; }
+.matchmaking-command { display: flex; width: calc(100% - 28px); min-height: 52px; align-items: center; justify-content: center; gap: 10px; margin: 14px; border: 1px solid #d4ff59; background: linear-gradient(180deg, #3b6418, #203b15); box-shadow: inset 0 1px rgba(255,255,255,0.26), 0 0 22px rgba(181, 255, 55, 0.18); color: #f2ffc1; font-size: 11px; font-weight: 900; letter-spacing: 0.12em; }
+.matchmaking-command:hover:not(:disabled) { border-color: #f1ffad; background: linear-gradient(180deg, #507d22, #284717); box-shadow: inset 0 1px rgba(255,255,255,0.32), 0 0 30px rgba(181, 255, 55, 0.35); color: #fff; }
+.matchmaking-command--cancel { border-color: #ff899b; background: linear-gradient(180deg, #6d2239, #391320); box-shadow: inset 0 1px rgba(255,255,255,0.16), 0 0 22px rgba(255, 91, 122, 0.18); color: #ffd6dd; }
+.matchmaking-command--cancel:hover:not(:disabled) { border-color: #ffc2cd; background: linear-gradient(180deg, #8d2d47, #491724); box-shadow: inset 0 1px rgba(255,255,255,0.24), 0 0 30px rgba(255, 91, 122, 0.32); }
+.matchmaking-track { display: flex; align-items: center; gap: 8px; margin: 14px 0 0 4px; color: #849bbc; font-size: 9px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
+.matchmaking-track i { width: 44px; height: 1px; background: #607fa9; }
+.matchmaking-track.is-playing { color: #a8f5ff; }
+.matchmaking-track.is-playing i { animation: trackPulse 1.2s ease-in-out infinite; background: #92efff; }
+
+@keyframes matchSpin { to { transform: rotate(360deg); } }
+@keyframes matchCorePulse { 0%, 100% { box-shadow: 0 0 12px rgba(96, 207, 255, 0.2); } 50% { box-shadow: 0 0 30px rgba(96, 207, 255, 0.68); } }
+@keyframes trackPulse { 0%, 100% { opacity: 0.36; transform: scaleX(0.7); transform-origin: left; } 50% { opacity: 1; transform: scaleX(1.35); transform-origin: left; } }
+
+@media (max-width: 720px) {
+  .matchmaking-header { top: 15px; right: 16px; left: 16px; }
+  .matchmaking-title span { font-size: 11px; }
+  .matchmaking-title small { font-size: 6px; }
+  .matchmaking-art { top: 78px; width: 112vw; height: 62vh; opacity: 0.32; }
+  .matchmaking-content { align-self: end; width: calc(100% - 32px); margin: 0 16px 36px; padding-top: 70px; }
+  .matchmaking-content h1 { font-size: clamp(40px, 13vw, 59px); }
+  .matchmaking-lede { max-width: 330px; margin-bottom: 18px; font-size: 12px; }
+  .matchmaking-scan { grid-template-columns: 108px 1fr; min-height: 142px; padding: 12px 10px; }
+  .scan-core { width: 84px; height: 84px; }
+  .scan-copy strong { font-size: 25px; }
+  .matchmaking-console__top { min-height: 66px; }
+  .matchmaking-player strong { max-width: 170px; }
+}
