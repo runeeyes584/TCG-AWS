@@ -14,15 +14,29 @@ interface ApiResponse<T = any> {
     user?: T;
 }
 
+export interface PlayerProfile {
+    id: string;
+    email: string;
+    username: string;
+    avatar?: string;
+    elo: number;
+    wins: number;
+    losses: number;
+}
+
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
 ): Promise<T> {
+    const token = typeof window === "undefined"
+        ? undefined
+        : window.localStorage.getItem("accessToken");
 
     const response = await fetch(`${API_URL}${url}`, {
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(options.headers || {})
         },
         ...options
@@ -116,7 +130,7 @@ export async function refreshToken() {
 
 }
 
-export async function me() {
+export async function me(): Promise<ApiResponse<PlayerProfile>> {
 
     return request("/auth/me");
 

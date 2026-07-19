@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as authService from "./auth.service";
 import { LoginRequest, RegisterRequest, VerifyRequest, ResetPasswordRequest, ForgotPasswordRequest } from "./types";
+import { getUserByEmail } from "../user/user.repository";
 
 export async function register(
     req: Request<{}, {}, RegisterRequest>,
@@ -143,16 +144,19 @@ export async function logout(
 
 }
 
-export function me(
+export async function me(
     req: Request,
     res: Response
 ) {
+
+    const email = req.cookies.email ?? (req as any).user?.username;
+    const user = email ? await getUserByEmail(email) : undefined;
 
     return res.json({
 
         success: true,
 
-        user: (req as any).user
+        user: user ?? (req as any).user
 
     });
 

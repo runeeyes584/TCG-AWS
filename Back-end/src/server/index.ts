@@ -164,10 +164,7 @@ io.on("connection", (socket) => {
     attachPlayer(socket1, room, "P1");
     attachPlayer(socket2, room, "P2");
 
-    room.log.unshift({
-        id: Date.now(),
-        message: "Match found."
-    });
+    startRoomGame(room, "Match found. Game started.");
 
     broadcastRoom(room);
 
@@ -228,10 +225,7 @@ io.on("connection", (socket) => {
     }
 
     attachPlayer(socket, room, "P2");
-    room.log.unshift({
-      id: Date.now(),
-      message: "P2 joined the room."
-    });
+    startRoomGame(room, "P2 joined the room. Game started.");
     ack({ ok: true, roomCode: room.code, playerId: "P2" });
     broadcastRoom(room);
     refreshTimer(room);
@@ -338,6 +332,16 @@ function createRoomState() {
     buildDefaultDeck("P2"),
     Date.now()
   );
+}
+
+function startRoomGame(room: Room, message: string): void {
+  if (room.players.length < 2 || room.state.started) {
+    return;
+  }
+
+  room.state = applyAction(room.state, { type: "START_GAME", firstPlayerId: "P1" });
+  room.log.unshift({ id: Date.now(), message });
+  refreshTimer(room);
 }
 
 function createRoomCode() {
