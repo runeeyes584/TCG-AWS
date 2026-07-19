@@ -26,6 +26,12 @@ export function DetailPanel() {
 
   const attack = unit ? getUnitAttack(unit) : definition.attack;
   const health = unit ? getUnitHealth(unit) : definition.health;
+  const typeClassName =
+    definition.type === "spell"
+      ? "text-mana"
+      : definition.type === "champion"
+        ? "text-champion"
+        : "text-attack";
 
   return (
     <AnimatePresence>
@@ -36,11 +42,22 @@ export function DetailPanel() {
         exit={{ x: 360, opacity: 0 }}
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
         className="card-inspector pointer-events-auto"
+        data-card-ui
         aria-label={`${definition.name} details`}
       >
         <div className="inspector-header">
           <div>
             <h2>{definition.name}</h2>
+            <div className="mt-1 flex items-center gap-2">
+              <p className={`text-[11px] font-bold uppercase tracking-[0.16em] ${typeClassName}`}>
+                {definition.type}
+              </p>
+              {definition.spellSpeed ? (
+                <span className="rounded-full border border-primary/50 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-primary">
+                  {definition.spellSpeed}
+                </span>
+              ) : null}
+            </div>
           </div>
           <div className="inspector-actions">
             {pinned ? (
@@ -57,7 +74,7 @@ export function DetailPanel() {
         </div>
 
         <div className="mx-auto aspect-[5/7] w-[250px] max-w-full">
-          <GameCard card={card} unit={unit} />
+          <GameCard card={card} unit={unit} showDescription={false} />
         </div>
 
         <div className="grid grid-cols-3 gap-2">

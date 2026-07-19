@@ -11,6 +11,8 @@ export interface GameCardProps {
   card?: CardInstance;
   unit?: UnitInstance;
   variant?: "default" | "hand";
+  compact?: boolean;
+  showDescription?: boolean;
   selected?: boolean;
   className?: string;
   onClick?: () => void;
@@ -36,6 +38,8 @@ export const GameCard: React.FC<GameCardProps> = ({
   card,
   unit,
   variant = "default",
+  compact = false,
+  showDescription = true,
   selected = false,
   className: cardClassName,
   onClick,
@@ -88,6 +92,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     "game-card-v2",
     "is-clickable",
     variant === "hand" ? "card-view--hand" : "",
+    !showDescription ? "game-card-v2--art-full" : "",
     `game-card-v2--${definition.type}`,
     definition.spellSpeed ? `card-view--${definition.spellSpeed}` : "",
     definition.level ? `card-view--level-${definition.level}` : "",
@@ -106,18 +111,24 @@ export const GameCard: React.FC<GameCardProps> = ({
       <span className="game-card-v2__art-overlay" aria-hidden="true" />
       {isChampion ? <span className="game-card-v2__champion-flicker" aria-hidden="true" /> : null}
 
-      <span className="game-card-v2__header">
-        <FrameIcon className="game-card-v2__type-icon" size={12} aria-hidden="true" />
-        <span className="game-card-v2__name">{definition.name}</span>
-      </span>
+      {!compact ? (
+        <>
+          <span className="game-card-v2__header">
+            <FrameIcon className="game-card-v2__type-icon" size={12} aria-hidden="true" />
+            <span className="game-card-v2__name">{definition.name}</span>
+          </span>
 
-      <span className="game-card-v2__details">
-        <span className="game-card-v2__type-label">
-          <ScrollText size={9} aria-hidden="true" />
-          {frame.label}
-        </span>
-        {description ? <span className="game-card-v2__description">{description}</span> : null}
-      </span>
+          {showDescription ? (
+            <span className="game-card-v2__details">
+              <span className="game-card-v2__type-label">
+                <ScrollText size={9} aria-hidden="true" />
+                {frame.label}
+              </span>
+              {description ? <span className="game-card-v2__description">{description}</span> : null}
+            </span>
+          ) : null}
+        </>
+      ) : null}
 
       <StatPip
         kind="mana"
@@ -143,11 +154,11 @@ export const GameCard: React.FC<GameCardProps> = ({
         </>
       ) : null}
 
-      {definition.spellSpeed ? (
+      {!compact && showDescription && definition.spellSpeed ? (
         <span className="game-card-v2__speed">{definition.spellSpeed}</span>
       ) : null}
 
-      {definition.keywords?.length ? (
+      {!compact && definition.keywords?.length ? (
         <span className="game-card-v2__keywords">
           {definition.keywords.map((keyword) => (
             <span className="game-card-v2__keyword" key={keyword} title={keyword}>
@@ -157,7 +168,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         </span>
       ) : null}
 
-      {unit?.modifiers.length ? (
+      {!compact && unit?.modifiers.length ? (
         <span className="game-card-v2__effects">
           {unit.modifiers.map((modifier) => (
             <span
@@ -192,6 +203,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     return (
       <div
         className={className}
+        data-card-ui
         role="button"
         tabIndex={0}
         onClick={handleClick}
@@ -212,6 +224,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     <button
       className={className}
       type="button"
+      data-card-ui
       onClick={handleClick}
       onDoubleClick={onDoubleClick}
       {...hoverProps}

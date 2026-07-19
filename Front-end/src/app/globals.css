@@ -1785,6 +1785,7 @@ button svg { vertical-align: -2px; }
 
 .graveyard-entry {
   display: flex;
+  width: 104px;
   flex-direction: column;
   align-items: center;
   gap: 8px;
@@ -2002,6 +2003,13 @@ body {
 .combat-status-bar::before {
   content: none;
   display: none;
+}
+
+.graveyard-entry .card-view,
+.pending-choice-grid .card-view {
+  width: 104px;
+  height: 146px;
+  flex: 0 0 auto;
 }
 
 .lor-table > .lane .card-grid.hand-grid {
@@ -2842,14 +2850,10 @@ button.card-view {
   min-height: 126px;
 }
 
-.pending-choice-grid .card-view {
-  width: 110px;
-  height: 146px;
-}
-
 .pending-choice-card {
   position: relative;
   display: grid;
+  width: 104px;
   justify-items: center;
   gap: 5px;
 }
@@ -3545,6 +3549,13 @@ button.card-view.game-card-v2 {
   background:
     linear-gradient(180deg, rgba(3,7,18,0.22), transparent 34%, rgba(6,9,18,0.3) 58%, rgba(6,9,18,0.94)),
     radial-gradient(circle at 50% 18%, rgba(255,255,255,0.16), transparent 38%);
+}
+
+/* DetailPanel supplies the type and description outside the preview card. */
+.game-card-v2--art-full .game-card-v2__art-overlay {
+  background:
+    linear-gradient(180deg, rgba(3,7,18,0.16), transparent 28%, rgba(6,9,18,0.14)),
+    radial-gradient(circle at 50% 18%, rgba(255,255,255,0.12), transparent 38%);
 }
 
 .game-card-v2__champion-flicker {

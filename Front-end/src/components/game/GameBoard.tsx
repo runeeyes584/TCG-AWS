@@ -1116,9 +1116,10 @@ export function GameBoardView({
               : player.hand.map((card) => (
                 <div className="pending-choice-card" key={card.instanceId}>
                   <span className="pending-choice-zone-label">Discard</span>
-                  <GameCard
-                    card={card}
-                    onClick={() => playCard(pendingDiscard.playerId, card)}
+                <GameCard
+                  card={card}
+                  compact
+                  onClick={() => playCard(pendingDiscard.playerId, card)}
                     visualEvents={[]}
                   />
                 </div>
@@ -1329,6 +1330,7 @@ export function GameBoardView({
       <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
         <GameCard
           unit={unit}
+          compact
           selected={
             unit.instanceId === selectedBlockerId ||
             attackerIds.includes(unit.instanceId) ||
@@ -1377,6 +1379,7 @@ export function GameBoardView({
       <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
         <GameCard
           unit={unit}
+          compact
           selected={
             unit.instanceId === selectedBlockerId ||
             attackerIds.includes(unit.instanceId) ||
