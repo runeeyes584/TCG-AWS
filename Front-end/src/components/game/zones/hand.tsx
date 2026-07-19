@@ -6,9 +6,9 @@ import { HandCard } from "../cards/hand-card";
 import { CardBack } from "../cards/card-back";
 import type { CardInstance } from "@backend/game/types";
 
-const CARD_SPACING = 108;
-const ARC_LIFT = 10;
-const ARC_ROTATE = 4;
+const CARD_SPACING = 94;
+const ARC_LIFT = 8;
+const ARC_ROTATE = 3.5;
 
 export interface HandProps {
   cards: CardInstance[];
@@ -66,8 +66,10 @@ export function Hand({
               const isSelected = card.instanceId === selectedCardId;
               const neighbourPush =
                 hoveredIndex === undefined || isHovered ? 0 : index < hoveredIndex ? -46 : 46;
-              const baseY = side === "player" ? 62 + base.y : -62 - base.y;
-              const liftedY = side === "player" ? 34 : -4;
+              // The dock anchors each side in CSS. Motion only controls the arc,
+              // preventing the player hand from being pushed below the board.
+              const baseY = side === "player" ? base.y : -base.y;
+              const liftedY = side === "player" ? -26 : 4;
               const playable = !hidden && canPlay(card);
 
               return (
@@ -75,7 +77,11 @@ export function Hand({
                   className={`hand-motion-card ${playable ? "is-playable" : ""}`}
                   key={card.instanceId}
                   layout
-                  initial={{ opacity: 0, scale: 0.82, y: baseY + 18 }}
+                  initial={{
+                    opacity: 0,
+                    scale: 0.82,
+                    y: baseY + (side === "player" ? 18 : -18)
+                  }}
                   animate={{
                     opacity: hidden ? 0.88 : isHovered || isSelected ? 1 : 0.94,
                     x: base.x + neighbourPush,
@@ -84,7 +90,7 @@ export function Hand({
                     scale: isHovered || isSelected ? 1.08 : 0.96,
                     zIndex: isHovered || isSelected ? 80 : index
                   }}
-                  exit={{ opacity: 0, scale: 0.82, y: baseY + (side === "player" ? 24 : -24) }}
+                  exit={{ opacity: 0, scale: 0.82, y: baseY + (side === "player" ? 20 : -20) }}
                   transition={{ type: "spring", stiffness: 330, damping: 28 }}
                 >
                   {hidden ? (
