@@ -363,6 +363,56 @@ button svg { vertical-align: -2px; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
+.pending-match-overlay {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 8, 19, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.pending-match-dialog {
+  position: relative;
+  width: min(100%, 440px);
+  padding: 36px;
+  border: 1px solid rgba(125, 210, 255, 0.4);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #10233d, #08111f);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  color: #eaf6ff;
+}
+
+.pending-match-dialog > p {
+  margin: 0 0 9px;
+  color: #80d8ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.pending-match-dialog__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 18px;
+  place-items: center;
+  border: 1px solid rgba(128, 216, 255, 0.6);
+  border-radius: 50%;
+  color: #80d8ff;
+  font-size: 19px;
+  font-weight: 800;
+}
+.pending-match-dialog h2 { margin: 0; font-size: 25px; line-height: 1.2; }
+.pending-match-dialog > span { display: block; margin-top: 14px; color: #b4c7db; line-height: 1.6; }
+.pending-match-dialog__actions { display: grid; grid-template-columns: 1fr 1.25fr; gap: 12px; margin-top: 30px; }
+.pending-match-dialog button { min-height: 44px; border: 0; border-radius: 9px; padding: 11px 15px; color: white; cursor: pointer; font-weight: 700; background: #52677f; }
+.pending-match-dialog button:last-child { background: #147fca; }
+.pending-match-dialog button:disabled { cursor: wait; opacity: 0.65; }
+
+
 .floating-utility-panel {
   position: fixed;
   left: 14px;

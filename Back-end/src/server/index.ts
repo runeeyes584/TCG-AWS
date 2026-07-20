@@ -18,11 +18,13 @@ import authRoutes from "../auth/auth.routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { verifyToken } from "@backend/auth/verifyToken";
-import { getUserById } from "@backend/user/user.repository";
+import { getUserById, recordMatchResult } from "@backend/user/user.repository";
 import { OnlinePlayerManager } from "@backend/matchmaking/onlinePlayers";
+import { authenticate } from "@backend/auth/auth.middleware";
 
 interface RoomPlayer {
   socketId: string;
+  userId: string;
   playerId: PlayerId;
   connected: boolean;
   profile: MatchPlayerProfile;
@@ -33,6 +35,8 @@ interface Room {
   players: RoomPlayer[];
   state: GameState;
   log: Array<{ id: number; message: string }>;
+  ratingApplied: boolean;
+  ratingApplying: boolean;
 }
 
 type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -53,6 +57,8 @@ const developerToolsEnabled = process.env.ENABLE_DEVTOOLS === "true";
 const rooms = new Map<string, Room>();
 const socketRooms = new Map<string, string>();
 const roomTimers = new Map<string, NodeJS.Timeout>();
+const disconnectGraceTimers = new Map<string, NodeJS.Timeout>();
+const disconnectGracePeriodMs = 45_000;
 // const onlinePlayers = new Map<string, OnlinePlayer>();
 
 const expressApp = express();
@@ -69,6 +75,35 @@ expressApp.use(express.json());
 expressApp.use(cookieParser());
 
 expressApp.use("/auth", authRoutes);
+
+expressApp.get("/matches/pending", authenticate, (req, res) => {
+  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
+  if (typeof userId !== "string") {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  const room = findPendingRoomForUser(userId);
+  return res.json({
+    success: true,
+    match: room ? { roomCode: room.code } : null
+  });
+});
+
+expressApp.post("/matches/pending/forfeit", authenticate, async (req, res) => {
+  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
+  if (typeof userId !== "string") {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  const room = findPendingRoomForUser(userId);
+  const player = room?.players.find((candidate) => candidate.userId === userId);
+  if (!room || !player) {
+    return res.status(404).json({ success: false, message: "No active match found." });
+  }
+
+  await forfeitPlayer(room, player.playerId, "left the match from the lobby.");
+  return res.json({ success: true });
+});
 
 const httpServer = createServer(expressApp);
 
@@ -123,6 +158,7 @@ io.use(async (socket, next) => {
     });
 
     socket.data.email = email;
+    socket.data.userId = payload.sub as string;
     socket.data.profile = {
       username: user.username,
       avatar: user.avatar,
@@ -152,6 +188,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("matchmaking:start", () => {
+    const pendingRoom = findPendingRoomForUser(getSocketUserId(socket));
+    if (pendingRoom) {
+      socket.emit("game:error", "Resume or forfeit your current match before finding a new one.");
+      return;
+    }
+
     const match = MatchmakingService.enqueue(socket.id);
 
     if (!match) {
@@ -202,28 +244,25 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (room.players.some((player) => player.socketId === socket.id)) {
-      const existing = room.players.find((player) => player.socketId === socket.id);
-      if (existing) {
-        existing.connected = true;
-        socketRooms.set(socket.id, room.code);
+    const existingPlayer = room.players.find(
+      (player) => player.userId === getSocketUserId(socket)
+    );
+    if (existingPlayer) {
+      if (existingPlayer.connected && existingPlayer.socketId !== socket.id) {
+        ack({ ok: false, error: "This player is already connected to the room." });
+        return;
       }
-      ack({ ok: true, roomCode: room.code, playerId: existing?.playerId ?? "P1" });
-      broadcastRoom(room);
-      return;
-    }
 
-    const disconnectedPlayer = room.players.find((player) => !player.connected);
-    if (disconnectedPlayer) {
-      disconnectedPlayer.socketId = socket.id;
-      disconnectedPlayer.connected = true;
+      existingPlayer.socketId = socket.id;
+      existingPlayer.connected = true;
+      clearDisconnectGraceTimer(room.code);
       socketRooms.set(socket.id, room.code);
       socket.join(room.code);
       room.log.unshift({
         id: Date.now(),
-        message: `${disconnectedPlayer.playerId} rejoined the room.`
+        message: `${existingPlayer.playerId} rejoined the room.`
       });
-      ack({ ok: true, roomCode: room.code, playerId: disconnectedPlayer.playerId });
+      ack({ ok: true, roomCode: room.code, playerId: existingPlayer.playerId });
       broadcastRoom(room);
       refreshTimer(room);
       return;
@@ -241,7 +280,7 @@ io.on("connection", (socket) => {
     refreshTimer(room);
   });
 
-  socket.on("game:action", (action, ack) => {
+  socket.on("game:action", async (action, ack) => {
     const room = getSocketRoom(socket);
     const playerId = getSocketPlayerId(socket, room);
     if (!room || !playerId) {
@@ -257,6 +296,7 @@ io.on("connection", (socket) => {
     try {
       room.state = applyAction(room.state, action);
       appendActionLog(room, action);
+      await settleRoomResult(room);
       ack?.({ ok: true });
       broadcastRoom(room);
       refreshTimer(room);
@@ -315,6 +355,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    MatchmakingService.remove(socket.id);
+    OnlinePlayerManager.remove(socket.id);
+
     const roomCode = socketRooms.get(socket.id);
     if (!roomCode) {
       return;
@@ -335,14 +378,12 @@ io.on("connection", (socket) => {
     room.log.unshift({ id: Date.now(), message: "A player disconnected." });
     if (!room.players.some((candidate) => candidate.connected) || room.state.winnerId) {
       clearRoomTimer(room.code);
+      clearDisconnectGraceTimer(room.code);
       rooms.delete(room.code);
       return;
     }
 
-    MatchmakingService.remove(socket.id);
-
-OnlinePlayerManager.remove(socket.id);
-
+    scheduleDisconnectForfeit(room, player.playerId);
     broadcastRoom(room);
   });
 });
@@ -361,7 +402,9 @@ function createRoom(): Room {
     code,
     players: [],
     state: createRoomState(),
-    log: [{ id: Date.now(), message: "Room created. Waiting for opponent." }]
+    log: [{ id: Date.now(), message: "Room created. Waiting for opponent." }],
+    ratingApplied: false,
+    ratingApplying: false
   };
   rooms.set(code, room);
   return room;
@@ -398,12 +441,21 @@ function attachPlayer(socket: GameSocket, room: Room, playerId: PlayerId) {
   const profile = socket.data.profile as MatchPlayerProfile | undefined;
   room.players.push({
     socketId: socket.id,
+    userId: getSocketUserId(socket),
     playerId,
     connected: true,
     profile: profile ?? { username: "Unknown player", elo: 0 }
   });
   socketRooms.set(socket.id, room.code);
   socket.join(room.code);
+}
+
+function getSocketUserId(socket: GameSocket): string {
+  const userId = socket.data.userId;
+  if (typeof userId !== "string" || userId.length === 0) {
+    throw new Error("Socket is missing an authenticated user id.");
+  }
+  return userId;
 }
 
 function getSocketRoom(socket: GameSocket) {
@@ -449,7 +501,7 @@ function refreshTimer(room: Room): void {
   }
 
   const playerId = room.state.priorityPlayerId;
-  const timer = setTimeout(() => {
+  const timer = setTimeout(async () => {
     roomTimers.delete(room.code);
     if (rooms.get(room.code) !== room || room.state.winnerId) {
       return;
@@ -458,6 +510,7 @@ function refreshTimer(room: Room): void {
     try {
       room.state = applyAction(room.state, { type: "TIME_OUT", playerId });
       appendActionLog(room, { type: "TIME_OUT", playerId });
+      await settleRoomResult(room);
       broadcastRoom(room);
       refreshTimer(room);
     } catch {
@@ -466,6 +519,77 @@ function refreshTimer(room: Room): void {
     }
   }, room.state.turnDuration + 2_000);
   roomTimers.set(room.code, timer);
+}
+
+function scheduleDisconnectForfeit(room: Room, playerId: PlayerId): void {
+  clearDisconnectGraceTimer(room.code);
+  const timer = setTimeout(() => {
+    disconnectGraceTimers.delete(room.code);
+    const player = room.players.find((candidate) => candidate.playerId === playerId);
+    if (rooms.get(room.code) !== room || room.state.winnerId || player?.connected) {
+      return;
+    }
+
+    void forfeitPlayer(room, playerId, "did not reconnect within 45 seconds.");
+  }, disconnectGracePeriodMs);
+  disconnectGraceTimers.set(room.code, timer);
+}
+
+function clearDisconnectGraceTimer(roomCode: string): void {
+  const timer = disconnectGraceTimers.get(roomCode);
+  if (timer) {
+    clearTimeout(timer);
+    disconnectGraceTimers.delete(roomCode);
+  }
+}
+
+async function forfeitPlayer(room: Room, playerId: PlayerId, reason: string): Promise<void> {
+  if (room.state.winnerId) {
+    return;
+  }
+
+  room.state = applyAction(room.state, { type: "SURRENDER", playerId });
+  room.log.unshift({ id: Date.now(), message: `${playerId} ${reason}` });
+  clearRoomTimer(room.code);
+  clearDisconnectGraceTimer(room.code);
+  await settleRoomResult(room);
+  broadcastRoom(room);
+}
+
+async function settleRoomResult(room: Room): Promise<void> {
+  if (!room.state.winnerId || room.ratingApplied || room.ratingApplying || room.players.length !== 2) {
+    return;
+  }
+
+  const winner = room.players.find((player) => player.playerId === room.state.winnerId);
+  const loser = room.players.find((player) => player.playerId !== room.state.winnerId);
+  if (!winner || !loser) {
+    return;
+  }
+
+  room.ratingApplying = true;
+  clearRoomTimer(room.code);
+  clearDisconnectGraceTimer(room.code);
+  try {
+    const result = await recordMatchResult(winner.userId, loser.userId);
+    winner.profile.elo = result.winner.elo;
+    loser.profile.elo = result.loser.elo;
+    room.ratingApplied = true;
+    room.log.unshift({ id: Date.now(), message: "Match result recorded." });
+  } catch (error) {
+    console.error(`Unable to settle result for room ${room.code}:`, error);
+  } finally {
+    room.ratingApplying = false;
+  }
+}
+
+function findPendingRoomForUser(userId: string): Room | undefined {
+  return [...rooms.values()].find(
+    (room) =>
+      room.state.started &&
+      !room.state.winnerId &&
+      room.players.some((player) => player.userId === userId && !player.connected)
+  );
 }
 
 function clearRoomTimer(roomCode: string): void {

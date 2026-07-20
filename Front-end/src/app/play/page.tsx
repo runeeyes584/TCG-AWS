@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   CircleDotDashed,
@@ -17,8 +17,9 @@ import {
 } from "lucide-react";
 import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
+import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
 import { useGameMatch } from "../../hooks/useGameMatch";
-import { me, type PlayerProfile } from "../../libs/api";
+import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../../libs/api";
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60);
@@ -28,10 +29,14 @@ function formatTime(seconds: number) {
 
 export default function PlayPage() {
   const router = useRouter();
-  const controller = useGameMatch();
+  const searchParams = useSearchParams();
+  const resumeRoomCode = searchParams.get("room") ?? undefined;
+  const controller = useGameMatch(resumeRoomCode);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile>();
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
 
   useEffect(() => {
     const audio = new Audio("/audio/findmatch.mp3");
@@ -48,6 +53,34 @@ export default function PlayPage() {
       musicRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (resumeRoomCode) {
+      return;
+    }
+
+    void getPendingMatch()
+      .then((result) => setPendingMatch(result.match))
+      .catch(() => undefined);
+  }, [resumeRoomCode]);
+
+  const resumePendingMatch = () => {
+    if (pendingMatch) {
+      window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}`);
+    }
+  };
+
+  const abandonPendingMatch = async () => {
+    setResolvingPendingMatch(true);
+    try {
+      await forfeitPendingMatch();
+    } catch {
+      // The disconnect timer may have resolved the match while this dialog was open.
+    } finally {
+      setPendingMatch(null);
+      setResolvingPendingMatch(false);
+    }
+  };
 
   useEffect(() => {
     const audio = musicRef.current;
@@ -84,7 +117,9 @@ export default function PlayPage() {
     }
   };
 
-  if (controller.roomCode && controller.opponentConnected) {
+  // Keep the board mounted while the opponent reconnects. Unmounting it would
+  // dispose this player's socket as well, causing the server to remove the room.
+  if (controller.roomCode && controller.localPlayerId) {
     return (
       <GameBoardView
         controller={controller}
@@ -102,7 +137,7 @@ export default function PlayPage() {
     : 0;
 
   return (
-    <main className={`matchmaking-shell ${controller.searching ? "is-searching" : ""}`}>
+    <main className={`matchmaking-shell ${controller.searching ? "is-searching" : ""} ${pendingMatch ? "is-pending-match" : ""}`}>
       <div className="matchmaking-grid" aria-hidden="true" />
       <div className="matchmaking-art" aria-hidden="true"><PhaserSplash /></div>
       <div className="matchmaking-shade" aria-hidden="true" />
@@ -197,6 +232,8 @@ export default function PlayPage() {
             </button>
           )}
         </motion.section>
+
+        {pendingMatch ? <PendingMatchDialog isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
 
         <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
           <Headphones size={15} />
