@@ -31,7 +31,7 @@ export interface GameState {
   player_1: PlayerState;
   player_2: PlayerState;
   action_stack: GameAction[];
-  expire_at?: number; // Unix timestamp (TTL for DynamoDB)
+  expire_at?: number;
 }
 
 // ─── Game Action (action_stack entries) ──────────────────────────────────────
@@ -57,14 +57,17 @@ export interface UserProfile {
 export interface UserStats {
   wins: number;
   losses: number;
-  rank_points: number;
+  rank_points: number; // ELO rating points
+  elo_rating?: number;  // Alias for rank_points
+  exp?: number;
+  level?: number;       // Level calculated from EXP
 }
 
 // ─── Game Log ─────────────────────────────────────────────────────────────────
 
 export interface GameLog {
   match_id: string;
-  action_sequence: number; // RANGE key — sort key in DynamoDB
+  action_sequence: number;
   actor_id: string;
   action_type: string;
   details?: Record<string, unknown>;
@@ -78,4 +81,17 @@ export interface Connection {
   user_id?: string;
   match_id?: string;
   connected_at: number;
+}
+
+// ─── Match History ────────────────────────────────────────────────────────────
+
+export interface MatchHistory {
+  user_id: string;
+  played_at: number; // Sort Key (timestamp)
+  match_id: string;
+  opponent_id: string;
+  result: "WIN" | "LOSS" | "DRAW";
+  rank_point_change: number;
+  elo_change?: number; // Alias for rank_point_change
+  duration?: number;   // Match duration in seconds
 }
