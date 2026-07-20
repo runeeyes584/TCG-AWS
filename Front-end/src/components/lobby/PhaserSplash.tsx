@@ -135,6 +135,9 @@ export function PhaserSplash() {
           height: hostRef.current.clientHeight,
         },
         render: { antialias: true, pixelArt: false },
+        audio: {
+          noAudio: true,
+        },
       });
     });
 
