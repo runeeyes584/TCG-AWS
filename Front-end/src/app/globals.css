@@ -864,12 +864,14 @@ button svg { vertical-align: -2px; }
 .waiting-row-wrap {
   min-height: 92px;
   background: rgba(8,18,16,0.42);
+  border-radius: 16px;
 }
 
 .active-row-wrap {
   min-height: 112px;
   background: rgba(10,28,18,0.7);
   border-color: rgba(200,144,48,0.18);
+  border-radius: 16px;
 }
 
 .active-unit-card .card-view {
@@ -2758,7 +2760,16 @@ button.card-view.game-card-v2 {
 }
 
 /* ===== PASS BUTTON V2 ===== */
+@property --pass-glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 .pass-button-v2 {
+  --pass-glow-color: rgba(243, 207, 114, 0.85);
+  --pass-glow-color-dim: rgba(243, 207, 114, 0.15);
+  position: relative;
   display: flex;
   width: 96px;
   height: 96px;
@@ -2779,6 +2790,8 @@ button.card-view.game-card-v2 {
   text-align: center;
   text-transform: none;
   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .pass-button-v2:disabled {
@@ -2790,7 +2803,42 @@ button.card-view.game-card-v2 {
   cursor: pointer;
 }
 
+/* Orbiting glow trail for active pass button */
+.pass-button-v2--active::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(
+    from var(--pass-glow-angle),
+    transparent 0%,
+    var(--pass-glow-color) 8%,
+    var(--pass-glow-color-dim) 18%,
+    transparent 32%
+  );
+  animation: passGlowOrbit 2.6s linear infinite;
+  pointer-events: none;
+}
+
+.pass-button-v2--active::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  border-radius: 50%;
+  background: oklch(0.21 0.022 285 / 0.92);
+  pointer-events: none;
+}
+
+@keyframes passGlowOrbit {
+  from { --pass-glow-angle: 0deg; }
+  to { --pass-glow-angle: 360deg; }
+}
+
 .pass-button-v2--attack {
+  --pass-glow-color: oklch(0.72 0.22 30 / 0.95);
+  --pass-glow-color-dim: oklch(0.68 0.2 30 / 0.2);
   border-color: var(--attack);
   background: oklch(0.68 0.2 30 / 0.2);
   color: var(--attack);
@@ -2801,7 +2849,13 @@ button.card-view.game-card-v2 {
   animation: passButtonAttackPulse 1.6s ease-in-out infinite;
 }
 
+.pass-button-v2--attack.pass-button-v2--active::after {
+  background: oklch(0.14 0.04 30 / 0.92);
+}
+
 .pass-button-v2--defend {
+  --pass-glow-color: oklch(0.78 0.15 210 / 0.95);
+  --pass-glow-color-dim: oklch(0.72 0.13 210 / 0.2);
   border-color: var(--mana);
   background: oklch(0.72 0.13 210 / 0.15);
   color: var(--mana);
@@ -2810,6 +2864,10 @@ button.card-view.game-card-v2 {
 
 .pass-button-v2--defend.pass-button-v2--active {
   animation: passButtonDefendPulse 1.8s ease-in-out infinite;
+}
+
+.pass-button-v2--defend.pass-button-v2--active::after {
+  background: oklch(0.14 0.04 210 / 0.92);
 }
 
 .pass-button-v2--idle.pass-button-v2--active:hover {
@@ -3171,7 +3229,7 @@ button.card-view.game-card-v2 {
 
 .board-row-wrap::before,
 .board-row-wrap::after {
-  content: none !important;
+  content: none;
 }
 
 .board-empty-slot {
@@ -3258,13 +3316,29 @@ button.card-view.game-card-v2 {
   font-size: 21px;
 }
 
-/* Both halves of each nexus panel pulse between violet and electric blue. */
+/* Nexus panel: only the player with priority glows; the other fades. */
 .nexus-panel-v2 > div {
   border-width: 2px;
+  border-color: rgba(100, 80, 140, 0.28);
+  box-shadow: none;
+  transition: opacity 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.nexus-panel-v2 {
+  transition: opacity 0.4s ease;
+}
+
+/* Dim nexus when NOT priority */
+.nexus-panel-v2:not(.nexus-panel-v2--has-priority) {
+  opacity: 0.55;
+}
+
+/* Priority nexus: pulse between violet & electric blue */
+.nexus-panel-v2--has-priority > div {
   animation: nexusVioletBluePulse 2.2s ease-in-out infinite;
 }
 
-.nexus-panel-v2 > div:nth-child(2) {
+.nexus-panel-v2--has-priority > div:nth-child(2) {
   animation-delay: -1.1s;
 }
 
@@ -3625,27 +3699,86 @@ button.card-view.game-card-v2 {
 }
 
 /* Priority lights the full half of the board, not just the small HUD indicator. */
+@property --row-glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 .board-row-wrap--priority {
   position: relative;
   z-index: 1;
+  border-radius: 16px;
+  overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(65, 222, 255, 0.2), rgba(44, 127, 255, 0.08) 45%, rgba(65, 222, 255, 0.2)),
+    linear-gradient(90deg, rgba(45, 212, 191, 0.08), rgba(34, 211, 238, 0.035) 45%, rgba(45, 212, 191, 0.08)),
     rgba(8, 37, 68, 0.76) !important;
-  box-shadow: inset 0 1px rgba(126, 245, 255, 0.7), inset 0 -1px rgba(74, 157, 255, 0.48), 0 0 28px rgba(38, 193, 255, 0.16);
-  animation: activeBoardPulse 1.8s ease-in-out infinite;
+  box-shadow: inset 0 1px rgba(94, 234, 212, 0.22), inset 0 -1px rgba(34, 211, 238, 0.16), 0 0 18px rgba(45, 212, 191, 0.1);
+  animation: priorityBoardBreathe 4s ease-in-out infinite;
 }
 
-.board-row-wrap--priority::after {
+/* Orbiting purple light cursor around priority rows */
+.board-row-wrap--priority::before {
+  content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(112, 237, 255, 0.52);
-  content: "";
+  padding: 2px;
+  z-index: 0;
+  background: conic-gradient(
+    from var(--row-glow-angle),
+    transparent 0deg 278deg,
+    rgba(45, 212, 191, 0.18) 296deg,
+    rgba(20, 184, 166, 0.7) 316deg,
+    rgba(207, 250, 254, 0.96) 330deg,
+    rgba(34, 211, 238, 0.62) 344deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: rowGlowOrbit 3s linear infinite;
   pointer-events: none;
 }
 
-@keyframes activeBoardPulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.18); }
+/* Persistent low-intensity edge; no fill is drawn inside the row. */
+.board-row-wrap--priority::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 1px solid rgba(45, 212, 191, 0.42);
+  border-radius: inherit;
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.14);
+  pointer-events: none;
+}
+
+/* Ensure row content sits above the glow pseudo-elements */
+.board-row-wrap--priority > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes rowGlowOrbit {
+  from { --row-glow-angle: 0deg; }
+  to { --row-glow-angle: 360deg; }
+}
+
+@keyframes priorityBoardBreathe {
+  0%, 100% {
+    box-shadow: inset 0 1px rgba(94, 234, 212, 0.16), inset 0 -1px rgba(34, 211, 238, 0.11), 0 0 12px rgba(45, 212, 191, 0.07);
+  }
+  50% {
+    box-shadow: inset 0 1px rgba(153, 246, 228, 0.36), inset 0 -1px rgba(34, 211, 238, 0.26), 0 0 22px rgba(45, 212, 191, 0.16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-row-wrap--priority,
+  .board-row-wrap--priority::before {
+    animation: none;
+  }
 }
 
 @media (max-width: 900px) {
@@ -3797,4 +3930,27 @@ button.card-view.game-card-v2 {
   .scan-copy strong { font-size: 25px; }
   .matchmaking-console__top { min-height: 66px; }
   .matchmaking-player strong { max-width: 170px; }
+}
+
+/* Tilt & Holographic Foil Effect for Cards */
+.game-card-stable-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.game-card-tilt-wrapper {
+  transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.game-card-tilt-wrapper .glare-wrapper {
+  border-radius: 1rem 0 1rem 0; /* Match card border radius */
+  overflow: hidden;
+}
+/* Champion Holographic Foil Glow */
+.game-card-tilt-wrapper--champion .glare-wrapper .glare {
+  mix-blend-mode: color-dodge;
+  background: linear-gradient(115deg, transparent 20%, rgba(138, 43, 226, 0.45) 35%, rgba(255, 0, 128, 0.55) 50%, rgba(0, 255, 255, 0.45) 65%, transparent 80%) !important;
 }

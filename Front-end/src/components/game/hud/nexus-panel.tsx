@@ -41,7 +41,7 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
 
   return (
     <section
-      className={clsx("nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2", bottomAligned && "nexus-panel-v2--bottom")}
+      className={clsx("nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2", bottomAligned && "nexus-panel-v2--bottom", hasPriority && "nexus-panel-v2--has-priority")}
       data-effect-target-id={`nexus-${playerId}`}
       aria-label={`${label} status`}
     >
