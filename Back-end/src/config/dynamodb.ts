@@ -8,12 +8,17 @@ dotenv.config({
 });
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "ap-southeast-1",
+  region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-  },
+    accessKeyId: process.env.DB_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.DB_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || ""
+  }
 });
 
-export const dynamoDb = DynamoDBDocumentClient.from(client);
+export const dynamoDb = DynamoDBDocumentClient.from(client, {
+  marshallOptions: {
+    removeUndefinedValues: true,
+    convertEmptyValues: true
+  }
+});
 export { client as dynamoDbClient };
