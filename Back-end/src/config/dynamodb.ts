@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { fromTemporaryCredentials } from "@aws-sdk/credential-providers";
 
 // ESM-compatible __dirname
 let envDirname = process.cwd();
@@ -14,24 +15,80 @@ try {
   // Fallback to process.cwd()
 }
 
-// Resolve .env từ thư mục gốc Back-end
-dotenv.config({
-  path: path.resolve(envDirname, "../../.env"),
-});
+// Resolve .env từ thư mục gốc Back-end (chỉ load nếu đang chạy local, không chạy trên AWS Lambda)
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  dotenv.config({
+    path: path.resolve(envDirname, "../../.env"),
+  });
+}
 
-const getCredentials = () => {
-  // Nếu sử dụng credentials tĩnh từ đối tác (DB_ACCESS_KEY_ID)
+// Cache biến lưu credentials để tối ưu hoá cold start (không gọi Secrets Manager lặp lại vô ích)
+let cachedCredentials: any = null;
+
+const getCredentials = async (): Promise<any> => {
+  if (cachedCredentials) {
+    return cachedCredentials;
+  }
+
+  // PHƯƠNG ÁN 1: Sử dụng AWS Secrets Manager (Mã hóa bởi KMS) - Phương án chính
+  const secretName = process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY;
+  if (secretName) {
+    try {
+      const { SecretsManagerClient, GetSecretValueCommand } = await import("@aws-sdk/client-secrets-manager");
+      const clientRegion = process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1";
+      const smClient = new SecretsManagerClient({ region: clientRegion });
+
+      console.log(`[SecretsManager] Đang tải credentials từ Secret: ${secretName}...`);
+      const response = await smClient.send(
+        new GetSecretValueCommand({ SecretId: secretName })
+      );
+
+      if (response.SecretString) {
+        const secretObj = JSON.parse(response.SecretString);
+        cachedCredentials = {
+          accessKeyId: secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID || "",
+          secretAccessKey: secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY || "",
+          ...(secretObj.sessionToken && { sessionToken: secretObj.sessionToken })
+        };
+        console.log("[SecretsManager] Tải credentials thành công!");
+        return cachedCredentials;
+      }
+    } catch (err) {
+      console.error("[SecretsManager] Lỗi khi lấy Secret, đang thử dùng các phương án dự phòng:", err);
+    }
+  }
+
+  // PHƯƠNG ÁN 2: Sử dụng Cross-Account IAM Role (AssumeRole)
+  const crossAccountRoleArn = process.env.CROSS_ACCOUNT_ROLE_ARN;
+  if (crossAccountRoleArn) {
+    try {
+      console.log(`[AssumeRole] Đang cấu hình Credentials Provider cho Role: ${crossAccountRoleArn}`);
+      cachedCredentials = fromTemporaryCredentials({
+        params: {
+          RoleArn: crossAccountRoleArn,
+          RoleSessionName: "ChronoGameBackendSession"
+        },
+        clientConfig: { region: process.env.DB_REGION || "ap-southeast-1" }
+      });
+      return cachedCredentials;
+    } catch (err) {
+      console.error("[AssumeRole] Lỗi khi tạo AssumeRole credentials provider:", err);
+    }
+  }
+
+  // PHƯƠNG ÁN 3: Sử dụng Key tĩnh của đối tác (Local .env hoặc Biến môi trường Lambda)
   if (process.env.DB_ACCESS_KEY_ID) {
-    return {
+    cachedCredentials = {
       accessKeyId: process.env.DB_ACCESS_KEY_ID,
       secretAccessKey: process.env.DB_SECRET_ACCESS_KEY || "",
       ...(process.env.DB_SESSION_TOKEN && {
         sessionToken: process.env.DB_SESSION_TOKEN,
       }),
     };
+    return cachedCredentials;
   }
 
-  // Nếu sử dụng credentials mặc định của Lambda Role
+  // PHƯƠNG ÁN 4: Sử dụng credentials mặc định của Lambda Role hiện tại
   return {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
@@ -43,7 +100,7 @@ const getCredentials = () => {
 
 const client = new DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
-  credentials: getCredentials()
+  credentials: getCredentials
 });
 
 export const dynamoDb = DynamoDBDocumentClient.from(client, {

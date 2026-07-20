@@ -9,15 +9,15 @@ var __esm = (fn, res, err2) => function __init() {
   if (err2) throw err2[0];
   try {
     return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e5) {
-    throw err2 = [e5], e5;
+  } catch (e6) {
+    throw err2 = [e6], e6;
   }
 };
 var __commonJS = (cb, mod) => function __require() {
   try {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  } catch (e5) {
-    throw mod = 0, e5;
+  } catch (e6) {
+    throw mod = 0, e6;
   }
 };
 var __export = (target, all) => {
@@ -66,7 +66,7 @@ var init_MiddlewareStack = __esm({
       let relativeEntries = [];
       let identifyOnResolve = false;
       const entriesNameSet = /* @__PURE__ */ new Set();
-      const sort = (entries) => entries.sort((a5, b5) => stepWeights[b5.step] - stepWeights[a5.step] || priorityWeights[b5.priority || "normal"] - priorityWeights[a5.priority || "normal"]);
+      const sort = (entries) => entries.sort((a6, b6) => stepWeights[b6.step] - stepWeights[a6.step] || priorityWeights[b6.priority || "normal"] - priorityWeights[a6.priority || "normal"]);
       const removeByName = (toRemove) => {
         let isRemoved = false;
         const filterCb = (entry) => {
@@ -193,7 +193,7 @@ var init_MiddlewareStack = __esm({
               if (!override)
                 throw new Error(`Duplicate middleware name '${getMiddlewareNameWithAliases(name, _aliases)}'`);
               for (const alias of aliases) {
-                const toOverrideIndex = absoluteEntries.findIndex((entry2) => entry2.name === alias || entry2.aliases?.some((a5) => a5 === alias));
+                const toOverrideIndex = absoluteEntries.findIndex((entry2) => entry2.name === alias || entry2.aliases?.some((a6) => a6 === alias));
                 if (toOverrideIndex === -1) {
                   continue;
                 }
@@ -222,7 +222,7 @@ var init_MiddlewareStack = __esm({
               if (!override)
                 throw new Error(`Duplicate middleware name '${getMiddlewareNameWithAliases(name, _aliases)}'`);
               for (const alias of aliases) {
-                const toOverrideIndex = relativeEntries.findIndex((entry2) => entry2.name === alias || entry2.aliases?.some((a5) => a5 === alias));
+                const toOverrideIndex = relativeEntries.findIndex((entry2) => entry2.name === alias || entry2.aliases?.some((a6) => a6 === alias));
                 if (toOverrideIndex === -1) {
                   continue;
                 }
@@ -906,7 +906,7 @@ var init_client = __esm({
           }
         }
       }
-      send(command5, optionsOrCb, cb) {
+      send(command6, optionsOrCb, cb) {
         const options = typeof optionsOrCb !== "function" ? optionsOrCb : void 0;
         const callback = typeof optionsOrCb === "function" ? optionsOrCb : cb;
         const useHandlerCache = options === void 0 && this.config.cacheMiddleware === true;
@@ -916,21 +916,21 @@ var init_client = __esm({
             this.handlers = /* @__PURE__ */ new WeakMap();
           }
           const handlers = this.handlers;
-          if (handlers.has(command5.constructor)) {
-            handler2 = handlers.get(command5.constructor);
+          if (handlers.has(command6.constructor)) {
+            handler2 = handlers.get(command6.constructor);
           } else {
-            handler2 = command5.resolveMiddleware(this.middlewareStack, this.config, options);
-            handlers.set(command5.constructor, handler2);
+            handler2 = command6.resolveMiddleware(this.middlewareStack, this.config, options);
+            handlers.set(command6.constructor, handler2);
           }
         } else {
           delete this.handlers;
-          handler2 = command5.resolveMiddleware(this.middlewareStack, this.config, options);
+          handler2 = command6.resolveMiddleware(this.middlewareStack, this.config, options);
         }
         if (callback) {
-          handler2(command5).then((result) => callback(null, result.output), (err2) => callback(err2)).catch(() => {
+          handler2(command6).then((result) => callback(null, result.output), (err2) => callback(err2)).catch(() => {
           });
         } else {
-          return handler2(command5).then((result) => result.output);
+          return handler2(command6).then((result) => result.output);
         }
       }
       destroy() {
@@ -977,9 +977,9 @@ var init_schemaDeserializationMiddleware = __esm({
     schemaDeserializationMiddleware = (config) => (next, context) => async (args) => {
       const { response } = await next(args);
       const { operationSchema } = getSmithyContext(context);
-      const [, ns, n3, t, i5, o3] = operationSchema ?? [];
+      const [, ns, n3, t, i6, o3] = operationSchema ?? [];
       try {
-        const parsed = await config.protocol.deserializeResponse(operation(ns, n3, t, i5, o3), {
+        const parsed = await config.protocol.deserializeResponse(operation(ns, n3, t, i6, o3), {
           ...config,
           ...context
         }, response);
@@ -1028,8 +1028,8 @@ var init_schemaDeserializationMiddleware = __esm({
       }
     };
     findHeader = (pattern, headers) => {
-      return (headers.find(([k5]) => {
-        return k5.match(pattern);
+      return (headers.find(([k6]) => {
+        return k6.match(pattern);
       }) || [void 0, void 0])[1];
     };
   }
@@ -1043,9 +1043,9 @@ var init_schemaSerializationMiddleware = __esm({
     init_operation();
     schemaSerializationMiddleware = (config) => (next, context) => async (args) => {
       const { operationSchema } = getSmithyContext(context);
-      const [, ns, n3, t, i5, o3] = operationSchema ?? [];
+      const [, ns, n3, t, i6, o3] = operationSchema ?? [];
       const endpoint = context.endpointV2 ? async () => toEndpointV1(context.endpointV2) : config.endpoint;
-      const request = await config.protocol.serializeRequest(operation(ns, n3, t, i5, o3), args.input, {
+      const request = await config.protocol.serializeRequest(operation(ns, n3, t, i6, o3), args.input, {
         ...config,
         ...context,
         endpoint
@@ -1237,7 +1237,7 @@ function translateTraits(indicator) {
     return traitsCache[indicator];
   }
   const traits = {};
-  let i5 = 0;
+  let i6 = 0;
   for (const trait of [
     "httpLabel",
     "idempotent",
@@ -1247,7 +1247,7 @@ function translateTraits(indicator) {
     "httpResponseCode",
     "httpQueryParams"
   ]) {
-    if ((indicator >> i5++ & 1) === 1) {
+    if ((indicator >> i6++ & 1) === 1) {
       traits[trait] = 1;
     }
   }
@@ -1308,8 +1308,8 @@ var init_NormalizedSchema = __esm({
         }
         if (traitStack.length > 0) {
           this.memberTraits = {};
-          for (let i5 = traitStack.length - 1; i5 >= 0; --i5) {
-            const traitSet = traitStack[i5];
+          for (let i6 = traitStack.length - 1; i6 >= 0; --i6) {
+            const traitSet = traitStack[i6];
             Object.assign(this.memberTraits, translateTraits(traitSet));
           }
         } else {
@@ -1492,8 +1492,8 @@ var init_NormalizedSchema = __esm({
       getMemberSchema(memberName) {
         const struct2 = this.getSchema();
         if (this.isStructSchema() && struct2[4].includes(memberName)) {
-          const i5 = struct2[4].indexOf(memberName);
-          const memberSchema = struct2[5][i5];
+          const i6 = struct2[4].indexOf(memberName);
+          const memberSchema = struct2[5][i6];
           return member(isMemberSchema(memberSchema) ? memberSchema : [memberSchema, 0], memberName);
         }
         if (this.isDocumentSchema()) {
@@ -1504,8 +1504,8 @@ var init_NormalizedSchema = __esm({
       getMemberSchemas() {
         const buffer = {};
         try {
-          for (const [k5, v] of this.structIterator()) {
-            buffer[k5] = v;
+          for (const [k6, v] of this.structIterator()) {
+            buffer[k6] = v;
           }
         } catch (ignored) {
         }
@@ -1536,10 +1536,10 @@ var init_NormalizedSchema = __esm({
           return;
         }
         it = Array(z);
-        for (let i5 = 0; i5 < z; ++i5) {
-          const k5 = struct2[4][i5];
-          const v = member([struct2[5][i5], 0], k5);
-          yield it[i5] = [k5, v];
+        for (let i6 = 0; i6 < z; ++i6) {
+          const k6 = struct2[4][i6];
+          const v = member([struct2[5][i6], 0], k6);
+          yield it[i6] = [k6, v];
         }
         struct2[anno.it] = it;
       }
@@ -1621,21 +1621,21 @@ var init_TypeRegistry = __esm({
       }
       copyFrom(other) {
         const { schemas, exceptions } = this;
-        for (const [k5, v] of other.schemas) {
-          if (!schemas.has(k5)) {
-            schemas.set(k5, v);
+        for (const [k6, v] of other.schemas) {
+          if (!schemas.has(k6)) {
+            schemas.set(k6, v);
           }
         }
-        for (const [k5, v] of other.exceptions) {
-          if (!exceptions.has(k5)) {
-            exceptions.set(k5, v);
+        for (const [k6, v] of other.exceptions) {
+          if (!exceptions.has(k6)) {
+            exceptions.set(k6, v);
           }
         }
       }
       register(shapeId, schema) {
         const qualifiedName = this.normalizeShapeId(shapeId);
-        for (const r5 of [this, _TypeRegistry.for(qualifiedName.split("#")[0])]) {
-          r5.schemas.set(qualifiedName, schema);
+        for (const r6 of [this, _TypeRegistry.for(qualifiedName.split("#")[0])]) {
+          r6.schemas.set(qualifiedName, schema);
         }
       }
       getSchema(shapeId) {
@@ -1660,9 +1660,9 @@ var init_TypeRegistry = __esm({
       registerError(es, ctor) {
         const $error = es;
         const ns = $error[1];
-        for (const r5 of [this, _TypeRegistry.for(ns)]) {
-          r5.schemas.set(ns + "#" + $error[2], $error);
-          r5.exceptions.set($error, ctor);
+        for (const r6 of [this, _TypeRegistry.for(ns)]) {
+          r6.schemas.set(ns + "#" + $error[2], $error);
+          r6.exceptions.set($error, ctor);
         }
       }
       getErrorCtor(es) {
@@ -1947,21 +1947,21 @@ var init_constants = __esm({
 var createAggregatedClient;
 var init_create_aggregated_client = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/client/smithy-client/create-aggregated-client.js"() {
-    createAggregatedClient = (commands5, Client2, options) => {
-      for (const [command5, CommandCtor] of Object.entries(commands5)) {
+    createAggregatedClient = (commands6, Client2, options) => {
+      for (const [command6, CommandCtor] of Object.entries(commands6)) {
         const methodImpl = async function(args, optionsOrCb, cb) {
-          const command6 = new CommandCtor(args);
+          const command7 = new CommandCtor(args);
           if (typeof optionsOrCb === "function") {
-            this.send(command6, optionsOrCb);
+            this.send(command7, optionsOrCb);
           } else if (typeof cb === "function") {
             if (typeof optionsOrCb !== "object")
               throw new Error(`Expected http options but got ${typeof optionsOrCb}`);
-            this.send(command6, optionsOrCb || {}, cb);
+            this.send(command7, optionsOrCb || {}, cb);
           } else {
-            return this.send(command6, optionsOrCb);
+            return this.send(command7, optionsOrCb);
           }
         };
-        const methodName = (command5[0].toLowerCase() + command5.slice(1)).replace(/Command$/, "");
+        const methodName = (command6[0].toLowerCase() + command6.slice(1)).replace(/Command$/, "");
         Client2.prototype[methodName] = methodImpl;
       }
       const { paginators = {}, waiters = {} } = options ?? {};
@@ -2034,9 +2034,9 @@ var init_exceptions = __esm({
       }
     };
     decorateServiceException = (exception, additions = {}) => {
-      Object.entries(additions).filter(([, v]) => v !== void 0).forEach(([k5, v]) => {
-        if (exception[k5] == void 0 || exception[k5] === "") {
-          exception[k5] = v;
+      Object.entries(additions).filter(([, v]) => v !== void 0).forEach(([k6, v]) => {
+        if (exception[k6] == void 0 || exception[k6] === "") {
+          exception[k6] = v;
         }
       });
       const message2 = exception.message || exception.Message || "UnknownError";
@@ -2301,8 +2301,8 @@ var init_object_mapping = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/client/smithy-client/object-mapping.js"() {
     convertMap = (target) => {
       const output = {};
-      for (const [k5, v] of Object.entries(target || {})) {
-        output[k5] = [, v];
+      for (const [k6, v] of Object.entries(target || {})) {
+        output[k6] = [, v];
       }
       return output;
     };
@@ -2718,7 +2718,7 @@ function bindV4(getRandomValues2) {
 var decimalToHex;
 var init_v4 = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/serde/uuid/v4.js"() {
-    decimalToHex = Array.from({ length: 256 }, (_, i5) => i5.toString(16).padStart(2, "0"));
+    decimalToHex = Array.from({ length: 256 }, (_, i6) => i6.toString(16).padStart(2, "0"));
   }
 });
 
@@ -2872,9 +2872,9 @@ var init_parse_utils = __esm({
       }
       const asObject = expectObject(value);
       const setKeys = [];
-      for (const k5 in asObject) {
-        if (asObject[k5] != null) {
-          setKeys.push(k5);
+      for (const k6 in asObject) {
+        if (asObject[k6] != null) {
+          setKeys.push(k6);
         }
       }
       if (setKeys.length === 0) {
@@ -3315,13 +3315,13 @@ function splitEvery(value, delimiter, numDelimiters) {
   }
   const compoundSegments = [];
   let currentSegment = "";
-  for (let i5 = 0; i5 < segments.length; i5++) {
+  for (let i6 = 0; i6 < segments.length; i6++) {
     if (currentSegment === "") {
-      currentSegment = segments[i5];
+      currentSegment = segments[i6];
     } else {
-      currentSegment += delimiter + segments[i5];
+      currentSegment += delimiter + segments[i6];
     }
-    if ((i5 + 1) % numDelimiters === 0) {
+    if ((i6 + 1) % numDelimiters === 0) {
       compoundSegments.push(currentSegment);
       currentSegment = "";
     }
@@ -3346,8 +3346,8 @@ var init_split_header = __esm({
       let withinQuotes = false;
       let prevChar = void 0;
       let anchor = 0;
-      for (let i5 = 0; i5 < z; ++i5) {
-        const char = value[i5];
+      for (let i6 = 0; i6 < z; ++i6) {
+        const char = value[i6];
         switch (char) {
           case `"`:
             if (prevChar !== "\\") {
@@ -3356,8 +3356,8 @@ var init_split_header = __esm({
             break;
           case ",":
             if (!withinQuotes) {
-              values.push(value.slice(anchor, i5));
-              anchor = i5 + 1;
+              values.push(value.slice(anchor, i6));
+              anchor = i6 + 1;
             }
             break;
           default:
@@ -3418,10 +3418,10 @@ function fromHex(encoded) {
     throw new Error("Hex encoded strings must have an even number length");
   }
   const out = new Uint8Array(encoded.length / 2);
-  for (let i5 = 0; i5 < encoded.length; i5 += 2) {
-    const encodedByte = encoded.slice(i5, i5 + 2).toLowerCase();
+  for (let i6 = 0; i6 < encoded.length; i6 += 2) {
+    const encodedByte = encoded.slice(i6, i6 + 2).toLowerCase();
     if (encodedByte in HEX_TO_SHORT) {
-      out[i5 / 2] = HEX_TO_SHORT[encodedByte];
+      out[i6 / 2] = HEX_TO_SHORT[encodedByte];
     } else {
       throw new Error(`Cannot decode unrecognized sequence ${encodedByte} as hexadecimal`);
     }
@@ -3430,8 +3430,8 @@ function fromHex(encoded) {
 }
 function toHex(bytes) {
   let out = "";
-  for (let i5 = 0; i5 < bytes.byteLength; i5++) {
-    out += SHORT_TO_HEX[bytes[i5]];
+  for (let i6 = 0; i6 < bytes.byteLength; i6++) {
+    out += SHORT_TO_HEX[bytes[i6]];
   }
   return out;
 }
@@ -3440,13 +3440,13 @@ var init_hex_encoding = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/serde/util-hex-encoding/hex-encoding.js"() {
     SHORT_TO_HEX = {};
     HEX_TO_SHORT = {};
-    for (let i5 = 0; i5 < 256; i5++) {
-      let encodedByte = i5.toString(16).toLowerCase();
+    for (let i6 = 0; i6 < 256; i6++) {
+      let encodedByte = i6.toString(16).toLowerCase();
       if (encodedByte.length === 1) {
         encodedByte = `0${encodedByte}`;
       }
-      SHORT_TO_HEX[i5] = encodedByte;
-      HEX_TO_SHORT[encodedByte] = i5;
+      SHORT_TO_HEX[i6] = encodedByte;
+      HEX_TO_SHORT[encodedByte] = i6;
     }
   }
 });
@@ -3575,8 +3575,8 @@ var init_deserializerMiddleware = __esm({
       }
     };
     findHeader2 = (pattern, headers) => {
-      return (headers.find(([k5]) => {
-        return k5.match(pattern);
+      return (headers.find(([k6]) => {
+        return k6.match(pattern);
       }) || [void 0, void 0])[1];
     };
   }
@@ -4120,8 +4120,8 @@ var init_fromEnv = __esm({
           throw new Error();
         }
         return config;
-      } catch (e5) {
-        throw new CredentialsProviderError(e5.message || `Not found in ENV: ${getSelectorName(envVarSelector.toString())}`, { logger: options?.logger });
+      } catch (e6) {
+        throw new CredentialsProviderError(e6.message || `Not found in ENV: ${getSelectorName(envVarSelector.toString())}`, { logger: options?.logger });
       }
     };
   }
@@ -4148,8 +4148,8 @@ var init_fromSharedConfigFiles = __esm({
           throw new Error();
         }
         return configValue;
-      } catch (e5) {
-        throw new CredentialsProviderError(e5.message || `Not found in config files w/ profile [${profile}]: ${getSelectorName(configSelector.toString())}`, { logger: init.logger });
+      } catch (e6) {
+        throw new CredentialsProviderError(e6.message || `Not found in config files w/ profile [${profile}]: ${getSelectorName(configSelector.toString())}`, { logger: init.logger });
       }
     };
   }
@@ -5067,14 +5067,14 @@ var init_BinaryDecisionDiagram = __esm({
       root;
       conditions;
       results;
-      constructor(bdd5, root5, conditions, results) {
-        this.nodes = bdd5;
-        this.root = root5;
+      constructor(bdd6, root6, conditions, results) {
+        this.nodes = bdd6;
+        this.root = root6;
         this.conditions = conditions;
         this.results = results;
       }
-      static from(bdd5, root5, conditions, results) {
-        return new _BinaryDecisionDiagram(bdd5, root5, conditions, results);
+      static from(bdd6, root6, conditions, results) {
+        return new _BinaryDecisionDiagram(bdd6, root6, conditions, results);
       }
     };
   }
@@ -5102,11 +5102,11 @@ var init_EndpointCache = __esm({
         if (!this.data.has(key)) {
           if (this.data.size > this.capacity + 10) {
             const keys = this.data.keys();
-            let i5 = 0;
+            let i6 = 0;
             while (true) {
               const { value, done } = keys.next();
               this.data.delete(value);
-              if (done || ++i5 > 10) {
+              if (done || ++i6 > 10) {
                 break;
               }
             }
@@ -5262,8 +5262,8 @@ var init_getAttr = __esm({
       if (typeof acc !== "object") {
         throw new EndpointError(`Index '${index}' in '${path2}' not found in '${JSON.stringify(value)}'`);
       } else if (Array.isArray(acc)) {
-        const i5 = parseInt(index);
-        return acc[i5 < 0 ? acc.length + i5 : i5];
+        const i6 = parseInt(index);
+        return acc[i6 < 0 ? acc.length + i6 : i6];
       }
       return acc[index];
     }, value);
@@ -5323,7 +5323,7 @@ var init_parseURL = __esm({
           if (typeof value === "object" && "hostname" in value) {
             const { hostname: hostname2, port, protocol: protocol2 = "", path: path2 = "", query = {} } = value;
             const url = new URL(`${protocol2}//${hostname2}${port ? `:${port}` : ""}${path2}`);
-            url.search = Object.entries(query).map(([k5, v]) => `${k5}=${v}`).join("&");
+            url.search = Object.entries(query).map(([k6, v]) => `${k6}=${v}`).join("&");
             return url;
           }
           return new URL(value);
@@ -5405,7 +5405,7 @@ var init_substring = __esm({
 var uriEncode;
 var init_uriEncode = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/endpoints/util-endpoints/lib/uriEncode.js"() {
-    uriEncode = (value) => encodeURIComponent(value).replace(/[!*'()]/g, (c5) => `%${c5.charCodeAt(0).toString(16).toUpperCase()}`);
+    uriEncode = (value) => encodeURIComponent(value).replace(/[!*'()]/g, (c6) => `%${c6.charCodeAt(0).toString(16).toUpperCase()}`);
   }
 });
 
@@ -5519,12 +5519,12 @@ var init_evaluateExpression = __esm({
     };
     callFunction = ({ fn, argv }, options) => {
       const evaluatedArgs = Array(argv.length);
-      for (let i5 = 0; i5 < evaluatedArgs.length; ++i5) {
-        const arg = argv[i5];
+      for (let i6 = 0; i6 < evaluatedArgs.length; ++i6) {
+        const arg = argv[i6];
         if (typeof arg === "boolean" || typeof arg === "number") {
-          evaluatedArgs[i5] = arg;
+          evaluatedArgs[i6] = arg;
         } else {
-          evaluatedArgs[i5] = group.evaluateExpression(arg, "arg", options);
+          evaluatedArgs[i6] = group.evaluateExpression(arg, "arg", options);
         }
       }
       const namespaceSeparatorIndex = fn.indexOf(".");
@@ -5664,9 +5664,9 @@ var init_decideEndpoint = __esm({
     init_getEndpointProperties();
     init_getEndpointUrl();
     RESULT = 1e8;
-    decideEndpoint = (bdd5, options) => {
-      const { nodes: nodes5, root: root5, results, conditions } = bdd5;
-      let ref = root5;
+    decideEndpoint = (bdd6, options) => {
+      const { nodes: nodes6, root: root6, results, conditions } = bdd6;
+      let ref = root6;
       const referenceRecord = {};
       const closure = {
         referenceRecord,
@@ -5675,7 +5675,7 @@ var init_decideEndpoint = __esm({
       };
       while (ref !== 1 && ref !== -1 && ref < RESULT) {
         const node_i = 3 * (Math.abs(ref) - 1);
-        const [condition_i, highRef, lowRef] = [nodes5[node_i], nodes5[node_i + 1], nodes5[node_i + 2]];
+        const [condition_i, highRef, lowRef] = [nodes6[node_i], nodes6[node_i + 1], nodes6[node_i + 2]];
         const [fn, argv, assign] = conditions[condition_i];
         const evaluation = evaluateCondition({ fn, assign, argv }, closure);
         if (evaluation.toAssign) {
@@ -6059,8 +6059,8 @@ var init_ChecksumStream = __esm({
         }
         try {
           this.checksum.update(chunk);
-        } catch (e5) {
-          this.destroy(e5);
+        } catch (e6) {
+          this.destroy(e6);
           return;
         }
         if (!this.push(chunk)) {
@@ -6078,8 +6078,8 @@ var init_ChecksumStream = __esm({
             this.destroy(new Error(`Checksum mismatch: expected "${this.expectedChecksum}" but received "${received}" in response header "${this.checksumSourceLocation}".`));
             return;
           }
-        } catch (e5) {
-          this.destroy(e5);
+        } catch (e6) {
+          this.destroy(e6);
           return;
         }
         this.push(null);
@@ -6131,8 +6131,8 @@ var chars, alphabetByEncoding, alphabetByValue, bitsPerLetter, bitsPerByte, maxL
 var init_constants_for_browser = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/serde/util-base64/constants-for-browser.js"() {
     chars = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`;
-    alphabetByEncoding = Object.entries(chars).reduce((acc, [i5, c5]) => {
-      acc[c5] = Number(i5);
+    alphabetByEncoding = Object.entries(chars).reduce((acc, [i6, c6]) => {
+      acc[c6] = Number(i6);
       return acc;
     }, {});
     alphabetByValue = chars.split("");
@@ -6156,17 +6156,17 @@ function toBase642(_input) {
     throw new Error("@smithy/util-base64: toBase64 encoder function only accepts string | Uint8Array.");
   }
   let str = "";
-  for (let i5 = 0; i5 < input.length; i5 += 3) {
+  for (let i6 = 0; i6 < input.length; i6 += 3) {
     let bits = 0;
     let bitLength = 0;
-    for (let j5 = i5, limit = Math.min(i5 + 3, input.length); j5 < limit; j5++) {
-      bits |= input[j5] << (limit - j5 - 1) * bitsPerByte;
+    for (let j6 = i6, limit = Math.min(i6 + 3, input.length); j6 < limit; j6++) {
+      bits |= input[j6] << (limit - j6 - 1) * bitsPerByte;
       bitLength += bitsPerByte;
     }
     const bitClusterCount = Math.ceil(bitLength / bitsPerLetter);
     bits <<= bitClusterCount * bitsPerLetter - bitLength;
-    for (let k5 = 1; k5 <= bitClusterCount; k5++) {
-      const offset = (bitClusterCount - k5) * bitsPerLetter;
+    for (let k6 = 1; k6 <= bitClusterCount; k6++) {
+      const offset = (bitClusterCount - k6) * bitsPerLetter;
       str += alphabetByValue[(bits & maxLetterValue << offset) >> offset];
     }
     str += "==".slice(0, 4 - bitClusterCount);
@@ -6270,8 +6270,8 @@ var init_ByteArrayCollector = __esm({
         }
         const aggregation = this.allocByteArray(this.byteLength);
         let cursor2 = 0;
-        for (let i5 = 0; i5 < this.byteArrays.length; ++i5) {
-          const bytes = this.byteArrays[i5];
+        for (let i6 = 0; i6 < this.byteArrays.length; ++i6) {
+          const bytes = this.byteArrays[i6];
           aggregation.set(bytes, cursor2);
           cursor2 += bytes.byteLength;
         }
@@ -6994,8 +6994,8 @@ var init_collect_stream_body = __esm({
 
 // ../../../node_modules/@smithy/core/dist-es/submodules/protocols/extended-encode-uri-component.js
 function extendedEncodeURIComponent(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c5) {
-    return "%" + c5.charCodeAt(0).toString(16).toUpperCase();
+  return encodeURIComponent(str).replace(/[!'()*]/g, function(c6) {
+    return "%" + c6.charCodeAt(0).toString(16).toUpperCase();
   });
 }
 var init_extended_encode_uri_component = __esm({
@@ -7129,35 +7129,35 @@ var init_readableStreamHasher = __esm({
 
 // ../../../node_modules/@smithy/core/dist-es/submodules/checksum/md5/Md5Js.js
 function compress(state2, block) {
-  let a5 = state2[0], b5 = state2[1], c5 = state2[2], d5 = state2[3];
-  for (let i5 = 0; i5 < 64; ++i5) {
-    let f5, g5;
-    if (i5 < 16) {
-      f5 = b5 & c5 | ~b5 & d5;
-      g5 = i5;
-    } else if (i5 < 32) {
-      f5 = d5 & b5 | c5 & ~d5;
-      g5 = (5 * i5 + 1) % 16;
-    } else if (i5 < 48) {
-      f5 = b5 ^ c5 ^ d5;
-      g5 = (3 * i5 + 5) % 16;
+  let a6 = state2[0], b6 = state2[1], c6 = state2[2], d6 = state2[3];
+  for (let i6 = 0; i6 < 64; ++i6) {
+    let f6, g6;
+    if (i6 < 16) {
+      f6 = b6 & c6 | ~b6 & d6;
+      g6 = i6;
+    } else if (i6 < 32) {
+      f6 = d6 & b6 | c6 & ~d6;
+      g6 = (5 * i6 + 1) % 16;
+    } else if (i6 < 48) {
+      f6 = b6 ^ c6 ^ d6;
+      g6 = (3 * i6 + 5) % 16;
     } else {
-      f5 = c5 ^ (b5 | ~d5);
-      g5 = 7 * i5 % 16;
+      f6 = c6 ^ (b6 | ~d6);
+      g6 = 7 * i6 % 16;
     }
-    const x = block.getUint32(g5 * 4, true);
-    const tmp = d5;
-    d5 = c5;
-    c5 = b5;
-    const s2 = S[(i5 >> 4) * 4 + (i5 & 3)];
-    const sum = (a5 + f5 & M) + (x + T[i5] & M) & M;
-    b5 = b5 + ((sum << s2 | sum >>> 32 - s2) >>> 0) & M;
-    a5 = tmp;
+    const x = block.getUint32(g6 * 4, true);
+    const tmp = d6;
+    d6 = c6;
+    c6 = b6;
+    const s2 = S[(i6 >> 4) * 4 + (i6 & 3)];
+    const sum = (a6 + f6 & M) + (x + T[i6] & M) & M;
+    b6 = b6 + ((sum << s2 | sum >>> 32 - s2) >>> 0) & M;
+    a6 = tmp;
   }
-  state2[0] = state2[0] + a5 & M;
-  state2[1] = state2[1] + b5 & M;
-  state2[2] = state2[2] + c5 & M;
-  state2[3] = state2[3] + d5 & M;
+  state2[0] = state2[0] + a6 & M;
+  state2[1] = state2[1] + b6 & M;
+  state2[2] = state2[2] + c6 & M;
+  state2[3] = state2[3] + d6 & M;
 }
 var Md5Js, INIT, M, S, T;
 var init_Md5Js = __esm({
@@ -7190,22 +7190,22 @@ var init_Md5Js = __esm({
         const bits = this.bytesHashed * 8;
         buf.setUint8(bufLen++, 128);
         if (this.bufferLength % 64 >= 56) {
-          for (let i5 = bufLen; i5 < 64; ++i5) {
-            buf.setUint8(i5, 0);
+          for (let i6 = bufLen; i6 < 64; ++i6) {
+            buf.setUint8(i6, 0);
           }
           compress(state2, buf);
           bufLen = 0;
         }
-        for (let i5 = bufLen; i5 < 56; ++i5) {
-          buf.setUint8(i5, 0);
+        for (let i6 = bufLen; i6 < 56; ++i6) {
+          buf.setUint8(i6, 0);
         }
         buf.setUint32(56, bits >>> 0, true);
         buf.setUint32(60, Math.floor(bits / 2 ** 32), true);
         compress(state2, buf);
         const out = new Uint8Array(16);
         const view = new DataView(out.buffer);
-        for (let i5 = 0; i5 < 4; ++i5) {
-          view.setUint32(i5 * 4, state2[i5], true);
+        for (let i6 = 0; i6 < 4; ++i6) {
+          view.setUint32(i6 * 4, state2[i6], true);
         }
         return out;
       }
@@ -7219,7 +7219,7 @@ var init_Md5Js = __esm({
     INIT = [1732584193, 4023233417, 2562383102, 271733878];
     M = 4294967295;
     S = Uint8Array.of(7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21);
-    T = Array.from({ length: 64 }, (_, i5) => Math.abs(Math.sin(i5 + 1)) * 2 ** 32 >>> 0);
+    T = Array.from({ length: 64 }, (_, i6) => Math.abs(Math.sin(i6 + 1)) * 2 ** 32 >>> 0);
   }
 });
 
@@ -7263,20 +7263,20 @@ var CRC32_TABLE, ONES, Crc32Js;
 var init_Crc32Js = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/checksum/crc32/Crc32Js.js"() {
     CRC32_TABLE = new Uint32Array(256);
-    for (let i5 = 0; i5 < 256; ++i5) {
-      let c5 = i5;
-      for (let j5 = 0; j5 < 8; ++j5) {
-        c5 = c5 & 1 ? 3988292384 ^ c5 >>> 1 : c5 >>> 1;
+    for (let i6 = 0; i6 < 256; ++i6) {
+      let c6 = i6;
+      for (let j6 = 0; j6 < 8; ++j6) {
+        c6 = c6 & 1 ? 3988292384 ^ c6 >>> 1 : c6 >>> 1;
       }
-      CRC32_TABLE[i5] = c5 >>> 0;
+      CRC32_TABLE[i6] = c6 >>> 0;
     }
     ONES = 4294967295;
     Crc32Js = class {
       digestLength = 4;
       checksum = ONES;
       update(data2) {
-        for (let i5 = 0; i5 < data2.length; ++i5) {
-          this.checksum = this.checksum >>> 8 ^ CRC32_TABLE[(this.checksum ^ data2[i5]) & 255];
+        for (let i6 = 0; i6 < data2.length; ++i6) {
+          this.checksum = this.checksum >>> 8 ^ CRC32_TABLE[(this.checksum ^ data2[i6]) & 255];
         }
       }
       digestSync() {
@@ -7351,9 +7351,9 @@ var init_Sha256Js = __esm({
           this.outer = new _Sha256Js();
           const { inner, outer } = this;
           const pad = new Uint8Array(BLOCK * 2);
-          for (let i5 = 0; i5 < BLOCK; ++i5) {
-            pad[i5] = 54 ^ key[i5];
-            pad[i5 + BLOCK] = 92 ^ key[i5];
+          for (let i6 = 0; i6 < BLOCK; ++i6) {
+            pad[i6] = 54 ^ key[i6];
+            pad[i6 + BLOCK] = 92 ^ key[i6];
           }
           inner.update(pad.subarray(0, BLOCK));
           outer.update(pad.subarray(BLOCK));
@@ -7410,33 +7410,33 @@ var init_Sha256Js = __esm({
         const bufferView = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
         bufferView.setUint8(bufferLength++, 128);
         if ((bufferLength - 1) % BLOCK >= BLOCK - 8) {
-          for (let i5 = bufferLength; i5 < BLOCK; ++i5) {
-            bufferView.setUint8(i5, 0);
+          for (let i6 = bufferLength; i6 < BLOCK; ++i6) {
+            bufferView.setUint8(i6, 0);
           }
           this.hashBufferWith(state2, buffer);
           bufferLength = 0;
         }
-        for (let i5 = bufferLength; i5 < BLOCK - 8; ++i5) {
-          bufferView.setUint8(i5, 0);
+        for (let i6 = bufferLength; i6 < BLOCK - 8; ++i6) {
+          bufferView.setUint8(i6, 0);
         }
         bufferView.setUint32(BLOCK - 8, Math.floor(bitsHashed / 4294967296), false);
         bufferView.setUint32(BLOCK - 4, bitsHashed, false);
         this.hashBufferWith(state2, buffer);
         const out = new Uint8Array(DIGEST_LENGTH);
-        for (let i5 = 0; i5 < 8; ++i5) {
-          out[i5 * 4] = state2[i5] >>> 24 & 255;
-          out[i5 * 4 + 1] = state2[i5] >>> 16 & 255;
-          out[i5 * 4 + 2] = state2[i5] >>> 8 & 255;
-          out[i5 * 4 + 3] = state2[i5] >>> 0 & 255;
+        for (let i6 = 0; i6 < 8; ++i6) {
+          out[i6 * 4] = state2[i6] >>> 24 & 255;
+          out[i6 * 4 + 1] = state2[i6] >>> 16 & 255;
+          out[i6 * 4 + 2] = state2[i6] >>> 8 & 255;
+          out[i6 * 4 + 3] = state2[i6] >>> 0 & 255;
         }
         return out;
       }
       static normalizeKey(secret) {
         const key = toUint8Array(secret);
         if (key.byteLength > BLOCK) {
-          const h5 = new _Sha256Js();
-          h5.update(key);
-          const out = h5.digestSync();
+          const h6 = new _Sha256Js();
+          h6.update(key);
+          const out = h6.digestSync();
           const padded = new Uint8Array(BLOCK);
           padded.set(out);
           return padded;
@@ -7454,17 +7454,17 @@ var init_Sha256Js = __esm({
       hashBufferWith(state2, buffer) {
         const w = this.w ??= new Int32Array(64);
         let s0 = state2[0], s1 = state2[1], s2 = state2[2], s3 = state2[3], s4 = state2[4], s5 = state2[5], s6 = state2[6], s7 = state2[7];
-        for (let i5 = 0; i5 < BLOCK; ++i5) {
-          if (i5 < 16) {
-            w[i5] = (buffer[i5 * 4] & 255) << 24 | (buffer[i5 * 4 + 1] & 255) << 16 | (buffer[i5 * 4 + 2] & 255) << 8 | buffer[i5 * 4 + 3] & 255;
+        for (let i6 = 0; i6 < BLOCK; ++i6) {
+          if (i6 < 16) {
+            w[i6] = (buffer[i6 * 4] & 255) << 24 | (buffer[i6 * 4 + 1] & 255) << 16 | (buffer[i6 * 4 + 2] & 255) << 8 | buffer[i6 * 4 + 3] & 255;
           } else {
-            let u = w[i5 - 2];
+            let u = w[i6 - 2];
             const t12 = (u >>> 17 | u << 15) ^ (u >>> 19 | u << 13) ^ u >>> 10;
-            u = w[i5 - 15];
+            u = w[i6 - 15];
             const t22 = (u >>> 7 | u << 25) ^ (u >>> 18 | u << 14) ^ u >>> 3;
-            w[i5] = (t12 + w[i5 - 7] | 0) + (t22 + w[i5 - 16] | 0);
+            w[i6] = (t12 + w[i6 - 7] | 0) + (t22 + w[i6 - 16] | 0);
           }
-          const t1 = (((s4 >>> 6 | s4 << 26) ^ (s4 >>> 11 | s4 << 21) ^ (s4 >>> 25 | s4 << 7)) + (s4 & s5 ^ ~s4 & s6) | 0) + (s7 + (K[i5] + w[i5] | 0) | 0) | 0;
+          const t1 = (((s4 >>> 6 | s4 << 26) ^ (s4 >>> 11 | s4 << 21) ^ (s4 >>> 25 | s4 << 7)) + (s4 & s5 ^ ~s4 & s6) | 0) + (s7 + (K[i6] + w[i6] | 0) | 0) | 0;
           const t2 = ((s0 >>> 2 | s0 << 30) ^ (s0 >>> 13 | s0 << 19) ^ (s0 >>> 22 | s0 << 10)) + (s0 & s1 ^ s0 & s2 ^ s1 & s2) | 0;
           s7 = s6;
           s6 = s5;
@@ -7740,12 +7740,12 @@ var init_checksum2 = __esm({
 
 // ../../../node_modules/@smithy/core/dist-es/submodules/event-streams/eventstream-codec/Int64.js
 function negate(bytes) {
-  for (let i5 = 0; i5 < 8; i5++) {
-    bytes[i5] ^= 255;
+  for (let i6 = 0; i6 < 8; i6++) {
+    bytes[i6] ^= 255;
   }
-  for (let i5 = 7; i5 > -1; i5--) {
-    bytes[i5]++;
-    if (bytes[i5] !== 0)
+  for (let i6 = 7; i6 > -1; i6--) {
+    bytes[i6]++;
+    if (bytes[i6] !== 0)
       break;
   }
 }
@@ -7766,8 +7766,8 @@ var init_Int64 = __esm({
           throw new Error(`${number} is too large (or, if negative, too small) to represent as an Int64`);
         }
         const bytes = new Uint8Array(8);
-        for (let i5 = 7, remaining = Math.abs(Math.round(number)); i5 > -1 && remaining > 0; i5--, remaining /= 256) {
-          bytes[i5] = remaining;
+        for (let i6 = 7, remaining = Math.abs(Math.round(number)); i6 > -1 && remaining > 0; i6--, remaining /= 256) {
+          bytes[i6] = remaining;
         }
         if (number < 0) {
           negate(bytes);
@@ -8772,8 +8772,8 @@ var init_HttpProtocol = __esm({
           if (!request.query) {
             request.query = {};
           }
-          for (const [k5, v] of endpoint.url.searchParams.entries()) {
-            request.query[k5] = v;
+          for (const [k6, v] of endpoint.url.searchParams.entries()) {
+            request.query[k6] = v;
           }
           if (endpoint.headers) {
             for (const name in endpoint.headers) {
@@ -9761,7 +9761,7 @@ var escapeUri, hexEncode;
 var init_escape_uri = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/protocols/util-uri-escape/escape-uri.js"() {
     escapeUri = (uri) => encodeURIComponent(uri).replace(/[!'()*]/g, hexEncode);
-    hexEncode = (c5) => `%${c5.charCodeAt(0).toString(16).toUpperCase()}`;
+    hexEncode = (c6) => `%${c6.charCodeAt(0).toString(16).toUpperCase()}`;
   }
 });
 
@@ -9781,8 +9781,8 @@ function buildQueryString(query) {
     const value = query[key];
     key = escapeUri(key);
     if (Array.isArray(value)) {
-      for (let i5 = 0, iLen = value.length; i5 < iLen; i5++) {
-        parts.push(`${key}=${escapeUri(value[i5])}`);
+      for (let i6 = 0, iLen = value.length; i6 < iLen; i6++) {
+        parts.push(`${key}=${escapeUri(value[i6])}`);
       }
     } else {
       let qsEntry = key;
@@ -9960,17 +9960,17 @@ function parseRetryAfterHeader(response, logger2) {
     return;
   }
   for (const header of Object.keys(response.headers)) {
-    const h5 = header.toLowerCase();
-    if (h5 === "retry-after") {
+    const h6 = header.toLowerCase();
+    if (h6 === "retry-after") {
       const retryAfter = response.headers[header];
       let retryAfterSeconds = NaN;
       if (retryAfter.endsWith("GMT")) {
         try {
           const date2 = parseRfc7231DateTime(retryAfter);
           retryAfterSeconds = (date2.getTime() - Date.now()) / 1e3;
-        } catch (e5) {
+        } catch (e6) {
           logger2?.trace?.("Failed to parse retry-after header");
-          logger2?.trace?.(e5);
+          logger2?.trace?.(e6);
         }
       } else if (retryAfter.match(/ GMT, ((\d+)|(\d+\.\d+))$/)) {
         retryAfterSeconds = Number(retryAfter.match(/ GMT, ([\d.]+)$/)?.[1]);
@@ -9983,7 +9983,7 @@ function parseRetryAfterHeader(response, logger2) {
         return;
       }
       return new Date(Date.now() + retryAfterSeconds * 1e3);
-    } else if (h5 === "x-amz-retry-after") {
+    } else if (h6 === "x-amz-retry-after") {
       const v = response.headers[header];
       const backoffMilliseconds = Number(v);
       if (isNaN(backoffMilliseconds)) {
@@ -10046,9 +10046,9 @@ function bindRetryMiddleware(isStreamingPayload2) {
           output.$metadata.attempts = attempts + 1;
           output.$metadata.totalRetryDelay = totalRetryDelay;
           return { response, output };
-        } catch (e5) {
-          const retryErrorInfo = getRetryErrorInfo(e5, options.logger);
-          lastError = asSdkError(e5);
+        } catch (e6) {
+          const retryErrorInfo = getRetryErrorInfo(e6, options.logger);
+          lastError = asSdkError(e6);
           if (isRequest && isStreamingPayload2(request)) {
             (context.logger instanceof NoOpLogger ? console : context.logger)?.warn("An error was encountered in a non-retryable streaming request.");
             throw lastError;
@@ -10280,10 +10280,10 @@ var init_DefaultRetryBackoffStrategy = __esm({
     init_retries_2026_config();
     DefaultRetryBackoffStrategy = class {
       x = Retry.delay();
-      computeNextBackoffDelay(i5) {
-        const b5 = Math.random();
-        const r5 = 2;
-        const t_i = b5 * Math.min(this.x * r5 ** i5, MAXIMUM_RETRY_DELAY);
+      computeNextBackoffDelay(i6) {
+        const b6 = Math.random();
+        const r6 = 2;
+        const t_i = b6 * Math.min(this.x * r6 ** i6, MAXIMUM_RETRY_DELAY);
         return Math.floor(t_i);
       }
       setDelayBase(delay) {
@@ -10394,13 +10394,13 @@ var init_StandardRetryStrategy = __esm({
           if (!shouldRetry) {
             const longPollBackoff = Retry.v2026 && retryCode === refusal.capacity && isLongPoll ? retryDelay : 0;
             if (longPollBackoff > 0) {
-              await new Promise((r5) => setTimeout(r5, longPollBackoff));
+              await new Promise((r6) => setTimeout(r6, longPollBackoff));
             }
           } else {
             const capacityCost = this.getCapacityCost(errorType);
             this.capacity -= capacityCost;
             const nextToken = new DefaultRetryToken(0, token.getRetryCount() + 1, capacityCost, token.isLongPoll?.() ?? false);
-            await new Promise((r5) => setTimeout(r5, retryDelay));
+            await new Promise((r6) => setTimeout(r6, retryDelay));
             nextToken.$retryLog.acquisitionDelay = retryDelay;
             return nextToken;
           }
@@ -10625,8 +10625,8 @@ var init_StandardRetryStrategy2 = __esm({
             output.$metadata.attempts = attempts + 1;
             output.$metadata.totalRetryDelay = totalDelay;
             return { response, output };
-          } catch (e5) {
-            const err2 = asSdkError(e5);
+          } catch (e6) {
+            const err2 = asSdkError(e6);
             attempts++;
             if (this.shouldRetry(err2, attempts, maxAttempts)) {
               retryTokenAmount = this.retryQuota.retrieveRetryTokens(err2);
@@ -11149,7 +11149,7 @@ var init_recursionDetectionMiddleware = __esm({
       }
       let invokeStore;
       {
-        const traceIdHeader = Object.keys(request.headers ?? {}).find((h5) => h5.toLowerCase() === X_AMZN_TRACE_ID.toLowerCase()) ?? X_AMZN_TRACE_ID;
+        const traceIdHeader = Object.keys(request.headers ?? {}).find((h6) => h6.toLowerCase() === X_AMZN_TRACE_ID.toLowerCase()) ?? X_AMZN_TRACE_ID;
         if (!request.headers.hasOwnProperty(traceIdHeader)) {
           const functionName = process.env[AWS_LAMBDA_FUNCTION_NAME];
           const traceIdFromEnv = process.env[_X_AMZN_TRACE_ID];
@@ -11435,9 +11435,9 @@ var makePagedClientRequest, get;
 var init_createPaginator = __esm({
   "../../../node_modules/@smithy/core/dist-es/legacy-root-exports/pagination/createPaginator.js"() {
     makePagedClientRequest = async (CommandCtor, client2, input, withCommand = (_) => _, ...args) => {
-      let command5 = new CommandCtor(input);
-      command5 = withCommand(command5) ?? command5;
-      return await client2.send(command5, ...args);
+      let command6 = new CommandCtor(input);
+      command6 = withCommand(command6) ?? command6;
+      return await client2.send(command6, ...args);
     };
     get = (fromObject, path2) => {
       let cursor2 = fromObject;
@@ -12307,54 +12307,54 @@ var init_nodeAppIdConfigOptions = __esm({
 // ../../../node_modules/bowser/es5.js
 var require_es5 = __commonJS({
   "../../../node_modules/bowser/es5.js"(exports2, module2) {
-    !(function(e5, t) {
-      "object" == typeof exports2 && "object" == typeof module2 ? module2.exports = t() : "function" == typeof define && define.amd ? define([], t) : "object" == typeof exports2 ? exports2.bowser = t() : e5.bowser = t();
+    !(function(e6, t) {
+      "object" == typeof exports2 && "object" == typeof module2 ? module2.exports = t() : "function" == typeof define && define.amd ? define([], t) : "object" == typeof exports2 ? exports2.bowser = t() : e6.bowser = t();
     })(exports2, (function() {
-      return (function(e5) {
+      return (function(e6) {
         var t = {};
-        function r5(i5) {
-          if (t[i5]) return t[i5].exports;
-          var n3 = t[i5] = { i: i5, l: false, exports: {} };
-          return e5[i5].call(n3.exports, n3, n3.exports, r5), n3.l = true, n3.exports;
+        function r6(i6) {
+          if (t[i6]) return t[i6].exports;
+          var n3 = t[i6] = { i: i6, l: false, exports: {} };
+          return e6[i6].call(n3.exports, n3, n3.exports, r6), n3.l = true, n3.exports;
         }
-        return r5.m = e5, r5.c = t, r5.d = function(e6, t2, i5) {
-          r5.o(e6, t2) || Object.defineProperty(e6, t2, { enumerable: true, get: i5 });
-        }, r5.r = function(e6) {
-          "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e6, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(e6, "__esModule", { value: true });
-        }, r5.t = function(e6, t2) {
-          if (1 & t2 && (e6 = r5(e6)), 8 & t2) return e6;
-          if (4 & t2 && "object" == typeof e6 && e6 && e6.__esModule) return e6;
-          var i5 = /* @__PURE__ */ Object.create(null);
-          if (r5.r(i5), Object.defineProperty(i5, "default", { enumerable: true, value: e6 }), 2 & t2 && "string" != typeof e6) for (var n3 in e6) r5.d(i5, n3, function(t3) {
-            return e6[t3];
+        return r6.m = e6, r6.c = t, r6.d = function(e7, t2, i6) {
+          r6.o(e7, t2) || Object.defineProperty(e7, t2, { enumerable: true, get: i6 });
+        }, r6.r = function(e7) {
+          "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e7, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(e7, "__esModule", { value: true });
+        }, r6.t = function(e7, t2) {
+          if (1 & t2 && (e7 = r6(e7)), 8 & t2) return e7;
+          if (4 & t2 && "object" == typeof e7 && e7 && e7.__esModule) return e7;
+          var i6 = /* @__PURE__ */ Object.create(null);
+          if (r6.r(i6), Object.defineProperty(i6, "default", { enumerable: true, value: e7 }), 2 & t2 && "string" != typeof e7) for (var n3 in e7) r6.d(i6, n3, function(t3) {
+            return e7[t3];
           }.bind(null, n3));
-          return i5;
-        }, r5.n = function(e6) {
-          var t2 = e6 && e6.__esModule ? function() {
-            return e6.default;
+          return i6;
+        }, r6.n = function(e7) {
+          var t2 = e7 && e7.__esModule ? function() {
+            return e7.default;
           } : function() {
-            return e6;
+            return e7;
           };
-          return r5.d(t2, "a", t2), t2;
-        }, r5.o = function(e6, t2) {
-          return Object.prototype.hasOwnProperty.call(e6, t2);
-        }, r5.p = "", r5(r5.s = 90);
-      })({ 17: function(e5, t, r5) {
+          return r6.d(t2, "a", t2), t2;
+        }, r6.o = function(e7, t2) {
+          return Object.prototype.hasOwnProperty.call(e7, t2);
+        }, r6.p = "", r6(r6.s = 90);
+      })({ 17: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.default = void 0;
-        var i5 = r5(18), n3 = (function() {
-          function e6() {
+        var i6 = r6(18), n3 = (function() {
+          function e7() {
           }
-          return e6.getFirstMatch = function(e7, t2) {
-            var r6 = t2.match(e7);
-            return r6 && r6.length > 0 && r6[1] || "";
-          }, e6.getSecondMatch = function(e7, t2) {
-            var r6 = t2.match(e7);
-            return r6 && r6.length > 1 && r6[2] || "";
-          }, e6.matchAndReturnConst = function(e7, t2, r6) {
-            if (e7.test(t2)) return r6;
-          }, e6.getWindowsVersionName = function(e7) {
-            switch (e7) {
+          return e7.getFirstMatch = function(e8, t2) {
+            var r7 = t2.match(e8);
+            return r7 && r7.length > 0 && r7[1] || "";
+          }, e7.getSecondMatch = function(e8, t2) {
+            var r7 = t2.match(e8);
+            return r7 && r7.length > 1 && r7[2] || "";
+          }, e7.matchAndReturnConst = function(e8, t2, r7) {
+            if (e8.test(t2)) return r7;
+          }, e7.getWindowsVersionName = function(e8) {
+            switch (e8) {
               case "NT":
                 return "NT";
               case "XP":
@@ -12378,13 +12378,13 @@ var require_es5 = __commonJS({
               default:
                 return;
             }
-          }, e6.getMacOSVersionName = function(e7) {
-            var t2 = e7.split(".").splice(0, 2).map((function(e8) {
-              return parseInt(e8, 10) || 0;
+          }, e7.getMacOSVersionName = function(e8) {
+            var t2 = e8.split(".").splice(0, 2).map((function(e9) {
+              return parseInt(e9, 10) || 0;
             }));
             t2.push(0);
-            var r6 = t2[0], i6 = t2[1];
-            if (10 === r6) switch (i6) {
+            var r7 = t2[0], i7 = t2[1];
+            if (10 === r7) switch (i7) {
               case 5:
                 return "Leopard";
               case 6:
@@ -12410,7 +12410,7 @@ var require_es5 = __commonJS({
               default:
                 return;
             }
-            switch (r6) {
+            switch (r7) {
               case 11:
                 return "Big Sur";
               case 12:
@@ -12424,59 +12424,59 @@ var require_es5 = __commonJS({
               default:
                 return;
             }
-          }, e6.getAndroidVersionName = function(e7) {
-            var t2 = e7.split(".").splice(0, 2).map((function(e8) {
-              return parseInt(e8, 10) || 0;
+          }, e7.getAndroidVersionName = function(e8) {
+            var t2 = e8.split(".").splice(0, 2).map((function(e9) {
+              return parseInt(e9, 10) || 0;
             }));
             if (t2.push(0), !(1 === t2[0] && t2[1] < 5)) return 1 === t2[0] && t2[1] < 6 ? "Cupcake" : 1 === t2[0] && t2[1] >= 6 ? "Donut" : 2 === t2[0] && t2[1] < 2 ? "Eclair" : 2 === t2[0] && 2 === t2[1] ? "Froyo" : 2 === t2[0] && t2[1] > 2 ? "Gingerbread" : 3 === t2[0] ? "Honeycomb" : 4 === t2[0] && t2[1] < 1 ? "Ice Cream Sandwich" : 4 === t2[0] && t2[1] < 4 ? "Jelly Bean" : 4 === t2[0] && t2[1] >= 4 ? "KitKat" : 5 === t2[0] ? "Lollipop" : 6 === t2[0] ? "Marshmallow" : 7 === t2[0] ? "Nougat" : 8 === t2[0] ? "Oreo" : 9 === t2[0] ? "Pie" : void 0;
-          }, e6.getVersionPrecision = function(e7) {
-            return e7.split(".").length;
-          }, e6.compareVersions = function(t2, r6, i6) {
-            void 0 === i6 && (i6 = false);
-            var n4 = e6.getVersionPrecision(t2), a5 = e6.getVersionPrecision(r6), o3 = Math.max(n4, a5), s2 = 0, u = e6.map([t2, r6], (function(t3) {
-              var r7 = o3 - e6.getVersionPrecision(t3), i7 = t3 + new Array(r7 + 1).join(".0");
-              return e6.map(i7.split("."), (function(e7) {
-                return new Array(20 - e7.length).join("0") + e7;
+          }, e7.getVersionPrecision = function(e8) {
+            return e8.split(".").length;
+          }, e7.compareVersions = function(t2, r7, i7) {
+            void 0 === i7 && (i7 = false);
+            var n4 = e7.getVersionPrecision(t2), a6 = e7.getVersionPrecision(r7), o3 = Math.max(n4, a6), s2 = 0, u = e7.map([t2, r7], (function(t3) {
+              var r8 = o3 - e7.getVersionPrecision(t3), i8 = t3 + new Array(r8 + 1).join(".0");
+              return e7.map(i8.split("."), (function(e8) {
+                return new Array(20 - e8.length).join("0") + e8;
               })).reverse();
             }));
-            for (i6 && (s2 = o3 - Math.min(n4, a5)), o3 -= 1; o3 >= s2; ) {
+            for (i7 && (s2 = o3 - Math.min(n4, a6)), o3 -= 1; o3 >= s2; ) {
               if (u[0][o3] > u[1][o3]) return 1;
               if (u[0][o3] === u[1][o3]) {
                 if (o3 === s2) return 0;
                 o3 -= 1;
               } else if (u[0][o3] < u[1][o3]) return -1;
             }
-          }, e6.map = function(e7, t2) {
-            var r6, i6 = [];
-            if (Array.prototype.map) return Array.prototype.map.call(e7, t2);
-            for (r6 = 0; r6 < e7.length; r6 += 1) i6.push(t2(e7[r6]));
-            return i6;
-          }, e6.find = function(e7, t2) {
-            var r6, i6;
-            if (Array.prototype.find) return Array.prototype.find.call(e7, t2);
-            for (r6 = 0, i6 = e7.length; r6 < i6; r6 += 1) {
-              var n4 = e7[r6];
-              if (t2(n4, r6)) return n4;
+          }, e7.map = function(e8, t2) {
+            var r7, i7 = [];
+            if (Array.prototype.map) return Array.prototype.map.call(e8, t2);
+            for (r7 = 0; r7 < e8.length; r7 += 1) i7.push(t2(e8[r7]));
+            return i7;
+          }, e7.find = function(e8, t2) {
+            var r7, i7;
+            if (Array.prototype.find) return Array.prototype.find.call(e8, t2);
+            for (r7 = 0, i7 = e8.length; r7 < i7; r7 += 1) {
+              var n4 = e8[r7];
+              if (t2(n4, r7)) return n4;
             }
-          }, e6.assign = function(e7) {
-            for (var t2, r6, i6 = e7, n4 = arguments.length, a5 = new Array(n4 > 1 ? n4 - 1 : 0), o3 = 1; o3 < n4; o3++) a5[o3 - 1] = arguments[o3];
-            if (Object.assign) return Object.assign.apply(Object, [e7].concat(a5));
+          }, e7.assign = function(e8) {
+            for (var t2, r7, i7 = e8, n4 = arguments.length, a6 = new Array(n4 > 1 ? n4 - 1 : 0), o3 = 1; o3 < n4; o3++) a6[o3 - 1] = arguments[o3];
+            if (Object.assign) return Object.assign.apply(Object, [e8].concat(a6));
             var s2 = function() {
-              var e8 = a5[t2];
-              "object" == typeof e8 && null !== e8 && Object.keys(e8).forEach((function(t3) {
-                i6[t3] = e8[t3];
+              var e9 = a6[t2];
+              "object" == typeof e9 && null !== e9 && Object.keys(e9).forEach((function(t3) {
+                i7[t3] = e9[t3];
               }));
             };
-            for (t2 = 0, r6 = a5.length; t2 < r6; t2 += 1) s2();
-            return e7;
-          }, e6.getBrowserAlias = function(e7) {
-            return i5.BROWSER_ALIASES_MAP[e7];
-          }, e6.getBrowserTypeByAlias = function(e7) {
-            return i5.BROWSER_MAP[e7] || "";
-          }, e6;
+            for (t2 = 0, r7 = a6.length; t2 < r7; t2 += 1) s2();
+            return e8;
+          }, e7.getBrowserAlias = function(e8) {
+            return i6.BROWSER_ALIASES_MAP[e8];
+          }, e7.getBrowserTypeByAlias = function(e8) {
+            return i6.BROWSER_MAP[e8] || "";
+          }, e7;
         })();
-        t.default = n3, e5.exports = t.default;
-      }, 18: function(e5, t, r5) {
+        t.default = n3, e6.exports = t.default;
+      }, 18: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.ENGINE_MAP = t.OS_MAP = t.PLATFORMS_MAP = t.BROWSER_MAP = t.BROWSER_ALIASES_MAP = void 0;
         t.BROWSER_ALIASES_MAP = { AmazonBot: "amazonbot", "Amazon Silk": "amazon_silk", "Android Browser": "android", BaiduSpider: "baiduspider", Bada: "bada", BingCrawler: "bingcrawler", Brave: "brave", BlackBerry: "blackberry", "ChatGPT-User": "chatgpt_user", Chrome: "chrome", ClaudeBot: "claudebot", Chromium: "chromium", Diffbot: "diffbot", DuckDuckBot: "duckduckbot", DuckDuckGo: "duckduckgo", Electron: "electron", Epiphany: "epiphany", FacebookExternalHit: "facebookexternalhit", Firefox: "firefox", Focus: "focus", Generic: "generic", "Google Search": "google_search", Googlebot: "googlebot", GPTBot: "gptbot", "Internet Explorer": "ie", InternetArchiveCrawler: "internetarchivecrawler", "K-Meleon": "k_meleon", LibreWolf: "librewolf", Linespider: "linespider", Maxthon: "maxthon", "Meta-ExternalAds": "meta_externalads", "Meta-ExternalAgent": "meta_externalagent", "Meta-ExternalFetcher": "meta_externalfetcher", "Meta-WebIndexer": "meta_webindexer", "Microsoft Edge": "edge", "MZ Browser": "mz", "NAVER Whale Browser": "naver", "OAI-SearchBot": "oai_searchbot", Omgilibot: "omgilibot", Opera: "opera", "Opera Coast": "opera_coast", "Pale Moon": "pale_moon", PerplexityBot: "perplexitybot", "Perplexity-User": "perplexity_user", PhantomJS: "phantomjs", PingdomBot: "pingdombot", Puffin: "puffin", QQ: "qq", QQLite: "qqlite", QupZilla: "qupzilla", Roku: "roku", Safari: "safari", Sailfish: "sailfish", "Samsung Internet for Android": "samsung_internet", SlackBot: "slackbot", SeaMonkey: "seamonkey", Sleipnir: "sleipnir", "Sogou Browser": "sogou", Swing: "swing", Tizen: "tizen", "UC Browser": "uc", Vivaldi: "vivaldi", "WebOS Browser": "webos", WeChat: "wechat", YahooSlurp: "yahooslurp", "Yandex Browser": "yandex", YandexBot: "yandexbot", YouBot: "youbot" };
@@ -12484,133 +12484,133 @@ var require_es5 = __commonJS({
         t.PLATFORMS_MAP = { bot: "bot", desktop: "desktop", mobile: "mobile", tablet: "tablet", tv: "tv" };
         t.OS_MAP = { Android: "Android", Bada: "Bada", BlackBerry: "BlackBerry", ChromeOS: "Chrome OS", HarmonyOS: "HarmonyOS", iOS: "iOS", Linux: "Linux", MacOS: "macOS", PlayStation4: "PlayStation 4", Roku: "Roku", Tizen: "Tizen", WebOS: "WebOS", Windows: "Windows", WindowsPhone: "Windows Phone" };
         t.ENGINE_MAP = { Blink: "Blink", EdgeHTML: "EdgeHTML", Gecko: "Gecko", Presto: "Presto", Trident: "Trident", WebKit: "WebKit" };
-      }, 90: function(e5, t, r5) {
+      }, 90: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.default = void 0;
-        var i5, n3 = (i5 = r5(91)) && i5.__esModule ? i5 : { default: i5 }, a5 = r5(18);
-        function o3(e6, t2) {
-          for (var r6 = 0; r6 < t2.length; r6++) {
-            var i6 = t2[r6];
-            i6.enumerable = i6.enumerable || false, i6.configurable = true, "value" in i6 && (i6.writable = true), Object.defineProperty(e6, i6.key, i6);
+        var i6, n3 = (i6 = r6(91)) && i6.__esModule ? i6 : { default: i6 }, a6 = r6(18);
+        function o3(e7, t2) {
+          for (var r7 = 0; r7 < t2.length; r7++) {
+            var i7 = t2[r7];
+            i7.enumerable = i7.enumerable || false, i7.configurable = true, "value" in i7 && (i7.writable = true), Object.defineProperty(e7, i7.key, i7);
           }
         }
         var s2 = (function() {
-          function e6() {
+          function e7() {
           }
-          var t2, r6, i6;
-          return e6.getParser = function(e7, t3, r7) {
-            if (void 0 === t3 && (t3 = false), void 0 === r7 && (r7 = null), "string" != typeof e7) throw new Error("UserAgent should be a string");
-            return new n3.default(e7, t3, r7);
-          }, e6.parse = function(e7, t3) {
-            return void 0 === t3 && (t3 = null), new n3.default(e7, t3).getResult();
-          }, t2 = e6, i6 = [{ key: "BROWSER_MAP", get: function() {
-            return a5.BROWSER_MAP;
+          var t2, r7, i7;
+          return e7.getParser = function(e8, t3, r8) {
+            if (void 0 === t3 && (t3 = false), void 0 === r8 && (r8 = null), "string" != typeof e8) throw new Error("UserAgent should be a string");
+            return new n3.default(e8, t3, r8);
+          }, e7.parse = function(e8, t3) {
+            return void 0 === t3 && (t3 = null), new n3.default(e8, t3).getResult();
+          }, t2 = e7, i7 = [{ key: "BROWSER_MAP", get: function() {
+            return a6.BROWSER_MAP;
           } }, { key: "ENGINE_MAP", get: function() {
-            return a5.ENGINE_MAP;
+            return a6.ENGINE_MAP;
           } }, { key: "OS_MAP", get: function() {
-            return a5.OS_MAP;
+            return a6.OS_MAP;
           } }, { key: "PLATFORMS_MAP", get: function() {
-            return a5.PLATFORMS_MAP;
-          } }], (r6 = null) && o3(t2.prototype, r6), i6 && o3(t2, i6), e6;
+            return a6.PLATFORMS_MAP;
+          } }], (r7 = null) && o3(t2.prototype, r7), i7 && o3(t2, i7), e7;
         })();
-        t.default = s2, e5.exports = t.default;
-      }, 91: function(e5, t, r5) {
+        t.default = s2, e6.exports = t.default;
+      }, 91: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.default = void 0;
-        var i5 = u(r5(92)), n3 = u(r5(93)), a5 = u(r5(94)), o3 = u(r5(95)), s2 = u(r5(17));
-        function u(e6) {
-          return e6 && e6.__esModule ? e6 : { default: e6 };
+        var i6 = u(r6(92)), n3 = u(r6(93)), a6 = u(r6(94)), o3 = u(r6(95)), s2 = u(r6(17));
+        function u(e7) {
+          return e7 && e7.__esModule ? e7 : { default: e7 };
         }
-        var d5 = (function() {
-          function e6(e7, t3, r6) {
-            if (void 0 === t3 && (t3 = false), void 0 === r6 && (r6 = null), null == e7 || "" === e7) throw new Error("UserAgent parameter can't be empty");
-            this._ua = e7;
-            var i6 = false;
-            "boolean" == typeof t3 ? (i6 = t3, this._hints = r6) : this._hints = null != t3 && "object" == typeof t3 ? t3 : null, this.parsedResult = {}, true !== i6 && this.parse();
+        var d6 = (function() {
+          function e7(e8, t3, r7) {
+            if (void 0 === t3 && (t3 = false), void 0 === r7 && (r7 = null), null == e8 || "" === e8) throw new Error("UserAgent parameter can't be empty");
+            this._ua = e8;
+            var i7 = false;
+            "boolean" == typeof t3 ? (i7 = t3, this._hints = r7) : this._hints = null != t3 && "object" == typeof t3 ? t3 : null, this.parsedResult = {}, true !== i7 && this.parse();
           }
-          var t2 = e6.prototype;
+          var t2 = e7.prototype;
           return t2.getHints = function() {
             return this._hints;
-          }, t2.hasBrand = function(e7) {
+          }, t2.hasBrand = function(e8) {
             if (!this._hints || !Array.isArray(this._hints.brands)) return false;
-            var t3 = e7.toLowerCase();
-            return this._hints.brands.some((function(e8) {
-              return e8.brand && e8.brand.toLowerCase() === t3;
+            var t3 = e8.toLowerCase();
+            return this._hints.brands.some((function(e9) {
+              return e9.brand && e9.brand.toLowerCase() === t3;
             }));
-          }, t2.getBrandVersion = function(e7) {
+          }, t2.getBrandVersion = function(e8) {
             if (this._hints && Array.isArray(this._hints.brands)) {
-              var t3 = e7.toLowerCase(), r6 = this._hints.brands.find((function(e8) {
-                return e8.brand && e8.brand.toLowerCase() === t3;
+              var t3 = e8.toLowerCase(), r7 = this._hints.brands.find((function(e9) {
+                return e9.brand && e9.brand.toLowerCase() === t3;
               }));
-              return r6 ? r6.version : void 0;
+              return r7 ? r7.version : void 0;
             }
           }, t2.getUA = function() {
             return this._ua;
-          }, t2.test = function(e7) {
-            return e7.test(this._ua);
+          }, t2.test = function(e8) {
+            return e8.test(this._ua);
           }, t2.parseBrowser = function() {
-            var e7 = this;
+            var e8 = this;
             this.parsedResult.browser = {};
-            var t3 = s2.default.find(i5.default, (function(t4) {
-              if ("function" == typeof t4.test) return t4.test(e7);
+            var t3 = s2.default.find(i6.default, (function(t4) {
+              if ("function" == typeof t4.test) return t4.test(e8);
               if (Array.isArray(t4.test)) return t4.test.some((function(t5) {
-                return e7.test(t5);
+                return e8.test(t5);
               }));
               throw new Error("Browser's test function is not valid");
             }));
             return t3 && (this.parsedResult.browser = t3.describe(this.getUA(), this)), this.parsedResult.browser;
           }, t2.getBrowser = function() {
             return this.parsedResult.browser ? this.parsedResult.browser : this.parseBrowser();
-          }, t2.getBrowserName = function(e7) {
-            return e7 ? String(this.getBrowser().name).toLowerCase() || "" : this.getBrowser().name || "";
+          }, t2.getBrowserName = function(e8) {
+            return e8 ? String(this.getBrowser().name).toLowerCase() || "" : this.getBrowser().name || "";
           }, t2.getBrowserVersion = function() {
             return this.getBrowser().version;
           }, t2.getOS = function() {
             return this.parsedResult.os ? this.parsedResult.os : this.parseOS();
           }, t2.parseOS = function() {
-            var e7 = this;
+            var e8 = this;
             this.parsedResult.os = {};
             var t3 = s2.default.find(n3.default, (function(t4) {
-              if ("function" == typeof t4.test) return t4.test(e7);
+              if ("function" == typeof t4.test) return t4.test(e8);
               if (Array.isArray(t4.test)) return t4.test.some((function(t5) {
-                return e7.test(t5);
+                return e8.test(t5);
               }));
               throw new Error("Browser's test function is not valid");
             }));
             return t3 && (this.parsedResult.os = t3.describe(this.getUA())), this.parsedResult.os;
-          }, t2.getOSName = function(e7) {
+          }, t2.getOSName = function(e8) {
             var t3 = this.getOS().name;
-            return e7 ? String(t3).toLowerCase() || "" : t3 || "";
+            return e8 ? String(t3).toLowerCase() || "" : t3 || "";
           }, t2.getOSVersion = function() {
             return this.getOS().version;
           }, t2.getPlatform = function() {
             return this.parsedResult.platform ? this.parsedResult.platform : this.parsePlatform();
-          }, t2.getPlatformType = function(e7) {
-            void 0 === e7 && (e7 = false);
+          }, t2.getPlatformType = function(e8) {
+            void 0 === e8 && (e8 = false);
             var t3 = this.getPlatform().type;
-            return e7 ? String(t3).toLowerCase() || "" : t3 || "";
+            return e8 ? String(t3).toLowerCase() || "" : t3 || "";
           }, t2.parsePlatform = function() {
-            var e7 = this;
+            var e8 = this;
             this.parsedResult.platform = {};
-            var t3 = s2.default.find(a5.default, (function(t4) {
-              if ("function" == typeof t4.test) return t4.test(e7);
+            var t3 = s2.default.find(a6.default, (function(t4) {
+              if ("function" == typeof t4.test) return t4.test(e8);
               if (Array.isArray(t4.test)) return t4.test.some((function(t5) {
-                return e7.test(t5);
+                return e8.test(t5);
               }));
               throw new Error("Browser's test function is not valid");
             }));
             return t3 && (this.parsedResult.platform = t3.describe(this.getUA())), this.parsedResult.platform;
           }, t2.getEngine = function() {
             return this.parsedResult.engine ? this.parsedResult.engine : this.parseEngine();
-          }, t2.getEngineName = function(e7) {
-            return e7 ? String(this.getEngine().name).toLowerCase() || "" : this.getEngine().name || "";
+          }, t2.getEngineName = function(e8) {
+            return e8 ? String(this.getEngine().name).toLowerCase() || "" : this.getEngine().name || "";
           }, t2.parseEngine = function() {
-            var e7 = this;
+            var e8 = this;
             this.parsedResult.engine = {};
             var t3 = s2.default.find(o3.default, (function(t4) {
-              if ("function" == typeof t4.test) return t4.test(e7);
+              if ("function" == typeof t4.test) return t4.test(e8);
               if (Array.isArray(t4.test)) return t4.test.some((function(t5) {
-                return e7.test(t5);
+                return e8.test(t5);
               }));
               throw new Error("Browser's test function is not valid");
             }));
@@ -12619,502 +12619,502 @@ var require_es5 = __commonJS({
             return this.parseBrowser(), this.parseOS(), this.parsePlatform(), this.parseEngine(), this;
           }, t2.getResult = function() {
             return s2.default.assign({}, this.parsedResult);
-          }, t2.satisfies = function(e7) {
-            var t3 = this, r6 = {}, i6 = 0, n4 = {}, a6 = 0;
-            if (Object.keys(e7).forEach((function(t4) {
-              var o5 = e7[t4];
-              "string" == typeof o5 ? (n4[t4] = o5, a6 += 1) : "object" == typeof o5 && (r6[t4] = o5, i6 += 1);
-            })), i6 > 0) {
-              var o4 = Object.keys(r6), u2 = s2.default.find(o4, (function(e8) {
-                return t3.isOS(e8);
+          }, t2.satisfies = function(e8) {
+            var t3 = this, r7 = {}, i7 = 0, n4 = {}, a7 = 0;
+            if (Object.keys(e8).forEach((function(t4) {
+              var o5 = e8[t4];
+              "string" == typeof o5 ? (n4[t4] = o5, a7 += 1) : "object" == typeof o5 && (r7[t4] = o5, i7 += 1);
+            })), i7 > 0) {
+              var o4 = Object.keys(r7), u2 = s2.default.find(o4, (function(e9) {
+                return t3.isOS(e9);
               }));
               if (u2) {
-                var d6 = this.satisfies(r6[u2]);
-                if (void 0 !== d6) return d6;
+                var d7 = this.satisfies(r7[u2]);
+                if (void 0 !== d7) return d7;
               }
-              var c5 = s2.default.find(o4, (function(e8) {
-                return t3.isPlatform(e8);
+              var c6 = s2.default.find(o4, (function(e9) {
+                return t3.isPlatform(e9);
               }));
-              if (c5) {
-                var f5 = this.satisfies(r6[c5]);
-                if (void 0 !== f5) return f5;
+              if (c6) {
+                var f6 = this.satisfies(r7[c6]);
+                if (void 0 !== f6) return f6;
               }
             }
-            if (a6 > 0) {
-              var l3 = Object.keys(n4), b5 = s2.default.find(l3, (function(e8) {
-                return t3.isBrowser(e8, true);
+            if (a7 > 0) {
+              var l4 = Object.keys(n4), b6 = s2.default.find(l4, (function(e9) {
+                return t3.isBrowser(e9, true);
               }));
-              if (void 0 !== b5) return this.compareVersion(n4[b5]);
+              if (void 0 !== b6) return this.compareVersion(n4[b6]);
             }
-          }, t2.isBrowser = function(e7, t3) {
+          }, t2.isBrowser = function(e8, t3) {
             void 0 === t3 && (t3 = false);
-            var r6 = this.getBrowserName().toLowerCase(), i6 = e7.toLowerCase(), n4 = s2.default.getBrowserTypeByAlias(i6);
-            return t3 && n4 && (i6 = n4.toLowerCase()), i6 === r6;
-          }, t2.compareVersion = function(e7) {
-            var t3 = [0], r6 = e7, i6 = false, n4 = this.getBrowserVersion();
-            if ("string" == typeof n4) return ">" === e7[0] || "<" === e7[0] ? (r6 = e7.substr(1), "=" === e7[1] ? (i6 = true, r6 = e7.substr(2)) : t3 = [], ">" === e7[0] ? t3.push(1) : t3.push(-1)) : "=" === e7[0] ? r6 = e7.substr(1) : "~" === e7[0] && (i6 = true, r6 = e7.substr(1)), t3.indexOf(s2.default.compareVersions(n4, r6, i6)) > -1;
-          }, t2.isOS = function(e7) {
-            return this.getOSName(true) === String(e7).toLowerCase();
-          }, t2.isPlatform = function(e7) {
-            return this.getPlatformType(true) === String(e7).toLowerCase();
-          }, t2.isEngine = function(e7) {
-            return this.getEngineName(true) === String(e7).toLowerCase();
-          }, t2.is = function(e7, t3) {
-            return void 0 === t3 && (t3 = false), this.isBrowser(e7, t3) || this.isOS(e7) || this.isPlatform(e7);
-          }, t2.some = function(e7) {
+            var r7 = this.getBrowserName().toLowerCase(), i7 = e8.toLowerCase(), n4 = s2.default.getBrowserTypeByAlias(i7);
+            return t3 && n4 && (i7 = n4.toLowerCase()), i7 === r7;
+          }, t2.compareVersion = function(e8) {
+            var t3 = [0], r7 = e8, i7 = false, n4 = this.getBrowserVersion();
+            if ("string" == typeof n4) return ">" === e8[0] || "<" === e8[0] ? (r7 = e8.substr(1), "=" === e8[1] ? (i7 = true, r7 = e8.substr(2)) : t3 = [], ">" === e8[0] ? t3.push(1) : t3.push(-1)) : "=" === e8[0] ? r7 = e8.substr(1) : "~" === e8[0] && (i7 = true, r7 = e8.substr(1)), t3.indexOf(s2.default.compareVersions(n4, r7, i7)) > -1;
+          }, t2.isOS = function(e8) {
+            return this.getOSName(true) === String(e8).toLowerCase();
+          }, t2.isPlatform = function(e8) {
+            return this.getPlatformType(true) === String(e8).toLowerCase();
+          }, t2.isEngine = function(e8) {
+            return this.getEngineName(true) === String(e8).toLowerCase();
+          }, t2.is = function(e8, t3) {
+            return void 0 === t3 && (t3 = false), this.isBrowser(e8, t3) || this.isOS(e8) || this.isPlatform(e8);
+          }, t2.some = function(e8) {
             var t3 = this;
-            return void 0 === e7 && (e7 = []), e7.some((function(e8) {
-              return t3.is(e8);
+            return void 0 === e8 && (e8 = []), e8.some((function(e9) {
+              return t3.is(e9);
             }));
-          }, e6;
+          }, e7;
         })();
-        t.default = d5, e5.exports = t.default;
-      }, 92: function(e5, t, r5) {
+        t.default = d6, e6.exports = t.default;
+      }, 92: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.default = void 0;
-        var i5, n3 = (i5 = r5(17)) && i5.__esModule ? i5 : { default: i5 };
-        var a5 = /version\/(\d+(\.?_?\d+)+)/i, o3 = [{ test: [/gptbot/i], describe: function(e6) {
-          var t2 = { name: "GPTBot" }, r6 = n3.default.getFirstMatch(/gptbot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/chatgpt-user/i], describe: function(e6) {
-          var t2 = { name: "ChatGPT-User" }, r6 = n3.default.getFirstMatch(/chatgpt-user\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/oai-searchbot/i], describe: function(e6) {
-          var t2 = { name: "OAI-SearchBot" }, r6 = n3.default.getFirstMatch(/oai-searchbot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/claudebot/i, /claude-web/i, /claude-user/i, /claude-searchbot/i], describe: function(e6) {
-          var t2 = { name: "ClaudeBot" }, r6 = n3.default.getFirstMatch(/(?:claudebot|claude-web|claude-user|claude-searchbot)\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/omgilibot/i, /webzio-extended/i], describe: function(e6) {
-          var t2 = { name: "Omgilibot" }, r6 = n3.default.getFirstMatch(/(?:omgilibot|webzio-extended)\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/diffbot/i], describe: function(e6) {
-          var t2 = { name: "Diffbot" }, r6 = n3.default.getFirstMatch(/diffbot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/perplexitybot/i], describe: function(e6) {
-          var t2 = { name: "PerplexityBot" }, r6 = n3.default.getFirstMatch(/perplexitybot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/perplexity-user/i], describe: function(e6) {
-          var t2 = { name: "Perplexity-User" }, r6 = n3.default.getFirstMatch(/perplexity-user\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/youbot/i], describe: function(e6) {
-          var t2 = { name: "YouBot" }, r6 = n3.default.getFirstMatch(/youbot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/meta-webindexer/i], describe: function(e6) {
-          var t2 = { name: "Meta-WebIndexer" }, r6 = n3.default.getFirstMatch(/meta-webindexer\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/meta-externalads/i], describe: function(e6) {
-          var t2 = { name: "Meta-ExternalAds" }, r6 = n3.default.getFirstMatch(/meta-externalads\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/meta-externalagent/i], describe: function(e6) {
-          var t2 = { name: "Meta-ExternalAgent" }, r6 = n3.default.getFirstMatch(/meta-externalagent\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/meta-externalfetcher/i], describe: function(e6) {
-          var t2 = { name: "Meta-ExternalFetcher" }, r6 = n3.default.getFirstMatch(/meta-externalfetcher\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/googlebot/i], describe: function(e6) {
-          var t2 = { name: "Googlebot" }, r6 = n3.default.getFirstMatch(/googlebot\/(\d+(\.\d+))/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/linespider/i], describe: function(e6) {
-          var t2 = { name: "Linespider" }, r6 = n3.default.getFirstMatch(/(?:linespider)(?:-[-\w]+)?[\s/](\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/amazonbot/i], describe: function(e6) {
-          var t2 = { name: "AmazonBot" }, r6 = n3.default.getFirstMatch(/amazonbot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/bingbot/i], describe: function(e6) {
-          var t2 = { name: "BingCrawler" }, r6 = n3.default.getFirstMatch(/bingbot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/baiduspider/i], describe: function(e6) {
-          var t2 = { name: "BaiduSpider" }, r6 = n3.default.getFirstMatch(/baiduspider\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/duckduckbot/i], describe: function(e6) {
-          var t2 = { name: "DuckDuckBot" }, r6 = n3.default.getFirstMatch(/duckduckbot\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/ia_archiver/i], describe: function(e6) {
-          var t2 = { name: "InternetArchiveCrawler" }, r6 = n3.default.getFirstMatch(/ia_archiver\/(\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
+        var i6, n3 = (i6 = r6(17)) && i6.__esModule ? i6 : { default: i6 };
+        var a6 = /version\/(\d+(\.?_?\d+)+)/i, o3 = [{ test: [/gptbot/i], describe: function(e7) {
+          var t2 = { name: "GPTBot" }, r7 = n3.default.getFirstMatch(/gptbot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/chatgpt-user/i], describe: function(e7) {
+          var t2 = { name: "ChatGPT-User" }, r7 = n3.default.getFirstMatch(/chatgpt-user\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/oai-searchbot/i], describe: function(e7) {
+          var t2 = { name: "OAI-SearchBot" }, r7 = n3.default.getFirstMatch(/oai-searchbot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/claudebot/i, /claude-web/i, /claude-user/i, /claude-searchbot/i], describe: function(e7) {
+          var t2 = { name: "ClaudeBot" }, r7 = n3.default.getFirstMatch(/(?:claudebot|claude-web|claude-user|claude-searchbot)\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/omgilibot/i, /webzio-extended/i], describe: function(e7) {
+          var t2 = { name: "Omgilibot" }, r7 = n3.default.getFirstMatch(/(?:omgilibot|webzio-extended)\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/diffbot/i], describe: function(e7) {
+          var t2 = { name: "Diffbot" }, r7 = n3.default.getFirstMatch(/diffbot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/perplexitybot/i], describe: function(e7) {
+          var t2 = { name: "PerplexityBot" }, r7 = n3.default.getFirstMatch(/perplexitybot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/perplexity-user/i], describe: function(e7) {
+          var t2 = { name: "Perplexity-User" }, r7 = n3.default.getFirstMatch(/perplexity-user\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/youbot/i], describe: function(e7) {
+          var t2 = { name: "YouBot" }, r7 = n3.default.getFirstMatch(/youbot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/meta-webindexer/i], describe: function(e7) {
+          var t2 = { name: "Meta-WebIndexer" }, r7 = n3.default.getFirstMatch(/meta-webindexer\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/meta-externalads/i], describe: function(e7) {
+          var t2 = { name: "Meta-ExternalAds" }, r7 = n3.default.getFirstMatch(/meta-externalads\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/meta-externalagent/i], describe: function(e7) {
+          var t2 = { name: "Meta-ExternalAgent" }, r7 = n3.default.getFirstMatch(/meta-externalagent\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/meta-externalfetcher/i], describe: function(e7) {
+          var t2 = { name: "Meta-ExternalFetcher" }, r7 = n3.default.getFirstMatch(/meta-externalfetcher\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/googlebot/i], describe: function(e7) {
+          var t2 = { name: "Googlebot" }, r7 = n3.default.getFirstMatch(/googlebot\/(\d+(\.\d+))/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/linespider/i], describe: function(e7) {
+          var t2 = { name: "Linespider" }, r7 = n3.default.getFirstMatch(/(?:linespider)(?:-[-\w]+)?[\s/](\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/amazonbot/i], describe: function(e7) {
+          var t2 = { name: "AmazonBot" }, r7 = n3.default.getFirstMatch(/amazonbot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/bingbot/i], describe: function(e7) {
+          var t2 = { name: "BingCrawler" }, r7 = n3.default.getFirstMatch(/bingbot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/baiduspider/i], describe: function(e7) {
+          var t2 = { name: "BaiduSpider" }, r7 = n3.default.getFirstMatch(/baiduspider\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/duckduckbot/i], describe: function(e7) {
+          var t2 = { name: "DuckDuckBot" }, r7 = n3.default.getFirstMatch(/duckduckbot\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/ia_archiver/i], describe: function(e7) {
+          var t2 = { name: "InternetArchiveCrawler" }, r7 = n3.default.getFirstMatch(/ia_archiver\/(\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
         } }, { test: [/facebookexternalhit/i, /facebookcatalog/i], describe: function() {
           return { name: "FacebookExternalHit" };
-        } }, { test: [/slackbot/i, /slack-imgProxy/i], describe: function(e6) {
-          var t2 = { name: "SlackBot" }, r6 = n3.default.getFirstMatch(/(?:slackbot|slack-imgproxy)(?:-[-\w]+)?[\s/](\d+(\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
+        } }, { test: [/slackbot/i, /slack-imgProxy/i], describe: function(e7) {
+          var t2 = { name: "SlackBot" }, r7 = n3.default.getFirstMatch(/(?:slackbot|slack-imgproxy)(?:-[-\w]+)?[\s/](\d+(\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
         } }, { test: [/yahoo!?[\s/]*slurp/i], describe: function() {
           return { name: "YahooSlurp" };
         } }, { test: [/yandexbot/i, /yandexmobilebot/i], describe: function() {
           return { name: "YandexBot" };
         } }, { test: [/pingdom/i], describe: function() {
           return { name: "PingdomBot" };
-        } }, { test: [/opera/i], describe: function(e6) {
-          var t2 = { name: "Opera" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:opera)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/opr\/|opios/i], describe: function(e6) {
-          var t2 = { name: "Opera" }, r6 = n3.default.getFirstMatch(/(?:opr|opios)[\s/](\S+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/SamsungBrowser/i], describe: function(e6) {
-          var t2 = { name: "Samsung Internet for Android" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:SamsungBrowser)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/Whale/i], describe: function(e6) {
-          var t2 = { name: "NAVER Whale Browser" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:whale)[\s/](\d+(?:\.\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/PaleMoon/i], describe: function(e6) {
-          var t2 = { name: "Pale Moon" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:PaleMoon)[\s/](\d+(?:\.\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/MZBrowser/i], describe: function(e6) {
-          var t2 = { name: "MZ Browser" }, r6 = n3.default.getFirstMatch(/(?:MZBrowser)[\s/](\d+(?:\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/focus/i], describe: function(e6) {
-          var t2 = { name: "Focus" }, r6 = n3.default.getFirstMatch(/(?:focus)[\s/](\d+(?:\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/swing/i], describe: function(e6) {
-          var t2 = { name: "Swing" }, r6 = n3.default.getFirstMatch(/(?:swing)[\s/](\d+(?:\.\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/coast/i], describe: function(e6) {
-          var t2 = { name: "Opera Coast" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:coast)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/opt\/\d+(?:.?_?\d+)+/i], describe: function(e6) {
-          var t2 = { name: "Opera Touch" }, r6 = n3.default.getFirstMatch(/(?:opt)[\s/](\d+(\.?_?\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/yabrowser/i], describe: function(e6) {
-          var t2 = { name: "Yandex Browser" }, r6 = n3.default.getFirstMatch(/(?:yabrowser)[\s/](\d+(\.?_?\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/ucbrowser/i], describe: function(e6) {
-          var t2 = { name: "UC Browser" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:ucbrowser)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/Maxthon|mxios/i], describe: function(e6) {
-          var t2 = { name: "Maxthon" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:Maxthon|mxios)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/epiphany/i], describe: function(e6) {
-          var t2 = { name: "Epiphany" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:epiphany)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/puffin/i], describe: function(e6) {
-          var t2 = { name: "Puffin" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:puffin)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/sleipnir/i], describe: function(e6) {
-          var t2 = { name: "Sleipnir" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:sleipnir)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/k-meleon/i], describe: function(e6) {
-          var t2 = { name: "K-Meleon" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/(?:k-meleon)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/micromessenger/i], describe: function(e6) {
-          var t2 = { name: "WeChat" }, r6 = n3.default.getFirstMatch(/(?:micromessenger)[\s/](\d+(\.?_?\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/qqbrowser/i], describe: function(e6) {
-          var t2 = { name: /qqbrowserlite/i.test(e6) ? "QQ Browser Lite" : "QQ Browser" }, r6 = n3.default.getFirstMatch(/(?:qqbrowserlite|qqbrowser)[/](\d+(\.?_?\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/msie|trident/i], describe: function(e6) {
-          var t2 = { name: "Internet Explorer" }, r6 = n3.default.getFirstMatch(/(?:msie |rv:)(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/\sedg\//i], describe: function(e6) {
-          var t2 = { name: "Microsoft Edge" }, r6 = n3.default.getFirstMatch(/\sedg\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/edg([ea]|ios)/i], describe: function(e6) {
-          var t2 = { name: "Microsoft Edge" }, r6 = n3.default.getSecondMatch(/edg([ea]|ios)\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/vivaldi/i], describe: function(e6) {
-          var t2 = { name: "Vivaldi" }, r6 = n3.default.getFirstMatch(/vivaldi\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/seamonkey/i], describe: function(e6) {
-          var t2 = { name: "SeaMonkey" }, r6 = n3.default.getFirstMatch(/seamonkey\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/sailfish/i], describe: function(e6) {
-          var t2 = { name: "Sailfish" }, r6 = n3.default.getFirstMatch(/sailfish\s?browser\/(\d+(\.\d+)?)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/silk/i], describe: function(e6) {
-          var t2 = { name: "Amazon Silk" }, r6 = n3.default.getFirstMatch(/silk\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/phantom/i], describe: function(e6) {
-          var t2 = { name: "PhantomJS" }, r6 = n3.default.getFirstMatch(/phantomjs\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/slimerjs/i], describe: function(e6) {
-          var t2 = { name: "SlimerJS" }, r6 = n3.default.getFirstMatch(/slimerjs\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/blackberry|\bbb\d+/i, /rim\stablet/i], describe: function(e6) {
-          var t2 = { name: "BlackBerry" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/blackberry[\d]+\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/(web|hpw)[o0]s/i], describe: function(e6) {
-          var t2 = { name: "WebOS Browser" }, r6 = n3.default.getFirstMatch(a5, e6) || n3.default.getFirstMatch(/w(?:eb)?[o0]sbrowser\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/bada/i], describe: function(e6) {
-          var t2 = { name: "Bada" }, r6 = n3.default.getFirstMatch(/dolfin\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/tizen/i], describe: function(e6) {
-          var t2 = { name: "Tizen" }, r6 = n3.default.getFirstMatch(/(?:tizen\s?)?browser\/(\d+(\.?_?\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/qupzilla/i], describe: function(e6) {
-          var t2 = { name: "QupZilla" }, r6 = n3.default.getFirstMatch(/(?:qupzilla)[\s/](\d+(\.?_?\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/librewolf/i], describe: function(e6) {
-          var t2 = { name: "LibreWolf" }, r6 = n3.default.getFirstMatch(/(?:librewolf)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/firefox|iceweasel|fxios/i], describe: function(e6) {
-          var t2 = { name: "Firefox" }, r6 = n3.default.getFirstMatch(/(?:firefox|iceweasel|fxios)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/electron/i], describe: function(e6) {
-          var t2 = { name: "Electron" }, r6 = n3.default.getFirstMatch(/(?:electron)\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/sogoumobilebrowser/i, /metasr/i, /se 2\.[x]/i], describe: function(e6) {
-          var t2 = { name: "Sogou Browser" }, r6 = n3.default.getFirstMatch(/(?:sogoumobilebrowser)[\s/](\d+(\.?_?\d+)+)/i, e6), i6 = n3.default.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, e6), a6 = n3.default.getFirstMatch(/se ([\d.]+)x/i, e6), o4 = r6 || i6 || a6;
+        } }, { test: [/opera/i], describe: function(e7) {
+          var t2 = { name: "Opera" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:opera)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/opr\/|opios/i], describe: function(e7) {
+          var t2 = { name: "Opera" }, r7 = n3.default.getFirstMatch(/(?:opr|opios)[\s/](\S+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/SamsungBrowser/i], describe: function(e7) {
+          var t2 = { name: "Samsung Internet for Android" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:SamsungBrowser)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/Whale/i], describe: function(e7) {
+          var t2 = { name: "NAVER Whale Browser" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:whale)[\s/](\d+(?:\.\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/PaleMoon/i], describe: function(e7) {
+          var t2 = { name: "Pale Moon" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:PaleMoon)[\s/](\d+(?:\.\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/MZBrowser/i], describe: function(e7) {
+          var t2 = { name: "MZ Browser" }, r7 = n3.default.getFirstMatch(/(?:MZBrowser)[\s/](\d+(?:\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/focus/i], describe: function(e7) {
+          var t2 = { name: "Focus" }, r7 = n3.default.getFirstMatch(/(?:focus)[\s/](\d+(?:\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/swing/i], describe: function(e7) {
+          var t2 = { name: "Swing" }, r7 = n3.default.getFirstMatch(/(?:swing)[\s/](\d+(?:\.\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/coast/i], describe: function(e7) {
+          var t2 = { name: "Opera Coast" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:coast)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/opt\/\d+(?:.?_?\d+)+/i], describe: function(e7) {
+          var t2 = { name: "Opera Touch" }, r7 = n3.default.getFirstMatch(/(?:opt)[\s/](\d+(\.?_?\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/yabrowser/i], describe: function(e7) {
+          var t2 = { name: "Yandex Browser" }, r7 = n3.default.getFirstMatch(/(?:yabrowser)[\s/](\d+(\.?_?\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/ucbrowser/i], describe: function(e7) {
+          var t2 = { name: "UC Browser" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:ucbrowser)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/Maxthon|mxios/i], describe: function(e7) {
+          var t2 = { name: "Maxthon" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:Maxthon|mxios)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/epiphany/i], describe: function(e7) {
+          var t2 = { name: "Epiphany" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:epiphany)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/puffin/i], describe: function(e7) {
+          var t2 = { name: "Puffin" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:puffin)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/sleipnir/i], describe: function(e7) {
+          var t2 = { name: "Sleipnir" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:sleipnir)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/k-meleon/i], describe: function(e7) {
+          var t2 = { name: "K-Meleon" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/(?:k-meleon)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/micromessenger/i], describe: function(e7) {
+          var t2 = { name: "WeChat" }, r7 = n3.default.getFirstMatch(/(?:micromessenger)[\s/](\d+(\.?_?\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/qqbrowser/i], describe: function(e7) {
+          var t2 = { name: /qqbrowserlite/i.test(e7) ? "QQ Browser Lite" : "QQ Browser" }, r7 = n3.default.getFirstMatch(/(?:qqbrowserlite|qqbrowser)[/](\d+(\.?_?\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/msie|trident/i], describe: function(e7) {
+          var t2 = { name: "Internet Explorer" }, r7 = n3.default.getFirstMatch(/(?:msie |rv:)(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/\sedg\//i], describe: function(e7) {
+          var t2 = { name: "Microsoft Edge" }, r7 = n3.default.getFirstMatch(/\sedg\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/edg([ea]|ios)/i], describe: function(e7) {
+          var t2 = { name: "Microsoft Edge" }, r7 = n3.default.getSecondMatch(/edg([ea]|ios)\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/vivaldi/i], describe: function(e7) {
+          var t2 = { name: "Vivaldi" }, r7 = n3.default.getFirstMatch(/vivaldi\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/seamonkey/i], describe: function(e7) {
+          var t2 = { name: "SeaMonkey" }, r7 = n3.default.getFirstMatch(/seamonkey\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/sailfish/i], describe: function(e7) {
+          var t2 = { name: "Sailfish" }, r7 = n3.default.getFirstMatch(/sailfish\s?browser\/(\d+(\.\d+)?)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/silk/i], describe: function(e7) {
+          var t2 = { name: "Amazon Silk" }, r7 = n3.default.getFirstMatch(/silk\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/phantom/i], describe: function(e7) {
+          var t2 = { name: "PhantomJS" }, r7 = n3.default.getFirstMatch(/phantomjs\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/slimerjs/i], describe: function(e7) {
+          var t2 = { name: "SlimerJS" }, r7 = n3.default.getFirstMatch(/slimerjs\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/blackberry|\bbb\d+/i, /rim\stablet/i], describe: function(e7) {
+          var t2 = { name: "BlackBerry" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/blackberry[\d]+\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/(web|hpw)[o0]s/i], describe: function(e7) {
+          var t2 = { name: "WebOS Browser" }, r7 = n3.default.getFirstMatch(a6, e7) || n3.default.getFirstMatch(/w(?:eb)?[o0]sbrowser\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/bada/i], describe: function(e7) {
+          var t2 = { name: "Bada" }, r7 = n3.default.getFirstMatch(/dolfin\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/tizen/i], describe: function(e7) {
+          var t2 = { name: "Tizen" }, r7 = n3.default.getFirstMatch(/(?:tizen\s?)?browser\/(\d+(\.?_?\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/qupzilla/i], describe: function(e7) {
+          var t2 = { name: "QupZilla" }, r7 = n3.default.getFirstMatch(/(?:qupzilla)[\s/](\d+(\.?_?\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/librewolf/i], describe: function(e7) {
+          var t2 = { name: "LibreWolf" }, r7 = n3.default.getFirstMatch(/(?:librewolf)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/firefox|iceweasel|fxios/i], describe: function(e7) {
+          var t2 = { name: "Firefox" }, r7 = n3.default.getFirstMatch(/(?:firefox|iceweasel|fxios)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/electron/i], describe: function(e7) {
+          var t2 = { name: "Electron" }, r7 = n3.default.getFirstMatch(/(?:electron)\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/sogoumobilebrowser/i, /metasr/i, /se 2\.[x]/i], describe: function(e7) {
+          var t2 = { name: "Sogou Browser" }, r7 = n3.default.getFirstMatch(/(?:sogoumobilebrowser)[\s/](\d+(\.?_?\d+)+)/i, e7), i7 = n3.default.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, e7), a7 = n3.default.getFirstMatch(/se ([\d.]+)x/i, e7), o4 = r7 || i7 || a7;
           return o4 && (t2.version = o4), t2;
-        } }, { test: [/MiuiBrowser/i], describe: function(e6) {
-          var t2 = { name: "Miui" }, r6 = n3.default.getFirstMatch(/(?:MiuiBrowser)[\s/](\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: function(e6) {
-          return !!e6.hasBrand("DuckDuckGo") || e6.test(/\sDdg\/[\d.]+$/i);
-        }, describe: function(e6, t2) {
-          var r6 = { name: "DuckDuckGo" };
+        } }, { test: [/MiuiBrowser/i], describe: function(e7) {
+          var t2 = { name: "Miui" }, r7 = n3.default.getFirstMatch(/(?:MiuiBrowser)[\s/](\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: function(e7) {
+          return !!e7.hasBrand("DuckDuckGo") || e7.test(/\sDdg\/[\d.]+$/i);
+        }, describe: function(e7, t2) {
+          var r7 = { name: "DuckDuckGo" };
           if (t2) {
-            var i6 = t2.getBrandVersion("DuckDuckGo");
-            if (i6) return r6.version = i6, r6;
+            var i7 = t2.getBrandVersion("DuckDuckGo");
+            if (i7) return r7.version = i7, r7;
           }
-          var a6 = n3.default.getFirstMatch(/\sDdg\/([\d.]+)$/i, e6);
-          return a6 && (r6.version = a6), r6;
-        } }, { test: function(e6) {
-          return e6.hasBrand("Brave");
-        }, describe: function(e6, t2) {
-          var r6 = { name: "Brave" };
+          var a7 = n3.default.getFirstMatch(/\sDdg\/([\d.]+)$/i, e7);
+          return a7 && (r7.version = a7), r7;
+        } }, { test: function(e7) {
+          return e7.hasBrand("Brave");
+        }, describe: function(e7, t2) {
+          var r7 = { name: "Brave" };
           if (t2) {
-            var i6 = t2.getBrandVersion("Brave");
-            if (i6) return r6.version = i6, r6;
+            var i7 = t2.getBrandVersion("Brave");
+            if (i7) return r7.version = i7, r7;
           }
-          return r6;
-        } }, { test: [/chromium/i], describe: function(e6) {
-          var t2 = { name: "Chromium" }, r6 = n3.default.getFirstMatch(/(?:chromium)[\s/](\d+(\.?_?\d+)+)/i, e6) || n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/chrome|crios|crmo/i], describe: function(e6) {
-          var t2 = { name: "Chrome" }, r6 = n3.default.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/GSA/i], describe: function(e6) {
-          var t2 = { name: "Google Search" }, r6 = n3.default.getFirstMatch(/(?:GSA)\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: function(e6) {
-          var t2 = !e6.test(/like android/i), r6 = e6.test(/android/i);
-          return t2 && r6;
-        }, describe: function(e6) {
-          var t2 = { name: "Android Browser" }, r6 = n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/playstation 4/i], describe: function(e6) {
-          var t2 = { name: "PlayStation 4" }, r6 = n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/safari|applewebkit/i], describe: function(e6) {
-          var t2 = { name: "Safari" }, r6 = n3.default.getFirstMatch(a5, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/.*/i], describe: function(e6) {
-          var t2 = -1 !== e6.search("\\(") ? /^(.*)\/(.*)[ \t]\((.*)/ : /^(.*)\/(.*) /;
-          return { name: n3.default.getFirstMatch(t2, e6), version: n3.default.getSecondMatch(t2, e6) };
+          return r7;
+        } }, { test: [/chromium/i], describe: function(e7) {
+          var t2 = { name: "Chromium" }, r7 = n3.default.getFirstMatch(/(?:chromium)[\s/](\d+(\.?_?\d+)+)/i, e7) || n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/chrome|crios|crmo/i], describe: function(e7) {
+          var t2 = { name: "Chrome" }, r7 = n3.default.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/GSA/i], describe: function(e7) {
+          var t2 = { name: "Google Search" }, r7 = n3.default.getFirstMatch(/(?:GSA)\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: function(e7) {
+          var t2 = !e7.test(/like android/i), r7 = e7.test(/android/i);
+          return t2 && r7;
+        }, describe: function(e7) {
+          var t2 = { name: "Android Browser" }, r7 = n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/playstation 4/i], describe: function(e7) {
+          var t2 = { name: "PlayStation 4" }, r7 = n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/safari|applewebkit/i], describe: function(e7) {
+          var t2 = { name: "Safari" }, r7 = n3.default.getFirstMatch(a6, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/.*/i], describe: function(e7) {
+          var t2 = -1 !== e7.search("\\(") ? /^(.*)\/(.*)[ \t]\((.*)/ : /^(.*)\/(.*) /;
+          return { name: n3.default.getFirstMatch(t2, e7), version: n3.default.getSecondMatch(t2, e7) };
         } }];
-        t.default = o3, e5.exports = t.default;
-      }, 93: function(e5, t, r5) {
+        t.default = o3, e6.exports = t.default;
+      }, 93: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.default = void 0;
-        var i5, n3 = (i5 = r5(17)) && i5.__esModule ? i5 : { default: i5 }, a5 = r5(18);
-        var o3 = [{ test: [/Roku\/DVP/], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/Roku\/DVP-(\d+\.\d+)/i, e6);
-          return { name: a5.OS_MAP.Roku, version: t2 };
-        } }, { test: [/windows phone/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/windows phone (?:os)?\s?(\d+(\.\d+)*)/i, e6);
-          return { name: a5.OS_MAP.WindowsPhone, version: t2 };
-        } }, { test: [/windows /i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/Windows ((NT|XP)( \d\d?.\d)?)/i, e6), r6 = n3.default.getWindowsVersionName(t2);
-          return { name: a5.OS_MAP.Windows, version: t2, versionName: r6 };
-        } }, { test: [/Macintosh(.*?) FxiOS(.*?)\//], describe: function(e6) {
-          var t2 = { name: a5.OS_MAP.iOS }, r6 = n3.default.getSecondMatch(/(Version\/)(\d[\d.]+)/, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: [/macintosh/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/mac os x (\d+(\.?_?\d+)+)/i, e6).replace(/[_\s]/g, "."), r6 = n3.default.getMacOSVersionName(t2), i6 = { name: a5.OS_MAP.MacOS, version: t2 };
-          return r6 && (i6.versionName = r6), i6;
-        } }, { test: [/(ipod|iphone|ipad)/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/os (\d+([_\s]\d+)*) like mac os x/i, e6).replace(/[_\s]/g, ".");
-          return { name: a5.OS_MAP.iOS, version: t2 };
-        } }, { test: [/OpenHarmony/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/OpenHarmony\s+(\d+(\.\d+)*)/i, e6);
-          return { name: a5.OS_MAP.HarmonyOS, version: t2 };
-        } }, { test: function(e6) {
-          var t2 = !e6.test(/like android/i), r6 = e6.test(/android/i);
-          return t2 && r6;
-        }, describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/android[\s/-](\d+(\.\d+)*)/i, e6), r6 = n3.default.getAndroidVersionName(t2), i6 = { name: a5.OS_MAP.Android, version: t2 };
-          return r6 && (i6.versionName = r6), i6;
-        } }, { test: [/(web|hpw)[o0]s/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/(?:web|hpw)[o0]s\/(\d+(\.\d+)*)/i, e6), r6 = { name: a5.OS_MAP.WebOS };
-          return t2 && t2.length && (r6.version = t2), r6;
-        } }, { test: [/blackberry|\bbb\d+/i, /rim\stablet/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/rim\stablet\sos\s(\d+(\.\d+)*)/i, e6) || n3.default.getFirstMatch(/blackberry\d+\/(\d+([_\s]\d+)*)/i, e6) || n3.default.getFirstMatch(/\bbb(\d+)/i, e6);
-          return { name: a5.OS_MAP.BlackBerry, version: t2 };
-        } }, { test: [/bada/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/bada\/(\d+(\.\d+)*)/i, e6);
-          return { name: a5.OS_MAP.Bada, version: t2 };
-        } }, { test: [/tizen/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/tizen[/\s](\d+(\.\d+)*)/i, e6);
-          return { name: a5.OS_MAP.Tizen, version: t2 };
+        var i6, n3 = (i6 = r6(17)) && i6.__esModule ? i6 : { default: i6 }, a6 = r6(18);
+        var o3 = [{ test: [/Roku\/DVP/], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/Roku\/DVP-(\d+\.\d+)/i, e7);
+          return { name: a6.OS_MAP.Roku, version: t2 };
+        } }, { test: [/windows phone/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/windows phone (?:os)?\s?(\d+(\.\d+)*)/i, e7);
+          return { name: a6.OS_MAP.WindowsPhone, version: t2 };
+        } }, { test: [/windows /i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/Windows ((NT|XP)( \d\d?.\d)?)/i, e7), r7 = n3.default.getWindowsVersionName(t2);
+          return { name: a6.OS_MAP.Windows, version: t2, versionName: r7 };
+        } }, { test: [/Macintosh(.*?) FxiOS(.*?)\//], describe: function(e7) {
+          var t2 = { name: a6.OS_MAP.iOS }, r7 = n3.default.getSecondMatch(/(Version\/)(\d[\d.]+)/, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: [/macintosh/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/mac os x (\d+(\.?_?\d+)+)/i, e7).replace(/[_\s]/g, "."), r7 = n3.default.getMacOSVersionName(t2), i7 = { name: a6.OS_MAP.MacOS, version: t2 };
+          return r7 && (i7.versionName = r7), i7;
+        } }, { test: [/(ipod|iphone|ipad)/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/os (\d+([_\s]\d+)*) like mac os x/i, e7).replace(/[_\s]/g, ".");
+          return { name: a6.OS_MAP.iOS, version: t2 };
+        } }, { test: [/OpenHarmony/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/OpenHarmony\s+(\d+(\.\d+)*)/i, e7);
+          return { name: a6.OS_MAP.HarmonyOS, version: t2 };
+        } }, { test: function(e7) {
+          var t2 = !e7.test(/like android/i), r7 = e7.test(/android/i);
+          return t2 && r7;
+        }, describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/android[\s/-](\d+(\.\d+)*)/i, e7), r7 = n3.default.getAndroidVersionName(t2), i7 = { name: a6.OS_MAP.Android, version: t2 };
+          return r7 && (i7.versionName = r7), i7;
+        } }, { test: [/(web|hpw)[o0]s/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/(?:web|hpw)[o0]s\/(\d+(\.\d+)*)/i, e7), r7 = { name: a6.OS_MAP.WebOS };
+          return t2 && t2.length && (r7.version = t2), r7;
+        } }, { test: [/blackberry|\bbb\d+/i, /rim\stablet/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/rim\stablet\sos\s(\d+(\.\d+)*)/i, e7) || n3.default.getFirstMatch(/blackberry\d+\/(\d+([_\s]\d+)*)/i, e7) || n3.default.getFirstMatch(/\bbb(\d+)/i, e7);
+          return { name: a6.OS_MAP.BlackBerry, version: t2 };
+        } }, { test: [/bada/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/bada\/(\d+(\.\d+)*)/i, e7);
+          return { name: a6.OS_MAP.Bada, version: t2 };
+        } }, { test: [/tizen/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/tizen[/\s](\d+(\.\d+)*)/i, e7);
+          return { name: a6.OS_MAP.Tizen, version: t2 };
         } }, { test: [/linux/i], describe: function() {
-          return { name: a5.OS_MAP.Linux };
+          return { name: a6.OS_MAP.Linux };
         } }, { test: [/CrOS/], describe: function() {
-          return { name: a5.OS_MAP.ChromeOS };
-        } }, { test: [/PlayStation 4/], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/PlayStation 4[/\s](\d+(\.\d+)*)/i, e6);
-          return { name: a5.OS_MAP.PlayStation4, version: t2 };
+          return { name: a6.OS_MAP.ChromeOS };
+        } }, { test: [/PlayStation 4/], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/PlayStation 4[/\s](\d+(\.\d+)*)/i, e7);
+          return { name: a6.OS_MAP.PlayStation4, version: t2 };
         } }];
-        t.default = o3, e5.exports = t.default;
-      }, 94: function(e5, t, r5) {
+        t.default = o3, e6.exports = t.default;
+      }, 94: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.default = void 0;
-        var i5, n3 = (i5 = r5(17)) && i5.__esModule ? i5 : { default: i5 }, a5 = r5(18);
+        var i6, n3 = (i6 = r6(17)) && i6.__esModule ? i6 : { default: i6 }, a6 = r6(18);
         var o3 = [{ test: [/googlebot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Google" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Google" };
         } }, { test: [/linespider/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Line" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Line" };
         } }, { test: [/amazonbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Amazon" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Amazon" };
         } }, { test: [/gptbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "OpenAI" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "OpenAI" };
         } }, { test: [/chatgpt-user/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "OpenAI" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "OpenAI" };
         } }, { test: [/oai-searchbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "OpenAI" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "OpenAI" };
         } }, { test: [/baiduspider/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Baidu" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Baidu" };
         } }, { test: [/bingbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Bing" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Bing" };
         } }, { test: [/duckduckbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "DuckDuckGo" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "DuckDuckGo" };
         } }, { test: [/claudebot/i, /claude-web/i, /claude-user/i, /claude-searchbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Anthropic" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Anthropic" };
         } }, { test: [/omgilibot/i, /webzio-extended/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Webz.io" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Webz.io" };
         } }, { test: [/diffbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Diffbot" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Diffbot" };
         } }, { test: [/perplexitybot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Perplexity AI" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Perplexity AI" };
         } }, { test: [/perplexity-user/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Perplexity AI" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Perplexity AI" };
         } }, { test: [/youbot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "You.com" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "You.com" };
         } }, { test: [/ia_archiver/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Internet Archive" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Internet Archive" };
         } }, { test: [/meta-webindexer/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Meta" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Meta" };
         } }, { test: [/meta-externalads/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Meta" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Meta" };
         } }, { test: [/meta-externalagent/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Meta" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Meta" };
         } }, { test: [/meta-externalfetcher/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Meta" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Meta" };
         } }, { test: [/facebookexternalhit/i, /facebookcatalog/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Meta" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Meta" };
         } }, { test: [/slackbot/i, /slack-imgProxy/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Slack" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Slack" };
         } }, { test: [/yahoo/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Yahoo" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Yahoo" };
         } }, { test: [/yandexbot/i, /yandexmobilebot/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Yandex" };
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Yandex" };
         } }, { test: [/pingdom/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.bot, vendor: "Pingdom" };
-        } }, { test: [/huawei/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/(can-l01)/i, e6) && "Nova", r6 = { type: a5.PLATFORMS_MAP.mobile, vendor: "Huawei" };
-          return t2 && (r6.model = t2), r6;
+          return { type: a6.PLATFORMS_MAP.bot, vendor: "Pingdom" };
+        } }, { test: [/huawei/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/(can-l01)/i, e7) && "Nova", r7 = { type: a6.PLATFORMS_MAP.mobile, vendor: "Huawei" };
+          return t2 && (r7.model = t2), r7;
         } }, { test: [/nexus\s*(?:7|8|9|10).*/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tablet, vendor: "Nexus" };
+          return { type: a6.PLATFORMS_MAP.tablet, vendor: "Nexus" };
         } }, { test: [/ipad/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tablet, vendor: "Apple", model: "iPad" };
+          return { type: a6.PLATFORMS_MAP.tablet, vendor: "Apple", model: "iPad" };
         } }, { test: [/Macintosh(.*?) FxiOS(.*?)\//], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tablet, vendor: "Apple", model: "iPad" };
+          return { type: a6.PLATFORMS_MAP.tablet, vendor: "Apple", model: "iPad" };
         } }, { test: [/kftt build/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tablet, vendor: "Amazon", model: "Kindle Fire HD 7" };
+          return { type: a6.PLATFORMS_MAP.tablet, vendor: "Amazon", model: "Kindle Fire HD 7" };
         } }, { test: [/silk/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tablet, vendor: "Amazon" };
+          return { type: a6.PLATFORMS_MAP.tablet, vendor: "Amazon" };
         } }, { test: [/tablet(?! pc)/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tablet };
-        } }, { test: function(e6) {
-          var t2 = e6.test(/ipod|iphone/i), r6 = e6.test(/like (ipod|iphone)/i);
-          return t2 && !r6;
-        }, describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/(ipod|iphone)/i, e6);
-          return { type: a5.PLATFORMS_MAP.mobile, vendor: "Apple", model: t2 };
+          return { type: a6.PLATFORMS_MAP.tablet };
+        } }, { test: function(e7) {
+          var t2 = e7.test(/ipod|iphone/i), r7 = e7.test(/like (ipod|iphone)/i);
+          return t2 && !r7;
+        }, describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/(ipod|iphone)/i, e7);
+          return { type: a6.PLATFORMS_MAP.mobile, vendor: "Apple", model: t2 };
         } }, { test: [/nexus\s*[0-6].*/i, /galaxy nexus/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.mobile, vendor: "Nexus" };
-        } }, { test: [/Nokia/i], describe: function(e6) {
-          var t2 = n3.default.getFirstMatch(/Nokia\s+([0-9]+(\.[0-9]+)?)/i, e6), r6 = { type: a5.PLATFORMS_MAP.mobile, vendor: "Nokia" };
-          return t2 && (r6.model = t2), r6;
+          return { type: a6.PLATFORMS_MAP.mobile, vendor: "Nexus" };
+        } }, { test: [/Nokia/i], describe: function(e7) {
+          var t2 = n3.default.getFirstMatch(/Nokia\s+([0-9]+(\.[0-9]+)?)/i, e7), r7 = { type: a6.PLATFORMS_MAP.mobile, vendor: "Nokia" };
+          return t2 && (r7.model = t2), r7;
         } }, { test: [/[^-]mobi/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.mobile };
-        } }, { test: function(e6) {
-          return "blackberry" === e6.getBrowserName(true);
+          return { type: a6.PLATFORMS_MAP.mobile };
+        } }, { test: function(e7) {
+          return "blackberry" === e7.getBrowserName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.mobile, vendor: "BlackBerry" };
-        } }, { test: function(e6) {
-          return "bada" === e6.getBrowserName(true);
+          return { type: a6.PLATFORMS_MAP.mobile, vendor: "BlackBerry" };
+        } }, { test: function(e7) {
+          return "bada" === e7.getBrowserName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.mobile };
-        } }, { test: function(e6) {
-          return "windows phone" === e6.getBrowserName();
+          return { type: a6.PLATFORMS_MAP.mobile };
+        } }, { test: function(e7) {
+          return "windows phone" === e7.getBrowserName();
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.mobile, vendor: "Microsoft" };
-        } }, { test: function(e6) {
-          var t2 = Number(String(e6.getOSVersion()).split(".")[0]);
-          return "android" === e6.getOSName(true) && t2 >= 3;
+          return { type: a6.PLATFORMS_MAP.mobile, vendor: "Microsoft" };
+        } }, { test: function(e7) {
+          var t2 = Number(String(e7.getOSVersion()).split(".")[0]);
+          return "android" === e7.getOSName(true) && t2 >= 3;
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.tablet };
-        } }, { test: function(e6) {
-          return "android" === e6.getOSName(true);
+          return { type: a6.PLATFORMS_MAP.tablet };
+        } }, { test: function(e7) {
+          return "android" === e7.getOSName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.mobile };
+          return { type: a6.PLATFORMS_MAP.mobile };
         } }, { test: [/smart-?tv|smarttv/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tv };
+          return { type: a6.PLATFORMS_MAP.tv };
         } }, { test: [/netcast/i], describe: function() {
-          return { type: a5.PLATFORMS_MAP.tv };
-        } }, { test: function(e6) {
-          return "macos" === e6.getOSName(true);
+          return { type: a6.PLATFORMS_MAP.tv };
+        } }, { test: function(e7) {
+          return "macos" === e7.getOSName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.desktop, vendor: "Apple" };
-        } }, { test: function(e6) {
-          return "windows" === e6.getOSName(true);
+          return { type: a6.PLATFORMS_MAP.desktop, vendor: "Apple" };
+        } }, { test: function(e7) {
+          return "windows" === e7.getOSName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.desktop };
-        } }, { test: function(e6) {
-          return "linux" === e6.getOSName(true);
+          return { type: a6.PLATFORMS_MAP.desktop };
+        } }, { test: function(e7) {
+          return "linux" === e7.getOSName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.desktop };
-        } }, { test: function(e6) {
-          return "playstation 4" === e6.getOSName(true);
+          return { type: a6.PLATFORMS_MAP.desktop };
+        } }, { test: function(e7) {
+          return "playstation 4" === e7.getOSName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.tv };
-        } }, { test: function(e6) {
-          return "roku" === e6.getOSName(true);
+          return { type: a6.PLATFORMS_MAP.tv };
+        } }, { test: function(e7) {
+          return "roku" === e7.getOSName(true);
         }, describe: function() {
-          return { type: a5.PLATFORMS_MAP.tv };
+          return { type: a6.PLATFORMS_MAP.tv };
         } }];
-        t.default = o3, e5.exports = t.default;
-      }, 95: function(e5, t, r5) {
+        t.default = o3, e6.exports = t.default;
+      }, 95: function(e6, t, r6) {
         "use strict";
         t.__esModule = true, t.default = void 0;
-        var i5, n3 = (i5 = r5(17)) && i5.__esModule ? i5 : { default: i5 }, a5 = r5(18);
-        var o3 = [{ test: function(e6) {
-          return "microsoft edge" === e6.getBrowserName(true);
-        }, describe: function(e6) {
-          if (/\sedg\//i.test(e6)) return { name: a5.ENGINE_MAP.Blink };
-          var t2 = n3.default.getFirstMatch(/edge\/(\d+(\.?_?\d+)+)/i, e6);
-          return { name: a5.ENGINE_MAP.EdgeHTML, version: t2 };
-        } }, { test: [/trident/i], describe: function(e6) {
-          var t2 = { name: a5.ENGINE_MAP.Trident }, r6 = n3.default.getFirstMatch(/trident\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: function(e6) {
-          return e6.test(/presto/i);
-        }, describe: function(e6) {
-          var t2 = { name: a5.ENGINE_MAP.Presto }, r6 = n3.default.getFirstMatch(/presto\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
-        } }, { test: function(e6) {
-          var t2 = e6.test(/gecko/i), r6 = e6.test(/like gecko/i);
-          return t2 && !r6;
-        }, describe: function(e6) {
-          var t2 = { name: a5.ENGINE_MAP.Gecko }, r6 = n3.default.getFirstMatch(/gecko\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
+        var i6, n3 = (i6 = r6(17)) && i6.__esModule ? i6 : { default: i6 }, a6 = r6(18);
+        var o3 = [{ test: function(e7) {
+          return "microsoft edge" === e7.getBrowserName(true);
+        }, describe: function(e7) {
+          if (/\sedg\//i.test(e7)) return { name: a6.ENGINE_MAP.Blink };
+          var t2 = n3.default.getFirstMatch(/edge\/(\d+(\.?_?\d+)+)/i, e7);
+          return { name: a6.ENGINE_MAP.EdgeHTML, version: t2 };
+        } }, { test: [/trident/i], describe: function(e7) {
+          var t2 = { name: a6.ENGINE_MAP.Trident }, r7 = n3.default.getFirstMatch(/trident\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: function(e7) {
+          return e7.test(/presto/i);
+        }, describe: function(e7) {
+          var t2 = { name: a6.ENGINE_MAP.Presto }, r7 = n3.default.getFirstMatch(/presto\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
+        } }, { test: function(e7) {
+          var t2 = e7.test(/gecko/i), r7 = e7.test(/like gecko/i);
+          return t2 && !r7;
+        }, describe: function(e7) {
+          var t2 = { name: a6.ENGINE_MAP.Gecko }, r7 = n3.default.getFirstMatch(/gecko\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
         } }, { test: [/(apple)?webkit\/537\.36/i], describe: function() {
-          return { name: a5.ENGINE_MAP.Blink };
-        } }, { test: [/(apple)?webkit/i], describe: function(e6) {
-          var t2 = { name: a5.ENGINE_MAP.WebKit }, r6 = n3.default.getFirstMatch(/webkit\/(\d+(\.?_?\d+)+)/i, e6);
-          return r6 && (t2.version = r6), t2;
+          return { name: a6.ENGINE_MAP.Blink };
+        } }, { test: [/(apple)?webkit/i], describe: function(e7) {
+          var t2 = { name: a6.ENGINE_MAP.WebKit }, r7 = n3.default.getFirstMatch(/webkit\/(\d+(\.?_?\d+)+)/i, e7);
+          return r7 && (t2.version = r7), t2;
         } }];
-        t.default = o3, e5.exports = t.default;
+        t.default = o3, e6.exports = t.default;
       } });
     }));
   }
@@ -13816,11 +13816,11 @@ var require_iterator = __commonJS({
         return this;
       };
     Iterator.of = function() {
-      var args = arguments, l3 = args.length, i5 = 0;
+      var args = arguments, l4 = args.length, i6 = 0;
       return new Iterator(function() {
-        if (i5 >= l3)
+        if (i6 >= l4)
           return { done: true };
-        return { done: false, value: args[i5++] };
+        return { done: false, value: args[i6++] };
       });
     };
     Iterator.empty = function() {
@@ -13843,14 +13843,14 @@ var require_foreach = __commonJS({
     var ARRAY_BUFFER_SUPPORT = typeof ArrayBuffer !== "undefined";
     var SYMBOL_SUPPORT = typeof Symbol !== "undefined";
     function forEach(iterable, callback) {
-      var iterator, k5, i5, l3, s2;
+      var iterator, k6, i6, l4, s2;
       if (!iterable)
         throw new Error("obliterator/forEach: invalid iterable.");
       if (typeof callback !== "function")
         throw new Error("obliterator/forEach: expecting a callback.");
       if (Array.isArray(iterable) || ARRAY_BUFFER_SUPPORT && ArrayBuffer.isView(iterable) || typeof iterable === "string" || iterable.toString() === "[object Arguments]") {
-        for (i5 = 0, l3 = iterable.length; i5 < l3; i5++)
-          callback(iterable[i5], i5);
+        for (i6 = 0, l4 = iterable.length; i6 < l4; i6++)
+          callback(iterable[i6], i6);
         return;
       }
       if (typeof iterable.forEach === "function") {
@@ -13862,29 +13862,29 @@ var require_foreach = __commonJS({
       }
       if (typeof iterable.next === "function") {
         iterator = iterable;
-        i5 = 0;
+        i6 = 0;
         while (s2 = iterator.next(), s2.done !== true) {
-          callback(s2.value, i5);
-          i5++;
+          callback(s2.value, i6);
+          i6++;
         }
         return;
       }
-      for (k5 in iterable) {
-        if (iterable.hasOwnProperty(k5)) {
-          callback(iterable[k5], k5);
+      for (k6 in iterable) {
+        if (iterable.hasOwnProperty(k6)) {
+          callback(iterable[k6], k6);
         }
       }
       return;
     }
     forEach.forEachWithNullKeys = function(iterable, callback) {
-      var iterator, k5, i5, l3, s2;
+      var iterator, k6, i6, l4, s2;
       if (!iterable)
         throw new Error("obliterator/forEachWithNullKeys: invalid iterable.");
       if (typeof callback !== "function")
         throw new Error("obliterator/forEachWithNullKeys: expecting a callback.");
       if (Array.isArray(iterable) || ARRAY_BUFFER_SUPPORT && ArrayBuffer.isView(iterable) || typeof iterable === "string" || iterable.toString() === "[object Arguments]") {
-        for (i5 = 0, l3 = iterable.length; i5 < l3; i5++)
-          callback(iterable[i5], null);
+        for (i6 = 0, l4 = iterable.length; i6 < l4; i6++)
+          callback(iterable[i6], null);
         return;
       }
       if (iterable instanceof Set) {
@@ -13902,16 +13902,16 @@ var require_foreach = __commonJS({
       }
       if (typeof iterable.next === "function") {
         iterator = iterable;
-        i5 = 0;
+        i6 = 0;
         while (s2 = iterator.next(), s2.done !== true) {
           callback(s2.value, null);
-          i5++;
+          i6++;
         }
         return;
       }
-      for (k5 in iterable) {
-        if (iterable.hasOwnProperty(k5)) {
-          callback(iterable[k5], k5);
+      for (k6 in iterable) {
+        if (iterable.hasOwnProperty(k6)) {
+          callback(iterable[k6], k6);
         }
       }
       return;
@@ -13978,9 +13978,9 @@ var require_typed_arrays = __commonJS({
       Float64Array: 8
     };
     exports2.getMinimalRepresentation = function(array, getter) {
-      var maxType = null, maxPriority = 0, p3, t, v, i5, l3;
-      for (i5 = 0, l3 = array.length; i5 < l3; i5++) {
-        v = getter ? getter(array[i5]) : array[i5];
+      var maxType = null, maxPriority = 0, p3, t, v, i6, l4;
+      for (i6 = 0, l4 = array.length; i6 < l4; i6++) {
+        v = getter ? getter(array[i6]) : array[i6];
         t = exports2.getNumberType(v);
         p3 = TYPE_PRIORITY[t.name];
         if (p3 > maxPriority) {
@@ -13994,21 +13994,21 @@ var require_typed_arrays = __commonJS({
       return typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(value);
     };
     exports2.concat = function() {
-      var length = 0, i5, o3, l3;
-      for (i5 = 0, l3 = arguments.length; i5 < l3; i5++)
-        length += arguments[i5].length;
+      var length = 0, i6, o3, l4;
+      for (i6 = 0, l4 = arguments.length; i6 < l4; i6++)
+        length += arguments[i6].length;
       var array = new arguments[0].constructor(length);
-      for (i5 = 0, o3 = 0; i5 < l3; i5++) {
-        array.set(arguments[i5], o3);
-        o3 += arguments[i5].length;
+      for (i6 = 0, o3 = 0; i6 < l4; i6++) {
+        array.set(arguments[i6], o3);
+        o3 += arguments[i6].length;
       }
       return array;
     };
     exports2.indices = function(length) {
       var PointerArray = exports2.getPointerArray(length);
       var array = new PointerArray(length);
-      for (var i5 = 0; i5 < length; i5++)
-        array[i5] = i5;
+      for (var i6 = 0; i6 < length; i6++)
+        array[i6] = i6;
       return array;
     };
   }
@@ -14030,23 +14030,23 @@ var require_iterables = __commonJS({
       return;
     }
     function toArray(target) {
-      var l3 = guessLength(target);
-      var array = typeof l3 === "number" ? new Array(l3) : [];
-      var i5 = 0;
+      var l4 = guessLength(target);
+      var array = typeof l4 === "number" ? new Array(l4) : [];
+      var i6 = 0;
       forEach(target, function(value) {
-        array[i5++] = value;
+        array[i6++] = value;
       });
       return array;
     }
     function toArrayWithIndices(target) {
-      var l3 = guessLength(target);
-      var IndexArray = typeof l3 === "number" ? typed.getPointerArray(l3) : Array;
-      var array = typeof l3 === "number" ? new Array(l3) : [];
-      var indices = typeof l3 === "number" ? new IndexArray(l3) : [];
-      var i5 = 0;
+      var l4 = guessLength(target);
+      var IndexArray = typeof l4 === "number" ? typed.getPointerArray(l4) : Array;
+      var array = typeof l4 === "number" ? new Array(l4) : [];
+      var indices = typeof l4 === "number" ? new IndexArray(l4) : [];
+      var i6 = 0;
       forEach(target, function(value) {
-        array[i5] = value;
-        indices[i5] = i5++;
+        array[i6] = value;
+        indices[i6] = i6++;
       });
       return [array, indices];
     }
@@ -14175,23 +14175,23 @@ var require_lru_cache = __commonJS({
     };
     LRUCache.prototype.forEach = function(callback, scope) {
       scope = arguments.length > 1 ? scope : this;
-      var i5 = 0, l3 = this.size;
+      var i6 = 0, l4 = this.size;
       var pointer = this.head, keys = this.K, values = this.V, forward = this.forward;
-      while (i5 < l3) {
+      while (i6 < l4) {
         callback.call(scope, values[pointer], keys[pointer], this);
         pointer = forward[pointer];
-        i5++;
+        i6++;
       }
     };
     LRUCache.prototype.keys = function() {
-      var i5 = 0, l3 = this.size;
+      var i6 = 0, l4 = this.size;
       var pointer = this.head, keys = this.K, forward = this.forward;
       return new Iterator(function() {
-        if (i5 >= l3)
+        if (i6 >= l4)
           return { done: true };
         var key = keys[pointer];
-        i5++;
-        if (i5 < l3)
+        i6++;
+        if (i6 < l4)
           pointer = forward[pointer];
         return {
           done: false,
@@ -14200,14 +14200,14 @@ var require_lru_cache = __commonJS({
       });
     };
     LRUCache.prototype.values = function() {
-      var i5 = 0, l3 = this.size;
+      var i6 = 0, l4 = this.size;
       var pointer = this.head, values = this.V, forward = this.forward;
       return new Iterator(function() {
-        if (i5 >= l3)
+        if (i6 >= l4)
           return { done: true };
         var value = values[pointer];
-        i5++;
-        if (i5 < l3)
+        i6++;
+        if (i6 < l4)
           pointer = forward[pointer];
         return {
           done: false,
@@ -14216,14 +14216,14 @@ var require_lru_cache = __commonJS({
       });
     };
     LRUCache.prototype.entries = function() {
-      var i5 = 0, l3 = this.size;
+      var i6 = 0, l4 = this.size;
       var pointer = this.head, keys = this.K, values = this.V, forward = this.forward;
       return new Iterator(function() {
-        if (i5 >= l3)
+        if (i6 >= l4)
           return { done: true };
         var key = keys[pointer], value = values[pointer];
-        i5++;
-        if (i5 < l3)
+        i6++;
+        if (i6 < l4)
           pointer = forward[pointer];
         return {
           done: false,
@@ -14256,11 +14256,11 @@ var require_lru_cache = __commonJS({
         Keys = null;
         Values = null;
       }
-      var cache6 = new LRUCache(Keys, Values, capacity);
+      var cache7 = new LRUCache(Keys, Values, capacity);
       forEach(iterable, function(value, key) {
-        cache6.set(key, value);
+        cache7.set(key, value);
       });
-      return cache6;
+      return cache7;
     };
     module2.exports = LRUCache;
   }
@@ -14337,8 +14337,8 @@ var require_dist_cjs4 = __commonJS({
     var isFalsy = (value) => ["false", "0"].indexOf(value) >= 0;
     var NODE_ENDPOINT_DISCOVERY_CONFIG_OPTIONS = {
       environmentVariableSelector: (env2) => {
-        for (let i5 = 0; i5 < ENV_ENDPOINT_DISCOVERY.length; i5++) {
-          const envKey = ENV_ENDPOINT_DISCOVERY[i5];
+        for (let i6 = 0; i6 < ENV_ENDPOINT_DISCOVERY.length; i6++) {
+          const envKey = ENV_ENDPOINT_DISCOVERY[i6];
           if (envKey in env2) {
             const value = env2[envKey];
             if (value === "") {
@@ -14388,12 +14388,12 @@ var require_dist_cjs4 = __commonJS({
       } else {
         const placeholderEndpoints = [{ Address: "", CachePeriodInMinutes: 1 }];
         endpointCache.set(cacheKey, placeholderEndpoints);
-        const command5 = new options.endpointDiscoveryCommandCtor({
+        const command6 = new options.endpointDiscoveryCommandCtor({
           Operation: commandName.slice(0, -7),
           Identifiers: identifiers
         });
-        const handler2 = command5.resolveMiddleware(options.clientStack, config, options.options);
-        handler2(command5).then((result) => {
+        const handler2 = command6.resolveMiddleware(options.clientStack, config, options.options);
+        handler2(command6).then((result) => {
           endpointCache.set(cacheKey, result.output.Endpoints);
           if (requestQueue[cacheKey]) {
             requestQueue[cacheKey].forEach(({ resolve: resolve2 }) => {
@@ -14837,8 +14837,8 @@ var require_dist_cjs5 = __commonJS({
           throw new Error(`${number} is too large (or, if negative, too small) to represent as an Int64`);
         }
         const bytes = new Uint8Array(8);
-        for (let i5 = 7, remaining = Math.abs(Math.round(number)); i5 > -1 && remaining > 0; i5--, remaining /= 256) {
-          bytes[i5] = remaining;
+        for (let i6 = 7, remaining = Math.abs(Math.round(number)); i6 > -1 && remaining > 0; i6--, remaining /= 256) {
+          bytes[i6] = remaining;
         }
         if (number < 0) {
           negate2(bytes);
@@ -14858,12 +14858,12 @@ var require_dist_cjs5 = __commonJS({
       }
     };
     function negate2(bytes) {
-      for (let i5 = 0; i5 < 8; i5++) {
-        bytes[i5] ^= 255;
+      for (let i6 = 0; i6 < 8; i6++) {
+        bytes[i6] ^= 255;
       }
-      for (let i5 = 7; i5 > -1; i5--) {
-        bytes[i5]++;
-        if (bytes[i5] !== 0)
+      for (let i6 = 7; i6 > -1; i6--) {
+        bytes[i6]++;
+        if (bytes[i6] !== 0)
           break;
       }
     }
@@ -15538,7 +15538,7 @@ var require_dist_cjs7 = __commonJS({
     }
     var retry = (toRetry, maxRetries) => {
       let promise = toRetry();
-      for (let i5 = 0; i5 < maxRetries; i5++) {
+      for (let i6 = 0; i6 < maxRetries; i6++) {
         promise = promise.catch(toRetry);
       }
       return promise;
@@ -15684,12 +15684,12 @@ For more information, please visit: ` + STATIC_STABILITY_DOC_URL);
           if (credentials.expiration && credentials.expiration.getTime() < Date.now()) {
             credentials = getExtendedInstanceMetadataCredentials(credentials, logger2);
           }
-        } catch (e5) {
+        } catch (e6) {
           if (pastCredentials) {
-            logger2.warn("Credential renew failed: ", e5);
+            logger2.warn("Credential renew failed: ", e6);
             credentials = getExtendedInstanceMetadataCredentials(pastCredentials, logger2);
           } else {
-            throw e5;
+            throw e6;
           }
         }
         pastCredentials = credentials;
@@ -15706,7 +15706,7 @@ For more information, please visit: ` + STATIC_STABILITY_DOC_URL);
       let disableFetchToken = false;
       const { logger: logger2, profile } = init;
       const { timeout, maxRetries } = providerConfigFromInit(init);
-      const getCredentials = async (maxRetries2, options) => {
+      const getCredentials2 = async (maxRetries2, options) => {
         const isImdsV1Fallback = disableFetchToken || options.headers?.[X_AWS_EC2_METADATA_TOKEN2] == null;
         if (isImdsV1Fallback) {
           let fallbackBlockedFromProfile = false;
@@ -15769,7 +15769,7 @@ For more information, please visit: ` + STATIC_STABILITY_DOC_URL);
         const endpoint = await getInstanceMetadataEndpoint();
         if (disableFetchToken) {
           logger2?.debug("AWS SDK Instance Metadata", "using v1 fallback (no token fetch)");
-          return getCredentials(maxRetries, { ...endpoint, timeout });
+          return getCredentials2(maxRetries, { ...endpoint, timeout });
         } else {
           let token;
           try {
@@ -15783,9 +15783,9 @@ For more information, please visit: ` + STATIC_STABILITY_DOC_URL);
               disableFetchToken = true;
             }
             logger2?.debug("AWS SDK Instance Metadata", "using v1 fallback (initial)");
-            return getCredentials(maxRetries, { ...endpoint, timeout });
+            return getCredentials2(maxRetries, { ...endpoint, timeout });
           }
-          return getCredentials(maxRetries, {
+          return getCredentials2(maxRetries, {
             ...endpoint,
             headers: {
               [X_AWS_EC2_METADATA_TOKEN2]: token
@@ -15837,8 +15837,8 @@ var require_dist_cjs8 = __commonJS({
     var node_https = require("node:https");
     var { Readable: Readable7 } = require("node:stream");
     var http2 = require("node:http2");
-    var { streamCollector: streamCollector7 } = (init_serde(), __toCommonJS(serde_exports));
-    exports2.streamCollector = streamCollector7;
+    var { streamCollector: streamCollector8 } = (init_serde(), __toCommonJS(serde_exports));
+    exports2.streamCollector = streamCollector8;
     function buildAbortError(abortSignal) {
       const reason = abortSignal && typeof abortSignal === "object" && "reason" in abortSignal ? abortSignal.reason : void 0;
       if (reason) {
@@ -16193,9 +16193,9 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
               keepAliveMsecs: httpAgent.keepAliveMsecs
             });
           }
-          writeRequestBodyPromise = writeRequestBody(req, request, effectiveRequestTimeout, this.externalAgent).catch((e5) => {
+          writeRequestBodyPromise = writeRequestBody(req, request, effectiveRequestTimeout, this.externalAgent).catch((e6) => {
             clearTimeouts();
-            return _reject(e5);
+            return _reject(e6);
           });
         });
       }
@@ -16681,14 +16681,14 @@ var require_dist_cjs9 = __commonJS({
         hostname: url.hostname,
         port: Number(url.port),
         path: url.pathname,
-        query: Array.from(url.searchParams.entries()).reduce((acc, [k5, v]) => {
-          acc[k5] = v;
+        query: Array.from(url.searchParams.entries()).reduce((acc, [k6, v]) => {
+          acc[k6] = v;
           return acc;
         }, {}),
         fragment: url.hash
       });
     }
-    async function getCredentials(response, logger2) {
+    async function getCredentials2(response, logger2) {
       const stream = sdkStreamMixin3(response.body);
       const str = await stream.transformToString();
       if (response.statusCode === 200) {
@@ -16707,7 +16707,7 @@ var require_dist_cjs9 = __commonJS({
         let parsedBody = {};
         try {
           parsedBody = JSON.parse(str);
-        } catch (e5) {
+        } catch (e6) {
         }
         throw Object.assign(new CredentialsProviderError2(`Server responded with status: ${response.statusCode}`, { logger: logger2 }), {
           Code: parsedBody.Code,
@@ -16718,10 +16718,10 @@ var require_dist_cjs9 = __commonJS({
     }
     var retryWrapper = (toRetry, maxRetries, delayMs) => {
       return async () => {
-        for (let i5 = 0; i5 < maxRetries; ++i5) {
+        for (let i6 = 0; i6 < maxRetries; ++i6) {
           try {
             return await toRetry();
-          } catch (e5) {
+          } catch (e6) {
             await new Promise((resolve) => setTimeout(resolve, delayMs));
           }
         }
@@ -16770,9 +16770,9 @@ Set AWS_CONTAINER_CREDENTIALS_FULL_URI or AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
         }
         try {
           const result = await requestHandler.handle(request, { requestTimeout });
-          return getCredentials(result.response).then((creds) => setCredentialFeature2(creds, "CREDENTIALS_HTTP", "z"));
-        } catch (e5) {
-          throw new CredentialsProviderError2(String(e5), { logger: options.logger });
+          return getCredentials2(result.response).then((creds) => setCredentialFeature2(creds, "CREDENTIALS_HTTP", "z"));
+        } catch (e6) {
+          throw new CredentialsProviderError2(String(e6), { logger: options.logger });
         }
       }, options.maxRetries ?? 3, options.timeout ?? 1e3);
       return async () => {
@@ -17141,10 +17141,10 @@ function decodeIndefinite(at, to) {
     }
   }
 }
-function bytesToFloat16(a5, b5) {
-  const sign2 = a5 >> 7;
-  const exponent = (a5 & 124) >> 2;
-  const fraction = (a5 & 3) << 8 | b5;
+function bytesToFloat16(a6, b6) {
+  const sign2 = a6 >> 7;
+  const exponent = (a6 & 124) >> 2;
+  const fraction = (a6 & 3) << 8 | b6;
   const scalar = sign2 === 0 ? 1 : -1;
   if (exponent === 0) {
     if (fraction === 0) {
@@ -17171,7 +17171,7 @@ function decodeMapLarge(at, to, mapDataLength) {
   at += offset;
   const base = at;
   const map3 = /* @__PURE__ */ Object.create(null);
-  for (let i5 = 0; i5 < mapDataLength; ++i5) {
+  for (let i6 = 0; i6 < mapDataLength; ++i6) {
     const key = decodeUtf8String(at, to);
     at += _offset;
     const valMajor = (payload[at] & 224) >> 5;
@@ -17191,7 +17191,7 @@ function decodeMapSmall(at, to, mapDataLength) {
   at += offset;
   const base = at;
   const map3 = {};
-  for (let i5 = 0; i5 < mapDataLength; ++i5) {
+  for (let i6 = 0; i6 < mapDataLength; ++i6) {
     const key = decodeUtf8String(at, to);
     at += _offset;
     map3[key] = decode(at, to);
@@ -17206,8 +17206,8 @@ function decodeList(at, to) {
   at += offset;
   const base = at;
   const list2 = Array(listDataLength);
-  for (let i5 = 0; i5 < listDataLength; ++i5) {
-    list2[i5] = decode(at, to);
+  for (let i6 = 0; i6 < listDataLength; ++i6) {
+    list2[i6] = decode(at, to);
     at += _offset;
   }
   _offset = offset + (at - base);
@@ -17233,17 +17233,17 @@ function advanceDecodingEpoch() {
   cacheEpoch = cacheEpoch + 1 & 65535;
 }
 function decodeUtf8StringCached(at, length) {
-  let h5 = length;
-  for (let i5 = 0; i5 < length; ++i5) {
-    h5 = h5 * 31 + payload[at + i5] | 0;
+  let h6 = length;
+  for (let i6 = 0; i6 < length; ++i6) {
+    h6 = h6 * 31 + payload[at + i6] | 0;
   }
-  const slot = h5 >>> 0 & 2047;
+  const slot = h6 >>> 0 & 2047;
   const cached = stringCache[slot];
   if (cached !== void 0) {
     if (cached.length === length) {
       let match = true;
-      for (let i5 = 0; i5 < length; ++i5) {
-        if (cached.charCodeAt(i5) !== payload[at + i5]) {
+      for (let i6 = 0; i6 < length; ++i6) {
+        if (cached.charCodeAt(i6) !== payload[at + i6]) {
           match = false;
           break;
         }
@@ -17275,13 +17275,13 @@ function decodeUnstructuredByteString(at, to) {
 function decodeTagValue(at, to, minor, unsignedInt, offset) {
   if (minor === 2 || minor === 3) {
     const length = decodeCount(at + offset, to);
-    let b5 = BigInt(0);
+    let b6 = BigInt(0);
     const start = at + offset + _offset;
-    for (let i5 = start; i5 < start + length; ++i5) {
-      b5 = b5 << BigInt(8) | BigInt(payload[i5]);
+    for (let i6 = start; i6 < start + length; ++i6) {
+      b6 = b6 << BigInt(8) | BigInt(payload[i6]);
     }
     _offset = offset + _offset + length;
-    return minor === 3 ? -b5 - BigInt(1) : b5;
+    return minor === 3 ? -b6 - BigInt(1) : b6;
   } else if (minor === 4) {
     const decimalFraction = decode(at + offset, to);
     const [exponent, mantissa] = decimalFraction;
@@ -17430,8 +17430,8 @@ function decodeUtf8StringIndefinite(at, to) {
     const bytes = decodeUnstructuredByteString(at, to);
     const length = _offset;
     at += length;
-    for (let i5 = 0; i5 < bytes.length; ++i5) {
-      vector.push(bytes[i5]);
+    for (let i6 = 0; i6 < bytes.length; ++i6) {
+      vector.push(bytes[i6]);
     }
   }
   throw new Error("expected break marker.");
@@ -17457,8 +17457,8 @@ function decodeUnstructuredByteStringIndefinite(at, to) {
     const bytes = decodeUnstructuredByteString(at, to);
     const length = _offset;
     at += length;
-    for (let i5 = 0; i5 < bytes.length; ++i5) {
-      vector.push(bytes[i5]);
+    for (let i6 = 0; i6 < bytes.length; ++i6) {
+      vector.push(bytes[i6]);
     }
   }
   throw new Error("expected break marker.");
@@ -17599,11 +17599,11 @@ function encode(_input) {
       } else {
         const binaryBigInt = value.toString(2);
         const bigIntBytes = new Uint8Array(Math.ceil(binaryBigInt.length / 8));
-        let b5 = value;
-        let i5 = 0;
-        while (bigIntBytes.byteLength - ++i5 >= 0) {
-          bigIntBytes[bigIntBytes.byteLength - i5] = Number(b5 & BigInt(255));
-          b5 >>= BigInt(8);
+        let b6 = value;
+        let i6 = 0;
+        while (bigIntBytes.byteLength - ++i6 >= 0) {
+          bigIntBytes[bigIntBytes.byteLength - i6] = Number(b6 & BigInt(255));
+          b6 >>= BigInt(8);
         }
         ensureSpace(bigIntBytes.byteLength * 2 + 16);
         data[cursor++] = nonNegative ? 194 : 195;
@@ -17623,8 +17623,8 @@ function encode(_input) {
     } else if (Array.isArray(input)) {
       encodeInteger(majorList, input.length);
       ensureSpace(input.length * 9 + 64);
-      for (let i5 = input.length - 1; i5 >= 0; --i5) {
-        encodeStack.push(input[i5]);
+      for (let i6 = input.length - 1; i6 >= 0; --i6) {
+        encodeStack.push(input[i6]);
       }
       continue;
     } else if (typeof input.byteLength === "number") {
@@ -17656,9 +17656,9 @@ function encode(_input) {
       const keys = Object.keys(input);
       const len = keys.length;
       encodeInteger(majorMap, len);
-      for (let i5 = len - 1; i5 >= 0; --i5) {
-        encodeStack.push(input[keys[i5]]);
-        encodeStack.push(keys[i5]);
+      for (let i6 = len - 1; i6 >= 0; --i6) {
+        encodeStack.push(input[keys[i6]]);
+        encodeStack.push(keys[i6]);
       }
       continue;
     }
@@ -17809,9 +17809,9 @@ var init_cbor = __esm({
         try {
           encode(input);
           return toUint8Array2();
-        } catch (e5) {
+        } catch (e6) {
           toUint8Array2();
-          throw e5;
+          throw e6;
         }
       },
       resizeEncodingBuffer(size) {
@@ -17917,11 +17917,11 @@ var init_CborCodec = __esm({
           if (ns.isListSchema() && Array.isArray(sourceObject)) {
             const sparse = !!ns.getMergedTraits().sparse;
             const newArray = [];
-            let i5 = 0;
+            let i6 = 0;
             for (const item of sourceObject) {
               const value = this.serialize(ns.getValueSchema(), item);
               if (value != null || sparse) {
-                newArray[i5++] = value;
+                newArray[i6++] = value;
               }
             }
             return newArray;
@@ -17947,12 +17947,12 @@ var init_CborCodec = __esm({
             }
             const isUnion = ns.isUnionSchema();
             if (isUnion && Array.isArray(sourceObject.$unknown)) {
-              const [k5, v] = sourceObject.$unknown;
-              newObject[k5] = v;
+              const [k6, v] = sourceObject.$unknown;
+              newObject[k6] = v;
             } else if (typeof sourceObject.__type === "string") {
-              for (const k5 in sourceObject) {
-                if (!(k5 in newObject)) {
-                  newObject[k5] = this.serialize(15, sourceObject[k5]);
+              for (const k6 in sourceObject) {
+                if (!(k6 in newObject)) {
+                  newObject[k6] = this.serialize(15, sourceObject[k6]);
                 }
               }
             }
@@ -18032,9 +18032,9 @@ var init_CborCodec = __esm({
             let keys;
             if (isUnion) {
               keys = /* @__PURE__ */ new Set();
-              for (const k5 in value) {
-                if (k5 !== "__type") {
-                  keys.add(k5);
+              for (const k6 in value) {
+                if (k6 !== "__type") {
+                  keys.add(k6);
                 }
               }
             }
@@ -18053,13 +18053,13 @@ var init_CborCodec = __esm({
                 break;
               }
               if (newObjectEmpty) {
-                const k5 = keys.values().next().value;
-                newObject.$unknown = [k5, value[k5]];
+                const k6 = keys.values().next().value;
+                newObject.$unknown = [k6, value[k6]];
               }
             } else if (typeof value.__type === "string") {
-              for (const k5 in value) {
-                if (!(k5 in newObject)) {
-                  newObject[k5] = value[k5];
+              for (const k6 in value) {
+                if (!(k6 in newObject)) {
+                  newObject[k6] = value[k6];
                 }
               }
             }
@@ -18088,8 +18088,8 @@ var init_SmithyRpcV2CborProtocol = __esm({
       codec = new CborCodec();
       serializer = this.codec.createSerializer();
       deserializer = this.codec.createDeserializer();
-      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5 }) {
-        super({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5 });
+      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6 }) {
+        super({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6 });
       }
       getShapeId() {
         return "smithy.protocols#rpcv2Cbor";
@@ -18200,8 +18200,8 @@ var init_ProtocolLib = __esm({
       }
       resolveRestContentType(defaultContentType, inputSchema) {
         const members = inputSchema.getMemberSchemas();
-        const httpPayloadMember = Object.values(members).find((m3) => {
-          return !!m3.getMergedTraits().httpPayload;
+        const httpPayloadMember = Object.values(members).find((m4) => {
+          return !!m4.getMergedTraits().httpPayload;
         });
         if (httpPayloadMember) {
           const mediaType = httpPayloadMember.getMergedTraits().mediaType;
@@ -18215,8 +18215,8 @@ var init_ProtocolLib = __esm({
             return defaultContentType;
           }
         } else if (!inputSchema.isUnitSchema()) {
-          const hasBody = Object.values(members).find((m3) => {
-            const { httpQuery, httpQueryParams, httpHeader, httpLabel, httpPrefixHeaders } = m3.getMergedTraits();
+          const hasBody = Object.values(members).find((m4) => {
+            const { httpQuery, httpQueryParams, httpHeader, httpLabel, httpPrefixHeaders } = m4.getMergedTraits();
             const noPrefixHeaders = httpPrefixHeaders === void 0;
             return !httpQuery && !httpQueryParams && !httpHeader && !httpLabel && noPrefixHeaders;
           });
@@ -18240,7 +18240,7 @@ var init_ProtocolLib = __esm({
         try {
           const errorSchema = getErrorSchema?.(this.errorRegistry, errorName) ?? this.errorRegistry.getSchema(errorIdentifier);
           return { errorSchema, errorMetadata };
-        } catch (e5) {
+        } catch (e6) {
           dataObject.message = dataObject.message ?? dataObject.Message ?? "UnknownError";
           const synthetic = this.errorRegistry;
           const baseExceptionSchema = synthetic.getBaseException();
@@ -18248,8 +18248,8 @@ var init_ProtocolLib = __esm({
             const ErrorCtor = synthetic.getErrorCtor(baseExceptionSchema) ?? Error;
             throw this.decorateServiceException(Object.assign(new ErrorCtor({ name: errorName }), errorMetadata), dataObject);
           }
-          const d5 = dataObject;
-          const message2 = d5?.message ?? d5?.Message ?? d5?.Error?.Message ?? d5?.Error?.message;
+          const d6 = dataObject;
+          const message2 = d6?.message ?? d6?.Message ?? d6?.Error?.Message ?? d6?.Error?.message;
           throw this.decorateServiceException(Object.assign(new Error(message2), {
             name: errorName
           }, errorMetadata), dataObject);
@@ -18297,9 +18297,9 @@ var init_ProtocolLib = __esm({
           };
           output.Code = Code;
           output.Type = Type;
-          for (let i5 = 0; i5 < keys.length; i5++) {
-            const k5 = keys[i5];
-            Error2[k5 === "message" ? "Message" : k5] = output[k5];
+          for (let i6 = 0; i6 < keys.length; i6++) {
+            const k6 = keys[i6];
+            Error2[k6 === "message" ? "Message" : k6] = output[k6];
           }
           delete Error2.__type;
           output.Error = Error2;
@@ -18319,7 +18319,7 @@ var init_ProtocolLib = __esm({
       findQueryCompatibleError(registry, errorName) {
         try {
           return registry.getSchema(errorName);
-        } catch (e5) {
+        } catch (e6) {
           return registry.find((schema) => NormalizedSchema.of(schema).getMergedTraits().awsQueryError?.[0] === errorName);
         }
       }
@@ -18337,8 +18337,8 @@ var init_AwsSmithyRpcV2CborProtocol = __esm({
     AwsSmithyRpcV2CborProtocol = class extends SmithyRpcV2CborProtocol {
       awsQueryCompatible;
       mixin;
-      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5, awsQueryCompatible }) {
-        super({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5 });
+      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6, awsQueryCompatible }) {
+        super({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6 });
         this.awsQueryCompatible = !!awsQueryCompatible;
         this.mixin = new ProtocolLib(this.awsQueryCompatible);
       }
@@ -18481,9 +18481,9 @@ var init_UnionSerde = __esm({
       }
       writeUnknown() {
         if (this.hasUnknown()) {
-          const k5 = this.keys.values().next().value;
-          const v = this.from[k5];
-          this.to.$unknown = [k5, v];
+          const k6 = this.keys.values().next().value;
+          const v = this.from[k6];
+          this.to.$unknown = [k6, v];
         }
       }
     };
@@ -18532,13 +18532,13 @@ var init_parseJsonBody = __esm({
       if (encoded.length) {
         try {
           return JSON.parse(encoded);
-        } catch (e5) {
-          if (e5?.name === "SyntaxError") {
-            Object.defineProperty(e5, "$responseBodyText", {
+        } catch (e6) {
+          if (e6?.name === "SyntaxError") {
+            Object.defineProperty(e6, "$responseBodyText", {
               value: encoded
             });
           }
-          throw e5;
+          throw e6;
         }
       }
       return {};
@@ -18548,7 +18548,7 @@ var init_parseJsonBody = __esm({
       value.message = value.message ?? value.Message;
       return value;
     };
-    findKey = (object, key) => Object.keys(object).find((k5) => k5.toLowerCase() === key.toLowerCase());
+    findKey = (object, key) => Object.keys(object).find((k6) => k6.toLowerCase() === key.toLowerCase());
     sanitizeErrorCode = (rawValue) => {
       let cleanValue = rawValue;
       if (typeof cleanValue === "number") {
@@ -18655,9 +18655,9 @@ var init_JsonShapeDeserializer = __esm({
             if (union) {
               unionSerde.writeUnknown();
             } else if (typeof record.__type === "string") {
-              for (const k5 in record) {
-                const v = record[k5];
-                const t = jsonName ? nameMap[k5] ?? k5 : k5;
+              for (const k6 in record) {
+                const v = record[k6];
+                const t = jsonName ? nameMap[k6] ?? k6 : k6;
                 if (!(t in out)) {
                   out[t] = v;
                 }
@@ -18734,12 +18734,12 @@ var init_JsonShapeDeserializer = __esm({
         if (ns.isDocumentSchema()) {
           if (isObject2) {
             const out = Array.isArray(value) ? [] : {};
-            for (const k5 in value) {
-              const v = value[k5];
+            for (const k6 in value) {
+              const v = value[k6];
               if (v instanceof NumericValue) {
-                out[k5] = v;
+                out[k6] = v;
               } else {
-                out[k5] = this._read(ns, v);
+                out[k6] = this._read(ns, v);
               }
             }
             return out;
@@ -18875,13 +18875,13 @@ var init_JsonShapeSerializer = __esm({
             if (ns.isUnionSchema() && outCount === 0) {
               const { $unknown } = record;
               if (Array.isArray($unknown)) {
-                const [k5, v] = $unknown;
-                out[k5] = this._write(15, v);
+                const [k6, v] = $unknown;
+                out[k6] = this._write(15, v);
               }
             } else if (typeof record.__type === "string") {
-              for (const k5 in record) {
-                const v = record[k5];
-                const targetKey = jsonName ? nameMap[k5] ?? k5 : k5;
+              for (const k6 in record) {
+                const v = record[k6];
+                const targetKey = jsonName ? nameMap[k6] ?? k6 : k6;
                 if (!(targetKey in out)) {
                   out[targetKey] = this._write(15, v);
                 }
@@ -18970,13 +18970,13 @@ var init_JsonShapeSerializer = __esm({
         if (ns.isDocumentSchema()) {
           if (isObject2) {
             const out = Array.isArray(value) ? [] : {};
-            for (const k5 in value) {
-              const v = value[k5];
+            for (const k6 in value) {
+              const v = value[k6];
               if (v instanceof NumericValue) {
                 this.useReplacer = true;
-                out[k5] = v;
+                out[k6] = v;
               } else {
-                out[k5] = this._write(ns, v);
+                out[k6] = this._write(ns, v);
               }
             }
             return out;
@@ -19033,10 +19033,10 @@ var init_AwsJsonRpcProtocol = __esm({
       codec;
       mixin;
       awsQueryCompatible;
-      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5, serviceTarget, awsQueryCompatible, jsonCodec }) {
+      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6, serviceTarget, awsQueryCompatible, jsonCodec }) {
         super({
           defaultNamespace,
-          errorTypeRegistries: errorTypeRegistries5
+          errorTypeRegistries: errorTypeRegistries6
         });
         this.serviceTarget = serviceTarget;
         this.codec = jsonCodec ?? new JsonCodec({
@@ -19106,10 +19106,10 @@ var init_AwsJson1_0Protocol = __esm({
   "../../../node_modules/@aws-sdk/core/dist-es/submodules/protocols/json/AwsJson1_0Protocol.js"() {
     init_AwsJsonRpcProtocol();
     AwsJson1_0Protocol = class extends AwsJsonRpcProtocol {
-      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5, serviceTarget, awsQueryCompatible, jsonCodec }) {
+      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6, serviceTarget, awsQueryCompatible, jsonCodec }) {
         super({
           defaultNamespace,
-          errorTypeRegistries: errorTypeRegistries5,
+          errorTypeRegistries: errorTypeRegistries6,
           serviceTarget,
           awsQueryCompatible,
           jsonCodec
@@ -19134,10 +19134,10 @@ var init_AwsJson1_1Protocol = __esm({
   "../../../node_modules/@aws-sdk/core/dist-es/submodules/protocols/json/AwsJson1_1Protocol.js"() {
     init_AwsJsonRpcProtocol();
     AwsJson1_1Protocol = class extends AwsJsonRpcProtocol {
-      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5, serviceTarget, awsQueryCompatible, jsonCodec }) {
+      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6, serviceTarget, awsQueryCompatible, jsonCodec }) {
         super({
           defaultNamespace,
-          errorTypeRegistries: errorTypeRegistries5,
+          errorTypeRegistries: errorTypeRegistries6,
           serviceTarget,
           awsQueryCompatible,
           jsonCodec
@@ -19170,10 +19170,10 @@ var init_AwsRestJsonProtocol = __esm({
       deserializer;
       codec;
       mixin = new ProtocolLib();
-      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries5 }) {
+      constructor({ defaultNamespace, errorTypeRegistries: errorTypeRegistries6 }) {
         super({
           defaultNamespace,
-          errorTypeRegistries: errorTypeRegistries5
+          errorTypeRegistries: errorTypeRegistries6
         });
         const settings = {
           timestampFormat: {
@@ -19358,8 +19358,8 @@ var require_dist_cjs10 = __commonJS({
       }
       l(input, listName, memberName, valueProvider) {
         if (input[listName] != null) {
-          const nodes5 = valueProvider();
-          nodes5.map((node) => {
+          const nodes6 = valueProvider();
+          nodes6.map((node) => {
             node.withName(memberName);
             this.c(node);
           });
@@ -19367,9 +19367,9 @@ var require_dist_cjs10 = __commonJS({
       }
       lc(input, listName, memberName, valueProvider) {
         if (input[listName] != null) {
-          const nodes5 = valueProvider();
+          const nodes6 = valueProvider();
           const containerNode = new _XmlNode(memberName);
-          nodes5.map((node) => {
+          nodes6.map((node) => {
             containerNode.c(node);
           });
           this.c(containerNode);
@@ -19385,7 +19385,7 @@ var require_dist_cjs10 = __commonJS({
             xmlText += ` ${attributeName}="${escapeAttribute("" + attribute)}"`;
           }
         }
-        return xmlText += !hasChildren ? "/>" : `>${this.children.map((c5) => c5.toString()).join("")}</${this.name}>`;
+        return xmlText += !hasChildren ? "/>" : `>${this.children.map((c6) => c6.toString()).join("")}</${this.name}>`;
       }
     };
     function parseXML3(xml) {
@@ -19419,8 +19419,8 @@ var require_dist_cjs10 = __commonJS({
             p3.skipDoctype();
             p3.trim();
           } else if (p3.x[p3.i] === "<") {
-            const root5 = p3.parseTag();
-            return { [root5.tag]: root5.value };
+            const root6 = p3.parseTag();
+            return { [root6.tag]: root6.value };
           } else {
             throw new Error("@aws-sdk XML parse error: unexpected content.");
           }
@@ -19567,8 +19567,8 @@ var require_dist_cjs10 = __commonJS({
             obj[child.tag] = child.value;
           }
         }
-        for (const [k5, v] of Object.entries(attrs)) {
-          obj[k5] = v;
+        for (const [k6, v] of Object.entries(attrs)) {
+          obj[k6] = v;
         }
         Object.setPrototypeOf(obj, Object.prototype);
         return { tag: tag3, value: obj };
@@ -19585,12 +19585,12 @@ var require_dist_cjs10 = __commonJS({
         p3.i += 9;
         let depth = 0;
         while (p3.i < p3.z) {
-          const c5 = p3.x[p3.i];
-          if (c5 === "[") {
+          const c6 = p3.x[p3.i];
+          if (c6 === "[") {
             ++depth;
-          } else if (c5 === "]") {
+          } else if (c6 === "]") {
             --depth;
-          } else if (c5 === ">" && depth === 0) {
+          } else if (c6 === ">" && depth === 0) {
             ++p3.i;
             return;
           }
@@ -19746,13 +19746,13 @@ var init_XmlShapeDeserializer = __esm({
           let parsedObj;
           try {
             parsedObj = (0, import_xml_builder.parseXML)(xml);
-          } catch (e5) {
-            if (e5 && typeof e5 === "object") {
-              Object.defineProperty(e5, "$responseBodyText", {
+          } catch (e6) {
+            if (e6 && typeof e6 === "object") {
+              Object.defineProperty(e6, "$responseBodyText", {
                 value: xml
               });
             }
-            throw e5;
+            throw e6;
           }
           const textNodeName = "#text";
           const key = Object.keys(parsedObj)[0];
@@ -19855,16 +19855,16 @@ var init_QueryShapeSerializer = __esm({
             } else {
               const member2 = ns.getValueSchema();
               const flat = this.settings.flattenLists || ns.getMergedTraits().xmlFlattened;
-              let i5 = 1;
+              let i6 = 1;
               for (const item of value) {
                 if (item == null) {
                   continue;
                 }
                 const traits = member2.getMergedTraits();
                 const suffix = this.getKey("member", traits.xmlName, traits.ec2QueryName);
-                const key = flat ? `${prefix}${i5}` : `${prefix}${suffix}.${i5}`;
+                const key = flat ? `${prefix}${i6}` : `${prefix}${suffix}.${i6}`;
                 this.write(member2, item, key);
-                ++i5;
+                ++i6;
               }
             }
           }
@@ -19873,21 +19873,21 @@ var init_QueryShapeSerializer = __esm({
             const keySchema = ns.getKeySchema();
             const memberSchema = ns.getValueSchema();
             const flat = ns.getMergedTraits().xmlFlattened;
-            let i5 = 1;
-            for (const k5 in value) {
-              const v = value[k5];
+            let i6 = 1;
+            for (const k6 in value) {
+              const v = value[k6];
               if (v == null) {
                 continue;
               }
               const keyTraits = keySchema.getMergedTraits();
               const keySuffix = this.getKey("key", keyTraits.xmlName, keyTraits.ec2QueryName);
-              const key = flat ? `${prefix}${i5}.${keySuffix}` : `${prefix}entry.${i5}.${keySuffix}`;
+              const key = flat ? `${prefix}${i6}.${keySuffix}` : `${prefix}entry.${i6}.${keySuffix}`;
               const valTraits = memberSchema.getMergedTraits();
               const valueSuffix = this.getKey("value", valTraits.xmlName, valTraits.ec2QueryName);
-              const valueKey = flat ? `${prefix}${i5}.${valueSuffix}` : `${prefix}entry.${i5}.${valueSuffix}`;
-              this.write(keySchema, k5, key);
+              const valueKey = flat ? `${prefix}${i6}.${valueSuffix}` : `${prefix}entry.${i6}.${valueSuffix}`;
+              this.write(keySchema, k6, key);
               this.write(memberSchema, v, valueKey);
-              ++i5;
+              ++i6;
             }
           }
         } else if (ns.isStructSchema()) {
@@ -19906,8 +19906,8 @@ var init_QueryShapeSerializer = __esm({
             if (!didWriteMember && ns.isUnionSchema()) {
               const { $unknown } = value;
               if (Array.isArray($unknown)) {
-                const [k5, v] = $unknown;
-                const key = `${prefix}${k5}`;
+                const [k6, v] = $unknown;
+                const key = `${prefix}${k6}`;
                 this.write(15, v, key);
               }
             }
@@ -20129,13 +20129,13 @@ var init_parseXmlBody = __esm({
         let parsedObj;
         try {
           parsedObj = (0, import_xml_builder2.parseXML)(encoded);
-        } catch (e5) {
-          if (e5 && typeof e5 === "object") {
-            Object.defineProperty(e5, "$responseBodyText", {
+        } catch (e6) {
+          if (e6 && typeof e6 === "object") {
+            Object.defineProperty(e6, "$responseBodyText", {
               value: encoded
             });
           }
-          throw e5;
+          throw e6;
         }
         const textNodeName = "#text";
         const key = Object.keys(parsedObj)[0];
@@ -20252,8 +20252,8 @@ var init_XmlShapeSerializer = __esm({
         }
         const { $unknown } = value;
         if ($unknown && ns.isUnionSchema() && Array.isArray($unknown) && Object.keys(value).length === 1) {
-          const [k5, v] = $unknown;
-          const node = import_xml_builder3.XmlNode.of(k5);
+          const [k6, v] = $unknown;
+          const node = import_xml_builder3.XmlNode.of(k6);
           if (typeof v !== "string") {
             if (value instanceof import_xml_builder3.XmlNode || value instanceof import_xml_builder3.XmlText) {
               structXmlNode.addChildNode(value);
@@ -21554,7 +21554,7 @@ var require_dist_cjs11 = __commonJS({
       let ssoToken;
       try {
         ssoToken = await getSSOTokenFromFile2(ssoSessionName);
-      } catch (e5) {
+      } catch (e6) {
         throw new TokenProviderError2(`The SSO session token associated with profile=${profileName} was not found or is invalid. ${REFRESH_MESSAGE}`, false);
       }
       validateTokenKey("accessToken", ssoToken.accessToken);
@@ -22333,8 +22333,8 @@ var require_dist_cjs12 = __commonJS({
             accessToken: _token.token,
             expiresAt: new Date(_token.expiration).toISOString()
           };
-        } catch (e5) {
-          throw new CredentialsProviderError2(e5.message, {
+        } catch (e6) {
+          throw new CredentialsProviderError2(e6.message, {
             tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
             logger: logger2
           });
@@ -22342,7 +22342,7 @@ var require_dist_cjs12 = __commonJS({
       } else {
         try {
           token = await getSSOTokenFromFile2(ssoStartUrl);
-        } catch (e5) {
+        } catch (e6) {
           throw new CredentialsProviderError2(`The SSO session associated with this profile is invalid. ${refreshMessage}`, {
             tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
             logger: logger2
@@ -22369,8 +22369,8 @@ var require_dist_cjs12 = __commonJS({
           roleName: ssoRoleName,
           accessToken
         }));
-      } catch (e5) {
-        throw new CredentialsProviderError2(e5, {
+      } catch (e6) {
+        throw new CredentialsProviderError2(e6, {
           tryNextLink: SHOULD_FAIL_CREDENTIAL_CHAIN,
           logger: logger2
         });
@@ -22873,9 +22873,9 @@ var init_httpAuthSchemeProvider3 = __esm({
       };
     };
     defaultSTSHttpAuthSchemeParametersProvider = createEndpointRuleSetHttpAuthSchemeParametersProvider(_defaultSTSHttpAuthSchemeParametersProvider);
-    createEndpointRuleSetHttpAuthSchemeProvider = (defaultEndpointResolver5, defaultHttpAuthSchemeResolver, createHttpAuthOptionFunctions) => {
+    createEndpointRuleSetHttpAuthSchemeProvider = (defaultEndpointResolver6, defaultHttpAuthSchemeResolver, createHttpAuthOptionFunctions) => {
       const endpointRuleSetHttpAuthSchemeProvider = (authParameters) => {
-        const endpoint = defaultEndpointResolver5(authParameters);
+        const endpoint = defaultEndpointResolver6(authParameters);
         const authSchemes = endpoint.properties?.authSchemes;
         if (!authSchemes) {
           return defaultHttpAuthSchemeResolver(authParameters);
@@ -24879,7 +24879,7 @@ var require_dist_cjs14 = __commonJS({
             tokenData = await promises.readFile(tokenFilePath, "utf8");
           }
           const token = JSON.parse(tokenData);
-          const missingFields = ["accessToken", "clientId", "refreshToken", "dpopKey"].filter((k5) => !token[k5]);
+          const missingFields = ["accessToken", "clientId", "refreshToken", "dpopKey"].filter((k6) => !token[k6]);
           if (!token.accessToken?.accountId) {
             missingFields.push("accountId");
           }
@@ -24919,7 +24919,7 @@ var require_dist_cjs14 = __commonJS({
         }
         offset++;
         const rLength = derSignature[offset++];
-        let r5 = derSignature.subarray(offset, offset + rLength);
+        let r6 = derSignature.subarray(offset, offset + rLength);
         offset += rLength;
         if (derSignature[offset] !== 2) {
           throw new Error("Invalid DER signature");
@@ -24927,9 +24927,9 @@ var require_dist_cjs14 = __commonJS({
         offset++;
         const sLength = derSignature[offset++];
         let s2 = derSignature.subarray(offset, offset + sLength);
-        r5 = r5[0] === 0 ? r5.subarray(1) : r5;
+        r6 = r6[0] === 0 ? r6.subarray(1) : r6;
         s2 = s2[0] === 0 ? s2.subarray(1) : s2;
-        const rPadded = Buffer.concat([Buffer.alloc(32 - r5.length), r5]);
+        const rPadded = Buffer.concat([Buffer.alloc(32 - r6.length), r6]);
         const sPadded = Buffer.concat([Buffer.alloc(32 - s2.length), s2]);
         return Buffer.concat([rPadded, sPadded]);
       }
@@ -24962,9 +24962,9 @@ var require_dist_cjs14 = __commonJS({
           const publicKey = createPublicKey(privateKey);
           const publicDer = publicKey.export({ format: "der", type: "spki" });
           let pointStart = -1;
-          for (let i5 = 0; i5 < publicDer.length; i5++) {
-            if (publicDer[i5] === 4) {
-              pointStart = i5;
+          for (let i6 = 0; i6 < publicDer.length; i6++) {
+            if (publicDer[i6] === 4) {
+              pointStart = i6;
               break;
             }
           }
@@ -25380,8 +25380,8 @@ var require_dist_cjs18 = __commonJS({
       const provider = async (options) => {
         if (options?.forceRefresh) {
           if (!forceRefreshLock) {
-            forceRefreshLock = chain3(options).then((c5) => {
-              credentials = c5;
+            forceRefreshLock = chain3(options).then((c6) => {
+              credentials = c6;
             }).finally(() => {
               forceRefreshLock = void 0;
             });
@@ -25399,15 +25399,15 @@ var require_dist_cjs18 = __commonJS({
         } else if (!credentials || treatAsExpired?.(credentials)) {
           if (credentials) {
             if (!passiveLock) {
-              passiveLock = chain3(options).then((c5) => {
-                credentials = c5;
+              passiveLock = chain3(options).then((c6) => {
+                credentials = c6;
               }).finally(() => {
                 passiveLock = void 0;
               });
             }
           } else {
-            activeLock = chain3(options).then((c5) => {
-              credentials = c5;
+            activeLock = chain3(options).then((c6) => {
+              credentials = c6;
             }).finally(() => {
               activeLock = void 0;
             });
@@ -25558,9 +25558,9 @@ var require_dist_cjs19 = __commonJS({
             }
             if (av.M && typeof av.M === "object") {
               out.M = {};
-              for (const [k5, v] of Object.entries(av.M)) {
+              for (const [k6, v] of Object.entries(av.M)) {
                 if (v != null) {
-                  out.M[k5] = this._write(ns, v, container);
+                  out.M[k6] = this._write(ns, v, container);
                 }
               }
             }
@@ -25586,12 +25586,12 @@ var require_dist_cjs19 = __commonJS({
           return out2;
         }
         const out = {};
-        for (const [k5, _v] of Object.entries(v)) {
+        for (const [k6, _v] of Object.entries(v)) {
           if (_v != null) {
-            if (["B", "BS", "L", "M"].includes(k5)) {
+            if (["B", "BS", "L", "M"].includes(k6)) {
               continue;
             }
-            out[k5] = this.copyRemoveNulls(_v);
+            out[k6] = this.copyRemoveNulls(_v);
           }
         }
         return out;
@@ -25615,8 +25615,8 @@ var require_dist_cjs19 = __commonJS({
               out.L = av.L.map((v) => this._read(ns, v));
             }
             if (av.M && typeof av.M === "object") {
-              for (const [k5, v] of Object.entries(av.M)) {
-                out.M[k5] = this._read(ns, v);
+              for (const [k6, v] of Object.entries(av.M)) {
+                out.M[k6] = this._read(ns, v);
               }
             }
             return out;
@@ -25648,7 +25648,7 @@ var require_dist_cjs20 = __commonJS({
     var { resolveAwsSdkSigV4Config: resolveAwsSdkSigV4Config2, AwsSdkSigV4Signer: AwsSdkSigV4Signer2, NODE_AUTH_SCHEME_PREFERENCE_OPTIONS: NODE_AUTH_SCHEME_PREFERENCE_OPTIONS2 } = (init_httpAuthSchemes2(), __toCommonJS(httpAuthSchemes_exports));
     var { defaultProvider } = require_dist_cjs18();
     var { toUtf8: toUtf83, fromUtf8: fromUtf83, toBase64: toBase643, fromBase64: fromBase642, calculateBodyLength: calculateBodyLength2 } = (init_serde(), __toCommonJS(serde_exports));
-    var { streamCollector: streamCollector7, NodeHttpHandler } = require_dist_cjs8();
+    var { streamCollector: streamCollector8, NodeHttpHandler } = require_dist_cjs8();
     var { AwsJson1_0Protocol: AwsJson1_0Protocol2 } = (init_protocols2(), __toCommonJS(protocols_exports2));
     var { DynamoDBJsonCodec } = require_dist_cjs19();
     var { Sha256 } = (init_checksum2(), __toCommonJS(checksum_exports));
@@ -25660,7 +25660,7 @@ var require_dist_cjs20 = __commonJS({
         })()
       };
     };
-    function createAwsAuthSigv4HttpAuthOption5(authParameters) {
+    function createAwsAuthSigv4HttpAuthOption6(authParameters) {
       return {
         schemeId: "aws.auth#sigv4",
         signingProperties: {
@@ -25679,25 +25679,25 @@ var require_dist_cjs20 = __commonJS({
       const options = [];
       switch (authParameters.operation) {
         default: {
-          options.push(createAwsAuthSigv4HttpAuthOption5(authParameters));
+          options.push(createAwsAuthSigv4HttpAuthOption6(authParameters));
         }
       }
       return options;
     };
-    var resolveHttpAuthSchemeConfig5 = (config) => {
+    var resolveHttpAuthSchemeConfig6 = (config) => {
       const config_0 = resolveAwsSdkSigV4Config2(config);
       return Object.assign(config_0, {
         authSchemePreference: normalizeProvider3(config.authSchemePreference ?? [])
       });
     };
-    var resolveClientEndpointParameters5 = (options) => {
+    var resolveClientEndpointParameters6 = (options) => {
       return Object.assign(options, {
         useDualstackEndpoint: options.useDualstackEndpoint ?? false,
         useFipsEndpoint: options.useFipsEndpoint ?? false,
         defaultSigningName: "dynamodb"
       });
     };
-    var commonParams5 = {
+    var commonParams6 = {
       UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
       AccountId: { type: "builtInParams", name: "accountId" },
       Endpoint: { type: "builtInParams", name: "endpoint" },
@@ -25705,8 +25705,8 @@ var require_dist_cjs20 = __commonJS({
       UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" },
       AccountIdEndpointMode: { type: "builtInParams", name: "accountIdEndpointMode" }
     };
-    var command5 = makeBuilder2(commonParams5, "DynamoDB_20120810", "DynamoDBClient", getEndpointPlugin2);
-    var _ep05 = {};
+    var command6 = makeBuilder2(commonParams6, "DynamoDB_20120810", "DynamoDBClient", getEndpointPlugin2);
+    var _ep06 = {};
     var _ep12 = {
       ResourceArnList: { type: "operationContextParams", get: (input) => Object.keys(input?.RequestItems ?? {}) }
     };
@@ -25741,9 +25741,9 @@ var require_dist_cjs20 = __commonJS({
       ResourceArnList: { type: "operationContextParams", get: (input) => input?.TransactItems?.map((obj) => obj?.Get?.TableName) }
     };
     var _ep122 = {
-      ResourceArnList: { type: "operationContextParams", get: (input) => input?.TransactItems?.map((obj) => [obj?.ConditionCheck?.TableName, obj?.Put?.TableName, obj?.Delete?.TableName, obj?.Update?.TableName].filter((i6) => i6)).flat() }
+      ResourceArnList: { type: "operationContextParams", get: (input) => input?.TransactItems?.map((obj) => [obj?.ConditionCheck?.TableName, obj?.Put?.TableName, obj?.Delete?.TableName, obj?.Update?.TableName].filter((i7) => i7)).flat() }
     };
-    var _mw05 = (Command2, cs, config, o4) => [];
+    var _mw06 = (Command2, cs, config, o4) => [];
     var DynamoDBServiceException = class _DynamoDBServiceException extends ServiceException2 {
       constructor(options) {
         super(options);
@@ -25842,7 +25842,7 @@ var require_dist_cjs20 = __commonJS({
         this.ThrottlingReasons = opts.ThrottlingReasons;
       }
     };
-    var ResourceNotFoundException2 = class _ResourceNotFoundException extends DynamoDBServiceException {
+    var ResourceNotFoundException3 = class _ResourceNotFoundException extends DynamoDBServiceException {
       name = "ResourceNotFoundException";
       $fault = "client";
       constructor(opts) {
@@ -25891,7 +25891,7 @@ var require_dist_cjs20 = __commonJS({
         Object.setPrototypeOf(this, _ContinuousBackupsUnavailableException.prototype);
       }
     };
-    var LimitExceededException = class _LimitExceededException extends DynamoDBServiceException {
+    var LimitExceededException2 = class _LimitExceededException extends DynamoDBServiceException {
       name = "LimitExceededException";
       $fault = "client";
       constructor(opts) {
@@ -26254,7 +26254,7 @@ var require_dist_cjs20 = __commonJS({
     var _BWIO = "BatchWriteItemOutput";
     var _BWIRM = "BatchWriteItemRequestMap";
     var _B_ = "B";
-    var _C2 = "Code";
+    var _C3 = "Code";
     var _CB = "CreateBackup";
     var _CBD = "ContinuousBackupsDescription";
     var _CBI = "CreateBackupInput";
@@ -26283,7 +26283,7 @@ var require_dist_cjs20 = __commonJS({
     var _COs = "CsvOptions";
     var _CPIM = "CachePeriodInMinutes";
     var _CR = "CancellationReasons";
-    var _CRA = "CreateReplicaAction";
+    var _CRA2 = "CreateReplicaAction";
     var _CRGMA = "CreateReplicationGroupMemberAction";
     var _CRL = "CancellationReasonList";
     var _CRSRA = "ConfirmRemoveSelfResourceAccess";
@@ -26365,7 +26365,7 @@ var require_dist_cjs20 = __commonJS({
     var _DTTLO = "DescribeTimeToLiveOutput";
     var _DTe = "DescribeTable";
     var _De = "Delete";
-    var _E2 = "Error";
+    var _E3 = "Error";
     var _EA = "ExportArn";
     var _EAM = "ExpectedAttributeMap";
     var _EAN = "ExpressionAttributeNames";
@@ -26417,8 +26417,8 @@ var require_dist_cjs20 = __commonJS({
     var _FEi = "FilterExpression";
     var _FM = "FailureMessage";
     var _G = "Get";
-    var _GI = "GetItem";
-    var _GII = "GetItemInput";
+    var _GI2 = "GetItem";
+    var _GII2 = "GetItemInput";
     var _GIO = "GetItemOutput";
     var _GRP = "GetResourcePolicy";
     var _GRPI = "GetResourcePolicyInput";
@@ -26473,7 +26473,7 @@ var require_dist_cjs20 = __commonJS({
     var _ICSLEE = "ItemCollectionSizeLimitExceededException";
     var _ICT = "InputCompressionType";
     var _IEDT = "InaccessibleEncryptionDateTime";
-    var _IEE = "InvalidEndpointException";
+    var _IEE2 = "InvalidEndpointException";
     var _IES = "IncrementalExportSpecification";
     var _IETE = "InvalidExportTimeException";
     var _IF = "InputFormat";
@@ -26513,7 +26513,7 @@ var require_dist_cjs20 = __commonJS({
     var _KSE = "KeySchemaElement";
     var _KT = "KeyType";
     var _Ke = "Keys";
-    var _L = "Limit";
+    var _L2 = "Limit";
     var _LAV = "ListAttributeValue";
     var _LB = "ListBackups";
     var _LBI = "ListBackupsInput";
@@ -26524,7 +26524,7 @@ var require_dist_cjs20 = __commonJS({
     var _LDDT = "LastDecreaseDateTime";
     var _LE = "ListExports";
     var _LEBA = "LastEvaluatedBackupArn";
-    var _LEE = "LimitExceededException";
+    var _LEE2 = "LimitExceededException";
     var _LEGTN = "LastEvaluatedGlobalTableName";
     var _LEI = "ListExportsInput";
     var _LEK = "LastEvaluatedKey";
@@ -26658,7 +26658,7 @@ var require_dist_cjs20 = __commonJS({
     var _RL = "ReplicaList";
     var _RLE = "RequestLimitExceeded";
     var _RN = "RegionName";
-    var _RNFE2 = "ReplicaNotFoundException";
+    var _RNFE3 = "ReplicaNotFoundException";
     var _RNFEe = "ResourceNotFoundException";
     var _RP = "ResourcePolicy";
     var _RPID = "RecoveryPeriodInDays";
@@ -26723,7 +26723,7 @@ var require_dist_cjs20 = __commonJS({
     var _SSET = "SSEType";
     var _SSKKI = "S3SseKmsKeyId";
     var _SS_ = "SS";
-    var _ST2 = "StartTime";
+    var _ST3 = "StartTime";
     var _STA = "SourceTableArn";
     var _STD = "SourceTableDetails";
     var _STFD = "SourceTableFeatureDetails";
@@ -26834,344 +26834,344 @@ var require_dist_cjs20 = __commonJS({
     var _WT = "WarmThroughput";
     var _WUPS = "WriteUnitsPerSecond";
     var _aQE2 = "awsQueryError";
-    var _c5 = "client";
-    var _e5 = "error";
-    var _hE5 = "httpError";
+    var _c6 = "client";
+    var _e6 = "error";
+    var _hE6 = "httpError";
     var _hH2 = "httpHeader";
-    var _m4 = "message";
+    var _m5 = "message";
     var _r3 = "reason";
     var _re = "resource";
-    var _s5 = "smithy.ts.sdk.synthetic.com.amazonaws.dynamodb";
-    var _se3 = "server";
+    var _s6 = "smithy.ts.sdk.synthetic.com.amazonaws.dynamodb";
+    var _se4 = "server";
     var _tR = "throttlingReasons";
     var _xacrsra = "x-amz-confirm-remove-self-resource-access";
-    var n05 = "com.amazonaws.dynamodb";
-    var _s_registry5 = TypeRegistry2.for(_s5);
-    var DynamoDBServiceException$ = [-3, _s5, "DynamoDBServiceException", 0, [], []];
-    _s_registry5.registerError(DynamoDBServiceException$, DynamoDBServiceException);
-    var n0_registry5 = TypeRegistry2.for(n05);
+    var n06 = "com.amazonaws.dynamodb";
+    var _s_registry6 = TypeRegistry2.for(_s6);
+    var DynamoDBServiceException$ = [-3, _s6, "DynamoDBServiceException", 0, [], []];
+    _s_registry6.registerError(DynamoDBServiceException$, DynamoDBServiceException);
+    var n0_registry6 = TypeRegistry2.for(n06);
     var BackupInUseException$ = [
       -3,
-      n05,
+      n06,
       _BIUE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(BackupInUseException$, BackupInUseException);
+    n0_registry6.registerError(BackupInUseException$, BackupInUseException);
     var BackupNotFoundException$ = [
       -3,
-      n05,
+      n06,
       _BNFE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(BackupNotFoundException$, BackupNotFoundException);
+    n0_registry6.registerError(BackupNotFoundException$, BackupNotFoundException);
     var ConditionalCheckFailedException$ = [
       -3,
-      n05,
+      n06,
       _CCFE,
-      { [_e5]: _c5 },
-      [_m4, _I],
+      { [_e6]: _c6 },
+      [_m5, _I],
       [0, () => AttributeMap]
     ];
-    n0_registry5.registerError(ConditionalCheckFailedException$, ConditionalCheckFailedException);
+    n0_registry6.registerError(ConditionalCheckFailedException$, ConditionalCheckFailedException);
     var ContinuousBackupsUnavailableException$ = [
       -3,
-      n05,
+      n06,
       _CBUE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ContinuousBackupsUnavailableException$, ContinuousBackupsUnavailableException);
+    n0_registry6.registerError(ContinuousBackupsUnavailableException$, ContinuousBackupsUnavailableException);
     var DuplicateItemException$ = [
       -3,
-      n05,
+      n06,
       _DIE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(DuplicateItemException$, DuplicateItemException);
+    n0_registry6.registerError(DuplicateItemException$, DuplicateItemException);
     var ExportConflictException$ = [
       -3,
-      n05,
+      n06,
       _ECE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ExportConflictException$, ExportConflictException);
+    n0_registry6.registerError(ExportConflictException$, ExportConflictException);
     var ExportNotFoundException$ = [
       -3,
-      n05,
+      n06,
       _ENFE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ExportNotFoundException$, ExportNotFoundException);
+    n0_registry6.registerError(ExportNotFoundException$, ExportNotFoundException);
     var GlobalTableAlreadyExistsException$ = [
       -3,
-      n05,
+      n06,
       _GTAEE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(GlobalTableAlreadyExistsException$, GlobalTableAlreadyExistsException);
+    n0_registry6.registerError(GlobalTableAlreadyExistsException$, GlobalTableAlreadyExistsException);
     var GlobalTableNotFoundException$ = [
       -3,
-      n05,
+      n06,
       _GTNFE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(GlobalTableNotFoundException$, GlobalTableNotFoundException);
+    n0_registry6.registerError(GlobalTableNotFoundException$, GlobalTableNotFoundException);
     var IdempotentParameterMismatchException$ = [
       -3,
-      n05,
+      n06,
       _IPME,
-      { [_e5]: _c5 },
+      { [_e6]: _c6 },
       [_M],
       [0]
     ];
-    n0_registry5.registerError(IdempotentParameterMismatchException$, IdempotentParameterMismatchException);
+    n0_registry6.registerError(IdempotentParameterMismatchException$, IdempotentParameterMismatchException);
     var ImportConflictException$ = [
       -3,
-      n05,
+      n06,
       _ICE2,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ImportConflictException$, ImportConflictException);
+    n0_registry6.registerError(ImportConflictException$, ImportConflictException);
     var ImportNotFoundException$ = [
       -3,
-      n05,
+      n06,
       _INFE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ImportNotFoundException$, ImportNotFoundException);
+    n0_registry6.registerError(ImportNotFoundException$, ImportNotFoundException);
     var IndexNotFoundException$ = [
       -3,
-      n05,
+      n06,
       _INFEn,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(IndexNotFoundException$, IndexNotFoundException);
+    n0_registry6.registerError(IndexNotFoundException$, IndexNotFoundException);
     var InternalServerError$ = [
       -3,
-      n05,
+      n06,
       _ISE3,
-      { [_e5]: _se3 },
-      [_m4],
+      { [_e6]: _se4 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(InternalServerError$, InternalServerError);
+    n0_registry6.registerError(InternalServerError$, InternalServerError);
     var InvalidEndpointException$ = [
       -3,
-      n05,
-      _IEE,
-      { [_e5]: _c5, [_hE5]: 421 },
+      n06,
+      _IEE2,
+      { [_e6]: _c6, [_hE6]: 421 },
       [_M],
       [0]
     ];
-    n0_registry5.registerError(InvalidEndpointException$, InvalidEndpointException);
+    n0_registry6.registerError(InvalidEndpointException$, InvalidEndpointException);
     var InvalidExportTimeException$ = [
       -3,
-      n05,
+      n06,
       _IETE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(InvalidExportTimeException$, InvalidExportTimeException);
+    n0_registry6.registerError(InvalidExportTimeException$, InvalidExportTimeException);
     var InvalidRestoreTimeException$ = [
       -3,
-      n05,
+      n06,
       _IRTE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(InvalidRestoreTimeException$, InvalidRestoreTimeException);
+    n0_registry6.registerError(InvalidRestoreTimeException$, InvalidRestoreTimeException);
     var ItemCollectionSizeLimitExceededException$ = [
       -3,
-      n05,
+      n06,
       _ICSLEE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ItemCollectionSizeLimitExceededException$, ItemCollectionSizeLimitExceededException);
-    var LimitExceededException$ = [
+    n0_registry6.registerError(ItemCollectionSizeLimitExceededException$, ItemCollectionSizeLimitExceededException);
+    var LimitExceededException$2 = [
       -3,
-      n05,
-      _LEE,
-      { [_e5]: _c5 },
-      [_m4],
+      n06,
+      _LEE2,
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(LimitExceededException$, LimitExceededException);
+    n0_registry6.registerError(LimitExceededException$2, LimitExceededException2);
     var PointInTimeRecoveryUnavailableException$ = [
       -3,
-      n05,
+      n06,
       _PITRUE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(PointInTimeRecoveryUnavailableException$, PointInTimeRecoveryUnavailableException);
+    n0_registry6.registerError(PointInTimeRecoveryUnavailableException$, PointInTimeRecoveryUnavailableException);
     var PolicyNotFoundException$ = [
       -3,
-      n05,
+      n06,
       _PNFE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(PolicyNotFoundException$, PolicyNotFoundException);
+    n0_registry6.registerError(PolicyNotFoundException$, PolicyNotFoundException);
     var ProvisionedThroughputExceededException$ = [
       -3,
-      n05,
+      n06,
       _PTEE,
-      { [_e5]: _c5 },
-      [_m4, _TR],
+      { [_e6]: _c6 },
+      [_m5, _TR],
       [0, () => ThrottlingReasonList]
     ];
-    n0_registry5.registerError(ProvisionedThroughputExceededException$, ProvisionedThroughputExceededException);
+    n0_registry6.registerError(ProvisionedThroughputExceededException$, ProvisionedThroughputExceededException);
     var ReplicaAlreadyExistsException$ = [
       -3,
-      n05,
+      n06,
       _RAEE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ReplicaAlreadyExistsException$, ReplicaAlreadyExistsException);
+    n0_registry6.registerError(ReplicaAlreadyExistsException$, ReplicaAlreadyExistsException);
     var ReplicaNotFoundException$ = [
       -3,
-      n05,
-      _RNFE2,
-      { [_e5]: _c5 },
-      [_m4],
+      n06,
+      _RNFE3,
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ReplicaNotFoundException$, ReplicaNotFoundException);
+    n0_registry6.registerError(ReplicaNotFoundException$, ReplicaNotFoundException);
     var ReplicatedWriteConflictException$ = [
       -3,
-      n05,
+      n06,
       _RWCE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ReplicatedWriteConflictException$, ReplicatedWriteConflictException);
+    n0_registry6.registerError(ReplicatedWriteConflictException$, ReplicatedWriteConflictException);
     var RequestLimitExceeded$ = [
       -3,
-      n05,
+      n06,
       _RLE,
-      { [_e5]: _c5 },
-      [_m4, _TR],
+      { [_e6]: _c6 },
+      [_m5, _TR],
       [0, () => ThrottlingReasonList]
     ];
-    n0_registry5.registerError(RequestLimitExceeded$, RequestLimitExceeded);
+    n0_registry6.registerError(RequestLimitExceeded$, RequestLimitExceeded);
     var ResourceInUseException$ = [
       -3,
-      n05,
+      n06,
       _RIUE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ResourceInUseException$, ResourceInUseException);
-    var ResourceNotFoundException$2 = [
+    n0_registry6.registerError(ResourceInUseException$, ResourceInUseException);
+    var ResourceNotFoundException$3 = [
       -3,
-      n05,
+      n06,
       _RNFEe,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(ResourceNotFoundException$2, ResourceNotFoundException2);
+    n0_registry6.registerError(ResourceNotFoundException$3, ResourceNotFoundException3);
     var TableAlreadyExistsException$ = [
       -3,
-      n05,
+      n06,
       _TAEE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(TableAlreadyExistsException$, TableAlreadyExistsException);
+    n0_registry6.registerError(TableAlreadyExistsException$, TableAlreadyExistsException);
     var TableInUseException$ = [
       -3,
-      n05,
+      n06,
       _TIUE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(TableInUseException$, TableInUseException);
+    n0_registry6.registerError(TableInUseException$, TableInUseException);
     var TableNotFoundException$ = [
       -3,
-      n05,
+      n06,
       _TNFE,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(TableNotFoundException$, TableNotFoundException);
+    n0_registry6.registerError(TableNotFoundException$, TableNotFoundException);
     var ThrottlingException$ = [
       -3,
-      n05,
+      n06,
       _TE,
-      { [_aQE2]: [`Throttling`, 400], [_e5]: _c5, [_hE5]: 400 },
-      [_m4, _tR],
+      { [_aQE2]: [`Throttling`, 400], [_e6]: _c6, [_hE6]: 400 },
+      [_m5, _tR],
       [0, () => ThrottlingReasonList]
     ];
-    n0_registry5.registerError(ThrottlingException$, ThrottlingException);
+    n0_registry6.registerError(ThrottlingException$, ThrottlingException);
     var TransactionCanceledException$ = [
       -3,
-      n05,
+      n06,
       _TCE,
-      { [_e5]: _c5 },
+      { [_e6]: _c6 },
       [_M, _CR],
       [0, () => CancellationReasonList]
     ];
-    n0_registry5.registerError(TransactionCanceledException$, TransactionCanceledException);
+    n0_registry6.registerError(TransactionCanceledException$, TransactionCanceledException);
     var TransactionConflictException$ = [
       -3,
-      n05,
+      n06,
       _TCEr,
-      { [_e5]: _c5 },
-      [_m4],
+      { [_e6]: _c6 },
+      [_m5],
       [0]
     ];
-    n0_registry5.registerError(TransactionConflictException$, TransactionConflictException);
+    n0_registry6.registerError(TransactionConflictException$, TransactionConflictException);
     var TransactionInProgressException$ = [
       -3,
-      n05,
+      n06,
       _TIPE,
-      { [_e5]: _c5 },
+      { [_e6]: _c6 },
       [_M],
       [0]
     ];
-    n0_registry5.registerError(TransactionInProgressException$, TransactionInProgressException);
-    var errorTypeRegistries5 = [
-      _s_registry5,
-      n0_registry5
+    n0_registry6.registerError(TransactionInProgressException$, TransactionInProgressException);
+    var errorTypeRegistries6 = [
+      _s_registry6,
+      n0_registry6
     ];
     var ArchivalSummary$ = [
       3,
-      n05,
+      n06,
       _AS,
       0,
       [_ADT, _AR2, _ABA],
@@ -27179,7 +27179,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AttributeDefinition$ = [
       3,
-      n05,
+      n06,
       _AD,
       0,
       [_AN, _AT3],
@@ -27188,7 +27188,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AttributeValueUpdate$ = [
       3,
-      n05,
+      n06,
       _AVU,
       0,
       [_V2, _A2],
@@ -27196,7 +27196,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AutoScalingPolicyDescription$ = [
       3,
-      n05,
+      n06,
       _ASPD,
       0,
       [_PN, _TTSPC],
@@ -27204,7 +27204,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AutoScalingPolicyUpdate$ = [
       3,
-      n05,
+      n06,
       _ASPU,
       0,
       [_TTSPC, _PN],
@@ -27213,7 +27213,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AutoScalingSettingsDescription$ = [
       3,
-      n05,
+      n06,
       _ASSD,
       0,
       [_MU, _MUa, _ASD, _ASRA, _SP],
@@ -27221,7 +27221,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AutoScalingSettingsUpdate$ = [
       3,
-      n05,
+      n06,
       _ASSU,
       0,
       [_MU, _MUa, _ASD, _ASRA, _SPU],
@@ -27229,7 +27229,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AutoScalingTargetTrackingScalingPolicyConfigurationDescription$ = [
       3,
-      n05,
+      n06,
       _ASTTSPCD,
       0,
       [_TV, _DSI, _SIC, _SOC],
@@ -27238,7 +27238,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AutoScalingTargetTrackingScalingPolicyConfigurationUpdate$ = [
       3,
-      n05,
+      n06,
       _ASTTSPCU,
       0,
       [_TV, _DSI, _SIC, _SOC],
@@ -27247,7 +27247,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BackupDescription$ = [
       3,
-      n05,
+      n06,
       _BD,
       0,
       [_BDa, _STD, _STFD],
@@ -27255,7 +27255,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BackupDetails$ = [
       3,
-      n05,
+      n06,
       _BDa,
       0,
       [_BA, _BN, _BS, _BT, _BCDT, _BSB, _BEDT],
@@ -27264,7 +27264,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BackupSummary$ = [
       3,
-      n05,
+      n06,
       _BSa,
       0,
       [_TN, _TI, _TA, _BA, _BN, _BCDT, _BEDT, _BS, _BT, _BSB],
@@ -27272,7 +27272,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchExecuteStatementInput$ = [
       3,
-      n05,
+      n06,
       _BESI,
       0,
       [_S, _RCC],
@@ -27281,7 +27281,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchExecuteStatementOutput$ = [
       3,
-      n05,
+      n06,
       _BESO,
       0,
       [_R, _CC],
@@ -27289,7 +27289,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchGetItemInput$ = [
       3,
-      n05,
+      n06,
       _BGII,
       0,
       [_RI, _RCC],
@@ -27298,7 +27298,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchGetItemOutput$ = [
       3,
-      n05,
+      n06,
       _BGIO,
       0,
       [_R, _UK, _CC],
@@ -27306,15 +27306,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchStatementError$ = [
       3,
-      n05,
+      n06,
       _BSE,
       0,
-      [_C2, _M, _I],
+      [_C3, _M, _I],
       [0, 0, () => AttributeMap]
     ];
     var BatchStatementRequest$ = [
       3,
-      n05,
+      n06,
       _BSR,
       0,
       [_St, _P2, _CRo, _RVOCCF],
@@ -27323,15 +27323,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchStatementResponse$ = [
       3,
-      n05,
+      n06,
       _BSRa,
       0,
-      [_E2, _TN, _I],
+      [_E3, _TN, _I],
       [() => BatchStatementError$, 0, () => AttributeMap]
     ];
     var BatchWriteItemInput$ = [
       3,
-      n05,
+      n06,
       _BWII,
       0,
       [_RI, _RCC, _RICM],
@@ -27340,7 +27340,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchWriteItemOutput$ = [
       3,
-      n05,
+      n06,
       _BWIO,
       0,
       [_UI, _ICM, _CC],
@@ -27348,7 +27348,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BillingModeSummary$ = [
       3,
-      n05,
+      n06,
       _BMS,
       0,
       [_BM, _LUTPPRDT],
@@ -27356,15 +27356,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CancellationReason$ = [
       3,
-      n05,
+      n06,
       _CRa,
       0,
-      [_I, _C2, _M],
+      [_I, _C3, _M],
       [() => AttributeMap, 0, 0]
     ];
     var Capacity$ = [
       3,
-      n05,
+      n06,
       _Ca,
       0,
       [_RCU, _WCU, _CU],
@@ -27372,7 +27372,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Condition$ = [
       3,
-      n05,
+      n06,
       _Co,
       0,
       [_CO, _AVL],
@@ -27381,7 +27381,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ConditionCheck$ = [
       3,
-      n05,
+      n06,
       _CCo,
       0,
       [_K2, _TN, _CE, _EAN, _EAV, _RVOCCF],
@@ -27390,7 +27390,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ConsumedCapacity$ = [
       3,
-      n05,
+      n06,
       _CC,
       0,
       [_TN, _CU, _RCU, _WCU, _T2, _LSI, _GSI],
@@ -27398,7 +27398,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ContinuousBackupsDescription$ = [
       3,
-      n05,
+      n06,
       _CBD,
       0,
       [_CBS, _PITRD],
@@ -27407,7 +27407,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ContributorInsightsSummary$ = [
       3,
-      n05,
+      n06,
       _CIS,
       0,
       [_TN, _IN, _CISo, _CIM],
@@ -27415,7 +27415,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateBackupInput$ = [
       3,
-      n05,
+      n06,
       _CBI,
       0,
       [_TN, _BN],
@@ -27424,7 +27424,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateBackupOutput$ = [
       3,
-      n05,
+      n06,
       _CBO,
       0,
       [_BDa],
@@ -27432,7 +27432,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateGlobalSecondaryIndexAction$ = [
       3,
-      n05,
+      n06,
       _CGSIA,
       0,
       [_IN, _KS, _Pr2, _PT, _ODT, _WT],
@@ -27441,7 +27441,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateGlobalTableInput$ = [
       3,
-      n05,
+      n06,
       _CGTI,
       0,
       [_GTN, _RG],
@@ -27450,7 +27450,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateGlobalTableOutput$ = [
       3,
-      n05,
+      n06,
       _CGTO,
       0,
       [_GTD],
@@ -27458,7 +27458,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateGlobalTableWitnessGroupMemberAction$ = [
       3,
-      n05,
+      n06,
       _CGTWGMA,
       0,
       [_RN],
@@ -27467,8 +27467,8 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateReplicaAction$ = [
       3,
-      n05,
-      _CRA,
+      n06,
+      _CRA2,
       0,
       [_RN],
       [0],
@@ -27476,7 +27476,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateReplicationGroupMemberAction$ = [
       3,
-      n05,
+      n06,
       _CRGMA,
       0,
       [_RN, _KMSMKI, _PTO, _ODTO, _GSI, _TCO],
@@ -27485,7 +27485,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateTableInput$ = [
       3,
-      n05,
+      n06,
       _CTI,
       0,
       [_TN, _ADt, _KS, _LSI, _GSI, _BM, _PT, _SS, _SSES, _Ta2, _TC2, _DPE, _WT, _RP, _ODT, _GTSA, _GTSRM],
@@ -27494,7 +27494,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateTableOutput$ = [
       3,
-      n05,
+      n06,
       _CTO,
       0,
       [_TD],
@@ -27502,7 +27502,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CsvOptions$ = [
       3,
-      n05,
+      n06,
       _COs,
       0,
       [_D, _HL],
@@ -27510,7 +27510,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Delete$ = [
       3,
-      n05,
+      n06,
       _De,
       0,
       [_K2, _TN, _CE, _EAN, _EAV, _RVOCCF],
@@ -27519,7 +27519,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteBackupInput$ = [
       3,
-      n05,
+      n06,
       _DBI,
       0,
       [_BA],
@@ -27528,7 +27528,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteBackupOutput$ = [
       3,
-      n05,
+      n06,
       _DBO,
       0,
       [_BD],
@@ -27536,7 +27536,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteGlobalSecondaryIndexAction$ = [
       3,
-      n05,
+      n06,
       _DGSIA,
       0,
       [_IN],
@@ -27545,7 +27545,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteGlobalTableWitnessGroupMemberAction$ = [
       3,
-      n05,
+      n06,
       _DGTWGMA,
       0,
       [_RN],
@@ -27554,7 +27554,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteItemInput$ = [
       3,
-      n05,
+      n06,
       _DII,
       0,
       [_TN, _K2, _Ex, _COo, _RV, _RCC, _RICM, _CE, _EAN, _EAV, _RVOCCF],
@@ -27563,7 +27563,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteItemOutput$ = [
       3,
-      n05,
+      n06,
       _DIO,
       0,
       [_At, _CC, _ICM],
@@ -27571,7 +27571,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteReplicaAction$ = [
       3,
-      n05,
+      n06,
       _DRA,
       0,
       [_RN],
@@ -27580,7 +27580,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteReplicationGroupMemberAction$ = [
       3,
-      n05,
+      n06,
       _DRGMA,
       0,
       [_RN],
@@ -27589,7 +27589,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteRequest$ = [
       3,
-      n05,
+      n06,
       _DR,
       0,
       [_K2],
@@ -27598,7 +27598,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteResourcePolicyInput$ = [
       3,
-      n05,
+      n06,
       _DRPI,
       0,
       [_RA2, _ERI],
@@ -27607,7 +27607,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteResourcePolicyOutput$ = [
       3,
-      n05,
+      n06,
       _DRPO,
       0,
       [_RIe],
@@ -27615,7 +27615,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteTableInput$ = [
       3,
-      n05,
+      n06,
       _DTI,
       0,
       [_TN],
@@ -27624,7 +27624,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteTableOutput$ = [
       3,
-      n05,
+      n06,
       _DTO,
       0,
       [_TD],
@@ -27632,7 +27632,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeBackupInput$ = [
       3,
-      n05,
+      n06,
       _DBIe,
       0,
       [_BA],
@@ -27641,7 +27641,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeBackupOutput$ = [
       3,
-      n05,
+      n06,
       _DBOe,
       0,
       [_BD],
@@ -27649,7 +27649,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeContinuousBackupsInput$ = [
       3,
-      n05,
+      n06,
       _DCBI,
       0,
       [_TN],
@@ -27658,7 +27658,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeContinuousBackupsOutput$ = [
       3,
-      n05,
+      n06,
       _DCBO,
       0,
       [_CBD],
@@ -27666,7 +27666,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeContributorInsightsInput$ = [
       3,
-      n05,
+      n06,
       _DCII,
       0,
       [_TN, _IN],
@@ -27675,7 +27675,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeContributorInsightsOutput$ = [
       3,
-      n05,
+      n06,
       _DCIO,
       0,
       [_TN, _IN, _CIRL, _CISo, _LUDT, _FE, _CIM],
@@ -27683,7 +27683,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeEndpointsRequest$ = [
       3,
-      n05,
+      n06,
       _DER,
       0,
       [],
@@ -27691,7 +27691,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeEndpointsResponse$ = [
       3,
-      n05,
+      n06,
       _DERe,
       0,
       [_En],
@@ -27700,7 +27700,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeExportInput$ = [
       3,
-      n05,
+      n06,
       _DEI,
       0,
       [_EA],
@@ -27709,7 +27709,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeExportOutput$ = [
       3,
-      n05,
+      n06,
       _DEO,
       0,
       [_ED],
@@ -27717,7 +27717,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeGlobalTableInput$ = [
       3,
-      n05,
+      n06,
       _DGTI,
       0,
       [_GTN],
@@ -27726,7 +27726,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeGlobalTableOutput$ = [
       3,
-      n05,
+      n06,
       _DGTO,
       0,
       [_GTD],
@@ -27734,7 +27734,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeGlobalTableSettingsInput$ = [
       3,
-      n05,
+      n06,
       _DGTSI,
       0,
       [_GTN],
@@ -27743,7 +27743,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeGlobalTableSettingsOutput$ = [
       3,
-      n05,
+      n06,
       _DGTSO,
       0,
       [_GTN, _RS],
@@ -27751,7 +27751,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeImportInput$ = [
       3,
-      n05,
+      n06,
       _DIIe,
       0,
       [_IA],
@@ -27760,7 +27760,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeImportOutput$ = [
       3,
-      n05,
+      n06,
       _DIOe,
       0,
       [_ITD],
@@ -27769,7 +27769,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeKinesisStreamingDestinationInput$ = [
       3,
-      n05,
+      n06,
       _DKSDI,
       0,
       [_TN],
@@ -27778,7 +27778,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeKinesisStreamingDestinationOutput$ = [
       3,
-      n05,
+      n06,
       _DKSDO,
       0,
       [_TN, _KDSD],
@@ -27786,7 +27786,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeLimitsInput$ = [
       3,
-      n05,
+      n06,
       _DLI,
       0,
       [],
@@ -27794,7 +27794,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeLimitsOutput$ = [
       3,
-      n05,
+      n06,
       _DLO,
       0,
       [_AMRCU, _AMWCU, _TMRCU, _TMWCU],
@@ -27802,7 +27802,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTableInput$ = [
       3,
-      n05,
+      n06,
       _DTIe,
       0,
       [_TN],
@@ -27811,7 +27811,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTableOutput$ = [
       3,
-      n05,
+      n06,
       _DTOe,
       0,
       [_T2],
@@ -27819,7 +27819,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTableReplicaAutoScalingInput$ = [
       3,
-      n05,
+      n06,
       _DTRASI,
       0,
       [_TN],
@@ -27828,7 +27828,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTableReplicaAutoScalingOutput$ = [
       3,
-      n05,
+      n06,
       _DTRASO,
       0,
       [_TASD],
@@ -27836,7 +27836,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTimeToLiveInput$ = [
       3,
-      n05,
+      n06,
       _DTTLI,
       0,
       [_TN],
@@ -27845,7 +27845,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTimeToLiveOutput$ = [
       3,
-      n05,
+      n06,
       _DTTLO,
       0,
       [_TTLD],
@@ -27853,7 +27853,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var EnableKinesisStreamingConfiguration$ = [
       3,
-      n05,
+      n06,
       _EKSC,
       0,
       [_ACDTP],
@@ -27861,7 +27861,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Endpoint$ = [
       3,
-      n05,
+      n06,
       _End,
       0,
       [_Ad, _CPIM],
@@ -27870,16 +27870,16 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExecuteStatementInput$ = [
       3,
-      n05,
+      n06,
       _ESI,
       0,
-      [_St, _P2, _CRo, _NT, _RCC, _L, _RVOCCF],
+      [_St, _P2, _CRo, _NT, _RCC, _L2, _RVOCCF],
       [0, () => PreparedStatementParameters, 2, 0, 0, 1, 0],
       1
     ];
     var ExecuteStatementOutput$ = [
       3,
-      n05,
+      n06,
       _ESO,
       0,
       [_It, _NT, _CC, _LEK],
@@ -27887,7 +27887,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExecuteTransactionInput$ = [
       3,
-      n05,
+      n06,
       _ETI,
       0,
       [_TS, _CRT, _RCC],
@@ -27896,7 +27896,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExecuteTransactionOutput$ = [
       3,
-      n05,
+      n06,
       _ETO,
       0,
       [_R, _CC],
@@ -27904,7 +27904,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExpectedAttributeValue$ = [
       3,
-      n05,
+      n06,
       _EAVx,
       0,
       [_V2, _Exi, _CO, _AVL],
@@ -27912,15 +27912,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExportDescription$ = [
       3,
-      n05,
+      n06,
       _ED,
       0,
-      [_EA, _ES, _ST2, _ET, _EM, _TA, _TI, _ETx, _CT2, _SB, _SBO, _SPr, _SSA, _SSKKI, _FC, _FM, _EF, _BSBi, _IC, _ETxp, _IES],
+      [_EA, _ES, _ST3, _ET, _EM, _TA, _TI, _ETx, _CT2, _SB, _SBO, _SPr, _SSA, _SSKKI, _FC, _FM, _EF, _BSBi, _IC, _ETxp, _IES],
       [0, 0, 4, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, () => IncrementalExportSpecification$]
     ];
     var ExportSummary$ = [
       3,
-      n05,
+      n06,
       _ESx,
       0,
       [_EA, _ES, _ETxp],
@@ -27928,7 +27928,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExportTableToPointInTimeInput$ = [
       3,
-      n05,
+      n06,
       _ETTPITI,
       0,
       [_TA, _SB, _ETx, _CT2, _SBO, _SPr, _SSA, _SSKKI, _EF, _ETxp, _IES],
@@ -27937,7 +27937,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExportTableToPointInTimeOutput$ = [
       3,
-      n05,
+      n06,
       _ETTPITO,
       0,
       [_ED],
@@ -27945,7 +27945,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var FailureException$ = [
       3,
-      n05,
+      n06,
       _FE,
       0,
       [_EN, _EDx],
@@ -27953,7 +27953,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Get$ = [
       3,
-      n05,
+      n06,
       _G,
       0,
       [_K2, _TN, _PE, _EAN],
@@ -27962,8 +27962,8 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GetItemInput$ = [
       3,
-      n05,
-      _GII,
+      n06,
+      _GII2,
       0,
       [_TN, _K2, _ATG, _CRo, _RCC, _PE, _EAN],
       [0, () => Key, 64 | 0, 2, 0, 0, 128 | 0],
@@ -27971,7 +27971,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GetItemOutput$ = [
       3,
-      n05,
+      n06,
       _GIO,
       0,
       [_I, _CC],
@@ -27979,7 +27979,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GetResourcePolicyInput$ = [
       3,
-      n05,
+      n06,
       _GRPI,
       0,
       [_RA2],
@@ -27988,7 +27988,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GetResourcePolicyOutput$ = [
       3,
-      n05,
+      n06,
       _GRPO,
       0,
       [_Po, _RIe],
@@ -27996,7 +27996,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalSecondaryIndex$ = [
       3,
-      n05,
+      n06,
       _GSIl,
       0,
       [_IN, _KS, _Pr2, _PT, _ODT, _WT],
@@ -28005,7 +28005,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalSecondaryIndexAutoScalingUpdate$ = [
       3,
-      n05,
+      n06,
       _GSIASU,
       0,
       [_IN, _PWCASU],
@@ -28013,7 +28013,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalSecondaryIndexDescription$ = [
       3,
-      n05,
+      n06,
       _GSID,
       0,
       [_IN, _KS, _Pr2, _IS, _B, _PT, _ISB, _IC, _IAn, _ODT, _WT],
@@ -28021,7 +28021,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalSecondaryIndexInfo$ = [
       3,
-      n05,
+      n06,
       _GSII,
       0,
       [_IN, _KS, _Pr2, _PT, _ODT],
@@ -28029,7 +28029,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalSecondaryIndexUpdate$ = [
       3,
-      n05,
+      n06,
       _GSIU,
       0,
       [_U, _Cr, _De],
@@ -28037,7 +28037,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalSecondaryIndexWarmThroughputDescription$ = [
       3,
-      n05,
+      n06,
       _GSIWTD,
       0,
       [_RUPS, _WUPS, _Sta],
@@ -28045,7 +28045,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalTable$ = [
       3,
-      n05,
+      n06,
       _GT,
       0,
       [_GTN, _RG],
@@ -28053,7 +28053,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalTableDescription$ = [
       3,
-      n05,
+      n06,
       _GTD,
       0,
       [_RG, _GTA, _CDT, _GTS, _GTN],
@@ -28061,7 +28061,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalTableGlobalSecondaryIndexSettingsUpdate$ = [
       3,
-      n05,
+      n06,
       _GTGSISU,
       0,
       [_IN, _PWCU, _PWCASSU],
@@ -28070,7 +28070,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalTableWitnessDescription$ = [
       3,
-      n05,
+      n06,
       _GTWD,
       0,
       [_RN, _WS],
@@ -28078,7 +28078,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GlobalTableWitnessGroupUpdate$ = [
       3,
-      n05,
+      n06,
       _GTWGU,
       0,
       [_Cr, _De],
@@ -28086,23 +28086,23 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ImportSummary$ = [
       3,
-      n05,
+      n06,
       _ISm,
       0,
-      [_IA, _ISmp, _TA, _SBS, _CWLGA, _IF, _ST2, _ET],
+      [_IA, _ISmp, _TA, _SBS, _CWLGA, _IF, _ST3, _ET],
       [0, 0, 0, () => S3BucketSource$, 0, 0, 4, 4]
     ];
     var ImportTableDescription$ = [
       3,
-      n05,
+      n06,
       _ITD,
       0,
-      [_IA, _ISmp, _TA, _TI, _CT2, _SBS, _EC, _CWLGA, _IF, _IFO, _ICT, _TCP, _ST2, _ET, _PSB, _PIC, _IIC, _FC, _FM],
+      [_IA, _ISmp, _TA, _TI, _CT2, _SBS, _EC, _CWLGA, _IF, _IFO, _ICT, _TCP, _ST3, _ET, _PSB, _PIC, _IIC, _FC, _FM],
       [0, 0, 0, 0, 0, () => S3BucketSource$, 1, 0, 0, () => InputFormatOptions$, 0, () => TableCreationParameters$, 4, 4, 1, 1, 1, 0, 0]
     ];
     var ImportTableInput$ = [
       3,
-      n05,
+      n06,
       _ITI,
       0,
       [_SBS, _IF, _TCP, _CT2, _IFO, _ICT],
@@ -28111,7 +28111,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ImportTableOutput$ = [
       3,
-      n05,
+      n06,
       _ITO,
       0,
       [_ITD],
@@ -28120,7 +28120,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var IncrementalExportSpecification$ = [
       3,
-      n05,
+      n06,
       _IES,
       0,
       [_EFT, _ETT, _EVT],
@@ -28128,7 +28128,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var InputFormatOptions$ = [
       3,
-      n05,
+      n06,
       _IFO,
       0,
       [_Cs],
@@ -28136,7 +28136,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ItemCollectionMetrics$ = [
       3,
-      n05,
+      n06,
       _ICM,
       0,
       [_ICK, _SERGB],
@@ -28144,7 +28144,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ItemResponse$ = [
       3,
-      n05,
+      n06,
       _IR,
       0,
       [_I],
@@ -28152,7 +28152,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var KeysAndAttributes$ = [
       3,
-      n05,
+      n06,
       _KAA,
       0,
       [_Ke, _ATG, _CRo, _PE, _EAN],
@@ -28161,7 +28161,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var KeySchemaElement$ = [
       3,
-      n05,
+      n06,
       _KSE,
       0,
       [_AN, _KT],
@@ -28170,7 +28170,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var KinesisDataStreamDestination$ = [
       3,
-      n05,
+      n06,
       _KDSDi,
       0,
       [_SA, _DS2, _DSD, _ACDTP],
@@ -28178,7 +28178,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var KinesisStreamingDestinationInput$ = [
       3,
-      n05,
+      n06,
       _KSDI,
       0,
       [_TN, _SA, _EKSC],
@@ -28187,7 +28187,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var KinesisStreamingDestinationOutput$ = [
       3,
-      n05,
+      n06,
       _KSDO,
       0,
       [_TN, _SA, _DS2, _EKSC],
@@ -28195,15 +28195,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListBackupsInput$ = [
       3,
-      n05,
+      n06,
       _LBI,
       0,
-      [_TN, _L, _TRLB, _TRUB, _ESBA, _BT],
+      [_TN, _L2, _TRLB, _TRUB, _ESBA, _BT],
       [0, 1, 4, 4, 0, 0]
     ];
     var ListBackupsOutput$ = [
       3,
-      n05,
+      n06,
       _LBO,
       0,
       [_BSac, _LEBA],
@@ -28211,7 +28211,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListContributorInsightsInput$ = [
       3,
-      n05,
+      n06,
       _LCII,
       0,
       [_TN, _NT, _MR],
@@ -28219,7 +28219,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListContributorInsightsOutput$ = [
       3,
-      n05,
+      n06,
       _LCIO,
       0,
       [_CISon, _NT],
@@ -28227,7 +28227,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListExportsInput$ = [
       3,
-      n05,
+      n06,
       _LEI,
       0,
       [_TA, _MR, _NT],
@@ -28235,7 +28235,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListExportsOutput$ = [
       3,
-      n05,
+      n06,
       _LEO,
       0,
       [_ESxp, _NT],
@@ -28243,15 +28243,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListGlobalTablesInput$ = [
       3,
-      n05,
+      n06,
       _LGTI,
       0,
-      [_ESGTN, _L, _RN],
+      [_ESGTN, _L2, _RN],
       [0, 1, 0]
     ];
     var ListGlobalTablesOutput$ = [
       3,
-      n05,
+      n06,
       _LGTO,
       0,
       [_GTl, _LEGTN],
@@ -28259,7 +28259,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListImportsInput$ = [
       3,
-      n05,
+      n06,
       _LII,
       0,
       [_TA, _PS, _NT],
@@ -28267,7 +28267,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListImportsOutput$ = [
       3,
-      n05,
+      n06,
       _LIO,
       0,
       [_ISL, _NT],
@@ -28275,15 +28275,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListTablesInput$ = [
       3,
-      n05,
+      n06,
       _LTI,
       0,
-      [_ESTN, _L],
+      [_ESTN, _L2],
       [0, 1]
     ];
     var ListTablesOutput$ = [
       3,
-      n05,
+      n06,
       _LTO,
       0,
       [_TNa, _LETN],
@@ -28291,7 +28291,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListTagsOfResourceInput$ = [
       3,
-      n05,
+      n06,
       _LTORI,
       0,
       [_RA2, _NT],
@@ -28300,7 +28300,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListTagsOfResourceOutput$ = [
       3,
-      n05,
+      n06,
       _LTORO,
       0,
       [_Ta2, _NT],
@@ -28308,7 +28308,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var LocalSecondaryIndex$ = [
       3,
-      n05,
+      n06,
       _LSIo,
       0,
       [_IN, _KS, _Pr2],
@@ -28317,7 +28317,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var LocalSecondaryIndexDescription$ = [
       3,
-      n05,
+      n06,
       _LSID,
       0,
       [_IN, _KS, _Pr2, _ISB, _IC, _IAn],
@@ -28325,7 +28325,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var LocalSecondaryIndexInfo$ = [
       3,
-      n05,
+      n06,
       _LSII,
       0,
       [_IN, _KS, _Pr2],
@@ -28333,7 +28333,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var OnDemandThroughput$ = [
       3,
-      n05,
+      n06,
       _ODT,
       0,
       [_MRRU, _MWRU],
@@ -28341,7 +28341,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var OnDemandThroughputOverride$ = [
       3,
-      n05,
+      n06,
       _ODTO,
       0,
       [_MRRU],
@@ -28349,7 +28349,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ParameterizedStatement$ = [
       3,
-      n05,
+      n06,
       _PSa,
       0,
       [_St, _P2, _RVOCCF],
@@ -28358,7 +28358,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PointInTimeRecoveryDescription$ = [
       3,
-      n05,
+      n06,
       _PITRD,
       0,
       [_PITRS, _RPID, _ERDT, _LRDT],
@@ -28366,7 +28366,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PointInTimeRecoverySpecification$ = [
       3,
-      n05,
+      n06,
       _PITRSo,
       0,
       [_PITRE, _RPID],
@@ -28375,7 +28375,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Projection$ = [
       3,
-      n05,
+      n06,
       _Pr2,
       0,
       [_PTr, _NKA],
@@ -28383,7 +28383,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ProvisionedThroughput$ = [
       3,
-      n05,
+      n06,
       _PT,
       0,
       [_RCU, _WCU],
@@ -28392,7 +28392,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ProvisionedThroughputDescription$ = [
       3,
-      n05,
+      n06,
       _PTD,
       0,
       [_LIDT, _LDDT, _NODT, _RCU, _WCU],
@@ -28400,7 +28400,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ProvisionedThroughputOverride$ = [
       3,
-      n05,
+      n06,
       _PTO,
       0,
       [_RCU],
@@ -28408,7 +28408,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Put$ = [
       3,
-      n05,
+      n06,
       _Pu,
       0,
       [_I, _TN, _CE, _EAN, _EAV, _RVOCCF],
@@ -28417,7 +28417,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutItemInput$ = [
       3,
-      n05,
+      n06,
       _PII,
       0,
       [_TN, _I, _Ex, _RV, _RCC, _RICM, _COo, _CE, _EAN, _EAV, _RVOCCF],
@@ -28426,7 +28426,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutItemOutput$ = [
       3,
-      n05,
+      n06,
       _PIO,
       0,
       [_At, _CC, _ICM],
@@ -28434,7 +28434,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutRequest$ = [
       3,
-      n05,
+      n06,
       _PR,
       0,
       [_I],
@@ -28443,7 +28443,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutResourcePolicyInput$ = [
       3,
-      n05,
+      n06,
       _PRPI,
       0,
       [_RA2, _Po, _ERI, _CRSRA],
@@ -28452,7 +28452,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutResourcePolicyOutput$ = [
       3,
-      n05,
+      n06,
       _PRPO,
       0,
       [_RIe],
@@ -28460,16 +28460,16 @@ var require_dist_cjs20 = __commonJS({
     ];
     var QueryInput$ = [
       3,
-      n05,
+      n06,
       _QI,
       0,
-      [_TN, _IN, _Se, _ATG, _L, _CRo, _KC, _QF, _COo, _SIF, _ESK, _RCC, _PE, _FEi, _KCE, _EAN, _EAV],
+      [_TN, _IN, _Se, _ATG, _L2, _CRo, _KC, _QF, _COo, _SIF, _ESK, _RCC, _PE, _FEi, _KCE, _EAN, _EAV],
       [0, 0, 0, 64 | 0, 1, 2, () => KeyConditions, () => FilterConditionMap, 0, 2, () => Key, 0, 0, 0, 0, 128 | 0, () => ExpressionAttributeValueMap],
       1
     ];
     var QueryOutput$ = [
       3,
-      n05,
+      n06,
       _QO,
       0,
       [_It, _Cou, _SC, _LEK, _CC],
@@ -28477,7 +28477,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Replica$ = [
       3,
-      n05,
+      n06,
       _Re,
       0,
       [_RN],
@@ -28485,7 +28485,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaAutoScalingDescription$ = [
       3,
-      n05,
+      n06,
       _RASD,
       0,
       [_RN, _GSI, _RPRCASS, _RPWCASS, _RSe],
@@ -28493,7 +28493,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaAutoScalingUpdate$ = [
       3,
-      n05,
+      n06,
       _RASU,
       0,
       [_RN, _RGSIU, _RPRCASU],
@@ -28502,7 +28502,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaDescription$ = [
       3,
-      n05,
+      n06,
       _RD,
       0,
       [_RN, _RSe, _RAe, _RSD, _RSPP, _KMSMKI, _PTO, _ODTO, _WT, _GSI, _RIDT, _RTCS, _GTSRM],
@@ -28510,7 +28510,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaGlobalSecondaryIndex$ = [
       3,
-      n05,
+      n06,
       _RGSI,
       0,
       [_IN, _PTO, _ODTO],
@@ -28519,7 +28519,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaGlobalSecondaryIndexAutoScalingDescription$ = [
       3,
-      n05,
+      n06,
       _RGSIASD,
       0,
       [_IN, _IS, _PRCASS, _PWCASS],
@@ -28527,7 +28527,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaGlobalSecondaryIndexAutoScalingUpdate$ = [
       3,
-      n05,
+      n06,
       _RGSIASU,
       0,
       [_IN, _PRCASU],
@@ -28535,7 +28535,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaGlobalSecondaryIndexDescription$ = [
       3,
-      n05,
+      n06,
       _RGSID,
       0,
       [_IN, _PTO, _ODTO, _WT],
@@ -28543,7 +28543,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaGlobalSecondaryIndexSettingsDescription$ = [
       3,
-      n05,
+      n06,
       _RGSISD,
       0,
       [_IN, _IS, _PRCU, _PRCASS, _PWCU, _PWCASS],
@@ -28552,7 +28552,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaGlobalSecondaryIndexSettingsUpdate$ = [
       3,
-      n05,
+      n06,
       _RGSISU,
       0,
       [_IN, _PRCU, _PRCASSU],
@@ -28561,7 +28561,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaSettingsDescription$ = [
       3,
-      n05,
+      n06,
       _RSDe,
       0,
       [_RN, _RSe, _RBMS, _RPRCU, _RPRCASS, _RPWCU, _RPWCASS, _RGSIS, _RTCS],
@@ -28570,7 +28570,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaSettingsUpdate$ = [
       3,
-      n05,
+      n06,
       _RSU,
       0,
       [_RN, _RPRCU, _RPRCASSU, _RGSISU, _RTC],
@@ -28579,7 +28579,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicationGroupUpdate$ = [
       3,
-      n05,
+      n06,
       _RGU,
       0,
       [_Cr, _U, _De],
@@ -28587,7 +28587,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ReplicaUpdate$ = [
       3,
-      n05,
+      n06,
       _RU,
       0,
       [_Cr, _De],
@@ -28595,7 +28595,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var RestoreSummary$ = [
       3,
-      n05,
+      n06,
       _RSes,
       0,
       [_RDT, _RIP, _SBA, _STA],
@@ -28604,7 +28604,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var RestoreTableFromBackupInput$ = [
       3,
-      n05,
+      n06,
       _RTFBI,
       0,
       [_TTN, _BA, _BMO, _GSIO, _LSIO, _PTO, _ODTO, _SSESO],
@@ -28613,7 +28613,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var RestoreTableFromBackupOutput$ = [
       3,
-      n05,
+      n06,
       _RTFBO,
       0,
       [_TD],
@@ -28621,7 +28621,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var RestoreTableToPointInTimeInput$ = [
       3,
-      n05,
+      n06,
       _RTTPITI,
       0,
       [_TTN, _STA, _STN, _ULRT, _RDT, _BMO, _GSIO, _LSIO, _PTO, _ODTO, _SSESO],
@@ -28630,7 +28630,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var RestoreTableToPointInTimeOutput$ = [
       3,
-      n05,
+      n06,
       _RTTPITO,
       0,
       [_TD],
@@ -28638,7 +28638,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var S3BucketSource$ = [
       3,
-      n05,
+      n06,
       _SBS,
       0,
       [_SB, _SBO, _SKP],
@@ -28647,16 +28647,16 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ScanInput$ = [
       3,
-      n05,
+      n06,
       _SI2,
       0,
-      [_TN, _IN, _ATG, _L, _Se, _SF, _COo, _ESK, _RCC, _TSo, _Seg, _PE, _FEi, _EAN, _EAV, _CRo],
+      [_TN, _IN, _ATG, _L2, _Se, _SF, _COo, _ESK, _RCC, _TSo, _Seg, _PE, _FEi, _EAN, _EAV, _CRo],
       [0, 0, 64 | 0, 1, 0, () => FilterConditionMap, 0, () => Key, 0, 1, 1, 0, 0, 128 | 0, () => ExpressionAttributeValueMap, 2],
       1
     ];
     var ScanOutput$ = [
       3,
-      n05,
+      n06,
       _SO,
       0,
       [_It, _Cou, _SC, _LEK, _CC],
@@ -28664,7 +28664,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var SourceTableDetails$ = [
       3,
-      n05,
+      n06,
       _STD,
       0,
       [_TN, _TI, _KS, _TCDT, _PT, _TA, _TSB, _ODT, _IC, _BM],
@@ -28673,7 +28673,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var SourceTableFeatureDetails$ = [
       3,
-      n05,
+      n06,
       _STFD,
       0,
       [_LSI, _GSI, _SD, _TTLD, _SSED],
@@ -28681,7 +28681,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var SSEDescription$ = [
       3,
-      n05,
+      n06,
       _SSED,
       0,
       [_Sta, _SSET, _KMSMKA, _IEDT],
@@ -28689,7 +28689,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var SSESpecification$ = [
       3,
-      n05,
+      n06,
       _SSES,
       0,
       [_Ena, _SSET, _KMSMKI],
@@ -28697,7 +28697,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var StreamSpecification$ = [
       3,
-      n05,
+      n06,
       _SS,
       0,
       [_SE, _SVT],
@@ -28706,7 +28706,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TableAutoScalingDescription$ = [
       3,
-      n05,
+      n06,
       _TASD,
       0,
       [_TN, _TSa, _Rep],
@@ -28714,7 +28714,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TableClassSummary$ = [
       3,
-      n05,
+      n06,
       _TCS,
       0,
       [_TC2, _LUDT],
@@ -28722,7 +28722,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TableCreationParameters$ = [
       3,
-      n05,
+      n06,
       _TCP,
       0,
       [_TN, _ADt, _KS, _BM, _PT, _ODT, _SSES, _GSI],
@@ -28731,7 +28731,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TableDescription$ = [
       3,
-      n05,
+      n06,
       _TD,
       0,
       [_ADt, _TN, _KS, _TSa, _CDT, _PT, _TSB, _IC, _TA, _TI, _BMS, _LSI, _GSI, _SS, _LSL, _LSA, _GTV, _Rep, _GTW, _GTSRM, _RSes, _SSED, _AS, _TCS, _DPE, _ODT, _WT, _MRC],
@@ -28739,7 +28739,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TableWarmThroughputDescription$ = [
       3,
-      n05,
+      n06,
       _TWTD,
       0,
       [_RUPS, _WUPS, _Sta],
@@ -28747,7 +28747,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Tag$2 = [
       3,
-      n05,
+      n06,
       _Tag,
       0,
       [_K2, _V2],
@@ -28756,7 +28756,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TagResourceInput$ = [
       3,
-      n05,
+      n06,
       _TRI,
       0,
       [_RA2, _Ta2],
@@ -28765,7 +28765,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ThrottlingReason$ = [
       3,
-      n05,
+      n06,
       _TRh,
       0,
       [_r3, _re],
@@ -28773,7 +28773,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TimeToLiveDescription$ = [
       3,
-      n05,
+      n06,
       _TTLD,
       0,
       [_TTLS, _AN],
@@ -28781,7 +28781,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TimeToLiveSpecification$ = [
       3,
-      n05,
+      n06,
       _TTLSi,
       0,
       [_Ena, _AN],
@@ -28790,7 +28790,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactGetItem$ = [
       3,
-      n05,
+      n06,
       _TGI,
       0,
       [_G],
@@ -28799,7 +28799,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactGetItemsInput$ = [
       3,
-      n05,
+      n06,
       _TGII,
       0,
       [_TIr, _RCC],
@@ -28808,7 +28808,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactGetItemsOutput$ = [
       3,
-      n05,
+      n06,
       _TGIO,
       0,
       [_CC, _R],
@@ -28816,7 +28816,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactWriteItem$ = [
       3,
-      n05,
+      n06,
       _TWI,
       0,
       [_CCo, _Pu, _De, _U],
@@ -28824,7 +28824,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactWriteItemsInput$ = [
       3,
-      n05,
+      n06,
       _TWII,
       0,
       [_TIr, _RCC, _RICM, _CRT],
@@ -28833,7 +28833,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactWriteItemsOutput$ = [
       3,
-      n05,
+      n06,
       _TWIO,
       0,
       [_CC, _ICM],
@@ -28841,7 +28841,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UntagResourceInput$ = [
       3,
-      n05,
+      n06,
       _URI,
       0,
       [_RA2, _TK],
@@ -28850,7 +28850,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Update$ = [
       3,
-      n05,
+      n06,
       _U,
       0,
       [_K2, _UE2, _TN, _CE, _EAN, _EAV, _RVOCCF],
@@ -28859,7 +28859,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateContinuousBackupsInput$ = [
       3,
-      n05,
+      n06,
       _UCBI,
       0,
       [_TN, _PITRSo],
@@ -28868,7 +28868,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateContinuousBackupsOutput$ = [
       3,
-      n05,
+      n06,
       _UCBO,
       0,
       [_CBD],
@@ -28876,7 +28876,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateContributorInsightsInput$ = [
       3,
-      n05,
+      n06,
       _UCII,
       0,
       [_TN, _CIA, _IN, _CIM],
@@ -28885,7 +28885,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateContributorInsightsOutput$ = [
       3,
-      n05,
+      n06,
       _UCIO,
       0,
       [_TN, _IN, _CISo, _CIM],
@@ -28893,7 +28893,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateGlobalSecondaryIndexAction$ = [
       3,
-      n05,
+      n06,
       _UGSIA,
       0,
       [_IN, _PT, _ODT, _WT],
@@ -28902,7 +28902,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateGlobalTableInput$ = [
       3,
-      n05,
+      n06,
       _UGTI,
       0,
       [_GTN, _RUe],
@@ -28911,7 +28911,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateGlobalTableOutput$ = [
       3,
-      n05,
+      n06,
       _UGTO,
       0,
       [_GTD],
@@ -28919,7 +28919,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateGlobalTableSettingsInput$ = [
       3,
-      n05,
+      n06,
       _UGTSI,
       0,
       [_GTN, _GTBM, _GTPWCU, _GTPWCASSU, _GTGSISU, _RSU],
@@ -28928,7 +28928,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateGlobalTableSettingsOutput$ = [
       3,
-      n05,
+      n06,
       _UGTSO,
       0,
       [_GTN, _RS],
@@ -28936,7 +28936,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateItemInput$ = [
       3,
-      n05,
+      n06,
       _UII,
       0,
       [_TN, _K2, _AU, _Ex, _COo, _RV, _RCC, _RICM, _UE2, _CE, _EAN, _EAV, _RVOCCF],
@@ -28945,7 +28945,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateItemOutput$ = [
       3,
-      n05,
+      n06,
       _UIO,
       0,
       [_At, _CC, _ICM],
@@ -28953,7 +28953,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateKinesisStreamingConfiguration$ = [
       3,
-      n05,
+      n06,
       _UKSC,
       0,
       [_ACDTP],
@@ -28961,7 +28961,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateKinesisStreamingDestinationInput$ = [
       3,
-      n05,
+      n06,
       _UKSDI,
       0,
       [_TN, _SA, _UKSC],
@@ -28970,7 +28970,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateKinesisStreamingDestinationOutput$ = [
       3,
-      n05,
+      n06,
       _UKSDO,
       0,
       [_TN, _SA, _DS2, _UKSC],
@@ -28978,7 +28978,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateReplicationGroupMemberAction$ = [
       3,
-      n05,
+      n06,
       _URGMA,
       0,
       [_RN, _KMSMKI, _PTO, _ODTO, _GSI, _TCO],
@@ -28987,7 +28987,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTableInput$ = [
       3,
-      n05,
+      n06,
       _UTI,
       0,
       [_TN, _ADt, _BM, _PT, _GSIUl, _SS, _SSES, _RUe, _TC2, _DPE, _MRC, _GTWU, _ODT, _WT, _GTSRM],
@@ -28996,7 +28996,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTableOutput$ = [
       3,
-      n05,
+      n06,
       _UTO,
       0,
       [_TD],
@@ -29004,7 +29004,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTableReplicaAutoScalingInput$ = [
       3,
-      n05,
+      n06,
       _UTRASI,
       0,
       [_TN, _GSIUl, _PWCASU, _RUe],
@@ -29013,7 +29013,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTableReplicaAutoScalingOutput$ = [
       3,
-      n05,
+      n06,
       _UTRASO,
       0,
       [_TASD],
@@ -29021,7 +29021,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTimeToLiveInput$ = [
       3,
-      n05,
+      n06,
       _UTTLI,
       0,
       [_TN, _TTLSi],
@@ -29030,7 +29030,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTimeToLiveOutput$ = [
       3,
-      n05,
+      n06,
       _UTTLO,
       0,
       [_TTLSi],
@@ -29038,7 +29038,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var WarmThroughput$ = [
       3,
-      n05,
+      n06,
       _WT,
       0,
       [_RUPS, _WUPS],
@@ -29046,7 +29046,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var WriteRequest$ = [
       3,
-      n05,
+      n06,
       _WR,
       0,
       [_PR, _DR],
@@ -29055,371 +29055,371 @@ var require_dist_cjs20 = __commonJS({
     var __Unit = "unit";
     var AttributeDefinitions = [
       1,
-      n05,
+      n06,
       _ADt,
       0,
       () => AttributeDefinition$
     ];
     var AttributeValueList = [
       1,
-      n05,
+      n06,
       _AVL,
       0,
       () => AttributeValue$
     ];
     var AutoScalingPolicyDescriptionList = [
       1,
-      n05,
+      n06,
       _ASPDL,
       0,
       () => AutoScalingPolicyDescription$
     ];
     var BackupSummaries = [
       1,
-      n05,
+      n06,
       _BSac,
       0,
       () => BackupSummary$
     ];
     var CancellationReasonList = [
       1,
-      n05,
+      n06,
       _CRL,
       0,
       () => CancellationReason$
     ];
     var ConsumedCapacityMultiple = [
       1,
-      n05,
+      n06,
       _CCM,
       0,
       () => ConsumedCapacity$
     ];
     var ContributorInsightsSummaries = [
       1,
-      n05,
+      n06,
       _CISon,
       0,
       () => ContributorInsightsSummary$
     ];
     var Endpoints = [
       1,
-      n05,
+      n06,
       _En,
       0,
       () => Endpoint$
     ];
     var ExportSummaries = [
       1,
-      n05,
+      n06,
       _ESxp,
       0,
       () => ExportSummary$
     ];
     var GlobalSecondaryIndexAutoScalingUpdateList = [
       1,
-      n05,
+      n06,
       _GSIASUL,
       0,
       () => GlobalSecondaryIndexAutoScalingUpdate$
     ];
     var GlobalSecondaryIndexDescriptionList = [
       1,
-      n05,
+      n06,
       _GSIDL,
       0,
       () => GlobalSecondaryIndexDescription$
     ];
     var GlobalSecondaryIndexes = [
       1,
-      n05,
+      n06,
       _GSI,
       0,
       () => GlobalSecondaryIndexInfo$
     ];
     var GlobalSecondaryIndexList = [
       1,
-      n05,
+      n06,
       _GSIL,
       0,
       () => GlobalSecondaryIndex$
     ];
     var GlobalSecondaryIndexUpdateList = [
       1,
-      n05,
+      n06,
       _GSIUL,
       0,
       () => GlobalSecondaryIndexUpdate$
     ];
     var GlobalTableGlobalSecondaryIndexSettingsUpdateList = [
       1,
-      n05,
+      n06,
       _GTGSISUL,
       0,
       () => GlobalTableGlobalSecondaryIndexSettingsUpdate$
     ];
     var GlobalTableList = [
       1,
-      n05,
+      n06,
       _GTL,
       0,
       () => GlobalTable$
     ];
     var GlobalTableWitnessDescriptionList = [
       1,
-      n05,
+      n06,
       _GTWDL,
       0,
       () => GlobalTableWitnessDescription$
     ];
     var GlobalTableWitnessGroupUpdateList = [
       1,
-      n05,
+      n06,
       _GTWGUL,
       0,
       () => GlobalTableWitnessGroupUpdate$
     ];
     var ImportSummaryList = [
       1,
-      n05,
+      n06,
       _ISL,
       0,
       () => ImportSummary$
     ];
     var ItemCollectionMetricsMultiple = [
       1,
-      n05,
+      n06,
       _ICMM,
       0,
       () => ItemCollectionMetrics$
     ];
     var ItemList = [
       1,
-      n05,
+      n06,
       _IL,
       0,
       () => AttributeMap
     ];
     var ItemResponseList = [
       1,
-      n05,
+      n06,
       _IRL,
       0,
       () => ItemResponse$
     ];
     var KeyList = [
       1,
-      n05,
+      n06,
       _KL,
       0,
       () => Key
     ];
     var KeySchema = [
       1,
-      n05,
+      n06,
       _KS,
       0,
       () => KeySchemaElement$
     ];
     var KinesisDataStreamDestinations = [
       1,
-      n05,
+      n06,
       _KDSD,
       0,
       () => KinesisDataStreamDestination$
     ];
     var ListAttributeValue = [
       1,
-      n05,
+      n06,
       _LAV,
       0,
       () => AttributeValue$
     ];
     var LocalSecondaryIndexDescriptionList = [
       1,
-      n05,
+      n06,
       _LSIDL,
       0,
       () => LocalSecondaryIndexDescription$
     ];
     var LocalSecondaryIndexes = [
       1,
-      n05,
+      n06,
       _LSI,
       0,
       () => LocalSecondaryIndexInfo$
     ];
     var LocalSecondaryIndexList = [
       1,
-      n05,
+      n06,
       _LSIL,
       0,
       () => LocalSecondaryIndex$
     ];
     var ParameterizedStatements = [
       1,
-      n05,
+      n06,
       _PSar,
       0,
       () => ParameterizedStatement$
     ];
     var PartiQLBatchRequest = [
       1,
-      n05,
+      n06,
       _PQLBR,
       0,
       () => BatchStatementRequest$
     ];
     var PartiQLBatchResponse = [
       1,
-      n05,
+      n06,
       _PQLBRa,
       0,
       () => BatchStatementResponse$
     ];
     var PreparedStatementParameters = [
       1,
-      n05,
+      n06,
       _PSP,
       0,
       () => AttributeValue$
     ];
     var ReplicaAutoScalingDescriptionList = [
       1,
-      n05,
+      n06,
       _RASDL,
       0,
       () => ReplicaAutoScalingDescription$
     ];
     var ReplicaAutoScalingUpdateList = [
       1,
-      n05,
+      n06,
       _RASUL,
       0,
       () => ReplicaAutoScalingUpdate$
     ];
     var ReplicaDescriptionList = [
       1,
-      n05,
+      n06,
       _RDL,
       0,
       () => ReplicaDescription$
     ];
     var ReplicaGlobalSecondaryIndexAutoScalingDescriptionList = [
       1,
-      n05,
+      n06,
       _RGSIASDL,
       0,
       () => ReplicaGlobalSecondaryIndexAutoScalingDescription$
     ];
     var ReplicaGlobalSecondaryIndexAutoScalingUpdateList = [
       1,
-      n05,
+      n06,
       _RGSIASUL,
       0,
       () => ReplicaGlobalSecondaryIndexAutoScalingUpdate$
     ];
     var ReplicaGlobalSecondaryIndexDescriptionList = [
       1,
-      n05,
+      n06,
       _RGSIDL,
       0,
       () => ReplicaGlobalSecondaryIndexDescription$
     ];
     var ReplicaGlobalSecondaryIndexList = [
       1,
-      n05,
+      n06,
       _RGSIL,
       0,
       () => ReplicaGlobalSecondaryIndex$
     ];
     var ReplicaGlobalSecondaryIndexSettingsDescriptionList = [
       1,
-      n05,
+      n06,
       _RGSISDL,
       0,
       () => ReplicaGlobalSecondaryIndexSettingsDescription$
     ];
     var ReplicaGlobalSecondaryIndexSettingsUpdateList = [
       1,
-      n05,
+      n06,
       _RGSISUL,
       0,
       () => ReplicaGlobalSecondaryIndexSettingsUpdate$
     ];
     var ReplicaList = [
       1,
-      n05,
+      n06,
       _RL,
       0,
       () => Replica$
     ];
     var ReplicaSettingsDescriptionList = [
       1,
-      n05,
+      n06,
       _RSDL,
       0,
       () => ReplicaSettingsDescription$
     ];
     var ReplicaSettingsUpdateList = [
       1,
-      n05,
+      n06,
       _RSUL,
       0,
       () => ReplicaSettingsUpdate$
     ];
     var ReplicationGroupUpdateList = [
       1,
-      n05,
+      n06,
       _RGUL,
       0,
       () => ReplicationGroupUpdate$
     ];
     var ReplicaUpdateList = [
       1,
-      n05,
+      n06,
       _RUL,
       0,
       () => ReplicaUpdate$
     ];
     var TagList = [
       1,
-      n05,
+      n06,
       _TL,
       0,
       () => Tag$2
     ];
     var ThrottlingReasonList = [
       1,
-      n05,
+      n06,
       _TRL,
       0,
       () => ThrottlingReason$
     ];
     var TransactGetItemList = [
       1,
-      n05,
+      n06,
       _TGIL,
       0,
       () => TransactGetItem$
     ];
     var TransactWriteItemList = [
       1,
-      n05,
+      n06,
       _TWIL,
       0,
       () => TransactWriteItem$
     ];
     var WriteRequests = [
       1,
-      n05,
+      n06,
       _WRr,
       0,
       () => WriteRequest$
     ];
     var AttributeMap = [
       2,
-      n05,
+      n06,
       _AM,
       0,
       0,
@@ -29427,7 +29427,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AttributeUpdates = [
       2,
-      n05,
+      n06,
       _AU,
       0,
       0,
@@ -29435,7 +29435,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchGetRequestMap = [
       2,
-      n05,
+      n06,
       _BGRMa,
       0,
       0,
@@ -29443,7 +29443,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchGetResponseMap = [
       2,
-      n05,
+      n06,
       _BGRM,
       0,
       0,
@@ -29451,7 +29451,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchWriteItemRequestMap = [
       2,
-      n05,
+      n06,
       _BWIRM,
       0,
       0,
@@ -29459,7 +29459,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExpectedAttributeMap = [
       2,
-      n05,
+      n06,
       _EAM,
       0,
       0,
@@ -29467,7 +29467,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExpressionAttributeValueMap = [
       2,
-      n05,
+      n06,
       _EAVM,
       0,
       0,
@@ -29475,7 +29475,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var FilterConditionMap = [
       2,
-      n05,
+      n06,
       _FCM,
       0,
       0,
@@ -29483,7 +29483,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ItemCollectionKeyAttributeMap = [
       2,
-      n05,
+      n06,
       _ICKAM,
       0,
       0,
@@ -29491,7 +29491,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ItemCollectionMetricsPerTable = [
       2,
-      n05,
+      n06,
       _ICMPT,
       0,
       0,
@@ -29499,7 +29499,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Key = [
       2,
-      n05,
+      n06,
       _K2,
       0,
       0,
@@ -29507,7 +29507,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var KeyConditions = [
       2,
-      n05,
+      n06,
       _KC,
       0,
       0,
@@ -29515,7 +29515,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var MapAttributeValue = [
       2,
-      n05,
+      n06,
       _MAV,
       0,
       0,
@@ -29523,7 +29523,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutItemInputAttributeMap = [
       2,
-      n05,
+      n06,
       _PIIAM,
       0,
       0,
@@ -29531,7 +29531,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var SecondaryIndexesCapacityMap = [
       2,
-      n05,
+      n06,
       _SICM,
       0,
       0,
@@ -29539,7 +29539,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var AttributeValue$ = [
       4,
-      n05,
+      n06,
       _AV,
       0,
       [_S_, _N, _B_, _SS_, _NS, _BS_, _M_, _L_, _NULL, _BOOL],
@@ -29547,7 +29547,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchExecuteStatement$ = [
       9,
-      n05,
+      n06,
       _BES,
       0,
       () => BatchExecuteStatementInput$,
@@ -29555,7 +29555,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchGetItem$ = [
       9,
-      n05,
+      n06,
       _BGI,
       0,
       () => BatchGetItemInput$,
@@ -29563,7 +29563,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var BatchWriteItem$ = [
       9,
-      n05,
+      n06,
       _BWI,
       0,
       () => BatchWriteItemInput$,
@@ -29571,7 +29571,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateBackup$ = [
       9,
-      n05,
+      n06,
       _CB,
       0,
       () => CreateBackupInput$,
@@ -29579,7 +29579,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateGlobalTable$ = [
       9,
-      n05,
+      n06,
       _CGT,
       0,
       () => CreateGlobalTableInput$,
@@ -29587,7 +29587,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var CreateTable$ = [
       9,
-      n05,
+      n06,
       _CTr,
       0,
       () => CreateTableInput$,
@@ -29595,7 +29595,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteBackup$ = [
       9,
-      n05,
+      n06,
       _DB,
       0,
       () => DeleteBackupInput$,
@@ -29603,7 +29603,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteItem$ = [
       9,
-      n05,
+      n06,
       _DI,
       0,
       () => DeleteItemInput$,
@@ -29611,7 +29611,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteResourcePolicy$ = [
       9,
-      n05,
+      n06,
       _DRP,
       0,
       () => DeleteResourcePolicyInput$,
@@ -29619,7 +29619,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DeleteTable$ = [
       9,
-      n05,
+      n06,
       _DT,
       0,
       () => DeleteTableInput$,
@@ -29627,7 +29627,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeBackup$ = [
       9,
-      n05,
+      n06,
       _DBe,
       0,
       () => DescribeBackupInput$,
@@ -29635,7 +29635,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeContinuousBackups$ = [
       9,
-      n05,
+      n06,
       _DCB,
       0,
       () => DescribeContinuousBackupsInput$,
@@ -29643,7 +29643,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeContributorInsights$ = [
       9,
-      n05,
+      n06,
       _DCI,
       0,
       () => DescribeContributorInsightsInput$,
@@ -29651,7 +29651,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeEndpoints$ = [
       9,
-      n05,
+      n06,
       _DE,
       0,
       () => DescribeEndpointsRequest$,
@@ -29659,7 +29659,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeExport$ = [
       9,
-      n05,
+      n06,
       _DEe,
       0,
       () => DescribeExportInput$,
@@ -29667,7 +29667,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeGlobalTable$ = [
       9,
-      n05,
+      n06,
       _DGT,
       0,
       () => DescribeGlobalTableInput$,
@@ -29675,7 +29675,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeGlobalTableSettings$ = [
       9,
-      n05,
+      n06,
       _DGTS,
       0,
       () => DescribeGlobalTableSettingsInput$,
@@ -29683,7 +29683,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeImport$ = [
       9,
-      n05,
+      n06,
       _DIe,
       0,
       () => DescribeImportInput$,
@@ -29691,7 +29691,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeKinesisStreamingDestination$ = [
       9,
-      n05,
+      n06,
       _DKSD,
       0,
       () => DescribeKinesisStreamingDestinationInput$,
@@ -29699,7 +29699,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeLimits$ = [
       9,
-      n05,
+      n06,
       _DL,
       0,
       () => DescribeLimitsInput$,
@@ -29707,7 +29707,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTable$ = [
       9,
-      n05,
+      n06,
       _DTe,
       0,
       () => DescribeTableInput$,
@@ -29715,7 +29715,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTableReplicaAutoScaling$ = [
       9,
-      n05,
+      n06,
       _DTRAS,
       0,
       () => DescribeTableReplicaAutoScalingInput$,
@@ -29723,7 +29723,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DescribeTimeToLive$ = [
       9,
-      n05,
+      n06,
       _DTTL,
       0,
       () => DescribeTimeToLiveInput$,
@@ -29731,7 +29731,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var DisableKinesisStreamingDestination$ = [
       9,
-      n05,
+      n06,
       _DKSDi,
       0,
       () => KinesisStreamingDestinationInput$,
@@ -29739,7 +29739,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var EnableKinesisStreamingDestination$ = [
       9,
-      n05,
+      n06,
       _EKSD,
       0,
       () => KinesisStreamingDestinationInput$,
@@ -29747,7 +29747,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExecuteStatement$ = [
       9,
-      n05,
+      n06,
       _ESxe,
       0,
       () => ExecuteStatementInput$,
@@ -29755,7 +29755,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExecuteTransaction$ = [
       9,
-      n05,
+      n06,
       _ETxe,
       0,
       () => ExecuteTransactionInput$,
@@ -29763,7 +29763,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ExportTableToPointInTime$ = [
       9,
-      n05,
+      n06,
       _ETTPIT,
       0,
       () => ExportTableToPointInTimeInput$,
@@ -29771,15 +29771,15 @@ var require_dist_cjs20 = __commonJS({
     ];
     var GetItem$ = [
       9,
-      n05,
-      _GI,
+      n06,
+      _GI2,
       0,
       () => GetItemInput$,
       () => GetItemOutput$
     ];
     var GetResourcePolicy$ = [
       9,
-      n05,
+      n06,
       _GRP,
       0,
       () => GetResourcePolicyInput$,
@@ -29787,7 +29787,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ImportTable$ = [
       9,
-      n05,
+      n06,
       _IT2,
       0,
       () => ImportTableInput$,
@@ -29795,7 +29795,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListBackups$ = [
       9,
-      n05,
+      n06,
       _LB,
       0,
       () => ListBackupsInput$,
@@ -29803,7 +29803,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListContributorInsights$ = [
       9,
-      n05,
+      n06,
       _LCI,
       0,
       () => ListContributorInsightsInput$,
@@ -29811,7 +29811,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListExports$ = [
       9,
-      n05,
+      n06,
       _LE,
       0,
       () => ListExportsInput$,
@@ -29819,7 +29819,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListGlobalTables$ = [
       9,
-      n05,
+      n06,
       _LGT,
       0,
       () => ListGlobalTablesInput$,
@@ -29827,7 +29827,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListImports$ = [
       9,
-      n05,
+      n06,
       _LI,
       0,
       () => ListImportsInput$,
@@ -29835,7 +29835,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListTables$ = [
       9,
-      n05,
+      n06,
       _LT,
       0,
       () => ListTablesInput$,
@@ -29843,7 +29843,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var ListTagsOfResource$ = [
       9,
-      n05,
+      n06,
       _LTOR,
       0,
       () => ListTagsOfResourceInput$,
@@ -29851,7 +29851,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutItem$ = [
       9,
-      n05,
+      n06,
       _PI2,
       0,
       () => PutItemInput$,
@@ -29859,7 +29859,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var PutResourcePolicy$ = [
       9,
-      n05,
+      n06,
       _PRP,
       0,
       () => PutResourcePolicyInput$,
@@ -29867,7 +29867,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Query$ = [
       9,
-      n05,
+      n06,
       _Q,
       0,
       () => QueryInput$,
@@ -29875,7 +29875,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var RestoreTableFromBackup$ = [
       9,
-      n05,
+      n06,
       _RTFB,
       0,
       () => RestoreTableFromBackupInput$,
@@ -29883,7 +29883,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var RestoreTableToPointInTime$ = [
       9,
-      n05,
+      n06,
       _RTTPIT,
       0,
       () => RestoreTableToPointInTimeInput$,
@@ -29891,7 +29891,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var Scan$ = [
       9,
-      n05,
+      n06,
       _Sc,
       0,
       () => ScanInput$,
@@ -29899,7 +29899,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TagResource$ = [
       9,
-      n05,
+      n06,
       _TRa,
       0,
       () => TagResourceInput$,
@@ -29907,7 +29907,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactGetItems$ = [
       9,
-      n05,
+      n06,
       _TGIr,
       0,
       () => TransactGetItemsInput$,
@@ -29915,7 +29915,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var TransactWriteItems$ = [
       9,
-      n05,
+      n06,
       _TWIr,
       0,
       () => TransactWriteItemsInput$,
@@ -29923,7 +29923,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UntagResource$ = [
       9,
-      n05,
+      n06,
       _UR,
       0,
       () => UntagResourceInput$,
@@ -29931,7 +29931,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateContinuousBackups$ = [
       9,
-      n05,
+      n06,
       _UCB,
       0,
       () => UpdateContinuousBackupsInput$,
@@ -29939,7 +29939,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateContributorInsights$ = [
       9,
-      n05,
+      n06,
       _UCI,
       0,
       () => UpdateContributorInsightsInput$,
@@ -29947,7 +29947,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateGlobalTable$ = [
       9,
-      n05,
+      n06,
       _UGT,
       0,
       () => UpdateGlobalTableInput$,
@@ -29955,7 +29955,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateGlobalTableSettings$ = [
       9,
-      n05,
+      n06,
       _UGTS,
       0,
       () => UpdateGlobalTableSettingsInput$,
@@ -29963,7 +29963,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateItem$ = [
       9,
-      n05,
+      n06,
       _UIp,
       0,
       () => UpdateItemInput$,
@@ -29971,7 +29971,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateKinesisStreamingDestination$ = [
       9,
-      n05,
+      n06,
       _UKSD,
       0,
       () => UpdateKinesisStreamingDestinationInput$,
@@ -29979,7 +29979,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTable$ = [
       9,
-      n05,
+      n06,
       _UT,
       0,
       () => UpdateTableInput$,
@@ -29987,7 +29987,7 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTableReplicaAutoScaling$ = [
       9,
-      n05,
+      n06,
       _UTRAS,
       0,
       () => UpdateTableReplicaAutoScalingInput$,
@@ -29995,13 +29995,13 @@ var require_dist_cjs20 = __commonJS({
     ];
     var UpdateTimeToLive$ = [
       9,
-      n05,
+      n06,
       _UTTL,
       0,
       () => UpdateTimeToLiveInput$,
       () => UpdateTimeToLiveOutput$
     ];
-    var DescribeEndpointsCommand = class extends command5(_ep05, _mw05, "DescribeEndpoints", DescribeEndpoints$) {
+    var DescribeEndpointsCommand = class extends command6(_ep06, _mw06, "DescribeEndpoints", DescribeEndpoints$) {
     };
     var version = "3.1089.0";
     var packageInfo = {
@@ -30009,19 +30009,19 @@ var require_dist_cjs20 = __commonJS({
     };
     var I = "ref";
     var J = "argv";
-    var a5 = -1;
-    var b5 = true;
-    var c5 = false;
-    var d5 = "isSet";
-    var e5 = "booleanEquals";
-    var f5 = "PartitionResult";
-    var g5 = "stringEquals";
-    var h5 = "getAttr";
-    var i5 = "https://dynamodb.{Region}.{PartitionResult#dualStackDnsSuffix}";
-    var j5 = "aws.parseArn";
-    var k5 = (n4) => "ParsedArn_ssa_" + n4;
-    var l3 = "service";
-    var m3 = "dynamodb";
+    var a6 = -1;
+    var b6 = true;
+    var c6 = false;
+    var d6 = "isSet";
+    var e6 = "booleanEquals";
+    var f6 = "PartitionResult";
+    var g6 = "stringEquals";
+    var h6 = "getAttr";
+    var i6 = "https://dynamodb.{Region}.{PartitionResult#dualStackDnsSuffix}";
+    var j6 = "aws.parseArn";
+    var k6 = (n4) => "ParsedArn_ssa_" + n4;
+    var l4 = "service";
+    var m4 = "dynamodb";
     var n3 = "isValidHostLabel";
     var o3 = "accountId";
     var p3 = "FirstArn";
@@ -30029,83 +30029,83 @@ var require_dist_cjs20 = __commonJS({
     var s2 = (n4) => "https://{ParsedArn_ssa_" + n4 + "#accountId}.ddb.{Region}.{PartitionResult#dnsSuffix}";
     var t = { [I]: "Endpoint" };
     var u = { [I]: "Region" };
-    var v = { [I]: f5 };
+    var v = { [I]: f6 };
     var w = { [I]: "AccountIdEndpointMode" };
-    var x = { "fn": h5, [J]: [v, "name"] };
-    var y = { "fn": h5, [J]: [{ [I]: "ParsedArn_ssa_2" }, "region"] };
+    var x = { "fn": h6, [J]: [v, "name"] };
+    var y = { "fn": h6, [J]: [{ [I]: "ParsedArn_ssa_2" }, "region"] };
     var z = { [I]: "ParsedArn_ssa_2" };
     var A = { [I]: "ResourceArnList" };
-    var B = { "fn": h5, [J]: [{ [I]: "ParsedArn_ssa_1" }, "region"] };
+    var B = { "fn": h6, [J]: [{ [I]: "ParsedArn_ssa_1" }, "region"] };
     var C = { [I]: "ParsedArn_ssa_1" };
     var D = { [I]: "AccountId" };
     var E = {};
     var F = { "metricValues": ["O"] };
     var G = [u];
     var H = [{ [I]: "ResourceArn" }];
-    var _data5 = {
+    var _data6 = {
       conditions: [
-        [d5, G],
-        [d5, [t]],
-        [e5, [{ [I]: "UseFIPS" }, b5]],
-        ["aws.partition", G, f5],
-        [g5, [u, "local"]],
-        [e5, [{ fn: h5, [J]: [v, "supportsFIPS"] }, b5]],
-        [e5, [{ [I]: "UseDualStack" }, b5]],
-        [e5, [{ fn: h5, [J]: [v, "supportsDualStack"] }, b5]],
-        [g5, [i5, t]],
-        [d5, [w]],
-        [g5, [x, "aws"]],
-        [g5, [w, "disabled"]],
-        [d5, H],
-        [j5, H, k5(2)],
-        [g5, [y, u]],
-        [g5, [{ fn: h5, [J]: [z, l3] }, m3]],
-        [n3, [{ fn: h5, [J]: [z, o3] }, c5]],
-        [n3, [y, c5]],
-        [d5, [A]],
-        [h5, [A, "[0]"], p3],
-        [j5, [{ [I]: p3 }], k5(1)],
-        [g5, [B, u]],
-        [g5, [{ fn: h5, [J]: [C, l3] }, m3]],
-        [n3, [{ fn: h5, [J]: [C, o3] }, c5]],
-        [n3, [B, c5]],
-        [d5, [D]],
-        [g5, [w, "required"]],
-        [n3, [D, c5]],
-        [g5, [x, "aws-us-gov"]]
+        [d6, G],
+        [d6, [t]],
+        [e6, [{ [I]: "UseFIPS" }, b6]],
+        ["aws.partition", G, f6],
+        [g6, [u, "local"]],
+        [e6, [{ fn: h6, [J]: [v, "supportsFIPS"] }, b6]],
+        [e6, [{ [I]: "UseDualStack" }, b6]],
+        [e6, [{ fn: h6, [J]: [v, "supportsDualStack"] }, b6]],
+        [g6, [i6, t]],
+        [d6, [w]],
+        [g6, [x, "aws"]],
+        [g6, [w, "disabled"]],
+        [d6, H],
+        [j6, H, k6(2)],
+        [g6, [y, u]],
+        [g6, [{ fn: h6, [J]: [z, l4] }, m4]],
+        [n3, [{ fn: h6, [J]: [z, o3] }, c6]],
+        [n3, [y, c6]],
+        [d6, [A]],
+        [h6, [A, "[0]"], p3],
+        [j6, [{ [I]: p3 }], k6(1)],
+        [g6, [B, u]],
+        [g6, [{ fn: h6, [J]: [C, l4] }, m4]],
+        [n3, [{ fn: h6, [J]: [C, o3] }, c6]],
+        [n3, [B, c6]],
+        [d6, [D]],
+        [g6, [w, "required"]],
+        [n3, [D, c6]],
+        [g6, [x, "aws-us-gov"]]
       ],
       results: [
-        [a5],
-        [a5, "Invalid Configuration: FIPS and custom endpoint are not supported"],
-        [a5, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
-        [a5, "Endpoint override is not supported for dual-stack endpoints. Please enable dual-stack functionality by enabling the configuration. For more details, see: https://docs.aws.amazon.com/sdkref/latest/guide/feature-endpoints.html"],
+        [a6],
+        [a6, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+        [a6, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+        [a6, "Endpoint override is not supported for dual-stack endpoints. Please enable dual-stack functionality by enabling the configuration. For more details, see: https://docs.aws.amazon.com/sdkref/latest/guide/feature-endpoints.html"],
         ["{Endpoint}", E],
-        [a5, "Invalid Configuration: FIPS and local endpoint are not supported"],
-        [a5, "Invalid Configuration: Dualstack and local endpoint are not supported"],
-        ["http://localhost:8000", { authSchemes: [{ name: "sigv4", signingName: m3, signingRegion: "us-east-1" }] }],
-        [a5, "Invalid Configuration: AccountIdEndpointMode is required and FIPS is enabled, but FIPS account endpoints are not supported"],
+        [a6, "Invalid Configuration: FIPS and local endpoint are not supported"],
+        [a6, "Invalid Configuration: Dualstack and local endpoint are not supported"],
+        ["http://localhost:8000", { authSchemes: [{ name: "sigv4", signingName: m4, signingRegion: "us-east-1" }] }],
+        [a6, "Invalid Configuration: AccountIdEndpointMode is required and FIPS is enabled, but FIPS account endpoints are not supported"],
         ["https://dynamodb-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", E],
-        [a5, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+        [a6, "FIPS and DualStack are enabled, but this partition does not support one or both"],
         ["https://dynamodb.{Region}.{PartitionResult#dnsSuffix}", E],
         ["https://dynamodb-fips.{Region}.{PartitionResult#dnsSuffix}", E],
-        [a5, "FIPS is enabled but this partition does not support FIPS"],
+        [a6, "FIPS is enabled but this partition does not support FIPS"],
         [q3(2), F],
         [q3(1), F],
         ["https://{AccountId}.ddb.{Region}.{PartitionResult#dualStackDnsSuffix}", F],
-        [a5, "Credentials-sourced account ID parameter is invalid"],
-        [a5, "AccountIdEndpointMode is required but no AccountID was provided or able to be loaded"],
-        [a5, "Invalid Configuration: AccountIdEndpointMode is required but account endpoints are not supported in this partition"],
-        [i5, E],
-        [a5, "DualStack is enabled but this partition does not support DualStack"],
+        [a6, "Credentials-sourced account ID parameter is invalid"],
+        [a6, "AccountIdEndpointMode is required but no AccountID was provided or able to be loaded"],
+        [a6, "Invalid Configuration: AccountIdEndpointMode is required but account endpoints are not supported in this partition"],
+        [i6, E],
+        [a6, "DualStack is enabled but this partition does not support DualStack"],
         [s2(2), F],
         [s2(1), F],
         ["https://{AccountId}.ddb.{Region}.{PartitionResult#dnsSuffix}", F],
-        [a5, "Invalid Configuration: Missing Region"]
+        [a6, "Invalid Configuration: Missing Region"]
       ]
     };
-    var root5 = 2;
-    var r5 = 1e8;
-    var nodes5 = new Int32Array([
+    var root6 = 2;
+    var r6 = 1e8;
+    var nodes6 = new Int32Array([
       -1,
       1,
       -1,
@@ -30114,9 +30114,9 @@ var require_dist_cjs20 = __commonJS({
       3,
       1,
       4,
-      r5 + 25,
+      r6 + 25,
       2,
-      r5 + 1,
+      r6 + 1,
       65,
       1,
       63,
@@ -30126,7 +30126,7 @@ var require_dist_cjs20 = __commonJS({
       7,
       3,
       8,
-      r5 + 25,
+      r6 + 25,
       4,
       51,
       9,
@@ -30135,13 +30135,13 @@ var require_dist_cjs20 = __commonJS({
       10,
       9,
       11,
-      r5 + 11,
+      r6 + 11,
       10,
       13,
       12,
       26,
-      r5 + 19,
-      r5 + 11,
+      r6 + 19,
+      r6 + 11,
       11,
       29,
       14,
@@ -30161,7 +30161,7 @@ var require_dist_cjs20 = __commonJS({
       19,
       20,
       17,
-      r5 + 22,
+      r6 + 22,
       20,
       18,
       21,
@@ -30182,29 +30182,29 @@ var require_dist_cjs20 = __commonJS({
       26,
       27,
       24,
-      r5 + 23,
+      r6 + 23,
       27,
       25,
       28,
       29,
       27,
-      r5 + 24,
-      r5 + 17,
+      r6 + 24,
+      r6 + 17,
       26,
-      r5 + 18,
-      r5 + 11,
+      r6 + 18,
+      r6 + 11,
       7,
       31,
-      r5 + 21,
+      r6 + 21,
       9,
       32,
-      r5 + 20,
+      r6 + 20,
       10,
       34,
       33,
       26,
-      r5 + 19,
-      r5 + 20,
+      r6 + 19,
+      r6 + 20,
       11,
       50,
       35,
@@ -30224,7 +30224,7 @@ var require_dist_cjs20 = __commonJS({
       40,
       41,
       17,
-      r5 + 14,
+      r6 + 14,
       41,
       18,
       42,
@@ -30245,32 +30245,32 @@ var require_dist_cjs20 = __commonJS({
       47,
       48,
       24,
-      r5 + 15,
+      r6 + 15,
       48,
       25,
       49,
       50,
       27,
-      r5 + 16,
-      r5 + 17,
+      r6 + 16,
+      r6 + 17,
       26,
-      r5 + 18,
-      r5 + 20,
+      r6 + 18,
+      r6 + 20,
       6,
-      r5 + 6,
-      r5 + 7,
+      r6 + 6,
+      r6 + 7,
       3,
       53,
-      r5 + 25,
+      r6 + 25,
       4,
-      r5 + 5,
+      r6 + 5,
       54,
       5,
       56,
       55,
       6,
-      r5 + 10,
-      r5 + 13,
+      r6 + 10,
+      r6 + 13,
       6,
       60,
       57,
@@ -30278,38 +30278,38 @@ var require_dist_cjs20 = __commonJS({
       58,
       59,
       26,
-      r5 + 8,
+      r6 + 8,
       59,
       28,
-      r5 + 11,
-      r5 + 12,
+      r6 + 11,
+      r6 + 12,
       7,
       61,
-      r5 + 10,
+      r6 + 10,
       9,
       62,
-      r5 + 9,
+      r6 + 9,
       26,
-      r5 + 8,
-      r5 + 9,
+      r6 + 8,
+      r6 + 9,
       2,
-      r5 + 1,
+      r6 + 1,
       64,
       3,
       66,
       65,
       6,
-      r5 + 2,
-      r5 + 4,
+      r6 + 2,
+      r6 + 4,
       6,
-      r5 + 2,
+      r6 + 2,
       67,
       8,
-      r5 + 3,
-      r5 + 4
+      r6 + 3,
+      r6 + 4
     ]);
-    var bdd5 = BinaryDecisionDiagram2.from(nodes5, root5, _data5.conditions, _data5.results);
-    var cache6 = new EndpointCache2({
+    var bdd6 = BinaryDecisionDiagram2.from(nodes6, root6, _data6.conditions, _data6.results);
+    var cache7 = new EndpointCache2({
       size: 50,
       params: [
         "AccountId",
@@ -30322,8 +30322,8 @@ var require_dist_cjs20 = __commonJS({
         "UseFIPS"
       ]
     });
-    var defaultEndpointResolver5 = (endpointParams, context = {}) => {
-      return cache6.get(endpointParams, () => decideEndpoint2(bdd5, {
+    var defaultEndpointResolver6 = (endpointParams, context = {}) => {
+      return cache7.get(endpointParams, () => decideEndpoint2(bdd6, {
         endpointParams,
         logger: context.logger
       }));
@@ -30335,7 +30335,7 @@ var require_dist_cjs20 = __commonJS({
         base64Decoder: config?.base64Decoder ?? fromBase642,
         base64Encoder: config?.base64Encoder ?? toBase643,
         disableHostPrefix: config?.disableHostPrefix ?? false,
-        endpointProvider: config?.endpointProvider ?? defaultEndpointResolver5,
+        endpointProvider: config?.endpointProvider ?? defaultEndpointResolver6,
         extensions: config?.extensions ?? [],
         httpAuthSchemeProvider: config?.httpAuthSchemeProvider ?? defaultDynamoDBHttpAuthSchemeProvider,
         httpAuthSchemes: config?.httpAuthSchemes ?? [
@@ -30349,7 +30349,7 @@ var require_dist_cjs20 = __commonJS({
         protocol: config?.protocol ?? AwsJson1_0Protocol2,
         protocolSettings: config?.protocolSettings ?? {
           defaultNamespace: "com.amazonaws.dynamodb",
-          errorTypeRegistries: errorTypeRegistries5,
+          errorTypeRegistries: errorTypeRegistries6,
           xmlNamespace: "http://dynamodb.amazonaws.com/doc/2012-08-10/",
           version: "2012-08-10",
           serviceTarget: "DynamoDB_20120810",
@@ -30362,7 +30362,7 @@ var require_dist_cjs20 = __commonJS({
         utf8Encoder: config?.utf8Encoder ?? toUtf83
       };
     };
-    var getRuntimeConfig9 = (config) => {
+    var getRuntimeConfig11 = (config) => {
       emitWarningIfUnsupportedVersion3(process.version);
       const defaultsMode = resolveDefaultsModeConfig2(config);
       const defaultConfigProvider = () => defaultsMode().then(loadConfigsForDefaultMode2);
@@ -30390,13 +30390,13 @@ var require_dist_cjs20 = __commonJS({
           ...NODE_RETRY_MODE_CONFIG_OPTIONS2,
           default: async () => (await defaultConfigProvider()).retryMode || DEFAULT_RETRY_MODE2
         }, config),
-        streamCollector: config?.streamCollector ?? streamCollector7,
+        streamCollector: config?.streamCollector ?? streamCollector8,
         useDualstackEndpoint: config?.useDualstackEndpoint ?? loadConfig2(NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS2, loaderConfig),
         useFipsEndpoint: config?.useFipsEndpoint ?? loadConfig2(NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS2, loaderConfig),
         userAgentAppId: config?.userAgentAppId ?? loadConfig2(NODE_APP_ID_CONFIG_OPTIONS2, loaderConfig)
       };
     };
-    var getHttpAuthExtensionConfiguration5 = (runtimeConfig) => {
+    var getHttpAuthExtensionConfiguration6 = (runtimeConfig) => {
       const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
       let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
       let _credentials = runtimeConfig.credentials;
@@ -30426,34 +30426,34 @@ var require_dist_cjs20 = __commonJS({
         }
       };
     };
-    var resolveHttpAuthRuntimeConfig5 = (config) => {
+    var resolveHttpAuthRuntimeConfig6 = (config) => {
       return {
         httpAuthSchemes: config.httpAuthSchemes(),
         httpAuthSchemeProvider: config.httpAuthSchemeProvider(),
         credentials: config.credentials()
       };
     };
-    var resolveRuntimeExtensions5 = (runtimeConfig, extensions) => {
-      const extensionConfiguration = Object.assign(getAwsRegionExtensionConfiguration2(runtimeConfig), getDefaultExtensionConfiguration2(runtimeConfig), getHttpHandlerExtensionConfiguration2(runtimeConfig), getHttpAuthExtensionConfiguration5(runtimeConfig));
+    var resolveRuntimeExtensions6 = (runtimeConfig, extensions) => {
+      const extensionConfiguration = Object.assign(getAwsRegionExtensionConfiguration2(runtimeConfig), getDefaultExtensionConfiguration2(runtimeConfig), getHttpHandlerExtensionConfiguration2(runtimeConfig), getHttpAuthExtensionConfiguration6(runtimeConfig));
       extensions.forEach((extension) => extension.configure(extensionConfiguration));
-      return Object.assign(runtimeConfig, resolveAwsRegionExtensionConfiguration2(extensionConfiguration), resolveDefaultRuntimeConfig2(extensionConfiguration), resolveHttpHandlerRuntimeConfig2(extensionConfiguration), resolveHttpAuthRuntimeConfig5(extensionConfiguration));
+      return Object.assign(runtimeConfig, resolveAwsRegionExtensionConfiguration2(extensionConfiguration), resolveDefaultRuntimeConfig2(extensionConfiguration), resolveHttpHandlerRuntimeConfig2(extensionConfiguration), resolveHttpAuthRuntimeConfig6(extensionConfiguration));
     };
     var DynamoDBClient2 = class extends Client2 {
       config;
       constructor(...[configuration]) {
-        const _config_0 = getRuntimeConfig9(configuration || {});
+        const _config_0 = getRuntimeConfig11(configuration || {});
         super(_config_0);
         this.initConfig = _config_0;
-        const _config_1 = resolveClientEndpointParameters5(_config_0);
+        const _config_1 = resolveClientEndpointParameters6(_config_0);
         const _config_2 = resolveAccountIdEndpointModeConfig2(_config_1);
         const _config_3 = resolveUserAgentConfig2(_config_2);
         const _config_4 = resolveRetryConfig2(_config_3, { defaultBaseDelay: Retry2.v2026 ? 25 : void 0, defaultMaxAttempts: Retry2.v2026 ? 4 : void 0 });
         const _config_5 = resolveRegionConfig2(_config_4);
         const _config_6 = resolveHostHeaderConfig2(_config_5);
         const _config_7 = resolveEndpointConfig2(_config_6);
-        const _config_8 = resolveHttpAuthSchemeConfig5(_config_7);
+        const _config_8 = resolveHttpAuthSchemeConfig6(_config_7);
         const _config_9 = resolveEndpointDiscoveryConfig(_config_8, { endpointDiscoveryCommandCtor: DescribeEndpointsCommand });
-        const _config_10 = resolveRuntimeExtensions5(_config_9, configuration?.extensions || []);
+        const _config_10 = resolveRuntimeExtensions6(_config_9, configuration?.extensions || []);
         this.config = _config_10;
         this.middlewareStack.use(getSchemaSerdePlugin2(this.config));
         this.middlewareStack.use(getUserAgentPlugin2(this.config));
@@ -30474,117 +30474,117 @@ var require_dist_cjs20 = __commonJS({
         super.destroy();
       }
     };
-    var BatchExecuteStatementCommand = class extends command5(_ep05, _mw05, "BatchExecuteStatement", BatchExecuteStatement$) {
+    var BatchExecuteStatementCommand = class extends command6(_ep06, _mw06, "BatchExecuteStatement", BatchExecuteStatement$) {
     };
-    var BatchGetItemCommand = class extends command5(_ep12, _mw05, "BatchGetItem", BatchGetItem$) {
+    var BatchGetItemCommand = class extends command6(_ep12, _mw06, "BatchGetItem", BatchGetItem$) {
     };
-    var BatchWriteItemCommand = class extends command5(_ep12, _mw05, "BatchWriteItem", BatchWriteItem$) {
+    var BatchWriteItemCommand = class extends command6(_ep12, _mw06, "BatchWriteItem", BatchWriteItem$) {
     };
-    var CreateBackupCommand = class extends command5(_ep2, _mw05, "CreateBackup", CreateBackup$) {
+    var CreateBackupCommand = class extends command6(_ep2, _mw06, "CreateBackup", CreateBackup$) {
     };
-    var CreateGlobalTableCommand = class extends command5(_ep3, _mw05, "CreateGlobalTable", CreateGlobalTable$) {
+    var CreateGlobalTableCommand = class extends command6(_ep3, _mw06, "CreateGlobalTable", CreateGlobalTable$) {
     };
-    var CreateTableCommand = class extends command5(_ep2, _mw05, "CreateTable", CreateTable$) {
+    var CreateTableCommand = class extends command6(_ep2, _mw06, "CreateTable", CreateTable$) {
     };
-    var DeleteBackupCommand = class extends command5(_ep4, _mw05, "DeleteBackup", DeleteBackup$) {
+    var DeleteBackupCommand = class extends command6(_ep4, _mw06, "DeleteBackup", DeleteBackup$) {
     };
-    var DeleteItemCommand = class extends command5(_ep2, _mw05, "DeleteItem", DeleteItem$) {
+    var DeleteItemCommand = class extends command6(_ep2, _mw06, "DeleteItem", DeleteItem$) {
     };
-    var DeleteResourcePolicyCommand = class extends command5(_ep5, _mw05, "DeleteResourcePolicy", DeleteResourcePolicy$) {
+    var DeleteResourcePolicyCommand = class extends command6(_ep5, _mw06, "DeleteResourcePolicy", DeleteResourcePolicy$) {
     };
-    var DeleteTableCommand = class extends command5(_ep2, _mw05, "DeleteTable", DeleteTable$) {
+    var DeleteTableCommand = class extends command6(_ep2, _mw06, "DeleteTable", DeleteTable$) {
     };
-    var DescribeBackupCommand = class extends command5(_ep4, _mw05, "DescribeBackup", DescribeBackup$) {
+    var DescribeBackupCommand = class extends command6(_ep4, _mw06, "DescribeBackup", DescribeBackup$) {
     };
-    var DescribeContinuousBackupsCommand = class extends command5(_ep2, _mw05, "DescribeContinuousBackups", DescribeContinuousBackups$) {
+    var DescribeContinuousBackupsCommand = class extends command6(_ep2, _mw06, "DescribeContinuousBackups", DescribeContinuousBackups$) {
     };
-    var DescribeContributorInsightsCommand = class extends command5(_ep2, _mw05, "DescribeContributorInsights", DescribeContributorInsights$) {
+    var DescribeContributorInsightsCommand = class extends command6(_ep2, _mw06, "DescribeContributorInsights", DescribeContributorInsights$) {
     };
-    var DescribeExportCommand = class extends command5(_ep6, _mw05, "DescribeExport", DescribeExport$) {
+    var DescribeExportCommand = class extends command6(_ep6, _mw06, "DescribeExport", DescribeExport$) {
     };
-    var DescribeGlobalTableCommand = class extends command5(_ep3, _mw05, "DescribeGlobalTable", DescribeGlobalTable$) {
+    var DescribeGlobalTableCommand = class extends command6(_ep3, _mw06, "DescribeGlobalTable", DescribeGlobalTable$) {
     };
-    var DescribeGlobalTableSettingsCommand = class extends command5(_ep3, _mw05, "DescribeGlobalTableSettings", DescribeGlobalTableSettings$) {
+    var DescribeGlobalTableSettingsCommand = class extends command6(_ep3, _mw06, "DescribeGlobalTableSettings", DescribeGlobalTableSettings$) {
     };
-    var DescribeImportCommand = class extends command5(_ep7, _mw05, "DescribeImport", DescribeImport$) {
+    var DescribeImportCommand = class extends command6(_ep7, _mw06, "DescribeImport", DescribeImport$) {
     };
-    var DescribeKinesisStreamingDestinationCommand = class extends command5(_ep2, _mw05, "DescribeKinesisStreamingDestination", DescribeKinesisStreamingDestination$) {
+    var DescribeKinesisStreamingDestinationCommand = class extends command6(_ep2, _mw06, "DescribeKinesisStreamingDestination", DescribeKinesisStreamingDestination$) {
     };
-    var DescribeLimitsCommand = class extends command5(_ep05, _mw05, "DescribeLimits", DescribeLimits$) {
+    var DescribeLimitsCommand = class extends command6(_ep06, _mw06, "DescribeLimits", DescribeLimits$) {
     };
-    var DescribeTableCommand = class extends command5(_ep2, _mw05, "DescribeTable", DescribeTable$) {
+    var DescribeTableCommand = class extends command6(_ep2, _mw06, "DescribeTable", DescribeTable$) {
     };
-    var DescribeTableReplicaAutoScalingCommand = class extends command5(_ep2, _mw05, "DescribeTableReplicaAutoScaling", DescribeTableReplicaAutoScaling$) {
+    var DescribeTableReplicaAutoScalingCommand = class extends command6(_ep2, _mw06, "DescribeTableReplicaAutoScaling", DescribeTableReplicaAutoScaling$) {
     };
-    var DescribeTimeToLiveCommand = class extends command5(_ep2, _mw05, "DescribeTimeToLive", DescribeTimeToLive$) {
+    var DescribeTimeToLiveCommand = class extends command6(_ep2, _mw06, "DescribeTimeToLive", DescribeTimeToLive$) {
     };
-    var DisableKinesisStreamingDestinationCommand = class extends command5(_ep2, _mw05, "DisableKinesisStreamingDestination", DisableKinesisStreamingDestination$) {
+    var DisableKinesisStreamingDestinationCommand = class extends command6(_ep2, _mw06, "DisableKinesisStreamingDestination", DisableKinesisStreamingDestination$) {
     };
-    var EnableKinesisStreamingDestinationCommand = class extends command5(_ep2, _mw05, "EnableKinesisStreamingDestination", EnableKinesisStreamingDestination$) {
+    var EnableKinesisStreamingDestinationCommand = class extends command6(_ep2, _mw06, "EnableKinesisStreamingDestination", EnableKinesisStreamingDestination$) {
     };
-    var ExecuteStatementCommand = class extends command5(_ep05, _mw05, "ExecuteStatement", ExecuteStatement$) {
+    var ExecuteStatementCommand = class extends command6(_ep06, _mw06, "ExecuteStatement", ExecuteStatement$) {
     };
-    var ExecuteTransactionCommand = class extends command5(_ep05, _mw05, "ExecuteTransaction", ExecuteTransaction$) {
+    var ExecuteTransactionCommand = class extends command6(_ep06, _mw06, "ExecuteTransaction", ExecuteTransaction$) {
     };
-    var ExportTableToPointInTimeCommand = class extends command5(_ep8, _mw05, "ExportTableToPointInTime", ExportTableToPointInTime$) {
+    var ExportTableToPointInTimeCommand = class extends command6(_ep8, _mw06, "ExportTableToPointInTime", ExportTableToPointInTime$) {
     };
-    var GetItemCommand = class extends command5(_ep2, _mw05, "GetItem", GetItem$) {
+    var GetItemCommand = class extends command6(_ep2, _mw06, "GetItem", GetItem$) {
     };
-    var GetResourcePolicyCommand = class extends command5(_ep5, _mw05, "GetResourcePolicy", GetResourcePolicy$) {
+    var GetResourcePolicyCommand = class extends command6(_ep5, _mw06, "GetResourcePolicy", GetResourcePolicy$) {
     };
-    var ImportTableCommand = class extends command5(_ep9, _mw05, "ImportTable", ImportTable$) {
+    var ImportTableCommand = class extends command6(_ep9, _mw06, "ImportTable", ImportTable$) {
     };
-    var ListBackupsCommand = class extends command5(_ep2, _mw05, "ListBackups", ListBackups$) {
+    var ListBackupsCommand = class extends command6(_ep2, _mw06, "ListBackups", ListBackups$) {
     };
-    var ListContributorInsightsCommand = class extends command5(_ep2, _mw05, "ListContributorInsights", ListContributorInsights$) {
+    var ListContributorInsightsCommand = class extends command6(_ep2, _mw06, "ListContributorInsights", ListContributorInsights$) {
     };
-    var ListExportsCommand = class extends command5(_ep8, _mw05, "ListExports", ListExports$) {
+    var ListExportsCommand = class extends command6(_ep8, _mw06, "ListExports", ListExports$) {
     };
-    var ListGlobalTablesCommand = class extends command5(_ep05, _mw05, "ListGlobalTables", ListGlobalTables$) {
+    var ListGlobalTablesCommand = class extends command6(_ep06, _mw06, "ListGlobalTables", ListGlobalTables$) {
     };
-    var ListImportsCommand = class extends command5(_ep8, _mw05, "ListImports", ListImports$) {
+    var ListImportsCommand = class extends command6(_ep8, _mw06, "ListImports", ListImports$) {
     };
-    var ListTablesCommand = class extends command5(_ep05, _mw05, "ListTables", ListTables$) {
+    var ListTablesCommand = class extends command6(_ep06, _mw06, "ListTables", ListTables$) {
     };
-    var ListTagsOfResourceCommand = class extends command5(_ep5, _mw05, "ListTagsOfResource", ListTagsOfResource$) {
+    var ListTagsOfResourceCommand = class extends command6(_ep5, _mw06, "ListTagsOfResource", ListTagsOfResource$) {
     };
-    var PutItemCommand = class extends command5(_ep2, _mw05, "PutItem", PutItem$) {
+    var PutItemCommand = class extends command6(_ep2, _mw06, "PutItem", PutItem$) {
     };
-    var PutResourcePolicyCommand = class extends command5(_ep5, _mw05, "PutResourcePolicy", PutResourcePolicy$) {
+    var PutResourcePolicyCommand = class extends command6(_ep5, _mw06, "PutResourcePolicy", PutResourcePolicy$) {
     };
-    var QueryCommand = class extends command5(_ep2, _mw05, "Query", Query$) {
+    var QueryCommand = class extends command6(_ep2, _mw06, "Query", Query$) {
     };
-    var RestoreTableFromBackupCommand = class extends command5(_ep10, _mw05, "RestoreTableFromBackup", RestoreTableFromBackup$) {
+    var RestoreTableFromBackupCommand = class extends command6(_ep10, _mw06, "RestoreTableFromBackup", RestoreTableFromBackup$) {
     };
-    var RestoreTableToPointInTimeCommand = class extends command5(_ep10, _mw05, "RestoreTableToPointInTime", RestoreTableToPointInTime$) {
+    var RestoreTableToPointInTimeCommand = class extends command6(_ep10, _mw06, "RestoreTableToPointInTime", RestoreTableToPointInTime$) {
     };
-    var ScanCommand = class extends command5(_ep2, _mw05, "Scan", Scan$) {
+    var ScanCommand = class extends command6(_ep2, _mw06, "Scan", Scan$) {
     };
-    var TagResourceCommand = class extends command5(_ep5, _mw05, "TagResource", TagResource$) {
+    var TagResourceCommand = class extends command6(_ep5, _mw06, "TagResource", TagResource$) {
     };
-    var TransactGetItemsCommand = class extends command5(_ep11, _mw05, "TransactGetItems", TransactGetItems$) {
+    var TransactGetItemsCommand = class extends command6(_ep11, _mw06, "TransactGetItems", TransactGetItems$) {
     };
-    var TransactWriteItemsCommand = class extends command5(_ep122, _mw05, "TransactWriteItems", TransactWriteItems$) {
+    var TransactWriteItemsCommand = class extends command6(_ep122, _mw06, "TransactWriteItems", TransactWriteItems$) {
     };
-    var UntagResourceCommand = class extends command5(_ep5, _mw05, "UntagResource", UntagResource$) {
+    var UntagResourceCommand = class extends command6(_ep5, _mw06, "UntagResource", UntagResource$) {
     };
-    var UpdateContinuousBackupsCommand = class extends command5(_ep2, _mw05, "UpdateContinuousBackups", UpdateContinuousBackups$) {
+    var UpdateContinuousBackupsCommand = class extends command6(_ep2, _mw06, "UpdateContinuousBackups", UpdateContinuousBackups$) {
     };
-    var UpdateContributorInsightsCommand = class extends command5(_ep2, _mw05, "UpdateContributorInsights", UpdateContributorInsights$) {
+    var UpdateContributorInsightsCommand = class extends command6(_ep2, _mw06, "UpdateContributorInsights", UpdateContributorInsights$) {
     };
-    var UpdateGlobalTableCommand = class extends command5(_ep3, _mw05, "UpdateGlobalTable", UpdateGlobalTable$) {
+    var UpdateGlobalTableCommand = class extends command6(_ep3, _mw06, "UpdateGlobalTable", UpdateGlobalTable$) {
     };
-    var UpdateGlobalTableSettingsCommand = class extends command5(_ep3, _mw05, "UpdateGlobalTableSettings", UpdateGlobalTableSettings$) {
+    var UpdateGlobalTableSettingsCommand = class extends command6(_ep3, _mw06, "UpdateGlobalTableSettings", UpdateGlobalTableSettings$) {
     };
-    var UpdateItemCommand = class extends command5(_ep2, _mw05, "UpdateItem", UpdateItem$) {
+    var UpdateItemCommand = class extends command6(_ep2, _mw06, "UpdateItem", UpdateItem$) {
     };
-    var UpdateKinesisStreamingDestinationCommand = class extends command5(_ep2, _mw05, "UpdateKinesisStreamingDestination", UpdateKinesisStreamingDestination$) {
+    var UpdateKinesisStreamingDestinationCommand = class extends command6(_ep2, _mw06, "UpdateKinesisStreamingDestination", UpdateKinesisStreamingDestination$) {
     };
-    var UpdateTableCommand = class extends command5(_ep2, _mw05, "UpdateTable", UpdateTable$) {
+    var UpdateTableCommand = class extends command6(_ep2, _mw06, "UpdateTable", UpdateTable$) {
     };
-    var UpdateTableReplicaAutoScalingCommand = class extends command5(_ep2, _mw05, "UpdateTableReplicaAutoScaling", UpdateTableReplicaAutoScaling$) {
+    var UpdateTableReplicaAutoScalingCommand = class extends command6(_ep2, _mw06, "UpdateTableReplicaAutoScaling", UpdateTableReplicaAutoScaling$) {
     };
-    var UpdateTimeToLiveCommand = class extends command5(_ep2, _mw05, "UpdateTimeToLive", UpdateTimeToLive$) {
+    var UpdateTimeToLiveCommand = class extends command6(_ep2, _mw06, "UpdateTimeToLive", UpdateTimeToLive$) {
     };
     var paginateListContributorInsights = createPaginator2(DynamoDBClient2, ListContributorInsightsCommand, "NextToken", "NextToken", "MaxResults");
     var paginateListExports = createPaginator2(DynamoDBClient2, ListExportsCommand, "NextToken", "NextToken", "MaxResults");
@@ -30604,7 +30604,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "ENABLED") {
             return { state: WaiterState2.SUCCESS, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
         try {
           const returnComparator = () => {
@@ -30613,7 +30613,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "FAILED") {
             return { state: WaiterState2.FAILURE, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
       } catch (exception) {
         reason = exception;
@@ -30641,7 +30641,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "COMPLETED") {
             return { state: WaiterState2.SUCCESS, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
         try {
           const returnComparator = () => {
@@ -30650,7 +30650,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "FAILED") {
             return { state: WaiterState2.FAILURE, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
       } catch (exception) {
         reason = exception;
@@ -30678,7 +30678,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "COMPLETED") {
             return { state: WaiterState2.SUCCESS, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
         try {
           const returnComparator = () => {
@@ -30687,7 +30687,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "FAILED") {
             return { state: WaiterState2.FAILURE, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
         try {
           const returnComparator = () => {
@@ -30696,7 +30696,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "CANCELLED") {
             return { state: WaiterState2.FAILURE, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
       } catch (exception) {
         reason = exception;
@@ -30730,7 +30730,7 @@ var require_dist_cjs20 = __commonJS({
               return { state: WaiterState2.SUCCESS, reason };
             }
           }
-        } catch (e6) {
+        } catch (e7) {
         }
         try {
           const returnComparator = () => {
@@ -30742,7 +30742,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() == true) {
             return { state: WaiterState2.FAILURE, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
       } catch (exception) {
         reason = exception;
@@ -30770,7 +30770,7 @@ var require_dist_cjs20 = __commonJS({
           if (returnComparator() === "ACTIVE") {
             return { state: WaiterState2.SUCCESS, reason };
           }
-        } catch (e6) {
+        } catch (e7) {
         }
       } catch (exception) {
         reason = exception;
@@ -30811,7 +30811,7 @@ var require_dist_cjs20 = __commonJS({
       const result = await createWaiter2({ ...serviceDefaults, ...params }, input, checkState);
       return checkExceptions2(result);
     };
-    var commands5 = {
+    var commands6 = {
       BatchExecuteStatementCommand,
       BatchGetItemCommand,
       BatchWriteItemCommand,
@@ -30888,7 +30888,7 @@ var require_dist_cjs20 = __commonJS({
     };
     var DynamoDB = class extends DynamoDBClient2 {
     };
-    createAggregatedClient2(commands5, DynamoDB, { paginators, waiters });
+    createAggregatedClient2(commands6, DynamoDB, { paginators, waiters });
     var ApproximateCreationDateTimePrecision = {
       MICROSECOND: "MICROSECOND",
       MILLISECOND: "MILLISECOND"
@@ -31383,8 +31383,8 @@ var require_dist_cjs20 = __commonJS({
     exports2.KinesisDataStreamDestination$ = KinesisDataStreamDestination$;
     exports2.KinesisStreamingDestinationInput$ = KinesisStreamingDestinationInput$;
     exports2.KinesisStreamingDestinationOutput$ = KinesisStreamingDestinationOutput$;
-    exports2.LimitExceededException = LimitExceededException;
-    exports2.LimitExceededException$ = LimitExceededException$;
+    exports2.LimitExceededException = LimitExceededException2;
+    exports2.LimitExceededException$ = LimitExceededException$2;
     exports2.ListBackups$ = ListBackups$;
     exports2.ListBackupsCommand = ListBackupsCommand;
     exports2.ListBackupsInput$ = ListBackupsInput$;
@@ -31473,8 +31473,8 @@ var require_dist_cjs20 = __commonJS({
     exports2.RequestLimitExceeded$ = RequestLimitExceeded$;
     exports2.ResourceInUseException = ResourceInUseException;
     exports2.ResourceInUseException$ = ResourceInUseException$;
-    exports2.ResourceNotFoundException = ResourceNotFoundException2;
-    exports2.ResourceNotFoundException$ = ResourceNotFoundException$2;
+    exports2.ResourceNotFoundException = ResourceNotFoundException3;
+    exports2.ResourceNotFoundException$ = ResourceNotFoundException$3;
     exports2.RestoreSummary$ = RestoreSummary$;
     exports2.RestoreTableFromBackup$ = RestoreTableFromBackup$;
     exports2.RestoreTableFromBackupCommand = RestoreTableFromBackupCommand;
@@ -31589,7 +31589,7 @@ var require_dist_cjs20 = __commonJS({
     exports2.WarmThroughput$ = WarmThroughput$;
     exports2.WitnessStatus = WitnessStatus;
     exports2.WriteRequest$ = WriteRequest$;
-    exports2.errorTypeRegistries = errorTypeRegistries5;
+    exports2.errorTypeRegistries = errorTypeRegistries6;
     exports2.paginateListContributorInsights = paginateListContributorInsights;
     exports2.paginateListExports = paginateListExports;
     exports2.paginateListImports = paginateListImports;
@@ -31641,9 +31641,9 @@ var require_dist_cjs21 = __commonJS({
           } else if (allChildren) {
             return processAllKeysInObj(obj, processFunc, SELF);
           } else if (goToNextLevel) {
-            return Object.entries(obj ?? {}).reduce((acc, [k5, v]) => {
+            return Object.entries(obj ?? {}).reduce((acc, [k6, v]) => {
               if (typeof v !== "function") {
-                acc[k5] = processObj(v, processFunc, keyNodes[NEXT_LEVEL]);
+                acc[k6] = processObj(v, processFunc, keyNodes[NEXT_LEVEL]);
               }
               return acc;
             }, Array.isArray(obj) ? [] : {});
@@ -31658,17 +31658,17 @@ var require_dist_cjs21 = __commonJS({
         accumulator = obj.filter((item) => typeof item !== "function");
       } else {
         accumulator = {};
-        for (const [k5, v] of Object.entries(obj)) {
+        for (const [k6, v] of Object.entries(obj)) {
           if (typeof v !== "function") {
-            accumulator[k5] = v;
+            accumulator[k6] = v;
           }
         }
       }
-      for (const [nodeKey, nodes5] of Object.entries(keyNodes)) {
+      for (const [nodeKey, nodes6] of Object.entries(keyNodes)) {
         if (typeof obj[nodeKey] === "function") {
           continue;
         }
-        const processedValue = processObj(obj[nodeKey], processFunc, nodes5);
+        const processedValue = processObj(obj[nodeKey], processFunc, nodes6);
         if (processedValue !== void 0 && typeof processedValue !== "function") {
           accumulator[nodeKey] = processedValue;
         }
@@ -32211,172 +32211,172 @@ var require_dist_cjs21 = __commonJS({
         return new _DynamoDBDocument(client2, translateConfig);
       }
       batchExecuteStatement(args, optionsOrCb, cb) {
-        const command5 = new BatchExecuteStatementCommand(args);
+        const command6 = new BatchExecuteStatementCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       batchGet(args, optionsOrCb, cb) {
-        const command5 = new BatchGetCommand(args);
+        const command6 = new BatchGetCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       batchWrite(args, optionsOrCb, cb) {
-        const command5 = new BatchWriteCommand(args);
+        const command6 = new BatchWriteCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       delete(args, optionsOrCb, cb) {
-        const command5 = new DeleteCommand(args);
+        const command6 = new DeleteCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       executeStatement(args, optionsOrCb, cb) {
-        const command5 = new ExecuteStatementCommand(args);
+        const command6 = new ExecuteStatementCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       executeTransaction(args, optionsOrCb, cb) {
-        const command5 = new ExecuteTransactionCommand(args);
+        const command6 = new ExecuteTransactionCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       get(args, optionsOrCb, cb) {
-        const command5 = new GetCommand(args);
+        const command6 = new GetCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       put(args, optionsOrCb, cb) {
-        const command5 = new PutCommand2(args);
+        const command6 = new PutCommand2(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       query(args, optionsOrCb, cb) {
-        const command5 = new QueryCommand(args);
+        const command6 = new QueryCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       scan(args, optionsOrCb, cb) {
-        const command5 = new ScanCommand(args);
+        const command6 = new ScanCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       transactGet(args, optionsOrCb, cb) {
-        const command5 = new TransactGetCommand(args);
+        const command6 = new TransactGetCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       transactWrite(args, optionsOrCb, cb) {
-        const command5 = new TransactWriteCommand(args);
+        const command6 = new TransactWriteCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
       update(args, optionsOrCb, cb) {
-        const command5 = new UpdateCommand(args);
+        const command6 = new UpdateCommand(args);
         if (typeof optionsOrCb === "function") {
-          this.send(command5, optionsOrCb);
+          this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
           if (typeof optionsOrCb !== "object") {
             throw new Error(`Expect http options but get ${typeof optionsOrCb}`);
           }
-          this.send(command5, optionsOrCb || {}, cb);
+          this.send(command6, optionsOrCb || {}, cb);
         } else {
-          return this.send(command5, optionsOrCb);
+          return this.send(command6, optionsOrCb);
         }
       }
     };
@@ -32466,14 +32466,14 @@ var require_main = __commonJS({
       const keys = _dotenvKey(options).split(",");
       const length = keys.length;
       let decrypted;
-      for (let i5 = 0; i5 < length; i5++) {
+      for (let i6 = 0; i6 < length; i6++) {
         try {
-          const key = keys[i5].trim();
+          const key = keys[i6].trim();
           const attrs = _instructions(result, key);
           decrypted = DotenvModule.decrypt(attrs.ciphertext, attrs.key);
           break;
         } catch (error2) {
-          if (i5 + 1 >= length) {
+          if (i6 + 1 >= length) {
             throw error2;
           }
         }
@@ -32601,11 +32601,11 @@ var require_main = __commonJS({
         try {
           const parsed = DotenvModule.parse(fs.readFileSync(path3, { encoding }));
           DotenvModule.populate(parsedAll, parsed, options);
-        } catch (e5) {
+        } catch (e6) {
           if (debug) {
-            _debug(`failed to load ${path3} ${e5.message}`);
+            _debug(`failed to load ${path3} ${e6.message}`);
           }
-          lastError = e5;
+          lastError = e6;
         }
       }
       const populated = DotenvModule.populate(processEnv, parsedAll, options);
@@ -32618,11 +32618,11 @@ var require_main = __commonJS({
           try {
             const relative = path2.relative(process.cwd(), filePath);
             shortPaths.push(relative);
-          } catch (e5) {
+          } catch (e6) {
             if (debug) {
-              _debug(`failed to load ${filePath} ${e5.message}`);
+              _debug(`failed to load ${filePath} ${e6.message}`);
             }
-            lastError = e5;
+            lastError = e6;
           }
         }
         _log(`injected env (${keysCount}) from ${shortPaths.join(",")} ${dim(`// tip: ${_getRandomTip()}`)}`);
@@ -32720,6 +32720,3151 @@ var require_main = __commonJS({
   }
 });
 
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/auth/httpAuthSchemeProvider.js
+function createAwsAuthSigv4HttpAuthOption5(authParameters) {
+  return {
+    schemeId: "aws.auth#sigv4",
+    signingProperties: {
+      name: "cognito-identity",
+      region: authParameters.region
+    },
+    propertiesExtractor: (config, context) => ({
+      signingProperties: {
+        config,
+        context
+      }
+    })
+  };
+}
+function createSmithyApiNoAuthHttpAuthOption5(authParameters) {
+  return {
+    schemeId: "smithy.api#noAuth"
+  };
+}
+var defaultCognitoIdentityHttpAuthSchemeParametersProvider, defaultCognitoIdentityHttpAuthSchemeProvider, resolveHttpAuthSchemeConfig5;
+var init_httpAuthSchemeProvider5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/auth/httpAuthSchemeProvider.js"() {
+    init_httpAuthSchemes2();
+    init_client2();
+    defaultCognitoIdentityHttpAuthSchemeParametersProvider = async (config, context, input) => {
+      return {
+        operation: getSmithyContext(context).operation,
+        region: await normalizeProvider(config.region)() || (() => {
+          throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+        })()
+      };
+    };
+    defaultCognitoIdentityHttpAuthSchemeProvider = (authParameters) => {
+      const options = [];
+      switch (authParameters.operation) {
+        case "GetCredentialsForIdentity":
+          {
+            options.push(createSmithyApiNoAuthHttpAuthOption5(authParameters));
+            break;
+          }
+          ;
+        case "GetId":
+          {
+            options.push(createSmithyApiNoAuthHttpAuthOption5(authParameters));
+            break;
+          }
+          ;
+        default: {
+          options.push(createAwsAuthSigv4HttpAuthOption5(authParameters));
+        }
+      }
+      return options;
+    };
+    resolveHttpAuthSchemeConfig5 = (config) => {
+      const config_0 = resolveAwsSdkSigV4Config(config);
+      return Object.assign(config_0, {
+        authSchemePreference: normalizeProvider(config.authSchemePreference ?? [])
+      });
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/endpoint/EndpointParameters.js
+var resolveClientEndpointParameters5, commonParams5;
+var init_EndpointParameters5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/endpoint/EndpointParameters.js"() {
+    resolveClientEndpointParameters5 = (options) => {
+      return Object.assign(options, {
+        useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+        useFipsEndpoint: options.useFipsEndpoint ?? false,
+        defaultSigningName: "cognito-identity"
+      });
+    };
+    commonParams5 = {
+      UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+      Endpoint: { type: "builtInParams", name: "endpoint" },
+      Region: { type: "builtInParams", name: "region" },
+      UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/endpoint/bdd.js
+var m3, a5, b5, c5, d5, e5, f5, g5, h5, i5, j5, k5, l3, _data5, root5, r5, nodes5, bdd5;
+var init_bdd5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/endpoint/bdd.js"() {
+    init_endpoints();
+    m3 = "ref";
+    a5 = -1;
+    b5 = true;
+    c5 = "isSet";
+    d5 = "PartitionResult";
+    e5 = "booleanEquals";
+    f5 = "getAttr";
+    g5 = "stringEquals";
+    h5 = { [m3]: "Endpoint" };
+    i5 = { [m3]: d5 };
+    j5 = { [m3]: "Region" };
+    k5 = {};
+    l3 = [j5];
+    _data5 = {
+      conditions: [
+        [c5, [h5]],
+        [c5, l3],
+        ["aws.partition", l3, d5],
+        [e5, [{ [m3]: "UseFIPS" }, b5]],
+        [e5, [{ fn: f5, argv: [i5, "supportsFIPS"] }, b5]],
+        [e5, [{ [m3]: "UseDualStack" }, b5]],
+        [e5, [{ fn: f5, argv: [i5, "supportsDualStack"] }, b5]],
+        [g5, [{ fn: f5, argv: [i5, "name"] }, "aws"]],
+        [g5, [j5, "us-east-1"]],
+        [g5, [j5, "us-east-2"]],
+        [g5, [j5, "us-west-1"]],
+        [g5, [j5, "us-west-2"]]
+      ],
+      results: [
+        [a5],
+        [a5, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+        [a5, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+        [h5, k5],
+        ["https://cognito-identity-fips.us-east-1.amazonaws.com", k5],
+        ["https://cognito-identity-fips.us-east-2.amazonaws.com", k5],
+        ["https://cognito-identity-fips.us-west-1.amazonaws.com", k5],
+        ["https://cognito-identity-fips.us-west-2.amazonaws.com", k5],
+        ["https://cognito-identity-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", k5],
+        [a5, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+        ["https://cognito-identity-fips.{Region}.{PartitionResult#dnsSuffix}", k5],
+        [a5, "FIPS is enabled but this partition does not support FIPS"],
+        ["https://cognito-identity.{Region}.amazonaws.com", k5],
+        ["https://cognito-identity.{Region}.{PartitionResult#dualStackDnsSuffix}", k5],
+        [a5, "DualStack is enabled but this partition does not support DualStack"],
+        ["https://cognito-identity.{Region}.{PartitionResult#dnsSuffix}", k5],
+        [a5, "Invalid Configuration: Missing Region"]
+      ]
+    };
+    root5 = 2;
+    r5 = 1e8;
+    nodes5 = new Int32Array([
+      -1,
+      1,
+      -1,
+      0,
+      17,
+      3,
+      1,
+      4,
+      r5 + 16,
+      2,
+      5,
+      r5 + 16,
+      3,
+      9,
+      6,
+      5,
+      7,
+      r5 + 15,
+      6,
+      8,
+      r5 + 14,
+      7,
+      r5 + 12,
+      r5 + 13,
+      4,
+      11,
+      10,
+      5,
+      r5 + 9,
+      r5 + 11,
+      5,
+      12,
+      r5 + 10,
+      6,
+      13,
+      r5 + 9,
+      8,
+      r5 + 4,
+      14,
+      9,
+      r5 + 5,
+      15,
+      10,
+      r5 + 6,
+      16,
+      11,
+      r5 + 7,
+      r5 + 8,
+      3,
+      r5 + 1,
+      18,
+      5,
+      r5 + 2,
+      r5 + 3
+    ]);
+    bdd5 = BinaryDecisionDiagram.from(nodes5, root5, _data5.conditions, _data5.results);
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/endpoint/endpointResolver.js
+var cache6, defaultEndpointResolver5;
+var init_endpointResolver5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/endpoint/endpointResolver.js"() {
+    init_client3();
+    init_endpoints();
+    init_bdd5();
+    cache6 = new EndpointCache({
+      size: 50,
+      params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
+    });
+    defaultEndpointResolver5 = (endpointParams, context = {}) => {
+      return cache6.get(endpointParams, () => decideEndpoint(bdd5, {
+        endpointParams,
+        logger: context.logger
+      }));
+    };
+    customEndpointFunctions.aws = awsEndpointFunctions;
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/models/CognitoIdentityServiceException.js
+var CognitoIdentityServiceException;
+var init_CognitoIdentityServiceException = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/models/CognitoIdentityServiceException.js"() {
+    init_client2();
+    CognitoIdentityServiceException = class _CognitoIdentityServiceException extends ServiceException {
+      constructor(options) {
+        super(options);
+        Object.setPrototypeOf(this, _CognitoIdentityServiceException.prototype);
+      }
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/models/errors.js
+var ExternalServiceException, InternalErrorException, InvalidIdentityPoolConfigurationException, InvalidParameterException, NotAuthorizedException, ResourceConflictException, ResourceNotFoundException2, TooManyRequestsException2, LimitExceededException;
+var init_errors5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/models/errors.js"() {
+    init_CognitoIdentityServiceException();
+    ExternalServiceException = class _ExternalServiceException extends CognitoIdentityServiceException {
+      name = "ExternalServiceException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "ExternalServiceException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _ExternalServiceException.prototype);
+      }
+    };
+    InternalErrorException = class _InternalErrorException extends CognitoIdentityServiceException {
+      name = "InternalErrorException";
+      $fault = "server";
+      constructor(opts) {
+        super({
+          name: "InternalErrorException",
+          $fault: "server",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InternalErrorException.prototype);
+      }
+    };
+    InvalidIdentityPoolConfigurationException = class _InvalidIdentityPoolConfigurationException extends CognitoIdentityServiceException {
+      name = "InvalidIdentityPoolConfigurationException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidIdentityPoolConfigurationException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidIdentityPoolConfigurationException.prototype);
+      }
+    };
+    InvalidParameterException = class _InvalidParameterException extends CognitoIdentityServiceException {
+      name = "InvalidParameterException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidParameterException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidParameterException.prototype);
+      }
+    };
+    NotAuthorizedException = class _NotAuthorizedException extends CognitoIdentityServiceException {
+      name = "NotAuthorizedException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "NotAuthorizedException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _NotAuthorizedException.prototype);
+      }
+    };
+    ResourceConflictException = class _ResourceConflictException extends CognitoIdentityServiceException {
+      name = "ResourceConflictException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "ResourceConflictException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _ResourceConflictException.prototype);
+      }
+    };
+    ResourceNotFoundException2 = class _ResourceNotFoundException extends CognitoIdentityServiceException {
+      name = "ResourceNotFoundException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "ResourceNotFoundException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _ResourceNotFoundException.prototype);
+      }
+    };
+    TooManyRequestsException2 = class _TooManyRequestsException extends CognitoIdentityServiceException {
+      name = "TooManyRequestsException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "TooManyRequestsException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _TooManyRequestsException.prototype);
+      }
+    };
+    LimitExceededException = class _LimitExceededException extends CognitoIdentityServiceException {
+      name = "LimitExceededException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "LimitExceededException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _LimitExceededException.prototype);
+      }
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/schemas/schemas_0.js
+var _AI, _AKI2, _C2, _CRA, _E2, _ESE, _GCFI, _GCFII, _GCFIR, _GI, _GII, _GIR, _IEE, _II, _IIPCE, _IPE, _IPI, _IPT, _L, _LEE, _LM, _NAE, _RCE, _RNFE2, _SK, _SKS, _ST2, _TMRE3, _c5, _e5, _hE5, _m4, _s5, _se3, n05, _s_registry5, CognitoIdentityServiceException$, n0_registry5, ExternalServiceException$, InternalErrorException$, InvalidIdentityPoolConfigurationException$, InvalidParameterException$, LimitExceededException$, NotAuthorizedException$, ResourceConflictException$, ResourceNotFoundException$2, TooManyRequestsException$2, errorTypeRegistries5, IdentityProviderToken, SecretKeyString, Credentials$2, GetCredentialsForIdentityInput$, GetCredentialsForIdentityResponse$, GetIdInput$, GetIdResponse$, LoginsMap, GetCredentialsForIdentity$, GetId$;
+var init_schemas_05 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/schemas/schemas_0.js"() {
+    init_schema();
+    init_CognitoIdentityServiceException();
+    init_errors5();
+    _AI = "AccountId";
+    _AKI2 = "AccessKeyId";
+    _C2 = "Credentials";
+    _CRA = "CustomRoleArn";
+    _E2 = "Expiration";
+    _ESE = "ExternalServiceException";
+    _GCFI = "GetCredentialsForIdentity";
+    _GCFII = "GetCredentialsForIdentityInput";
+    _GCFIR = "GetCredentialsForIdentityResponse";
+    _GI = "GetId";
+    _GII = "GetIdInput";
+    _GIR = "GetIdResponse";
+    _IEE = "InternalErrorException";
+    _II = "IdentityId";
+    _IIPCE = "InvalidIdentityPoolConfigurationException";
+    _IPE = "InvalidParameterException";
+    _IPI = "IdentityPoolId";
+    _IPT = "IdentityProviderToken";
+    _L = "Logins";
+    _LEE = "LimitExceededException";
+    _LM = "LoginsMap";
+    _NAE = "NotAuthorizedException";
+    _RCE = "ResourceConflictException";
+    _RNFE2 = "ResourceNotFoundException";
+    _SK = "SecretKey";
+    _SKS = "SecretKeyString";
+    _ST2 = "SessionToken";
+    _TMRE3 = "TooManyRequestsException";
+    _c5 = "client";
+    _e5 = "error";
+    _hE5 = "httpError";
+    _m4 = "message";
+    _s5 = "smithy.ts.sdk.synthetic.com.amazonaws.cognitoidentity";
+    _se3 = "server";
+    n05 = "com.amazonaws.cognitoidentity";
+    _s_registry5 = TypeRegistry.for(_s5);
+    CognitoIdentityServiceException$ = [-3, _s5, "CognitoIdentityServiceException", 0, [], []];
+    _s_registry5.registerError(CognitoIdentityServiceException$, CognitoIdentityServiceException);
+    n0_registry5 = TypeRegistry.for(n05);
+    ExternalServiceException$ = [
+      -3,
+      n05,
+      _ESE,
+      { [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(ExternalServiceException$, ExternalServiceException);
+    InternalErrorException$ = [
+      -3,
+      n05,
+      _IEE,
+      { [_e5]: _se3 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InternalErrorException$, InternalErrorException);
+    InvalidIdentityPoolConfigurationException$ = [
+      -3,
+      n05,
+      _IIPCE,
+      { [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidIdentityPoolConfigurationException$, InvalidIdentityPoolConfigurationException);
+    InvalidParameterException$ = [
+      -3,
+      n05,
+      _IPE,
+      { [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidParameterException$, InvalidParameterException);
+    LimitExceededException$ = [
+      -3,
+      n05,
+      _LEE,
+      { [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(LimitExceededException$, LimitExceededException);
+    NotAuthorizedException$ = [
+      -3,
+      n05,
+      _NAE,
+      { [_e5]: _c5, [_hE5]: 403 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(NotAuthorizedException$, NotAuthorizedException);
+    ResourceConflictException$ = [
+      -3,
+      n05,
+      _RCE,
+      { [_e5]: _c5, [_hE5]: 409 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(ResourceConflictException$, ResourceConflictException);
+    ResourceNotFoundException$2 = [
+      -3,
+      n05,
+      _RNFE2,
+      { [_e5]: _c5, [_hE5]: 404 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(ResourceNotFoundException$2, ResourceNotFoundException2);
+    TooManyRequestsException$2 = [
+      -3,
+      n05,
+      _TMRE3,
+      { [_e5]: _c5, [_hE5]: 429 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(TooManyRequestsException$2, TooManyRequestsException2);
+    errorTypeRegistries5 = [
+      _s_registry5,
+      n0_registry5
+    ];
+    IdentityProviderToken = [0, n05, _IPT, 8, 0];
+    SecretKeyString = [0, n05, _SKS, 8, 0];
+    Credentials$2 = [
+      3,
+      n05,
+      _C2,
+      0,
+      [_AKI2, _SK, _ST2, _E2],
+      [0, [() => SecretKeyString, 0], 0, 4]
+    ];
+    GetCredentialsForIdentityInput$ = [
+      3,
+      n05,
+      _GCFII,
+      0,
+      [_II, _L, _CRA],
+      [0, [() => LoginsMap, 0], 0],
+      1
+    ];
+    GetCredentialsForIdentityResponse$ = [
+      3,
+      n05,
+      _GCFIR,
+      0,
+      [_II, _C2],
+      [0, [() => Credentials$2, 0]]
+    ];
+    GetIdInput$ = [
+      3,
+      n05,
+      _GII,
+      0,
+      [_IPI, _AI, _L],
+      [0, 0, [() => LoginsMap, 0]],
+      1
+    ];
+    GetIdResponse$ = [
+      3,
+      n05,
+      _GIR,
+      0,
+      [_II],
+      [0]
+    ];
+    LoginsMap = [
+      2,
+      n05,
+      _LM,
+      0,
+      [
+        0,
+        0
+      ],
+      [
+        () => IdentityProviderToken,
+        0
+      ]
+    ];
+    GetCredentialsForIdentity$ = [
+      9,
+      n05,
+      _GCFI,
+      0,
+      () => GetCredentialsForIdentityInput$,
+      () => GetCredentialsForIdentityResponse$
+    ];
+    GetId$ = [
+      9,
+      n05,
+      _GI,
+      0,
+      () => GetIdInput$,
+      () => GetIdResponse$
+    ];
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/runtimeConfig.shared.js
+var getRuntimeConfig9;
+var init_runtimeConfig_shared5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/runtimeConfig.shared.js"() {
+    init_httpAuthSchemes2();
+    init_protocols2();
+    init_dist_es();
+    init_checksum2();
+    init_client2();
+    init_protocols();
+    init_serde();
+    init_httpAuthSchemeProvider5();
+    init_endpointResolver5();
+    init_schemas_05();
+    getRuntimeConfig9 = (config) => {
+      return {
+        apiVersion: "2014-06-30",
+        base64Decoder: config?.base64Decoder ?? fromBase64,
+        base64Encoder: config?.base64Encoder ?? toBase64,
+        disableHostPrefix: config?.disableHostPrefix ?? false,
+        endpointProvider: config?.endpointProvider ?? defaultEndpointResolver5,
+        extensions: config?.extensions ?? [],
+        httpAuthSchemeProvider: config?.httpAuthSchemeProvider ?? defaultCognitoIdentityHttpAuthSchemeProvider,
+        httpAuthSchemes: config?.httpAuthSchemes ?? [
+          {
+            schemeId: "aws.auth#sigv4",
+            identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+            signer: new AwsSdkSigV4Signer()
+          },
+          {
+            schemeId: "smithy.api#noAuth",
+            identityProvider: (ipc) => ipc.getIdentityProvider("smithy.api#noAuth") || (async () => ({})),
+            signer: new NoAuthSigner()
+          }
+        ],
+        logger: config?.logger ?? new NoOpLogger(),
+        protocol: config?.protocol ?? AwsJson1_1Protocol,
+        protocolSettings: config?.protocolSettings ?? {
+          defaultNamespace: "com.amazonaws.cognitoidentity",
+          errorTypeRegistries: errorTypeRegistries5,
+          xmlNamespace: "http://cognito-identity.amazonaws.com/doc/2014-06-30/",
+          version: "2014-06-30",
+          serviceTarget: "AWSCognitoIdentityService"
+        },
+        serviceId: config?.serviceId ?? "Cognito Identity",
+        sha256: config?.sha256 ?? Sha256Node,
+        urlParser: config?.urlParser ?? parseUrl,
+        utf8Decoder: config?.utf8Decoder ?? fromUtf8,
+        utf8Encoder: config?.utf8Encoder ?? toUtf8
+      };
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/runtimeConfig.js
+var import_node_http_handler5, getRuntimeConfig10;
+var init_runtimeConfig5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/runtimeConfig.js"() {
+    init_package();
+    init_client3();
+    init_httpAuthSchemes2();
+    init_client2();
+    init_config2();
+    init_retry2();
+    init_serde();
+    import_node_http_handler5 = __toESM(require_dist_cjs8());
+    init_runtimeConfig_shared5();
+    getRuntimeConfig10 = (config) => {
+      emitWarningIfUnsupportedVersion(process.version);
+      const defaultsMode = resolveDefaultsModeConfig(config);
+      const defaultConfigProvider = () => defaultsMode().then(loadConfigsForDefaultMode);
+      const clientSharedValues = getRuntimeConfig9(config);
+      emitWarningIfUnsupportedVersion2(process.version);
+      const loaderConfig = {
+        profile: config?.profile,
+        logger: clientSharedValues.logger
+      };
+      return {
+        ...clientSharedValues,
+        ...config,
+        runtime: "node",
+        defaultsMode,
+        authSchemePreference: config?.authSchemePreference ?? loadConfig(NODE_AUTH_SCHEME_PREFERENCE_OPTIONS, loaderConfig),
+        bodyLengthChecker: config?.bodyLengthChecker ?? calculateBodyLength,
+        defaultUserAgentProvider: config?.defaultUserAgentProvider ?? createDefaultUserAgentProvider({ serviceId: clientSharedValues.serviceId, clientVersion: package_default.version }),
+        maxAttempts: config?.maxAttempts ?? loadConfig(NODE_MAX_ATTEMPT_CONFIG_OPTIONS, config),
+        region: config?.region ?? loadConfig(NODE_REGION_CONFIG_OPTIONS, { ...NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig }),
+        requestHandler: import_node_http_handler5.NodeHttpHandler.create(config?.requestHandler ?? defaultConfigProvider),
+        retryMode: config?.retryMode ?? loadConfig({
+          ...NODE_RETRY_MODE_CONFIG_OPTIONS,
+          default: async () => (await defaultConfigProvider()).retryMode || DEFAULT_RETRY_MODE
+        }, config),
+        streamCollector: config?.streamCollector ?? import_node_http_handler5.streamCollector,
+        useDualstackEndpoint: config?.useDualstackEndpoint ?? loadConfig(NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+        useFipsEndpoint: config?.useFipsEndpoint ?? loadConfig(NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS, loaderConfig),
+        userAgentAppId: config?.userAgentAppId ?? loadConfig(NODE_APP_ID_CONFIG_OPTIONS, loaderConfig)
+      };
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/auth/httpAuthExtensionConfiguration.js
+var getHttpAuthExtensionConfiguration5, resolveHttpAuthRuntimeConfig5;
+var init_httpAuthExtensionConfiguration5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/auth/httpAuthExtensionConfiguration.js"() {
+    getHttpAuthExtensionConfiguration5 = (runtimeConfig) => {
+      const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
+      let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
+      let _credentials = runtimeConfig.credentials;
+      return {
+        setHttpAuthScheme(httpAuthScheme) {
+          const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+          if (index === -1) {
+            _httpAuthSchemes.push(httpAuthScheme);
+          } else {
+            _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+          }
+        },
+        httpAuthSchemes() {
+          return _httpAuthSchemes;
+        },
+        setHttpAuthSchemeProvider(httpAuthSchemeProvider) {
+          _httpAuthSchemeProvider = httpAuthSchemeProvider;
+        },
+        httpAuthSchemeProvider() {
+          return _httpAuthSchemeProvider;
+        },
+        setCredentials(credentials) {
+          _credentials = credentials;
+        },
+        credentials() {
+          return _credentials;
+        }
+      };
+    };
+    resolveHttpAuthRuntimeConfig5 = (config) => {
+      return {
+        httpAuthSchemes: config.httpAuthSchemes(),
+        httpAuthSchemeProvider: config.httpAuthSchemeProvider(),
+        credentials: config.credentials()
+      };
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/runtimeExtensions.js
+var resolveRuntimeExtensions5;
+var init_runtimeExtensions5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/runtimeExtensions.js"() {
+    init_client3();
+    init_client2();
+    init_protocols();
+    init_httpAuthExtensionConfiguration5();
+    resolveRuntimeExtensions5 = (runtimeConfig, extensions) => {
+      const extensionConfiguration = Object.assign(getAwsRegionExtensionConfiguration(runtimeConfig), getDefaultExtensionConfiguration(runtimeConfig), getHttpHandlerExtensionConfiguration(runtimeConfig), getHttpAuthExtensionConfiguration5(runtimeConfig));
+      extensions.forEach((extension) => extension.configure(extensionConfiguration));
+      return Object.assign(runtimeConfig, resolveAwsRegionExtensionConfiguration(extensionConfiguration), resolveDefaultRuntimeConfig(extensionConfiguration), resolveHttpHandlerRuntimeConfig(extensionConfiguration), resolveHttpAuthRuntimeConfig5(extensionConfiguration));
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/CognitoIdentityClient.js
+var CognitoIdentityClient;
+var init_CognitoIdentityClient = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/CognitoIdentityClient.js"() {
+    init_client3();
+    init_dist_es();
+    init_client2();
+    init_config2();
+    init_endpoints();
+    init_protocols();
+    init_retry2();
+    init_schema();
+    init_httpAuthSchemeProvider5();
+    init_EndpointParameters5();
+    init_runtimeConfig5();
+    init_runtimeExtensions5();
+    CognitoIdentityClient = class extends Client {
+      config;
+      constructor(...[configuration]) {
+        const _config_0 = getRuntimeConfig10(configuration || {});
+        super(_config_0);
+        this.initConfig = _config_0;
+        const _config_1 = resolveClientEndpointParameters5(_config_0);
+        const _config_2 = resolveUserAgentConfig(_config_1);
+        const _config_3 = resolveRetryConfig(_config_2);
+        const _config_4 = resolveRegionConfig(_config_3);
+        const _config_5 = resolveHostHeaderConfig(_config_4);
+        const _config_6 = resolveEndpointConfig(_config_5);
+        const _config_7 = resolveHttpAuthSchemeConfig5(_config_6);
+        const _config_8 = resolveRuntimeExtensions5(_config_7, configuration?.extensions || []);
+        this.config = _config_8;
+        this.middlewareStack.use(getSchemaSerdePlugin(this.config));
+        this.middlewareStack.use(getUserAgentPlugin(this.config));
+        this.middlewareStack.use(getRetryPlugin(this.config));
+        this.middlewareStack.use(getContentLengthPlugin(this.config));
+        this.middlewareStack.use(getHostHeaderPlugin(this.config));
+        this.middlewareStack.use(getLoggerPlugin(this.config));
+        this.middlewareStack.use(getRecursionDetectionPlugin(this.config));
+        this.middlewareStack.use(getHttpAuthSchemeEndpointRuleSetPlugin(this.config, {
+          httpAuthSchemeParametersProvider: defaultCognitoIdentityHttpAuthSchemeParametersProvider,
+          identityProviderConfigProvider: async (config) => new DefaultIdentityProviderConfig({
+            "aws.auth#sigv4": config.credentials
+          })
+        }));
+        this.middlewareStack.use(getHttpSigningPlugin(this.config));
+      }
+      destroy() {
+        super.destroy();
+      }
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commandBuilder.js
+var command5, _ep05, _mw05;
+var init_commandBuilder5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commandBuilder.js"() {
+    init_client2();
+    init_endpoints();
+    init_EndpointParameters5();
+    command5 = makeBuilder(commonParams5, "AWSCognitoIdentityService", "CognitoIdentityClient", getEndpointPlugin);
+    _ep05 = {};
+    _mw05 = (Command2, cs, config, o3) => [];
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commands/GetCredentialsForIdentityCommand.js
+var GetCredentialsForIdentityCommand;
+var init_GetCredentialsForIdentityCommand = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commands/GetCredentialsForIdentityCommand.js"() {
+    init_commandBuilder5();
+    init_schemas_05();
+    GetCredentialsForIdentityCommand = class extends command5(_ep05, _mw05, "GetCredentialsForIdentity", GetCredentialsForIdentity$) {
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commands/GetIdCommand.js
+var GetIdCommand;
+var init_GetIdCommand = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commands/GetIdCommand.js"() {
+    init_commandBuilder5();
+    init_schemas_05();
+    GetIdCommand = class extends command5(_ep05, _mw05, "GetId", GetId$) {
+    };
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/CognitoIdentity.js
+var commands5, CognitoIdentity;
+var init_CognitoIdentity = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/CognitoIdentity.js"() {
+    init_client2();
+    init_CognitoIdentityClient();
+    init_GetCredentialsForIdentityCommand();
+    init_GetIdCommand();
+    commands5 = {
+      GetCredentialsForIdentityCommand,
+      GetIdCommand
+    };
+    CognitoIdentity = class extends CognitoIdentityClient {
+    };
+    createAggregatedClient(commands5, CognitoIdentity);
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commands/index.js
+var init_commands5 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/commands/index.js"() {
+    init_GetCredentialsForIdentityCommand();
+    init_GetIdCommand();
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/models/models_0.js
+var init_models_05 = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/models/models_0.js"() {
+  }
+});
+
+// ../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/index.js
+var cognito_identity_exports = {};
+__export(cognito_identity_exports, {
+  $Command: () => Command,
+  CognitoIdentity: () => CognitoIdentity,
+  CognitoIdentityClient: () => CognitoIdentityClient,
+  CognitoIdentityServiceException: () => CognitoIdentityServiceException,
+  CognitoIdentityServiceException$: () => CognitoIdentityServiceException$,
+  Credentials$: () => Credentials$2,
+  ExternalServiceException: () => ExternalServiceException,
+  ExternalServiceException$: () => ExternalServiceException$,
+  GetCredentialsForIdentity$: () => GetCredentialsForIdentity$,
+  GetCredentialsForIdentityCommand: () => GetCredentialsForIdentityCommand,
+  GetCredentialsForIdentityInput$: () => GetCredentialsForIdentityInput$,
+  GetCredentialsForIdentityResponse$: () => GetCredentialsForIdentityResponse$,
+  GetId$: () => GetId$,
+  GetIdCommand: () => GetIdCommand,
+  GetIdInput$: () => GetIdInput$,
+  GetIdResponse$: () => GetIdResponse$,
+  InternalErrorException: () => InternalErrorException,
+  InternalErrorException$: () => InternalErrorException$,
+  InvalidIdentityPoolConfigurationException: () => InvalidIdentityPoolConfigurationException,
+  InvalidIdentityPoolConfigurationException$: () => InvalidIdentityPoolConfigurationException$,
+  InvalidParameterException: () => InvalidParameterException,
+  InvalidParameterException$: () => InvalidParameterException$,
+  LimitExceededException: () => LimitExceededException,
+  LimitExceededException$: () => LimitExceededException$,
+  NotAuthorizedException: () => NotAuthorizedException,
+  NotAuthorizedException$: () => NotAuthorizedException$,
+  ResourceConflictException: () => ResourceConflictException,
+  ResourceConflictException$: () => ResourceConflictException$,
+  ResourceNotFoundException: () => ResourceNotFoundException2,
+  ResourceNotFoundException$: () => ResourceNotFoundException$2,
+  TooManyRequestsException: () => TooManyRequestsException2,
+  TooManyRequestsException$: () => TooManyRequestsException$2,
+  __Client: () => Client,
+  errorTypeRegistries: () => errorTypeRegistries5
+});
+var init_cognito_identity = __esm({
+  "../../../node_modules/@aws-sdk/nested-clients/dist-es/submodules/cognito-identity/index.js"() {
+    init_CognitoIdentityClient();
+    init_CognitoIdentity();
+    init_commands5();
+    init_client2();
+    init_schemas_05();
+    init_errors5();
+    init_models_05();
+    init_CognitoIdentityServiceException();
+  }
+});
+
+// ../../../node_modules/@aws-sdk/credential-provider-cognito-identity/dist-cjs/loadCognitoIdentity-v413cIIq.js
+var require_loadCognitoIdentity_v413cIIq = __commonJS({
+  "../../../node_modules/@aws-sdk/credential-provider-cognito-identity/dist-cjs/loadCognitoIdentity-v413cIIq.js"(exports2) {
+    var { CognitoIdentityClient: CognitoIdentityClient2, GetCredentialsForIdentityCommand: GetCredentialsForIdentityCommand2, GetIdCommand: GetIdCommand2 } = (init_cognito_identity(), __toCommonJS(cognito_identity_exports));
+    exports2.CognitoIdentityClient = CognitoIdentityClient2;
+    exports2.GetCredentialsForIdentityCommand = GetCredentialsForIdentityCommand2;
+    exports2.GetIdCommand = GetIdCommand2;
+  }
+});
+
+// ../../../node_modules/@aws-sdk/credential-provider-cognito-identity/dist-cjs/index.js
+var require_dist_cjs22 = __commonJS({
+  "../../../node_modules/@aws-sdk/credential-provider-cognito-identity/dist-cjs/index.js"(exports2) {
+    var { CredentialsProviderError: CredentialsProviderError2 } = (init_config2(), __toCommonJS(config_exports));
+    function resolveLogins(logins) {
+      return Promise.all(Object.keys(logins).reduce((arr, name) => {
+        const tokenOrProvider = logins[name];
+        if (typeof tokenOrProvider === "string") {
+          arr.push([name, tokenOrProvider]);
+        } else {
+          arr.push(tokenOrProvider().then((token) => [name, token]));
+        }
+        return arr;
+      }, [])).then((resolvedPairs) => resolvedPairs.reduce((logins2, [key, value]) => {
+        logins2[key] = value;
+        return logins2;
+      }, {}));
+    }
+    function fromCognitoIdentity(parameters) {
+      return async (awsIdentityProperties) => {
+        parameters.logger?.debug("@aws-sdk/credential-provider-cognito-identity - fromCognitoIdentity");
+        const { GetCredentialsForIdentityCommand: GetCredentialsForIdentityCommand2, CognitoIdentityClient: CognitoIdentityClient2 } = require_loadCognitoIdentity_v413cIIq();
+        const fromConfigs = (property) => parameters.clientConfig?.[property] ?? parameters.parentClientConfig?.[property] ?? awsIdentityProperties?.callerClientConfig?.[property];
+        const { Credentials: { AccessKeyId = throwOnMissingAccessKeyId(parameters.logger), Expiration, SecretKey = throwOnMissingSecretKey(parameters.logger), SessionToken } = throwOnMissingCredentials(parameters.logger) } = await (parameters.client ?? new CognitoIdentityClient2(Object.assign({}, parameters.clientConfig ?? {}, {
+          region: fromConfigs("region"),
+          profile: fromConfigs("profile"),
+          userAgentAppId: fromConfigs("userAgentAppId")
+        }))).send(new GetCredentialsForIdentityCommand2({
+          CustomRoleArn: parameters.customRoleArn,
+          IdentityId: parameters.identityId,
+          Logins: parameters.logins ? await resolveLogins(parameters.logins) : void 0
+        }));
+        return {
+          identityId: parameters.identityId,
+          accessKeyId: AccessKeyId,
+          secretAccessKey: SecretKey,
+          sessionToken: SessionToken,
+          expiration: Expiration
+        };
+      };
+    }
+    function throwOnMissingAccessKeyId(logger2) {
+      throw new CredentialsProviderError2("Response from Amazon Cognito contained no access key ID", { logger: logger2 });
+    }
+    function throwOnMissingCredentials(logger2) {
+      throw new CredentialsProviderError2("Response from Amazon Cognito contained no credentials", { logger: logger2 });
+    }
+    function throwOnMissingSecretKey(logger2) {
+      throw new CredentialsProviderError2("Response from Amazon Cognito contained no secret key", { logger: logger2 });
+    }
+    var STORE_NAME = "IdentityIds";
+    var IndexedDbStorage = class {
+      dbName;
+      constructor(dbName = "aws:cognito-identity-ids") {
+        this.dbName = dbName;
+      }
+      getItem(key) {
+        return this.withObjectStore("readonly", (store) => {
+          const req = store.get(key);
+          return new Promise((resolve) => {
+            req.onerror = () => resolve(null);
+            req.onsuccess = () => resolve(req.result ? req.result.value : null);
+          });
+        }).catch(() => null);
+      }
+      removeItem(key) {
+        return this.withObjectStore("readwrite", (store) => {
+          const req = store.delete(key);
+          return new Promise((resolve, reject) => {
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => resolve();
+          });
+        });
+      }
+      setItem(id, value) {
+        return this.withObjectStore("readwrite", (store) => {
+          const req = store.put({ id, value });
+          return new Promise((resolve, reject) => {
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => resolve();
+          });
+        });
+      }
+      getDb() {
+        const openDbRequest = self.indexedDB.open(this.dbName, 1);
+        return new Promise((resolve, reject) => {
+          openDbRequest.onsuccess = () => {
+            resolve(openDbRequest.result);
+          };
+          openDbRequest.onerror = () => {
+            reject(openDbRequest.error);
+          };
+          openDbRequest.onblocked = () => {
+            reject(new Error("Unable to access DB"));
+          };
+          openDbRequest.onupgradeneeded = () => {
+            const db = openDbRequest.result;
+            db.onerror = () => {
+              reject(new Error("Failed to create object store"));
+            };
+            db.createObjectStore(STORE_NAME, { keyPath: "id" });
+          };
+        });
+      }
+      withObjectStore(mode, action) {
+        return this.getDb().then((db) => {
+          const tx = db.transaction(STORE_NAME, mode);
+          tx.oncomplete = () => db.close();
+          return new Promise((resolve, reject) => {
+            tx.onerror = () => reject(tx.error);
+            resolve(action(tx.objectStore(STORE_NAME)));
+          }).catch((err2) => {
+            db.close();
+            throw err2;
+          });
+        });
+      }
+    };
+    var InMemoryStorage = class {
+      store;
+      constructor(store = {}) {
+        this.store = store;
+      }
+      getItem(key) {
+        if (key in this.store) {
+          return this.store[key];
+        }
+        return null;
+      }
+      removeItem(key) {
+        delete this.store[key];
+      }
+      setItem(key, value) {
+        this.store[key] = value;
+      }
+    };
+    var inMemoryStorage = new InMemoryStorage();
+    function localStorage() {
+      if (typeof self === "object" && self.indexedDB) {
+        return new IndexedDbStorage();
+      }
+      if (typeof window === "object" && window.localStorage) {
+        return window.localStorage;
+      }
+      return inMemoryStorage;
+    }
+    function fromCognitoIdentityPool({ accountId, cache: cache7 = localStorage(), client: client2, clientConfig, customRoleArn, identityPoolId, logins, userIdentifier = !logins || Object.keys(logins).length === 0 ? "ANONYMOUS" : void 0, logger: logger2, parentClientConfig }) {
+      logger2?.debug("@aws-sdk/credential-provider-cognito-identity - fromCognitoIdentity");
+      const cacheKey = userIdentifier ? `aws:cognito-identity-credentials:${identityPoolId}:${userIdentifier}` : void 0;
+      let provider = async (awsIdentityProperties) => {
+        const { GetIdCommand: GetIdCommand2, CognitoIdentityClient: CognitoIdentityClient2 } = require_loadCognitoIdentity_v413cIIq();
+        const fromConfigs = (property) => clientConfig?.[property] ?? parentClientConfig?.[property] ?? awsIdentityProperties?.callerClientConfig?.[property];
+        const _client = client2 ?? new CognitoIdentityClient2(Object.assign({}, clientConfig ?? {}, {
+          region: fromConfigs("region"),
+          profile: fromConfigs("profile"),
+          userAgentAppId: fromConfigs("userAgentAppId")
+        }));
+        let identityId = cacheKey && await cache7.getItem(cacheKey);
+        if (!identityId) {
+          const { IdentityId = throwOnMissingId(logger2) } = await _client.send(new GetIdCommand2({
+            AccountId: accountId,
+            IdentityPoolId: identityPoolId,
+            Logins: logins ? await resolveLogins(logins) : void 0
+          }));
+          identityId = IdentityId;
+          if (cacheKey) {
+            Promise.resolve(cache7.setItem(cacheKey, identityId)).catch(() => {
+            });
+          }
+        }
+        provider = fromCognitoIdentity({
+          client: _client,
+          customRoleArn,
+          logins,
+          identityId
+        });
+        return provider(awsIdentityProperties);
+      };
+      return (awsIdentityProperties) => provider(awsIdentityProperties).catch(async (err2) => {
+        if (cacheKey) {
+          Promise.resolve(cache7.removeItem(cacheKey)).catch(() => {
+          });
+        }
+        throw err2;
+      });
+    }
+    function throwOnMissingId(logger2) {
+      throw new CredentialsProviderError2("Response from Amazon Cognito contained no identity ID", { logger: logger2 });
+    }
+    exports2.fromCognitoIdentity = fromCognitoIdentity;
+    exports2.fromCognitoIdentityPool = fromCognitoIdentityPool;
+  }
+});
+
+// ../../../node_modules/@aws-sdk/credential-providers/dist-cjs/loadSts-C4jOcYxJ.js
+var require_loadSts_C4jOcYxJ = __commonJS({
+  "../../../node_modules/@aws-sdk/credential-providers/dist-cjs/loadSts-C4jOcYxJ.js"(exports2) {
+    var { AssumeRoleCommand: AssumeRoleCommand2, STSClient: STSClient2 } = (init_sts(), __toCommonJS(sts_exports));
+    exports2.AssumeRoleCommand = AssumeRoleCommand2;
+    exports2.STSClient = STSClient2;
+  }
+});
+
+// ../../../node_modules/@aws-sdk/credential-providers/dist-cjs/index.js
+var require_dist_cjs23 = __commonJS({
+  "../../../node_modules/@aws-sdk/credential-providers/dist-cjs/index.js"(exports2) {
+    var { ProviderError: ProviderError2, CredentialsProviderError: CredentialsProviderError2, loadConfig: loadConfig2, NODE_REGION_CONFIG_FILE_OPTIONS: NODE_REGION_CONFIG_FILE_OPTIONS2 } = (init_config2(), __toCommonJS(config_exports));
+    var { normalizeProvider: normalizeProvider3 } = (init_dist_es(), __toCommonJS(dist_es_exports));
+    var createCredentialChain = (...credentialProviders) => {
+      let expireAfter = -1;
+      const baseFunction = async (awsIdentityProperties) => {
+        const credentials = await propertyProviderChain(...credentialProviders)(awsIdentityProperties);
+        if (!credentials.expiration && expireAfter !== -1) {
+          credentials.expiration = new Date(Date.now() + expireAfter);
+        }
+        return credentials;
+      };
+      const withOptions = Object.assign(baseFunction, {
+        expireAfter(milliseconds) {
+          if (milliseconds < 5 * 6e4) {
+            throw new Error("@aws-sdk/credential-providers - createCredentialChain(...).expireAfter(ms) may not be called with a duration lower than five minutes.");
+          }
+          expireAfter = milliseconds;
+          return withOptions;
+        }
+      });
+      return withOptions;
+    };
+    var propertyProviderChain = (...providers) => async (awsIdentityProperties) => {
+      if (providers.length === 0) {
+        throw new ProviderError2("No providers in chain", { tryNextLink: false });
+      }
+      let lastProviderError;
+      for (const provider of providers) {
+        try {
+          return await provider(awsIdentityProperties);
+        } catch (err2) {
+          lastProviderError = err2;
+          if (err2?.tryNextLink) {
+            continue;
+          }
+          throw err2;
+        }
+      }
+      throw lastProviderError;
+    };
+    var fromCognitoIdentity = (options) => {
+      return async (args) => {
+        const { fromCognitoIdentity: _fromCognitoIdentity } = require_dist_cjs22();
+        return _fromCognitoIdentity(options)(args);
+      };
+    };
+    var fromCognitoIdentityPool = (options) => {
+      return async (args) => {
+        const { fromCognitoIdentityPool: _fromCognitoIdentityPool } = require_dist_cjs22();
+        return _fromCognitoIdentityPool(options)(args);
+      };
+    };
+    var fromContainerMetadata = (init) => {
+      return async (props) => {
+        init?.logger?.debug("@smithy/credential-provider-imds", "fromContainerMetadata");
+        const { fromContainerMetadata: _fromContainerMetadata } = require_dist_cjs7();
+        return _fromContainerMetadata(init)();
+      };
+    };
+    var fromEnv2 = (init) => {
+      return async (args) => {
+        const { fromEnv: _fromEnv } = require_dist_cjs6();
+        return _fromEnv(init)(args);
+      };
+    };
+    var fromHttp = (options = {}) => {
+      return async (args) => {
+        const { fromHttp: _fromHttp } = require_dist_cjs9();
+        return _fromHttp(options)(args);
+      };
+    };
+    var fromIni = (init = {}) => {
+      return async (args) => {
+        const { fromIni: _fromIni } = require_dist_cjs17();
+        return _fromIni({ ...init })(args);
+      };
+    };
+    var fromInstanceMetadata = (init) => {
+      return async (props) => {
+        init?.logger?.debug("@smithy/credential-provider-imds", "fromInstanceMetadata");
+        const { setCredentialFeature: setCredentialFeature2 } = (init_client3(), __toCommonJS(client_exports2));
+        const { fromInstanceMetadata: _fromInstanceMetadata } = require_dist_cjs7();
+        return _fromInstanceMetadata(init)().then((creds) => setCredentialFeature2(creds, "CREDENTIALS_IMDS", "0"));
+      };
+    };
+    var fromLoginCredentials = (init) => {
+      return async (args) => {
+        const { fromLoginCredentials: _fromLoginCredentials } = require_dist_cjs14();
+        return _fromLoginCredentials({ ...init })(args);
+      };
+    };
+    var fromNodeProviderChain = (init = {}) => {
+      let chain2;
+      return async (args) => {
+        if (!chain2) {
+          const { defaultProvider } = require_dist_cjs18();
+          chain2 = defaultProvider({ ...init });
+        }
+        return chain2(args);
+      };
+    };
+    var fromProcess = (init) => {
+      return async (args) => {
+        const { fromProcess: _fromProcess } = require_dist_cjs15();
+        return _fromProcess(init)(args);
+      };
+    };
+    var fromSSO = (init = {}) => {
+      return async (args) => {
+        const { fromSSO: _fromSSO } = require_dist_cjs12();
+        return _fromSSO({ ...init })(args);
+      };
+    };
+    var ASSUME_ROLE_DEFAULT_REGION = "us-east-1";
+    var fromTemporaryCredentials$1 = (options, credentialDefaultProvider, regionProvider) => {
+      let stsClient;
+      return async (awsIdentityProperties = {}) => {
+        const { callerClientConfig } = awsIdentityProperties;
+        const profile = options.clientConfig?.profile ?? callerClientConfig?.profile;
+        const logger2 = options.logger ?? callerClientConfig?.logger;
+        logger2?.debug("@aws-sdk/credential-providers - fromTemporaryCredentials (STS)");
+        const params = { ...options.params, RoleSessionName: options.params.RoleSessionName ?? "aws-sdk-js-" + Date.now() };
+        if (params?.SerialNumber) {
+          if (!options.mfaCodeProvider) {
+            throw new CredentialsProviderError2(`Temporary credential requires multi-factor authentication, but no MFA code callback was provided.`, {
+              tryNextLink: false,
+              logger: logger2
+            });
+          }
+          params.TokenCode = await options.mfaCodeProvider(params?.SerialNumber);
+        }
+        const { AssumeRoleCommand: AssumeRoleCommand2, STSClient: STSClient2 } = require_loadSts_C4jOcYxJ();
+        if (!stsClient) {
+          const defaultCredentialsOrError = typeof credentialDefaultProvider === "function" ? credentialDefaultProvider() : void 0;
+          const credentialSources = [
+            options.masterCredentials,
+            options.clientConfig?.credentials,
+            void callerClientConfig?.credentials,
+            callerClientConfig?.credentialDefaultProvider?.(),
+            defaultCredentialsOrError
+          ];
+          let credentialSource = "STS client default credentials";
+          if (credentialSources[0]) {
+            credentialSource = "options.masterCredentials";
+          } else if (credentialSources[1]) {
+            credentialSource = "options.clientConfig.credentials";
+          } else if (credentialSources[2]) {
+            credentialSource = "caller client's credentials";
+            throw new Error("fromTemporaryCredentials recursion in callerClientConfig.credentials");
+          } else if (credentialSources[3]) {
+            credentialSource = "caller client's credentialDefaultProvider";
+          } else if (credentialSources[4]) {
+            credentialSource = "AWS SDK default credentials";
+          }
+          const regionSources = [
+            options.clientConfig?.region,
+            callerClientConfig?.region,
+            await regionProvider?.({
+              profile
+            }),
+            ASSUME_ROLE_DEFAULT_REGION
+          ];
+          let regionSource = "default partition's default region";
+          if (regionSources[0]) {
+            regionSource = "options.clientConfig.region";
+          } else if (regionSources[1]) {
+            regionSource = "caller client's region";
+          } else if (regionSources[2]) {
+            regionSource = "file or env region";
+          }
+          const requestHandlerSources = [
+            filterRequestHandler(options.clientConfig?.requestHandler),
+            filterRequestHandler(callerClientConfig?.requestHandler)
+          ];
+          let requestHandlerSource = "STS default requestHandler";
+          if (requestHandlerSources[0]) {
+            requestHandlerSource = "options.clientConfig.requestHandler";
+          } else if (requestHandlerSources[1]) {
+            requestHandlerSource = "caller client's requestHandler";
+          }
+          logger2?.debug?.(`@aws-sdk/credential-providers - fromTemporaryCredentials STS client init with ${regionSource}=${await normalizeProvider3(coalesce2(regionSources))()}, ${credentialSource}, ${requestHandlerSource}.`);
+          stsClient = new STSClient2({
+            userAgentAppId: callerClientConfig?.userAgentAppId,
+            ...options.clientConfig,
+            credentials: coalesce2(credentialSources),
+            logger: logger2,
+            profile,
+            region: coalesce2(regionSources),
+            requestHandler: coalesce2(requestHandlerSources)
+          });
+        }
+        if (options.clientPlugins) {
+          for (const plugin of options.clientPlugins) {
+            stsClient.middlewareStack.use(plugin);
+          }
+        }
+        const { Credentials } = await stsClient.send(new AssumeRoleCommand2(params));
+        if (!Credentials || !Credentials.AccessKeyId || !Credentials.SecretAccessKey) {
+          throw new CredentialsProviderError2(`Invalid response from STS.assumeRole call with role ${params.RoleArn}`, {
+            logger: logger2
+          });
+        }
+        return {
+          accessKeyId: Credentials.AccessKeyId,
+          secretAccessKey: Credentials.SecretAccessKey,
+          sessionToken: Credentials.SessionToken,
+          expiration: Credentials.Expiration,
+          credentialScope: Credentials.CredentialScope
+        };
+      };
+    };
+    var filterRequestHandler = (requestHandler) => {
+      return requestHandler?.metadata?.handlerProtocol === "h2" ? void 0 : requestHandler;
+    };
+    var coalesce2 = (args) => {
+      for (const item of args) {
+        if (item !== void 0) {
+          return item;
+        }
+      }
+    };
+    var fromTemporaryCredentials2 = (options) => {
+      return fromTemporaryCredentials$1(options, fromNodeProviderChain, async ({ profile = process.env.AWS_PROFILE }) => loadConfig2({
+        environmentVariableSelector: (env2) => env2.AWS_REGION,
+        configFileSelector: (profileData) => {
+          return profileData.region;
+        },
+        default: () => void 0
+      }, { ...NODE_REGION_CONFIG_FILE_OPTIONS2, profile })());
+    };
+    var fromTokenFile = (init = {}) => {
+      return async (args) => {
+        const { fromTokenFile: _fromTokenFile } = require_dist_cjs16();
+        return _fromTokenFile({ ...init })(args);
+      };
+    };
+    var fromWebToken = (init) => {
+      return async (args) => {
+        const { fromWebToken: _fromWebToken } = require_dist_cjs16();
+        return _fromWebToken({ ...init })(args);
+      };
+    };
+    exports2.createCredentialChain = createCredentialChain;
+    exports2.fromCognitoIdentity = fromCognitoIdentity;
+    exports2.fromCognitoIdentityPool = fromCognitoIdentityPool;
+    exports2.fromContainerMetadata = fromContainerMetadata;
+    exports2.fromEnv = fromEnv2;
+    exports2.fromHttp = fromHttp;
+    exports2.fromIni = fromIni;
+    exports2.fromInstanceMetadata = fromInstanceMetadata;
+    exports2.fromLoginCredentials = fromLoginCredentials;
+    exports2.fromNodeProviderChain = fromNodeProviderChain;
+    exports2.fromProcess = fromProcess;
+    exports2.fromSSO = fromSSO;
+    exports2.fromTemporaryCredentials = fromTemporaryCredentials2;
+    exports2.fromTokenFile = fromTokenFile;
+    exports2.fromWebToken = fromWebToken;
+    exports2.propertyProviderChain = propertyProviderChain;
+  }
+});
+
+// ../../../node_modules/@aws-sdk/client-secrets-manager/dist-cjs/index.js
+var require_dist_cjs24 = __commonJS({
+  "../../../node_modules/@aws-sdk/client-secrets-manager/dist-cjs/index.js"(exports2) {
+    var { awsEndpointFunctions: awsEndpointFunctions2, emitWarningIfUnsupportedVersion: emitWarningIfUnsupportedVersion$1, createDefaultUserAgentProvider: createDefaultUserAgentProvider2, NODE_APP_ID_CONFIG_OPTIONS: NODE_APP_ID_CONFIG_OPTIONS2, getAwsRegionExtensionConfiguration: getAwsRegionExtensionConfiguration2, resolveAwsRegionExtensionConfiguration: resolveAwsRegionExtensionConfiguration2, resolveUserAgentConfig: resolveUserAgentConfig2, resolveHostHeaderConfig: resolveHostHeaderConfig2, getUserAgentPlugin: getUserAgentPlugin2, getHostHeaderPlugin: getHostHeaderPlugin2, getLoggerPlugin: getLoggerPlugin2, getRecursionDetectionPlugin: getRecursionDetectionPlugin2 } = (init_client3(), __toCommonJS(client_exports2));
+    var { getHttpAuthSchemeEndpointRuleSetPlugin: getHttpAuthSchemeEndpointRuleSetPlugin2, DefaultIdentityProviderConfig: DefaultIdentityProviderConfig2, getHttpSigningPlugin: getHttpSigningPlugin2, createPaginator: createPaginator2 } = (init_dist_es(), __toCommonJS(dist_es_exports));
+    var { normalizeProvider: normalizeProvider3, getSmithyContext: getSmithyContext2, ServiceException: ServiceException2, NoOpLogger: NoOpLogger2, emitWarningIfUnsupportedVersion: emitWarningIfUnsupportedVersion3, loadConfigsForDefaultMode: loadConfigsForDefaultMode2, getDefaultExtensionConfiguration: getDefaultExtensionConfiguration2, resolveDefaultRuntimeConfig: resolveDefaultRuntimeConfig2, Client: Client2, makeBuilder: makeBuilder2, createAggregatedClient: createAggregatedClient2 } = (init_client2(), __toCommonJS(client_exports));
+    var { Command: $Command } = (init_client2(), __toCommonJS(client_exports));
+    exports2.$Command = $Command;
+    exports2.__Client = Client2;
+    var { resolveDefaultsModeConfig: resolveDefaultsModeConfig2, loadConfig: loadConfig2, NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS: NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS2, NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS: NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS2, NODE_REGION_CONFIG_OPTIONS: NODE_REGION_CONFIG_OPTIONS2, NODE_REGION_CONFIG_FILE_OPTIONS: NODE_REGION_CONFIG_FILE_OPTIONS2, resolveRegionConfig: resolveRegionConfig2 } = (init_config2(), __toCommonJS(config_exports));
+    var { BinaryDecisionDiagram: BinaryDecisionDiagram2, EndpointCache: EndpointCache2, decideEndpoint: decideEndpoint2, customEndpointFunctions: customEndpointFunctions2, resolveEndpointConfig: resolveEndpointConfig2, getEndpointPlugin: getEndpointPlugin2 } = (init_endpoints(), __toCommonJS(endpoints_exports));
+    var { parseUrl: parseUrl2, getHttpHandlerExtensionConfiguration: getHttpHandlerExtensionConfiguration2, resolveHttpHandlerRuntimeConfig: resolveHttpHandlerRuntimeConfig2, getContentLengthPlugin: getContentLengthPlugin2 } = (init_protocols(), __toCommonJS(protocols_exports));
+    var { DEFAULT_RETRY_MODE: DEFAULT_RETRY_MODE2, NODE_RETRY_MODE_CONFIG_OPTIONS: NODE_RETRY_MODE_CONFIG_OPTIONS2, NODE_MAX_ATTEMPT_CONFIG_OPTIONS: NODE_MAX_ATTEMPT_CONFIG_OPTIONS2, resolveRetryConfig: resolveRetryConfig2, getRetryPlugin: getRetryPlugin2 } = (init_retry2(), __toCommonJS(retry_exports));
+    var { TypeRegistry: TypeRegistry2, getSchemaSerdePlugin: getSchemaSerdePlugin2 } = (init_schema(), __toCommonJS(schema_exports));
+    var { resolveAwsSdkSigV4Config: resolveAwsSdkSigV4Config2, AwsSdkSigV4Signer: AwsSdkSigV4Signer2, NODE_AUTH_SCHEME_PREFERENCE_OPTIONS: NODE_AUTH_SCHEME_PREFERENCE_OPTIONS2 } = (init_httpAuthSchemes2(), __toCommonJS(httpAuthSchemes_exports));
+    var { defaultProvider } = require_dist_cjs18();
+    var { toUtf8: toUtf83, fromUtf8: fromUtf83, toBase64: toBase643, fromBase64: fromBase642, calculateBodyLength: calculateBodyLength2 } = (init_serde(), __toCommonJS(serde_exports));
+    var { streamCollector: streamCollector8, NodeHttpHandler } = require_dist_cjs8();
+    var { AwsJson1_1Protocol: AwsJson1_1Protocol2 } = (init_protocols2(), __toCommonJS(protocols_exports2));
+    var { Sha256 } = (init_checksum2(), __toCommonJS(checksum_exports));
+    var defaultSecretsManagerHttpAuthSchemeParametersProvider = async (config, context, input) => {
+      return {
+        operation: getSmithyContext2(context).operation,
+        region: await normalizeProvider3(config.region)() || (() => {
+          throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+        })()
+      };
+    };
+    function createAwsAuthSigv4HttpAuthOption6(authParameters) {
+      return {
+        schemeId: "aws.auth#sigv4",
+        signingProperties: {
+          name: "secretsmanager",
+          region: authParameters.region
+        },
+        propertiesExtractor: (config, context) => ({
+          signingProperties: {
+            config,
+            context
+          }
+        })
+      };
+    }
+    var defaultSecretsManagerHttpAuthSchemeProvider = (authParameters) => {
+      const options = [];
+      switch (authParameters.operation) {
+        default: {
+          options.push(createAwsAuthSigv4HttpAuthOption6(authParameters));
+        }
+      }
+      return options;
+    };
+    var resolveHttpAuthSchemeConfig6 = (config) => {
+      const config_0 = resolveAwsSdkSigV4Config2(config);
+      return Object.assign(config_0, {
+        authSchemePreference: normalizeProvider3(config.authSchemePreference ?? [])
+      });
+    };
+    var resolveClientEndpointParameters6 = (options) => {
+      return Object.assign(options, {
+        useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+        useFipsEndpoint: options.useFipsEndpoint ?? false,
+        defaultSigningName: "secretsmanager"
+      });
+    };
+    var commonParams6 = {
+      UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+      Endpoint: { type: "builtInParams", name: "endpoint" },
+      Region: { type: "builtInParams", name: "region" },
+      UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+    };
+    var version = "3.1090.0";
+    var packageInfo = {
+      version
+    };
+    var m4 = "ref";
+    var a6 = -1;
+    var b6 = true;
+    var c6 = "isSet";
+    var d6 = "PartitionResult";
+    var e6 = "booleanEquals";
+    var f6 = "getAttr";
+    var g6 = "stringEquals";
+    var h6 = { [m4]: "Endpoint" };
+    var i6 = { [m4]: d6 };
+    var j6 = { "fn": f6, "argv": [i6, "name"] };
+    var k6 = {};
+    var l4 = [{ [m4]: "Region" }];
+    var _data6 = {
+      conditions: [
+        [c6, [h6]],
+        [c6, l4],
+        ["aws.partition", l4, d6],
+        [e6, [{ [m4]: "UseFIPS" }, b6]],
+        [e6, [{ [m4]: "UseDualStack" }, b6]],
+        [e6, [{ fn: f6, argv: [i6, "supportsDualStack"] }, b6]],
+        [e6, [{ fn: f6, argv: [i6, "supportsFIPS"] }, b6]],
+        [g6, [j6, "aws"]],
+        [g6, [j6, "aws-cn"]],
+        [g6, [j6, "aws-us-gov"]]
+      ],
+      results: [
+        [a6],
+        [a6, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+        [a6, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+        [h6, k6],
+        ["https://secretsmanager-fips.{Region}.amazonaws.com", k6],
+        ["https://secretsmanager-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", k6],
+        [a6, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+        ["https://secretsmanager-fips.{Region}.{PartitionResult#dnsSuffix}", k6],
+        [a6, "FIPS is enabled but this partition does not support FIPS"],
+        ["https://secretsmanager.{Region}.amazonaws.com", k6],
+        ["https://secretsmanager.{Region}.amazonaws.com.cn", k6],
+        ["https://secretsmanager.{Region}.{PartitionResult#dualStackDnsSuffix}", k6],
+        [a6, "DualStack is enabled but this partition does not support DualStack"],
+        ["https://secretsmanager.{Region}.{PartitionResult#dnsSuffix}", k6],
+        [a6, "Invalid Configuration: Missing Region"]
+      ]
+    };
+    var root6 = 2;
+    var r6 = 1e8;
+    var nodes6 = new Int32Array([
+      -1,
+      1,
+      -1,
+      0,
+      17,
+      3,
+      1,
+      4,
+      r6 + 14,
+      2,
+      5,
+      r6 + 14,
+      3,
+      11,
+      6,
+      4,
+      7,
+      r6 + 13,
+      5,
+      8,
+      r6 + 12,
+      7,
+      r6 + 9,
+      9,
+      8,
+      r6 + 10,
+      10,
+      9,
+      r6 + 9,
+      r6 + 11,
+      4,
+      13,
+      12,
+      6,
+      r6 + 7,
+      r6 + 8,
+      5,
+      14,
+      r6 + 6,
+      6,
+      15,
+      r6 + 6,
+      7,
+      r6 + 4,
+      16,
+      9,
+      r6 + 4,
+      r6 + 5,
+      3,
+      r6 + 1,
+      18,
+      4,
+      r6 + 2,
+      r6 + 3
+    ]);
+    var bdd6 = BinaryDecisionDiagram2.from(nodes6, root6, _data6.conditions, _data6.results);
+    var cache7 = new EndpointCache2({
+      size: 50,
+      params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
+    });
+    var defaultEndpointResolver6 = (endpointParams, context = {}) => {
+      return cache7.get(endpointParams, () => decideEndpoint2(bdd6, {
+        endpointParams,
+        logger: context.logger
+      }));
+    };
+    customEndpointFunctions2.aws = awsEndpointFunctions2;
+    var SecretsManagerServiceException = class _SecretsManagerServiceException extends ServiceException2 {
+      constructor(options) {
+        super(options);
+        Object.setPrototypeOf(this, _SecretsManagerServiceException.prototype);
+      }
+    };
+    var DecryptionFailure = class _DecryptionFailure extends SecretsManagerServiceException {
+      name = "DecryptionFailure";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "DecryptionFailure",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _DecryptionFailure.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var InternalServiceError = class _InternalServiceError extends SecretsManagerServiceException {
+      name = "InternalServiceError";
+      $fault = "server";
+      Message;
+      constructor(opts) {
+        super({
+          name: "InternalServiceError",
+          $fault: "server",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InternalServiceError.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var InvalidNextTokenException = class _InvalidNextTokenException extends SecretsManagerServiceException {
+      name = "InvalidNextTokenException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "InvalidNextTokenException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidNextTokenException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var InvalidParameterException2 = class _InvalidParameterException extends SecretsManagerServiceException {
+      name = "InvalidParameterException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "InvalidParameterException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidParameterException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var InvalidRequestException3 = class _InvalidRequestException extends SecretsManagerServiceException {
+      name = "InvalidRequestException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "InvalidRequestException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidRequestException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var ResourceNotFoundException3 = class _ResourceNotFoundException extends SecretsManagerServiceException {
+      name = "ResourceNotFoundException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "ResourceNotFoundException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _ResourceNotFoundException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var EncryptionFailure = class _EncryptionFailure extends SecretsManagerServiceException {
+      name = "EncryptionFailure";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "EncryptionFailure",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _EncryptionFailure.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var LimitExceededException2 = class _LimitExceededException extends SecretsManagerServiceException {
+      name = "LimitExceededException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "LimitExceededException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _LimitExceededException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var MalformedPolicyDocumentException2 = class _MalformedPolicyDocumentException extends SecretsManagerServiceException {
+      name = "MalformedPolicyDocumentException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "MalformedPolicyDocumentException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _MalformedPolicyDocumentException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var PreconditionNotMetException = class _PreconditionNotMetException extends SecretsManagerServiceException {
+      name = "PreconditionNotMetException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "PreconditionNotMetException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _PreconditionNotMetException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var ResourceExistsException = class _ResourceExistsException extends SecretsManagerServiceException {
+      name = "ResourceExistsException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "ResourceExistsException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _ResourceExistsException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var PublicPolicyException = class _PublicPolicyException extends SecretsManagerServiceException {
+      name = "PublicPolicyException";
+      $fault = "client";
+      Message;
+      constructor(opts) {
+        super({
+          name: "PublicPolicyException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _PublicPolicyException.prototype);
+        this.Message = opts.Message;
+      }
+    };
+    var _AAD = "AutomaticallyAfterDays";
+    var _APIELT = "APIErrorListType";
+    var _APIET = "APIErrorType";
+    var _ARN = "ARN";
+    var _ARR2 = "AddReplicaRegions";
+    var _ARRLT = "AddReplicaRegionListType";
+    var _BGSV = "BatchGetSecretValue";
+    var _BGSVR = "BatchGetSecretValueRequest";
+    var _BGSVRa = "BatchGetSecretValueResponse";
+    var _BPP = "BlockPublicPolicy";
+    var _CD = "CreatedDate";
+    var _CN = "CheckName";
+    var _CRS = "CancelRotateSecret";
+    var _CRSR = "CancelRotateSecretRequest";
+    var _CRSRa = "CancelRotateSecretResponse";
+    var _CRT = "ClientRequestToken";
+    var _CS2 = "CreateSecret";
+    var _CSR = "CreateSecretRequest";
+    var _CSRr = "CreateSecretResponse";
+    var _D = "Description";
+    var _DD = "DeletionDate";
+    var _DDe = "DeletedDate";
+    var _DF = "DecryptionFailure";
+    var _DRP = "DeleteResourcePolicy";
+    var _DRPR = "DeleteResourcePolicyRequest";
+    var _DRPRe = "DeleteResourcePolicyResponse";
+    var _DS2 = "DeleteSecret";
+    var _DSR = "DeleteSecretRequest";
+    var _DSRe = "DeleteSecretResponse";
+    var _DSRes = "DescribeSecretRequest";
+    var _DSResc = "DescribeSecretResponse";
+    var _DSe = "DescribeSecret";
+    var _Du = "Duration";
+    var _E3 = "Errors";
+    var _EC = "ErrorCode";
+    var _ECx = "ExcludeCharacters";
+    var _EF = "EncryptionFailure";
+    var _EL = "ExcludeLowercase";
+    var _EM = "ErrorMessage";
+    var _EN = "ExcludeNumbers";
+    var _EP = "ExcludePunctuation";
+    var _ESRM = "ExternalSecretRotationMetadata";
+    var _ESRMI = "ExternalSecretRotationMetadataItem";
+    var _ESRMT = "ExternalSecretRotationMetadataType";
+    var _ESRRA = "ExternalSecretRotationRoleArn";
+    var _EU = "ExcludeUppercase";
+    var _F = "Filters";
+    var _FDWR = "ForceDeleteWithoutRecovery";
+    var _FLT = "FiltersListType";
+    var _FORS = "ForceOverwriteReplicaSecret";
+    var _Fi = "Filter";
+    var _GRP = "GetRandomPassword";
+    var _GRPR = "GetRandomPasswordRequest";
+    var _GRPRe = "GetRandomPasswordResponse";
+    var _GRPRet = "GetResourcePolicyRequest";
+    var _GRPRete = "GetResourcePolicyResponse";
+    var _GRPe = "GetResourcePolicy";
+    var _GSV = "GetSecretValue";
+    var _GSVR = "GetSecretValueRequest";
+    var _GSVRe = "GetSecretValueResponse";
+    var _ID = "IncludeDeprecated";
+    var _INTE = "InvalidNextTokenException";
+    var _IPD = "IncludePlannedDeletion";
+    var _IPE2 = "InvalidParameterException";
+    var _IRE3 = "InvalidRequestException";
+    var _IS = "IncludeSpace";
+    var _ISE3 = "InternalServiceError";
+    var _K2 = "Key";
+    var _KKI = "KmsKeyId";
+    var _KKIm = "KmsKeyIds";
+    var _LAD = "LastAccessedDate";
+    var _LCD = "LastChangedDate";
+    var _LEE2 = "LimitExceededException";
+    var _LRD = "LastRotatedDate";
+    var _LS = "ListSecrets";
+    var _LSR = "ListSecretsRequest";
+    var _LSRi = "ListSecretsResponse";
+    var _LSVI = "ListSecretVersionIds";
+    var _LSVIR = "ListSecretVersionIdsRequest";
+    var _LSVIRi = "ListSecretVersionIdsResponse";
+    var _M = "Message";
+    var _MPDE2 = "MalformedPolicyDocumentException";
+    var _MR = "MaxResults";
+    var _MTVI = "MoveToVersionId";
+    var _N = "Name";
+    var _NRD = "NextRotationDate";
+    var _NT = "NextToken";
+    var _OS = "OwningService";
+    var _PL = "PasswordLength";
+    var _PNME = "PreconditionNotMetException";
+    var _PPE = "PublicPolicyException";
+    var _PR = "PrimaryRegion";
+    var _PRP = "PutResourcePolicy";
+    var _PRPR = "PutResourcePolicyRequest";
+    var _PRPRu = "PutResourcePolicyResponse";
+    var _PSV = "PutSecretValue";
+    var _PSVR = "PutSecretValueRequest";
+    var _PSVRu = "PutSecretValueResponse";
+    var _PVP = "PolicyValidationPassed";
+    var _R = "Region";
+    var _RE = "RotationEnabled";
+    var _REE = "ResourceExistsException";
+    var _REIT = "RequireEachIncludedType";
+    var _RFVI = "RemoveFromVersionId";
+    var _RI = "RotateImmediately";
+    var _RLARN = "RotationLambdaARN";
+    var _RNFE3 = "ResourceNotFoundException";
+    var _RP = "RandomPassword";
+    var _RPT = "RandomPasswordType";
+    var _RPe = "ResourcePolicy";
+    var _RR = "RotationRules";
+    var _RRFR = "RemoveRegionsFromReplication";
+    var _RRFRR = "RemoveRegionsFromReplicationRequest";
+    var _RRFRRe = "RemoveRegionsFromReplicationResponse";
+    var _RRR = "RemoveReplicaRegions";
+    var _RRT = "ReplicaRegionType";
+    var _RRTo = "RotationRulesType";
+    var _RS = "ReplicationStatus";
+    var _RSLT = "ReplicationStatusListType";
+    var _RSR = "RestoreSecretRequest";
+    var _RSRe = "RestoreSecretResponse";
+    var _RSRo = "RotateSecretRequest";
+    var _RSRot = "RotateSecretResponse";
+    var _RST = "ReplicationStatusType";
+    var _RSTR = "ReplicateSecretToRegions";
+    var _RSTRR = "ReplicateSecretToRegionsRequest";
+    var _RSTRRe = "ReplicateSecretToRegionsResponse";
+    var _RSe = "RestoreSecret";
+    var _RSo = "RotateSecret";
+    var _RT3 = "RotationToken";
+    var _RTT = "RotationTokenType";
+    var _RWID = "RecoveryWindowInDays";
+    var _S = "Status";
+    var _SB = "SecretBinary";
+    var _SBT = "SecretBinaryType";
+    var _SBo = "SortBy";
+    var _SE = "ScheduleExpression";
+    var _SI2 = "SecretId";
+    var _SIL = "SecretIdList";
+    var _SL = "SecretList";
+    var _SLE = "SecretListEntry";
+    var _SLT = "SecretListType";
+    var _SM = "StatusMessage";
+    var _SO = "SortOrder";
+    var _SRTR = "StopReplicationToReplica";
+    var _SRTRR = "StopReplicationToReplicaRequest";
+    var _SRTRRt = "StopReplicationToReplicaResponse";
+    var _SS = "SecretString";
+    var _SST = "SecretStringType";
+    var _SV = "SecretValues";
+    var _SVE = "SecretValueEntry";
+    var _SVLE = "SecretVersionsListEntry";
+    var _SVLT = "SecretVersionsListType";
+    var _SVT = "SecretValuesType";
+    var _SVTS = "SecretVersionsToStages";
+    var _SVTSMT = "SecretVersionsToStagesMapType";
+    var _T2 = "Tags";
+    var _TK = "TagKeys";
+    var _TLT = "TagListType";
+    var _TR = "TagResource";
+    var _TRR = "TagResourceRequest";
+    var _Ta2 = "Tag";
+    var _Ty = "Type";
+    var _UR = "UntagResource";
+    var _URR = "UntagResourceRequest";
+    var _US = "UpdateSecret";
+    var _USR = "UpdateSecretRequest";
+    var _USRp = "UpdateSecretResponse";
+    var _USVS = "UpdateSecretVersionStage";
+    var _USVSR = "UpdateSecretVersionStageRequest";
+    var _USVSRp = "UpdateSecretVersionStageResponse";
+    var _V2 = "Value";
+    var _VE2 = "ValidationErrors";
+    var _VEE = "ValidationErrorsEntry";
+    var _VET = "ValidationErrorsType";
+    var _VI = "VersionId";
+    var _VITS = "VersionIdsToStages";
+    var _VRP = "ValidateResourcePolicy";
+    var _VRPR = "ValidateResourcePolicyRequest";
+    var _VRPRa = "ValidateResourcePolicyResponse";
+    var _VS = "VersionStage";
+    var _VSe = "VersionStages";
+    var _Va = "Values";
+    var _Ve = "Versions";
+    var _c6 = "client";
+    var _e6 = "error";
+    var _s6 = "smithy.ts.sdk.synthetic.com.amazonaws.secretsmanager";
+    var _se4 = "server";
+    var n06 = "com.amazonaws.secretsmanager";
+    var _s_registry6 = TypeRegistry2.for(_s6);
+    var SecretsManagerServiceException$ = [-3, _s6, "SecretsManagerServiceException", 0, [], []];
+    _s_registry6.registerError(SecretsManagerServiceException$, SecretsManagerServiceException);
+    var n0_registry6 = TypeRegistry2.for(n06);
+    var DecryptionFailure$ = [
+      -3,
+      n06,
+      _DF,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(DecryptionFailure$, DecryptionFailure);
+    var EncryptionFailure$ = [
+      -3,
+      n06,
+      _EF,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(EncryptionFailure$, EncryptionFailure);
+    var InternalServiceError$ = [
+      -3,
+      n06,
+      _ISE3,
+      { [_e6]: _se4 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(InternalServiceError$, InternalServiceError);
+    var InvalidNextTokenException$ = [
+      -3,
+      n06,
+      _INTE,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(InvalidNextTokenException$, InvalidNextTokenException);
+    var InvalidParameterException$2 = [
+      -3,
+      n06,
+      _IPE2,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(InvalidParameterException$2, InvalidParameterException2);
+    var InvalidRequestException$3 = [
+      -3,
+      n06,
+      _IRE3,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(InvalidRequestException$3, InvalidRequestException3);
+    var LimitExceededException$2 = [
+      -3,
+      n06,
+      _LEE2,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(LimitExceededException$2, LimitExceededException2);
+    var MalformedPolicyDocumentException$2 = [
+      -3,
+      n06,
+      _MPDE2,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(MalformedPolicyDocumentException$2, MalformedPolicyDocumentException2);
+    var PreconditionNotMetException$ = [
+      -3,
+      n06,
+      _PNME,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(PreconditionNotMetException$, PreconditionNotMetException);
+    var PublicPolicyException$ = [
+      -3,
+      n06,
+      _PPE,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(PublicPolicyException$, PublicPolicyException);
+    var ResourceExistsException$ = [
+      -3,
+      n06,
+      _REE,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(ResourceExistsException$, ResourceExistsException);
+    var ResourceNotFoundException$3 = [
+      -3,
+      n06,
+      _RNFE3,
+      { [_e6]: _c6 },
+      [_M],
+      [0]
+    ];
+    n0_registry6.registerError(ResourceNotFoundException$3, ResourceNotFoundException3);
+    var errorTypeRegistries6 = [
+      _s_registry6,
+      n0_registry6
+    ];
+    var RandomPasswordType = [0, n06, _RPT, 8, 0];
+    var RotationTokenType = [0, n06, _RTT, 8, 0];
+    var SecretBinaryType = [0, n06, _SBT, 8, 21];
+    var SecretStringType = [0, n06, _SST, 8, 0];
+    var APIErrorType$ = [
+      3,
+      n06,
+      _APIET,
+      0,
+      [_SI2, _EC, _M],
+      [0, 0, 0]
+    ];
+    var BatchGetSecretValueRequest$ = [
+      3,
+      n06,
+      _BGSVR,
+      0,
+      [_SIL, _F, _MR, _NT],
+      [64 | 0, () => FiltersListType, 1, 0]
+    ];
+    var BatchGetSecretValueResponse$ = [
+      3,
+      n06,
+      _BGSVRa,
+      0,
+      [_SV, _NT, _E3],
+      [[() => SecretValuesType, 0], 0, () => APIErrorListType]
+    ];
+    var CancelRotateSecretRequest$ = [
+      3,
+      n06,
+      _CRSR,
+      0,
+      [_SI2],
+      [0],
+      1
+    ];
+    var CancelRotateSecretResponse$ = [
+      3,
+      n06,
+      _CRSRa,
+      0,
+      [_ARN, _N, _VI],
+      [0, 0, 0]
+    ];
+    var CreateSecretRequest$ = [
+      3,
+      n06,
+      _CSR,
+      0,
+      [_N, _CRT, _D, _KKI, _SB, _SS, _T2, _ARR2, _FORS, _Ty],
+      [0, [0, 4], 0, 0, [() => SecretBinaryType, 0], [() => SecretStringType, 0], () => TagListType, () => AddReplicaRegionListType, 2, 0],
+      1
+    ];
+    var CreateSecretResponse$ = [
+      3,
+      n06,
+      _CSRr,
+      0,
+      [_ARN, _N, _VI, _RS],
+      [0, 0, 0, () => ReplicationStatusListType]
+    ];
+    var DeleteResourcePolicyRequest$ = [
+      3,
+      n06,
+      _DRPR,
+      0,
+      [_SI2],
+      [0],
+      1
+    ];
+    var DeleteResourcePolicyResponse$ = [
+      3,
+      n06,
+      _DRPRe,
+      0,
+      [_ARN, _N],
+      [0, 0]
+    ];
+    var DeleteSecretRequest$ = [
+      3,
+      n06,
+      _DSR,
+      0,
+      [_SI2, _RWID, _FDWR],
+      [0, 1, 2],
+      1
+    ];
+    var DeleteSecretResponse$ = [
+      3,
+      n06,
+      _DSRe,
+      0,
+      [_ARN, _N, _DD],
+      [0, 0, 4]
+    ];
+    var DescribeSecretRequest$ = [
+      3,
+      n06,
+      _DSRes,
+      0,
+      [_SI2],
+      [0],
+      1
+    ];
+    var DescribeSecretResponse$ = [
+      3,
+      n06,
+      _DSResc,
+      0,
+      [_ARN, _N, _Ty, _D, _KKI, _RE, _RLARN, _RR, _ESRM, _ESRRA, _LRD, _LCD, _LAD, _DDe, _NRD, _T2, _VITS, _OS, _CD, _PR, _RS],
+      [0, 0, 0, 0, 0, 2, 0, () => RotationRulesType$, () => ExternalSecretRotationMetadataType, 0, 4, 4, 4, 4, 4, () => TagListType, [2, n06, _SVTSMT, 0, 0, 64 | 0], 0, 4, 0, () => ReplicationStatusListType]
+    ];
+    var ExternalSecretRotationMetadataItem$ = [
+      3,
+      n06,
+      _ESRMI,
+      0,
+      [_K2, _V2],
+      [0, 0]
+    ];
+    var Filter$ = [
+      3,
+      n06,
+      _Fi,
+      0,
+      [_K2, _Va],
+      [0, 64 | 0]
+    ];
+    var GetRandomPasswordRequest$ = [
+      3,
+      n06,
+      _GRPR,
+      0,
+      [_PL, _ECx, _EN, _EP, _EU, _EL, _IS, _REIT],
+      [1, 0, 2, 2, 2, 2, 2, 2]
+    ];
+    var GetRandomPasswordResponse$ = [
+      3,
+      n06,
+      _GRPRe,
+      0,
+      [_RP],
+      [[() => RandomPasswordType, 0]]
+    ];
+    var GetResourcePolicyRequest$ = [
+      3,
+      n06,
+      _GRPRet,
+      0,
+      [_SI2],
+      [0],
+      1
+    ];
+    var GetResourcePolicyResponse$ = [
+      3,
+      n06,
+      _GRPRete,
+      0,
+      [_ARN, _N, _RPe],
+      [0, 0, 0]
+    ];
+    var GetSecretValueRequest$ = [
+      3,
+      n06,
+      _GSVR,
+      0,
+      [_SI2, _VI, _VS],
+      [0, 0, 0],
+      1
+    ];
+    var GetSecretValueResponse$ = [
+      3,
+      n06,
+      _GSVRe,
+      0,
+      [_ARN, _N, _VI, _SB, _SS, _VSe, _CD],
+      [0, 0, 0, [() => SecretBinaryType, 0], [() => SecretStringType, 0], 64 | 0, 4]
+    ];
+    var ListSecretsRequest$ = [
+      3,
+      n06,
+      _LSR,
+      0,
+      [_IPD, _MR, _NT, _F, _SO, _SBo],
+      [2, 1, 0, () => FiltersListType, 0, 0]
+    ];
+    var ListSecretsResponse$ = [
+      3,
+      n06,
+      _LSRi,
+      0,
+      [_SL, _NT],
+      [() => SecretListType, 0]
+    ];
+    var ListSecretVersionIdsRequest$ = [
+      3,
+      n06,
+      _LSVIR,
+      0,
+      [_SI2, _MR, _NT, _ID],
+      [0, 1, 0, 2],
+      1
+    ];
+    var ListSecretVersionIdsResponse$ = [
+      3,
+      n06,
+      _LSVIRi,
+      0,
+      [_Ve, _NT, _ARN, _N],
+      [() => SecretVersionsListType, 0, 0, 0]
+    ];
+    var PutResourcePolicyRequest$ = [
+      3,
+      n06,
+      _PRPR,
+      0,
+      [_SI2, _RPe, _BPP],
+      [0, 0, 2],
+      2
+    ];
+    var PutResourcePolicyResponse$ = [
+      3,
+      n06,
+      _PRPRu,
+      0,
+      [_ARN, _N],
+      [0, 0]
+    ];
+    var PutSecretValueRequest$ = [
+      3,
+      n06,
+      _PSVR,
+      0,
+      [_SI2, _CRT, _SB, _SS, _VSe, _RT3],
+      [0, [0, 4], [() => SecretBinaryType, 0], [() => SecretStringType, 0], 64 | 0, [() => RotationTokenType, 0]],
+      1
+    ];
+    var PutSecretValueResponse$ = [
+      3,
+      n06,
+      _PSVRu,
+      0,
+      [_ARN, _N, _VI, _VSe],
+      [0, 0, 0, 64 | 0]
+    ];
+    var RemoveRegionsFromReplicationRequest$ = [
+      3,
+      n06,
+      _RRFRR,
+      0,
+      [_SI2, _RRR],
+      [0, 64 | 0],
+      2
+    ];
+    var RemoveRegionsFromReplicationResponse$ = [
+      3,
+      n06,
+      _RRFRRe,
+      0,
+      [_ARN, _RS],
+      [0, () => ReplicationStatusListType]
+    ];
+    var ReplicaRegionType$ = [
+      3,
+      n06,
+      _RRT,
+      0,
+      [_R, _KKI],
+      [0, 0]
+    ];
+    var ReplicateSecretToRegionsRequest$ = [
+      3,
+      n06,
+      _RSTRR,
+      0,
+      [_SI2, _ARR2, _FORS],
+      [0, () => AddReplicaRegionListType, 2],
+      2
+    ];
+    var ReplicateSecretToRegionsResponse$ = [
+      3,
+      n06,
+      _RSTRRe,
+      0,
+      [_ARN, _RS],
+      [0, () => ReplicationStatusListType]
+    ];
+    var ReplicationStatusType$ = [
+      3,
+      n06,
+      _RST,
+      0,
+      [_R, _KKI, _S, _SM, _LAD],
+      [0, 0, 0, 0, 4]
+    ];
+    var RestoreSecretRequest$ = [
+      3,
+      n06,
+      _RSR,
+      0,
+      [_SI2],
+      [0],
+      1
+    ];
+    var RestoreSecretResponse$ = [
+      3,
+      n06,
+      _RSRe,
+      0,
+      [_ARN, _N],
+      [0, 0]
+    ];
+    var RotateSecretRequest$ = [
+      3,
+      n06,
+      _RSRo,
+      0,
+      [_SI2, _CRT, _RLARN, _RR, _ESRM, _ESRRA, _RI],
+      [0, [0, 4], 0, () => RotationRulesType$, () => ExternalSecretRotationMetadataType, 0, 2],
+      1
+    ];
+    var RotateSecretResponse$ = [
+      3,
+      n06,
+      _RSRot,
+      0,
+      [_ARN, _N, _VI],
+      [0, 0, 0]
+    ];
+    var RotationRulesType$ = [
+      3,
+      n06,
+      _RRTo,
+      0,
+      [_AAD, _Du, _SE],
+      [1, 0, 0]
+    ];
+    var SecretListEntry$ = [
+      3,
+      n06,
+      _SLE,
+      0,
+      [_ARN, _N, _Ty, _D, _KKI, _RE, _RLARN, _RR, _ESRM, _ESRRA, _LRD, _LCD, _LAD, _DDe, _NRD, _T2, _SVTS, _OS, _CD, _PR],
+      [0, 0, 0, 0, 0, 2, 0, () => RotationRulesType$, () => ExternalSecretRotationMetadataType, 0, 4, 4, 4, 4, 4, () => TagListType, [2, n06, _SVTSMT, 0, 0, 64 | 0], 0, 4, 0]
+    ];
+    var SecretValueEntry$ = [
+      3,
+      n06,
+      _SVE,
+      0,
+      [_ARN, _N, _VI, _SB, _SS, _VSe, _CD],
+      [0, 0, 0, [() => SecretBinaryType, 0], [() => SecretStringType, 0], 64 | 0, 4]
+    ];
+    var SecretVersionsListEntry$ = [
+      3,
+      n06,
+      _SVLE,
+      0,
+      [_VI, _VSe, _LAD, _CD, _KKIm],
+      [0, 64 | 0, 4, 4, 64 | 0]
+    ];
+    var StopReplicationToReplicaRequest$ = [
+      3,
+      n06,
+      _SRTRR,
+      0,
+      [_SI2],
+      [0],
+      1
+    ];
+    var StopReplicationToReplicaResponse$ = [
+      3,
+      n06,
+      _SRTRRt,
+      0,
+      [_ARN],
+      [0]
+    ];
+    var Tag$2 = [
+      3,
+      n06,
+      _Ta2,
+      0,
+      [_K2, _V2],
+      [0, 0]
+    ];
+    var TagResourceRequest$ = [
+      3,
+      n06,
+      _TRR,
+      0,
+      [_SI2, _T2],
+      [0, () => TagListType],
+      2
+    ];
+    var UntagResourceRequest$ = [
+      3,
+      n06,
+      _URR,
+      0,
+      [_SI2, _TK],
+      [0, 64 | 0],
+      2
+    ];
+    var UpdateSecretRequest$ = [
+      3,
+      n06,
+      _USR,
+      0,
+      [_SI2, _CRT, _D, _KKI, _SB, _SS, _Ty],
+      [0, [0, 4], 0, 0, [() => SecretBinaryType, 0], [() => SecretStringType, 0], 0],
+      1
+    ];
+    var UpdateSecretResponse$ = [
+      3,
+      n06,
+      _USRp,
+      0,
+      [_ARN, _N, _VI],
+      [0, 0, 0]
+    ];
+    var UpdateSecretVersionStageRequest$ = [
+      3,
+      n06,
+      _USVSR,
+      0,
+      [_SI2, _VS, _RFVI, _MTVI],
+      [0, 0, 0, 0],
+      2
+    ];
+    var UpdateSecretVersionStageResponse$ = [
+      3,
+      n06,
+      _USVSRp,
+      0,
+      [_ARN, _N],
+      [0, 0]
+    ];
+    var ValidateResourcePolicyRequest$ = [
+      3,
+      n06,
+      _VRPR,
+      0,
+      [_RPe, _SI2],
+      [0, 0],
+      1
+    ];
+    var ValidateResourcePolicyResponse$ = [
+      3,
+      n06,
+      _VRPRa,
+      0,
+      [_PVP, _VE2],
+      [2, () => ValidationErrorsType]
+    ];
+    var ValidationErrorsEntry$ = [
+      3,
+      n06,
+      _VEE,
+      0,
+      [_CN, _EM],
+      [0, 0]
+    ];
+    var __Unit = "unit";
+    var AddReplicaRegionListType = [
+      1,
+      n06,
+      _ARRLT,
+      0,
+      () => ReplicaRegionType$
+    ];
+    var APIErrorListType = [
+      1,
+      n06,
+      _APIELT,
+      0,
+      () => APIErrorType$
+    ];
+    var ExternalSecretRotationMetadataType = [
+      1,
+      n06,
+      _ESRMT,
+      0,
+      () => ExternalSecretRotationMetadataItem$
+    ];
+    var FiltersListType = [
+      1,
+      n06,
+      _FLT,
+      0,
+      () => Filter$
+    ];
+    var ReplicationStatusListType = [
+      1,
+      n06,
+      _RSLT,
+      0,
+      () => ReplicationStatusType$
+    ];
+    var SecretListType = [
+      1,
+      n06,
+      _SLT,
+      0,
+      () => SecretListEntry$
+    ];
+    var SecretValuesType = [
+      1,
+      n06,
+      _SVT,
+      0,
+      [
+        () => SecretValueEntry$,
+        0
+      ]
+    ];
+    var SecretVersionsListType = [
+      1,
+      n06,
+      _SVLT,
+      0,
+      () => SecretVersionsListEntry$
+    ];
+    var TagListType = [
+      1,
+      n06,
+      _TLT,
+      0,
+      () => Tag$2
+    ];
+    var ValidationErrorsType = [
+      1,
+      n06,
+      _VET,
+      0,
+      () => ValidationErrorsEntry$
+    ];
+    var BatchGetSecretValue$ = [
+      9,
+      n06,
+      _BGSV,
+      0,
+      () => BatchGetSecretValueRequest$,
+      () => BatchGetSecretValueResponse$
+    ];
+    var CancelRotateSecret$ = [
+      9,
+      n06,
+      _CRS,
+      0,
+      () => CancelRotateSecretRequest$,
+      () => CancelRotateSecretResponse$
+    ];
+    var CreateSecret$ = [
+      9,
+      n06,
+      _CS2,
+      0,
+      () => CreateSecretRequest$,
+      () => CreateSecretResponse$
+    ];
+    var DeleteResourcePolicy$ = [
+      9,
+      n06,
+      _DRP,
+      0,
+      () => DeleteResourcePolicyRequest$,
+      () => DeleteResourcePolicyResponse$
+    ];
+    var DeleteSecret$ = [
+      9,
+      n06,
+      _DS2,
+      0,
+      () => DeleteSecretRequest$,
+      () => DeleteSecretResponse$
+    ];
+    var DescribeSecret$ = [
+      9,
+      n06,
+      _DSe,
+      0,
+      () => DescribeSecretRequest$,
+      () => DescribeSecretResponse$
+    ];
+    var GetRandomPassword$ = [
+      9,
+      n06,
+      _GRP,
+      0,
+      () => GetRandomPasswordRequest$,
+      () => GetRandomPasswordResponse$
+    ];
+    var GetResourcePolicy$ = [
+      9,
+      n06,
+      _GRPe,
+      0,
+      () => GetResourcePolicyRequest$,
+      () => GetResourcePolicyResponse$
+    ];
+    var GetSecretValue$ = [
+      9,
+      n06,
+      _GSV,
+      0,
+      () => GetSecretValueRequest$,
+      () => GetSecretValueResponse$
+    ];
+    var ListSecrets$ = [
+      9,
+      n06,
+      _LS,
+      0,
+      () => ListSecretsRequest$,
+      () => ListSecretsResponse$
+    ];
+    var ListSecretVersionIds$ = [
+      9,
+      n06,
+      _LSVI,
+      0,
+      () => ListSecretVersionIdsRequest$,
+      () => ListSecretVersionIdsResponse$
+    ];
+    var PutResourcePolicy$ = [
+      9,
+      n06,
+      _PRP,
+      0,
+      () => PutResourcePolicyRequest$,
+      () => PutResourcePolicyResponse$
+    ];
+    var PutSecretValue$ = [
+      9,
+      n06,
+      _PSV,
+      0,
+      () => PutSecretValueRequest$,
+      () => PutSecretValueResponse$
+    ];
+    var RemoveRegionsFromReplication$ = [
+      9,
+      n06,
+      _RRFR,
+      0,
+      () => RemoveRegionsFromReplicationRequest$,
+      () => RemoveRegionsFromReplicationResponse$
+    ];
+    var ReplicateSecretToRegions$ = [
+      9,
+      n06,
+      _RSTR,
+      0,
+      () => ReplicateSecretToRegionsRequest$,
+      () => ReplicateSecretToRegionsResponse$
+    ];
+    var RestoreSecret$ = [
+      9,
+      n06,
+      _RSe,
+      0,
+      () => RestoreSecretRequest$,
+      () => RestoreSecretResponse$
+    ];
+    var RotateSecret$ = [
+      9,
+      n06,
+      _RSo,
+      0,
+      () => RotateSecretRequest$,
+      () => RotateSecretResponse$
+    ];
+    var StopReplicationToReplica$ = [
+      9,
+      n06,
+      _SRTR,
+      0,
+      () => StopReplicationToReplicaRequest$,
+      () => StopReplicationToReplicaResponse$
+    ];
+    var TagResource$ = [
+      9,
+      n06,
+      _TR,
+      0,
+      () => TagResourceRequest$,
+      () => __Unit
+    ];
+    var UntagResource$ = [
+      9,
+      n06,
+      _UR,
+      0,
+      () => UntagResourceRequest$,
+      () => __Unit
+    ];
+    var UpdateSecret$ = [
+      9,
+      n06,
+      _US,
+      0,
+      () => UpdateSecretRequest$,
+      () => UpdateSecretResponse$
+    ];
+    var UpdateSecretVersionStage$ = [
+      9,
+      n06,
+      _USVS,
+      0,
+      () => UpdateSecretVersionStageRequest$,
+      () => UpdateSecretVersionStageResponse$
+    ];
+    var ValidateResourcePolicy$ = [
+      9,
+      n06,
+      _VRP,
+      0,
+      () => ValidateResourcePolicyRequest$,
+      () => ValidateResourcePolicyResponse$
+    ];
+    var getRuntimeConfig$1 = (config) => {
+      return {
+        apiVersion: "2017-10-17",
+        base64Decoder: config?.base64Decoder ?? fromBase642,
+        base64Encoder: config?.base64Encoder ?? toBase643,
+        disableHostPrefix: config?.disableHostPrefix ?? false,
+        endpointProvider: config?.endpointProvider ?? defaultEndpointResolver6,
+        extensions: config?.extensions ?? [],
+        httpAuthSchemeProvider: config?.httpAuthSchemeProvider ?? defaultSecretsManagerHttpAuthSchemeProvider,
+        httpAuthSchemes: config?.httpAuthSchemes ?? [
+          {
+            schemeId: "aws.auth#sigv4",
+            identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+            signer: new AwsSdkSigV4Signer2()
+          }
+        ],
+        logger: config?.logger ?? new NoOpLogger2(),
+        protocol: config?.protocol ?? AwsJson1_1Protocol2,
+        protocolSettings: config?.protocolSettings ?? {
+          defaultNamespace: "com.amazonaws.secretsmanager",
+          errorTypeRegistries: errorTypeRegistries6,
+          version: "2017-10-17",
+          serviceTarget: "secretsmanager"
+        },
+        serviceId: config?.serviceId ?? "Secrets Manager",
+        sha256: config?.sha256 ?? Sha256,
+        urlParser: config?.urlParser ?? parseUrl2,
+        utf8Decoder: config?.utf8Decoder ?? fromUtf83,
+        utf8Encoder: config?.utf8Encoder ?? toUtf83
+      };
+    };
+    var getRuntimeConfig11 = (config) => {
+      emitWarningIfUnsupportedVersion3(process.version);
+      const defaultsMode = resolveDefaultsModeConfig2(config);
+      const defaultConfigProvider = () => defaultsMode().then(loadConfigsForDefaultMode2);
+      const clientSharedValues = getRuntimeConfig$1(config);
+      emitWarningIfUnsupportedVersion$1(process.version);
+      const loaderConfig = {
+        profile: config?.profile,
+        logger: clientSharedValues.logger
+      };
+      return {
+        ...clientSharedValues,
+        ...config,
+        runtime: "node",
+        defaultsMode,
+        authSchemePreference: config?.authSchemePreference ?? loadConfig2(NODE_AUTH_SCHEME_PREFERENCE_OPTIONS2, loaderConfig),
+        bodyLengthChecker: config?.bodyLengthChecker ?? calculateBodyLength2,
+        credentialDefaultProvider: config?.credentialDefaultProvider ?? defaultProvider,
+        defaultUserAgentProvider: config?.defaultUserAgentProvider ?? createDefaultUserAgentProvider2({ serviceId: clientSharedValues.serviceId, clientVersion: packageInfo.version }),
+        maxAttempts: config?.maxAttempts ?? loadConfig2(NODE_MAX_ATTEMPT_CONFIG_OPTIONS2, config),
+        region: config?.region ?? loadConfig2(NODE_REGION_CONFIG_OPTIONS2, { ...NODE_REGION_CONFIG_FILE_OPTIONS2, ...loaderConfig }),
+        requestHandler: NodeHttpHandler.create(config?.requestHandler ?? defaultConfigProvider),
+        retryMode: config?.retryMode ?? loadConfig2({
+          ...NODE_RETRY_MODE_CONFIG_OPTIONS2,
+          default: async () => (await defaultConfigProvider()).retryMode || DEFAULT_RETRY_MODE2
+        }, config),
+        streamCollector: config?.streamCollector ?? streamCollector8,
+        useDualstackEndpoint: config?.useDualstackEndpoint ?? loadConfig2(NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS2, loaderConfig),
+        useFipsEndpoint: config?.useFipsEndpoint ?? loadConfig2(NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS2, loaderConfig),
+        userAgentAppId: config?.userAgentAppId ?? loadConfig2(NODE_APP_ID_CONFIG_OPTIONS2, loaderConfig)
+      };
+    };
+    var getHttpAuthExtensionConfiguration6 = (runtimeConfig) => {
+      const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
+      let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
+      let _credentials = runtimeConfig.credentials;
+      return {
+        setHttpAuthScheme(httpAuthScheme) {
+          const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+          if (index === -1) {
+            _httpAuthSchemes.push(httpAuthScheme);
+          } else {
+            _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+          }
+        },
+        httpAuthSchemes() {
+          return _httpAuthSchemes;
+        },
+        setHttpAuthSchemeProvider(httpAuthSchemeProvider) {
+          _httpAuthSchemeProvider = httpAuthSchemeProvider;
+        },
+        httpAuthSchemeProvider() {
+          return _httpAuthSchemeProvider;
+        },
+        setCredentials(credentials) {
+          _credentials = credentials;
+        },
+        credentials() {
+          return _credentials;
+        }
+      };
+    };
+    var resolveHttpAuthRuntimeConfig6 = (config) => {
+      return {
+        httpAuthSchemes: config.httpAuthSchemes(),
+        httpAuthSchemeProvider: config.httpAuthSchemeProvider(),
+        credentials: config.credentials()
+      };
+    };
+    var resolveRuntimeExtensions6 = (runtimeConfig, extensions) => {
+      const extensionConfiguration = Object.assign(getAwsRegionExtensionConfiguration2(runtimeConfig), getDefaultExtensionConfiguration2(runtimeConfig), getHttpHandlerExtensionConfiguration2(runtimeConfig), getHttpAuthExtensionConfiguration6(runtimeConfig));
+      extensions.forEach((extension) => extension.configure(extensionConfiguration));
+      return Object.assign(runtimeConfig, resolveAwsRegionExtensionConfiguration2(extensionConfiguration), resolveDefaultRuntimeConfig2(extensionConfiguration), resolveHttpHandlerRuntimeConfig2(extensionConfiguration), resolveHttpAuthRuntimeConfig6(extensionConfiguration));
+    };
+    var SecretsManagerClient = class extends Client2 {
+      config;
+      constructor(...[configuration]) {
+        const _config_0 = getRuntimeConfig11(configuration || {});
+        super(_config_0);
+        this.initConfig = _config_0;
+        const _config_1 = resolveClientEndpointParameters6(_config_0);
+        const _config_2 = resolveUserAgentConfig2(_config_1);
+        const _config_3 = resolveRetryConfig2(_config_2);
+        const _config_4 = resolveRegionConfig2(_config_3);
+        const _config_5 = resolveHostHeaderConfig2(_config_4);
+        const _config_6 = resolveEndpointConfig2(_config_5);
+        const _config_7 = resolveHttpAuthSchemeConfig6(_config_6);
+        const _config_8 = resolveRuntimeExtensions6(_config_7, configuration?.extensions || []);
+        this.config = _config_8;
+        this.middlewareStack.use(getSchemaSerdePlugin2(this.config));
+        this.middlewareStack.use(getUserAgentPlugin2(this.config));
+        this.middlewareStack.use(getRetryPlugin2(this.config));
+        this.middlewareStack.use(getContentLengthPlugin2(this.config));
+        this.middlewareStack.use(getHostHeaderPlugin2(this.config));
+        this.middlewareStack.use(getLoggerPlugin2(this.config));
+        this.middlewareStack.use(getRecursionDetectionPlugin2(this.config));
+        this.middlewareStack.use(getHttpAuthSchemeEndpointRuleSetPlugin2(this.config, {
+          httpAuthSchemeParametersProvider: defaultSecretsManagerHttpAuthSchemeParametersProvider,
+          identityProviderConfigProvider: async (config) => new DefaultIdentityProviderConfig2({
+            "aws.auth#sigv4": config.credentials
+          })
+        }));
+        this.middlewareStack.use(getHttpSigningPlugin2(this.config));
+      }
+      destroy() {
+        super.destroy();
+      }
+    };
+    var command6 = makeBuilder2(commonParams6, "secretsmanager", "SecretsManagerClient", getEndpointPlugin2);
+    var _ep06 = {};
+    var _mw06 = (Command2, cs, config, o3) => [];
+    var BatchGetSecretValueCommand = class extends command6(_ep06, _mw06, "BatchGetSecretValue", BatchGetSecretValue$) {
+    };
+    var CancelRotateSecretCommand = class extends command6(_ep06, _mw06, "CancelRotateSecret", CancelRotateSecret$) {
+    };
+    var CreateSecretCommand = class extends command6(_ep06, _mw06, "CreateSecret", CreateSecret$) {
+    };
+    var DeleteResourcePolicyCommand = class extends command6(_ep06, _mw06, "DeleteResourcePolicy", DeleteResourcePolicy$) {
+    };
+    var DeleteSecretCommand = class extends command6(_ep06, _mw06, "DeleteSecret", DeleteSecret$) {
+    };
+    var DescribeSecretCommand = class extends command6(_ep06, _mw06, "DescribeSecret", DescribeSecret$) {
+    };
+    var GetRandomPasswordCommand = class extends command6(_ep06, _mw06, "GetRandomPassword", GetRandomPassword$) {
+    };
+    var GetResourcePolicyCommand = class extends command6(_ep06, _mw06, "GetResourcePolicy", GetResourcePolicy$) {
+    };
+    var GetSecretValueCommand = class extends command6(_ep06, _mw06, "GetSecretValue", GetSecretValue$) {
+    };
+    var ListSecretsCommand = class extends command6(_ep06, _mw06, "ListSecrets", ListSecrets$) {
+    };
+    var ListSecretVersionIdsCommand = class extends command6(_ep06, _mw06, "ListSecretVersionIds", ListSecretVersionIds$) {
+    };
+    var PutResourcePolicyCommand = class extends command6(_ep06, _mw06, "PutResourcePolicy", PutResourcePolicy$) {
+    };
+    var PutSecretValueCommand = class extends command6(_ep06, _mw06, "PutSecretValue", PutSecretValue$) {
+    };
+    var RemoveRegionsFromReplicationCommand = class extends command6(_ep06, _mw06, "RemoveRegionsFromReplication", RemoveRegionsFromReplication$) {
+    };
+    var ReplicateSecretToRegionsCommand = class extends command6(_ep06, _mw06, "ReplicateSecretToRegions", ReplicateSecretToRegions$) {
+    };
+    var RestoreSecretCommand = class extends command6(_ep06, _mw06, "RestoreSecret", RestoreSecret$) {
+    };
+    var RotateSecretCommand = class extends command6(_ep06, _mw06, "RotateSecret", RotateSecret$) {
+    };
+    var StopReplicationToReplicaCommand = class extends command6(_ep06, _mw06, "StopReplicationToReplica", StopReplicationToReplica$) {
+    };
+    var TagResourceCommand = class extends command6(_ep06, _mw06, "TagResource", TagResource$) {
+    };
+    var UntagResourceCommand = class extends command6(_ep06, _mw06, "UntagResource", UntagResource$) {
+    };
+    var UpdateSecretCommand = class extends command6(_ep06, _mw06, "UpdateSecret", UpdateSecret$) {
+    };
+    var UpdateSecretVersionStageCommand = class extends command6(_ep06, _mw06, "UpdateSecretVersionStage", UpdateSecretVersionStage$) {
+    };
+    var ValidateResourcePolicyCommand = class extends command6(_ep06, _mw06, "ValidateResourcePolicy", ValidateResourcePolicy$) {
+    };
+    var paginateBatchGetSecretValue = createPaginator2(SecretsManagerClient, BatchGetSecretValueCommand, "NextToken", "NextToken", "MaxResults");
+    var paginateListSecrets = createPaginator2(SecretsManagerClient, ListSecretsCommand, "NextToken", "NextToken", "MaxResults");
+    var paginateListSecretVersionIds = createPaginator2(SecretsManagerClient, ListSecretVersionIdsCommand, "NextToken", "NextToken", "MaxResults");
+    var commands6 = {
+      BatchGetSecretValueCommand,
+      CancelRotateSecretCommand,
+      CreateSecretCommand,
+      DeleteResourcePolicyCommand,
+      DeleteSecretCommand,
+      DescribeSecretCommand,
+      GetRandomPasswordCommand,
+      GetResourcePolicyCommand,
+      GetSecretValueCommand,
+      ListSecretsCommand,
+      ListSecretVersionIdsCommand,
+      PutResourcePolicyCommand,
+      PutSecretValueCommand,
+      RemoveRegionsFromReplicationCommand,
+      ReplicateSecretToRegionsCommand,
+      RestoreSecretCommand,
+      RotateSecretCommand,
+      StopReplicationToReplicaCommand,
+      TagResourceCommand,
+      UntagResourceCommand,
+      UpdateSecretCommand,
+      UpdateSecretVersionStageCommand,
+      ValidateResourcePolicyCommand
+    };
+    var paginators = {
+      paginateBatchGetSecretValue,
+      paginateListSecrets,
+      paginateListSecretVersionIds
+    };
+    var SecretsManager = class extends SecretsManagerClient {
+    };
+    createAggregatedClient2(commands6, SecretsManager, { paginators });
+    var FilterNameStringType = {
+      all: "all",
+      description: "description",
+      name: "name",
+      owning_service: "owning-service",
+      primary_region: "primary-region",
+      tag_key: "tag-key",
+      tag_value: "tag-value"
+    };
+    var StatusType = {
+      Failed: "Failed",
+      InProgress: "InProgress",
+      InSync: "InSync"
+    };
+    var SortByType = {
+      created_date: "created-date",
+      last_accessed_date: "last-accessed-date",
+      last_changed_date: "last-changed-date",
+      name: "name"
+    };
+    var SortOrderType = {
+      asc: "asc",
+      desc: "desc"
+    };
+    exports2.APIErrorType$ = APIErrorType$;
+    exports2.BatchGetSecretValue$ = BatchGetSecretValue$;
+    exports2.BatchGetSecretValueCommand = BatchGetSecretValueCommand;
+    exports2.BatchGetSecretValueRequest$ = BatchGetSecretValueRequest$;
+    exports2.BatchGetSecretValueResponse$ = BatchGetSecretValueResponse$;
+    exports2.CancelRotateSecret$ = CancelRotateSecret$;
+    exports2.CancelRotateSecretCommand = CancelRotateSecretCommand;
+    exports2.CancelRotateSecretRequest$ = CancelRotateSecretRequest$;
+    exports2.CancelRotateSecretResponse$ = CancelRotateSecretResponse$;
+    exports2.CreateSecret$ = CreateSecret$;
+    exports2.CreateSecretCommand = CreateSecretCommand;
+    exports2.CreateSecretRequest$ = CreateSecretRequest$;
+    exports2.CreateSecretResponse$ = CreateSecretResponse$;
+    exports2.DecryptionFailure = DecryptionFailure;
+    exports2.DecryptionFailure$ = DecryptionFailure$;
+    exports2.DeleteResourcePolicy$ = DeleteResourcePolicy$;
+    exports2.DeleteResourcePolicyCommand = DeleteResourcePolicyCommand;
+    exports2.DeleteResourcePolicyRequest$ = DeleteResourcePolicyRequest$;
+    exports2.DeleteResourcePolicyResponse$ = DeleteResourcePolicyResponse$;
+    exports2.DeleteSecret$ = DeleteSecret$;
+    exports2.DeleteSecretCommand = DeleteSecretCommand;
+    exports2.DeleteSecretRequest$ = DeleteSecretRequest$;
+    exports2.DeleteSecretResponse$ = DeleteSecretResponse$;
+    exports2.DescribeSecret$ = DescribeSecret$;
+    exports2.DescribeSecretCommand = DescribeSecretCommand;
+    exports2.DescribeSecretRequest$ = DescribeSecretRequest$;
+    exports2.DescribeSecretResponse$ = DescribeSecretResponse$;
+    exports2.EncryptionFailure = EncryptionFailure;
+    exports2.EncryptionFailure$ = EncryptionFailure$;
+    exports2.ExternalSecretRotationMetadataItem$ = ExternalSecretRotationMetadataItem$;
+    exports2.Filter$ = Filter$;
+    exports2.FilterNameStringType = FilterNameStringType;
+    exports2.GetRandomPassword$ = GetRandomPassword$;
+    exports2.GetRandomPasswordCommand = GetRandomPasswordCommand;
+    exports2.GetRandomPasswordRequest$ = GetRandomPasswordRequest$;
+    exports2.GetRandomPasswordResponse$ = GetRandomPasswordResponse$;
+    exports2.GetResourcePolicy$ = GetResourcePolicy$;
+    exports2.GetResourcePolicyCommand = GetResourcePolicyCommand;
+    exports2.GetResourcePolicyRequest$ = GetResourcePolicyRequest$;
+    exports2.GetResourcePolicyResponse$ = GetResourcePolicyResponse$;
+    exports2.GetSecretValue$ = GetSecretValue$;
+    exports2.GetSecretValueCommand = GetSecretValueCommand;
+    exports2.GetSecretValueRequest$ = GetSecretValueRequest$;
+    exports2.GetSecretValueResponse$ = GetSecretValueResponse$;
+    exports2.InternalServiceError = InternalServiceError;
+    exports2.InternalServiceError$ = InternalServiceError$;
+    exports2.InvalidNextTokenException = InvalidNextTokenException;
+    exports2.InvalidNextTokenException$ = InvalidNextTokenException$;
+    exports2.InvalidParameterException = InvalidParameterException2;
+    exports2.InvalidParameterException$ = InvalidParameterException$2;
+    exports2.InvalidRequestException = InvalidRequestException3;
+    exports2.InvalidRequestException$ = InvalidRequestException$3;
+    exports2.LimitExceededException = LimitExceededException2;
+    exports2.LimitExceededException$ = LimitExceededException$2;
+    exports2.ListSecretVersionIds$ = ListSecretVersionIds$;
+    exports2.ListSecretVersionIdsCommand = ListSecretVersionIdsCommand;
+    exports2.ListSecretVersionIdsRequest$ = ListSecretVersionIdsRequest$;
+    exports2.ListSecretVersionIdsResponse$ = ListSecretVersionIdsResponse$;
+    exports2.ListSecrets$ = ListSecrets$;
+    exports2.ListSecretsCommand = ListSecretsCommand;
+    exports2.ListSecretsRequest$ = ListSecretsRequest$;
+    exports2.ListSecretsResponse$ = ListSecretsResponse$;
+    exports2.MalformedPolicyDocumentException = MalformedPolicyDocumentException2;
+    exports2.MalformedPolicyDocumentException$ = MalformedPolicyDocumentException$2;
+    exports2.PreconditionNotMetException = PreconditionNotMetException;
+    exports2.PreconditionNotMetException$ = PreconditionNotMetException$;
+    exports2.PublicPolicyException = PublicPolicyException;
+    exports2.PublicPolicyException$ = PublicPolicyException$;
+    exports2.PutResourcePolicy$ = PutResourcePolicy$;
+    exports2.PutResourcePolicyCommand = PutResourcePolicyCommand;
+    exports2.PutResourcePolicyRequest$ = PutResourcePolicyRequest$;
+    exports2.PutResourcePolicyResponse$ = PutResourcePolicyResponse$;
+    exports2.PutSecretValue$ = PutSecretValue$;
+    exports2.PutSecretValueCommand = PutSecretValueCommand;
+    exports2.PutSecretValueRequest$ = PutSecretValueRequest$;
+    exports2.PutSecretValueResponse$ = PutSecretValueResponse$;
+    exports2.RemoveRegionsFromReplication$ = RemoveRegionsFromReplication$;
+    exports2.RemoveRegionsFromReplicationCommand = RemoveRegionsFromReplicationCommand;
+    exports2.RemoveRegionsFromReplicationRequest$ = RemoveRegionsFromReplicationRequest$;
+    exports2.RemoveRegionsFromReplicationResponse$ = RemoveRegionsFromReplicationResponse$;
+    exports2.ReplicaRegionType$ = ReplicaRegionType$;
+    exports2.ReplicateSecretToRegions$ = ReplicateSecretToRegions$;
+    exports2.ReplicateSecretToRegionsCommand = ReplicateSecretToRegionsCommand;
+    exports2.ReplicateSecretToRegionsRequest$ = ReplicateSecretToRegionsRequest$;
+    exports2.ReplicateSecretToRegionsResponse$ = ReplicateSecretToRegionsResponse$;
+    exports2.ReplicationStatusType$ = ReplicationStatusType$;
+    exports2.ResourceExistsException = ResourceExistsException;
+    exports2.ResourceExistsException$ = ResourceExistsException$;
+    exports2.ResourceNotFoundException = ResourceNotFoundException3;
+    exports2.ResourceNotFoundException$ = ResourceNotFoundException$3;
+    exports2.RestoreSecret$ = RestoreSecret$;
+    exports2.RestoreSecretCommand = RestoreSecretCommand;
+    exports2.RestoreSecretRequest$ = RestoreSecretRequest$;
+    exports2.RestoreSecretResponse$ = RestoreSecretResponse$;
+    exports2.RotateSecret$ = RotateSecret$;
+    exports2.RotateSecretCommand = RotateSecretCommand;
+    exports2.RotateSecretRequest$ = RotateSecretRequest$;
+    exports2.RotateSecretResponse$ = RotateSecretResponse$;
+    exports2.RotationRulesType$ = RotationRulesType$;
+    exports2.SecretListEntry$ = SecretListEntry$;
+    exports2.SecretValueEntry$ = SecretValueEntry$;
+    exports2.SecretVersionsListEntry$ = SecretVersionsListEntry$;
+    exports2.SecretsManager = SecretsManager;
+    exports2.SecretsManagerClient = SecretsManagerClient;
+    exports2.SecretsManagerServiceException = SecretsManagerServiceException;
+    exports2.SecretsManagerServiceException$ = SecretsManagerServiceException$;
+    exports2.SortByType = SortByType;
+    exports2.SortOrderType = SortOrderType;
+    exports2.StatusType = StatusType;
+    exports2.StopReplicationToReplica$ = StopReplicationToReplica$;
+    exports2.StopReplicationToReplicaCommand = StopReplicationToReplicaCommand;
+    exports2.StopReplicationToReplicaRequest$ = StopReplicationToReplicaRequest$;
+    exports2.StopReplicationToReplicaResponse$ = StopReplicationToReplicaResponse$;
+    exports2.Tag$ = Tag$2;
+    exports2.TagResource$ = TagResource$;
+    exports2.TagResourceCommand = TagResourceCommand;
+    exports2.TagResourceRequest$ = TagResourceRequest$;
+    exports2.UntagResource$ = UntagResource$;
+    exports2.UntagResourceCommand = UntagResourceCommand;
+    exports2.UntagResourceRequest$ = UntagResourceRequest$;
+    exports2.UpdateSecret$ = UpdateSecret$;
+    exports2.UpdateSecretCommand = UpdateSecretCommand;
+    exports2.UpdateSecretRequest$ = UpdateSecretRequest$;
+    exports2.UpdateSecretResponse$ = UpdateSecretResponse$;
+    exports2.UpdateSecretVersionStage$ = UpdateSecretVersionStage$;
+    exports2.UpdateSecretVersionStageCommand = UpdateSecretVersionStageCommand;
+    exports2.UpdateSecretVersionStageRequest$ = UpdateSecretVersionStageRequest$;
+    exports2.UpdateSecretVersionStageResponse$ = UpdateSecretVersionStageResponse$;
+    exports2.ValidateResourcePolicy$ = ValidateResourcePolicy$;
+    exports2.ValidateResourcePolicyCommand = ValidateResourcePolicyCommand;
+    exports2.ValidateResourcePolicyRequest$ = ValidateResourcePolicyRequest$;
+    exports2.ValidateResourcePolicyResponse$ = ValidateResourcePolicyResponse$;
+    exports2.ValidationErrorsEntry$ = ValidationErrorsEntry$;
+    exports2.errorTypeRegistries = errorTypeRegistries6;
+    exports2.paginateBatchGetSecretValue = paginateBatchGetSecretValue;
+    exports2.paginateListSecretVersionIds = paginateListSecretVersionIds;
+    exports2.paginateListSecrets = paginateListSecrets;
+  }
+});
+
 // connectHandler.ts
 var connectHandler_exports = {};
 __export(connectHandler_exports, {
@@ -32735,21 +35880,21 @@ var MAX_INT32 = 2 ** 32;
 function concat(...buffers) {
   const size = buffers.reduce((acc, { length }) => acc + length, 0);
   const buf = new Uint8Array(size);
-  let i5 = 0;
+  let i6 = 0;
   for (const buffer of buffers) {
-    buf.set(buffer, i5);
-    i5 += buffer.length;
+    buf.set(buffer, i6);
+    i6 += buffer.length;
   }
   return buf;
 }
 function encode2(string) {
   const bytes = new Uint8Array(string.length);
-  for (let i5 = 0; i5 < string.length; i5++) {
-    const code = string.charCodeAt(i5);
+  for (let i6 = 0; i6 < string.length; i6++) {
+    const code = string.charCodeAt(i6);
     if (code > 127) {
       throw new TypeError("non-ASCII string encountered in encode()");
     }
-    bytes[i5] = code;
+    bytes[i6] = code;
   }
   return bytes;
 }
@@ -32761,8 +35906,8 @@ function decodeBase64(encoded) {
   }
   const binary = atob(encoded);
   const bytes = new Uint8Array(binary.length);
-  for (let i5 = 0; i5 < binary.length; i5++) {
-    bytes[i5] = binary.charCodeAt(i5);
+  for (let i6 = 0; i6 < binary.length; i6++) {
+    bytes[i6] = binary.charCodeAt(i6);
   }
   return bytes;
 }
@@ -33638,8 +36783,8 @@ async function flattenedVerify(jws, key, options) {
   checkKeyType(alg, key, "verify");
   const data2 = concat(jws.protected !== void 0 ? encode2(jws.protected) : new Uint8Array(), encode2("."), typeof jws.payload === "string" ? b64 ? encode2(jws.payload) : encoder.encode(jws.payload) : jws.payload);
   const signature = decodeBase64url(jws.signature, "signature", JWSInvalid);
-  const k5 = await normalizeKey(key, alg);
-  const verified = await verify(alg, k5, signature, data2);
+  const k6 = await normalizeKey(key, alg);
+  const verified = await verify(alg, k6, signature, data2);
   if (!verified) {
     throw new JWSSignatureVerificationFailed();
   }
@@ -33659,7 +36804,7 @@ async function flattenedVerify(jws, key, options) {
     result.unprotectedHeader = jws.header;
   }
   if (resolvedKey) {
-    return { ...result, key: k5 };
+    return { ...result, key: k6 };
   }
   return result;
 }
@@ -33945,8 +37090,8 @@ var LocalJWKSet = class {
     return importWithAlgCache(this.#cached, jwk, alg);
   }
 };
-async function importWithAlgCache(cache6, jwk, alg) {
-  const cached = cache6.get(jwk) || cache6.set(jwk, {}).get(jwk);
+async function importWithAlgCache(cache7, jwk, alg) {
+  const cached = cache7.get(jwk) || cache7.set(jwk, {}).get(jwk);
   if (cached[alg] === void 0) {
     const key = await importJWK({ ...jwk, ext: true }, alg);
     if (key instanceof Uint8Array || key.type !== "public") {
@@ -34138,17 +37283,94 @@ var import_client_dynamodb = __toESM(require_dist_cjs20(), 1);
 var import_lib_dynamodb = __toESM(require_dist_cjs21(), 1);
 var import_dotenv = __toESM(require_main(), 1);
 var import_path = __toESM(require("path"), 1);
-import_dotenv.default.config({
-  path: import_path.default.resolve(process.cwd(), "Back-end/.env")
-});
+var import_url = require("url");
+var import_credential_providers = __toESM(require_dist_cjs23(), 1);
+var import_meta = {};
+var envDirname = process.cwd();
+try {
+  if (typeof import_meta !== "undefined" && import_meta.url) {
+    envDirname = import_path.default.dirname((0, import_url.fileURLToPath)(import_meta.url));
+  }
+} catch {
+}
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  import_dotenv.default.config({
+    path: import_path.default.resolve(envDirname, "../../.env")
+  });
+}
+var cachedCredentials = null;
+var getCredentials = async () => {
+  if (cachedCredentials) {
+    return cachedCredentials;
+  }
+  const secretName = process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY;
+  if (secretName) {
+    try {
+      const { SecretsManagerClient, GetSecretValueCommand } = await Promise.resolve().then(() => __toESM(require_dist_cjs24(), 1));
+      const clientRegion = process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1";
+      const smClient = new SecretsManagerClient({ region: clientRegion });
+      console.log(`[SecretsManager] \u0110ang t\u1EA3i credentials t\u1EEB Secret: ${secretName}...`);
+      const response = await smClient.send(
+        new GetSecretValueCommand({ SecretId: secretName })
+      );
+      if (response.SecretString) {
+        const secretObj = JSON.parse(response.SecretString);
+        cachedCredentials = {
+          accessKeyId: secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID || "",
+          secretAccessKey: secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY || "",
+          ...secretObj.sessionToken && { sessionToken: secretObj.sessionToken }
+        };
+        console.log("[SecretsManager] T\u1EA3i credentials th\xE0nh c\xF4ng!");
+        return cachedCredentials;
+      }
+    } catch (err2) {
+      console.error("[SecretsManager] L\u1ED7i khi l\u1EA5y Secret, \u0111ang th\u1EED d\xF9ng c\xE1c ph\u01B0\u01A1ng \xE1n d\u1EF1 ph\xF2ng:", err2);
+    }
+  }
+  const crossAccountRoleArn = process.env.CROSS_ACCOUNT_ROLE_ARN;
+  if (crossAccountRoleArn) {
+    try {
+      console.log(`[AssumeRole] \u0110ang c\u1EA5u h\xECnh Credentials Provider cho Role: ${crossAccountRoleArn}`);
+      cachedCredentials = (0, import_credential_providers.fromTemporaryCredentials)({
+        params: {
+          RoleArn: crossAccountRoleArn,
+          RoleSessionName: "ChronoGameBackendSession"
+        },
+        clientConfig: { region: process.env.DB_REGION || "ap-southeast-1" }
+      });
+      return cachedCredentials;
+    } catch (err2) {
+      console.error("[AssumeRole] L\u1ED7i khi t\u1EA1o AssumeRole credentials provider:", err2);
+    }
+  }
+  if (process.env.DB_ACCESS_KEY_ID) {
+    cachedCredentials = {
+      accessKeyId: process.env.DB_ACCESS_KEY_ID,
+      secretAccessKey: process.env.DB_SECRET_ACCESS_KEY || "",
+      ...process.env.DB_SESSION_TOKEN && {
+        sessionToken: process.env.DB_SESSION_TOKEN
+      }
+    };
+    return cachedCredentials;
+  }
+  return {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    ...process.env.AWS_SESSION_TOKEN && {
+      sessionToken: process.env.AWS_SESSION_TOKEN
+    }
+  };
+};
 var client = new import_client_dynamodb.DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
-  credentials: {
-    accessKeyId: process.env.DB_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.DB_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || ""
+  credentials: getCredentials
+});
+var dynamoDb = import_lib_dynamodb.DynamoDBDocumentClient.from(client, {
+  marshallOptions: {
+    removeUndefinedValues: true,
+    convertEmptyValues: true
   }
 });
-var dynamoDb = import_lib_dynamodb.DynamoDBDocumentClient.from(client);
 
 // connectHandler.ts
 var region = process.env.AWS_REGION || "ap-southeast-1";
