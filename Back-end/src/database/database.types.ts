@@ -31,7 +31,7 @@ export interface GameState {
   player_1: PlayerState;
   player_2: PlayerState;
   action_stack: GameAction[];
-  expire_at?: number; // Unix timestamp (TTL for DynamoDB)
+  expire_at?: number;
 }
 
 // ─── Game Action (action_stack entries) ──────────────────────────────────────
@@ -64,7 +64,7 @@ export interface UserStats {
 
 export interface GameLog {
   match_id: string;
-  action_sequence: number; // RANGE key — sort key in DynamoDB
+  action_sequence: number;
   actor_id: string;
   action_type: string;
   details?: Record<string, unknown>;
