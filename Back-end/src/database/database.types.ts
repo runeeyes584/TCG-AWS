@@ -79,3 +79,13 @@ export interface Connection {
   match_id?: string;
   connected_at: number;
 }
+
+// ─── Match History ────────────────────────────────────────────────────────────
+export interface MatchHistory {
+  user_id: string;
+  played_at: number;
+  match_id: string;
+  opponent_id: string;
+  result: "WIN" | "LOSS" | "DRAW";
+  rank_point_change: number;
+}
