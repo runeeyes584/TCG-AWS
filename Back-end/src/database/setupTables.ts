@@ -70,7 +70,7 @@ const tableExists = async (tableName: string): Promise<boolean> => {
     if (error.name === "ResourceNotFoundException") {
       return false;
     }
-    throw error; // Re-throw unexpected errors
+    throw error;
   }
 };
 
