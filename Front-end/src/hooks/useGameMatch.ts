@@ -24,7 +24,7 @@ export interface SocketGameController extends GameController {
   inGame: boolean;
 }
 
-export function useGameMatch(): SocketGameController {
+export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   const initialState = useMemo(
     () => createInitialGameState(buildDefaultDeck("P1"), buildDefaultDeck("P2")),
     []
@@ -41,7 +41,7 @@ export function useGameMatch(): SocketGameController {
   const [opponentConnected, setOpponentConnected] = useState(false);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string>();
-  const roomCodeRef = useRef<string | undefined>(undefined);
+  const roomCodeRef = useRef<string | undefined>(resumeRoomCode);
   const [actionLog, setActionLog] = useState<Array<{ id: number; message: string }>>([
     { id: 1, message: "Game match hook loaded." }
   ]);

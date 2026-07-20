@@ -1,20 +1,20 @@
 [
-    {
-        "id": "e95ef498-10e1-7010-2735-796ab667aa12",
-        "email": "datteo192004@gmail.com",
-        "username": "Victor Tran",
-        "avatar":"https://ms.yugipedia.com//2/24/Dogmatika_Ecclesia%2C_the_Virtuous-Icon-Master_Duel.png",
-        "elo": 1200,
-        "wins": 10,
-        "losses": 6
-    },
-    {
-        "id": "997e7438-c061-70a7-a040-0bb741e9235c",
-        "email": "trandat2280600642@gmail.com",
-        "avatar":"https://ms.yugipedia.com//c/ce/House_Dragonmaid-Icon-Master_Duel.png",
-        "username": "Dat Tran",
-        "elo": 1350,
-        "wins": 23,
-        "losses": 15
-    }
+  {
+    "id": "e95ef498-10e1-7010-2735-796ab667aa12",
+    "email": "datteo192004@gmail.com",
+    "username": "Victor Tran",
+    "avatar": "https://ms.yugipedia.com//2/24/Dogmatika_Ecclesia%2C_the_Virtuous-Icon-Master_Duel.png",
+    "elo": 1152,
+    "wins": 10,
+    "losses": 12
+  },
+  {
+    "id": "997e7438-c061-70a7-a040-0bb741e9235c",
+    "email": "trandat2280600642@gmail.com",
+    "avatar": "https://ms.yugipedia.com//c/ce/House_Dragonmaid-Icon-Master_Duel.png",
+    "username": "Dat Tran",
+    "elo": 1398,
+    "wins": 29,
+    "losses": 15
+  }
 ]

@@ -15,8 +15,9 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { me, type PlayerProfile } from "../libs/api";
+import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
+import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
 
 type LobbyTab = "duel" | "deck" | "collection";
@@ -37,6 +38,8 @@ export default function Home() {
   const [email, setEmail] = useState("guest@kaleidoscope.local");
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
 
   useEffect(() => {
@@ -66,6 +69,10 @@ export default function Home() {
         setLosses(profile.losses ?? 0);
       })
       .catch(() => undefined);
+
+    void getPendingMatch()
+      .then((result) => setPendingMatch(result.match))
+      .catch(() => undefined);
   }, []);
 
   const startDuel = () => {
@@ -83,6 +90,30 @@ export default function Home() {
     setEmail("guest@kaleidoscope.local");
     setWins(0);
     setLosses(0);
+  };
+
+  const resumePendingMatch = () => {
+    if (pendingMatch) {
+      router.push(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}`);
+    }
+  };
+
+  const abandonPendingMatch = async () => {
+    setResolvingPendingMatch(true);
+    try {
+      await forfeitPendingMatch();
+      const { user } = await me();
+      if (user) {
+        setElo(user.elo);
+        setWins(user.wins);
+        setLosses(user.losses);
+      }
+    } catch {
+      // The disconnect timer may have already resolved the match in parallel.
+    } finally {
+      setPendingMatch(null);
+      setResolvingPendingMatch(false);
+    }
   };
 
   return (
@@ -181,6 +212,8 @@ export default function Home() {
         <span><i /> Online services operational</span>
         <span>Kaleidoscope TCG <b>v0.1.0</b></span>
       </footer>
+
+      {pendingMatch ? <PendingMatchDialog isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
     </main>
   );
 }

@@ -30,6 +30,10 @@ export interface PlayerProfile {
     losses: number;
 }
 
+export interface PendingMatch {
+    roomCode: string;
+}
+
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
@@ -161,6 +165,14 @@ export async function me(): Promise<ApiResponse<PlayerProfile>> {
 
     return request("/auth/me");
 
+}
+
+export async function getPendingMatch(): Promise<{ success: boolean; match: PendingMatch | null }> {
+    return request("/matches/pending");
+}
+
+export async function forfeitPendingMatch(): Promise<{ success: boolean }> {
+    return request("/matches/pending/forfeit", { method: "POST" });
 }
 
 export async function forgotPassword(email: string) {
