@@ -1,4 +1,5 @@
 import React from "react";
+import Tilt from "react-parallax-tilt";
 import { Crown, ScrollText, Skull, Sparkles } from "lucide-react";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/entities/cards";
 import type { CardInstance, CardType, UnitInstance, VisualEvent } from "@backend/game/types";
@@ -205,38 +206,56 @@ export const GameCard: React.FC<GameCardProps> = ({
     onClick?.();
   };
 
+  const tiltProps = {
+    glareEnable: isChampion,
+    glareMaxOpacity: 0.45,
+    glareColor: "#ffffff",
+    glarePosition: "all" as const,
+    tiltMaxAngleX: isChampion ? 15 : 4,
+    tiltMaxAngleY: isChampion ? 15 : 4,
+    scale: isChampion ? 1.03 : 1.01,
+    transitionSpeed: 1000,
+    className: `game-card-tilt-wrapper ${isChampion ? "game-card-tilt-wrapper--champion" : ""}`,
+  };
+
   if (!onClick && !onDoubleClick) {
     return (
-      <div
-        className={className}
-        data-card-ui
-        role="button"
-        tabIndex={0}
-        onClick={handleClick}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            handleClick();
-          }
-        }}
-        {...hoverProps}
-      >
-        {content}
+      <div className="game-card-stable-wrapper" {...hoverProps}>
+        <Tilt {...tiltProps}>
+          <div
+            className={className}
+            data-card-ui
+            role="button"
+            tabIndex={0}
+            onClick={handleClick}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleClick();
+              }
+            }}
+          >
+            {content}
+          </div>
+        </Tilt>
       </div>
     );
   }
 
   return (
-    <button
-      className={className}
-      type="button"
-      data-card-ui
-      onClick={handleClick}
-      onDoubleClick={onDoubleClick}
-      {...hoverProps}
-    >
-      {content}
-    </button>
+    <div className="game-card-stable-wrapper" {...hoverProps}>
+      <Tilt {...tiltProps}>
+        <button
+          className={className}
+          type="button"
+          data-card-ui
+          onClick={handleClick}
+          onDoubleClick={onDoubleClick}
+        >
+          {content}
+        </button>
+      </Tilt>
+    </div>
   );
 };
 
