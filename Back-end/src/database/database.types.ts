@@ -57,7 +57,10 @@ export interface UserProfile {
 export interface UserStats {
   wins: number;
   losses: number;
-  rank_points: number;
+  rank_points: number; // ELO rating points
+  elo_rating?: number;  // Alias for rank_points
+  exp?: number;
+  level?: number;       // Level calculated from EXP
 }
 
 // ─── Game Log ─────────────────────────────────────────────────────────────────
@@ -81,11 +84,14 @@ export interface Connection {
 }
 
 // ─── Match History ────────────────────────────────────────────────────────────
+
 export interface MatchHistory {
   user_id: string;
-  played_at: number;
+  played_at: number; // Sort Key (timestamp)
   match_id: string;
   opponent_id: string;
   result: "WIN" | "LOSS" | "DRAW";
   rank_point_change: number;
+  elo_change?: number; // Alias for rank_point_change
+  duration?: number;   // Match duration in seconds
 }
