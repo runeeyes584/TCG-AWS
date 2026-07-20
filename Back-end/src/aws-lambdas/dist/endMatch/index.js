@@ -33270,6 +33270,2340 @@ var require_main = __commonJS({
   }
 });
 
+// ../../../node_modules/@aws-sdk/middleware-sdk-sqs/dist-cjs/index.js
+var require_dist_cjs23 = __commonJS({
+  "../../../node_modules/@aws-sdk/middleware-sdk-sqs/dist-cjs/index.js"(exports2) {
+    var { NoOpLogger: NoOpLogger2 } = (init_client2(), __toCommonJS(client_exports));
+    var { toUint8Array: toUint8Array3, toHex: toHex2 } = (init_serde(), __toCommonJS(serde_exports));
+    var resolveQueueUrlConfig = (config) => {
+      return Object.assign(config, {
+        useQueueUrlAsEndpoint: config.useQueueUrlAsEndpoint ?? true
+      });
+    };
+    function queueUrlMiddleware({ useQueueUrlAsEndpoint, endpoint }) {
+      return (next, context) => {
+        return async (args) => {
+          const { input } = args;
+          const resolvedEndpoint = context.endpointV2;
+          if (!endpoint && input.QueueUrl && resolvedEndpoint && useQueueUrlAsEndpoint) {
+            const logger2 = context.logger instanceof NoOpLogger2 || !context.logger?.warn ? console : context.logger;
+            try {
+              const queueUrl = new URL(input.QueueUrl);
+              const queueUrlOrigin = new URL(queueUrl.origin);
+              if (resolvedEndpoint.url.origin !== queueUrlOrigin.origin) {
+                logger2.warn(`QueueUrl=${input.QueueUrl} differs from SQSClient resolved endpoint=${resolvedEndpoint.url.toString()}, using QueueUrl host as endpoint.
+Set [endpoint=string] or [useQueueUrlAsEndpoint=false] on the SQSClient.`);
+                context.endpointV2 = {
+                  ...resolvedEndpoint,
+                  url: queueUrlOrigin
+                };
+              }
+            } catch (e5) {
+              logger2.warn(e5);
+            }
+          }
+          return next(args);
+        };
+      };
+    }
+    var queueUrlMiddlewareOptions = {
+      name: "queueUrlMiddleware",
+      relation: "after",
+      toMiddleware: "endpointV2Middleware",
+      override: true
+    };
+    var getQueueUrlPlugin = (config) => ({
+      applyToStack: (clientStack) => {
+        clientStack.addRelativeTo(queueUrlMiddleware(config), queueUrlMiddlewareOptions);
+      }
+    });
+    function receiveMessageMiddleware(options) {
+      return (next) => async (args) => {
+        const resp = await next({ ...args });
+        if (options.md5 === false) {
+          return resp;
+        }
+        const output = resp.output;
+        const messageIds = [];
+        if (output.Messages !== void 0) {
+          for (const message of output.Messages) {
+            const md5 = message.MD5OfBody;
+            const hash = new options.md5();
+            hash.update(toUint8Array3(message.Body || ""));
+            if (md5 !== toHex2(await hash.digest())) {
+              messageIds.push(message.MessageId);
+            }
+          }
+        }
+        if (messageIds.length > 0) {
+          throw new Error("Invalid MD5 checksum on messages: " + messageIds.join(", "));
+        }
+        return resp;
+      };
+    }
+    var receiveMessageMiddlewareOptions = {
+      step: "initialize",
+      tags: ["VALIDATE_BODY_MD5"],
+      name: "receiveMessageMiddleware",
+      override: true
+    };
+    var getReceiveMessagePlugin = (config) => ({
+      applyToStack: (clientStack) => {
+        clientStack.add(receiveMessageMiddleware(config), receiveMessageMiddlewareOptions);
+      }
+    });
+    var sendMessageMiddleware = (options) => (next) => async (args) => {
+      const resp = await next({ ...args });
+      if (options.md5 === false) {
+        return resp;
+      }
+      const output = resp.output;
+      const hash = new options.md5();
+      hash.update(toUint8Array3(args.input.MessageBody || ""));
+      if (output.MD5OfMessageBody !== toHex2(await hash.digest())) {
+        throw new Error("InvalidChecksumError");
+      }
+      return resp;
+    };
+    var sendMessageMiddlewareOptions = {
+      step: "initialize",
+      tags: ["VALIDATE_BODY_MD5"],
+      name: "sendMessageMiddleware",
+      override: true
+    };
+    var getSendMessagePlugin = (config) => ({
+      applyToStack: (clientStack) => {
+        clientStack.add(sendMessageMiddleware(config), sendMessageMiddlewareOptions);
+      }
+    });
+    var sendMessageBatchMiddleware = (options) => (next) => async (args) => {
+      const resp = await next({ ...args });
+      if (options.md5 === false) {
+        return resp;
+      }
+      const output = resp.output;
+      const messageIds = [];
+      const entries = {};
+      if (output.Successful !== void 0) {
+        for (const entry of output.Successful) {
+          if (entry.Id !== void 0) {
+            entries[entry.Id] = entry;
+          }
+        }
+      }
+      for (const entry of args.input.Entries) {
+        if (entries[entry.Id]) {
+          const md5 = entries[entry.Id].MD5OfMessageBody;
+          const hash = new options.md5();
+          hash.update(toUint8Array3(entry.MessageBody || ""));
+          if (md5 !== toHex2(await hash.digest())) {
+            messageIds.push(entries[entry.Id].MessageId);
+          }
+        }
+      }
+      if (messageIds.length > 0) {
+        throw new Error("Invalid MD5 checksum on messages: " + messageIds.join(", "));
+      }
+      return resp;
+    };
+    var sendMessageBatchMiddlewareOptions = {
+      step: "initialize",
+      tags: ["VALIDATE_BODY_MD5"],
+      name: "sendMessageBatchMiddleware",
+      override: true
+    };
+    var getSendMessageBatchPlugin = (config) => ({
+      applyToStack: (clientStack) => {
+        clientStack.add(sendMessageBatchMiddleware(config), sendMessageBatchMiddlewareOptions);
+      }
+    });
+    exports2.getQueueUrlPlugin = getQueueUrlPlugin;
+    exports2.getReceiveMessagePlugin = getReceiveMessagePlugin;
+    exports2.getSendMessageBatchPlugin = getSendMessageBatchPlugin;
+    exports2.getSendMessagePlugin = getSendMessagePlugin;
+    exports2.queueUrlMiddleware = queueUrlMiddleware;
+    exports2.queueUrlMiddlewareOptions = queueUrlMiddlewareOptions;
+    exports2.receiveMessageMiddleware = receiveMessageMiddleware;
+    exports2.receiveMessageMiddlewareOptions = receiveMessageMiddlewareOptions;
+    exports2.resolveQueueUrlConfig = resolveQueueUrlConfig;
+    exports2.sendMessageBatchMiddleware = sendMessageBatchMiddleware;
+    exports2.sendMessageBatchMiddlewareOptions = sendMessageBatchMiddlewareOptions;
+    exports2.sendMessageMiddleware = sendMessageMiddleware;
+    exports2.sendMessageMiddlewareOptions = sendMessageMiddlewareOptions;
+  }
+});
+
+// ../../../node_modules/@aws-sdk/client-sqs/dist-cjs/index.js
+var require_dist_cjs24 = __commonJS({
+  "../../../node_modules/@aws-sdk/client-sqs/dist-cjs/index.js"(exports2) {
+    var { awsEndpointFunctions: awsEndpointFunctions2, emitWarningIfUnsupportedVersion: emitWarningIfUnsupportedVersion$1, createDefaultUserAgentProvider: createDefaultUserAgentProvider2, NODE_APP_ID_CONFIG_OPTIONS: NODE_APP_ID_CONFIG_OPTIONS2, getAwsRegionExtensionConfiguration: getAwsRegionExtensionConfiguration2, resolveAwsRegionExtensionConfiguration: resolveAwsRegionExtensionConfiguration2, resolveUserAgentConfig: resolveUserAgentConfig2, resolveHostHeaderConfig: resolveHostHeaderConfig2, getUserAgentPlugin: getUserAgentPlugin2, getHostHeaderPlugin: getHostHeaderPlugin2, getLoggerPlugin: getLoggerPlugin2, getRecursionDetectionPlugin: getRecursionDetectionPlugin2, getLongPollPlugin: getLongPollPlugin2 } = (init_client3(), __toCommonJS(client_exports2));
+    var { resolveQueueUrlConfig, getQueueUrlPlugin, getReceiveMessagePlugin, getSendMessageBatchPlugin, getSendMessagePlugin } = require_dist_cjs23();
+    var { getHttpAuthSchemeEndpointRuleSetPlugin: getHttpAuthSchemeEndpointRuleSetPlugin2, DefaultIdentityProviderConfig: DefaultIdentityProviderConfig2, getHttpSigningPlugin: getHttpSigningPlugin2, createPaginator: createPaginator2 } = (init_dist_es(), __toCommonJS(dist_es_exports));
+    var { normalizeProvider: normalizeProvider3, getSmithyContext: getSmithyContext2, ServiceException: ServiceException2, NoOpLogger: NoOpLogger2, emitWarningIfUnsupportedVersion: emitWarningIfUnsupportedVersion3, loadConfigsForDefaultMode: loadConfigsForDefaultMode2, getDefaultExtensionConfiguration: getDefaultExtensionConfiguration2, resolveDefaultRuntimeConfig: resolveDefaultRuntimeConfig2, Client: Client2, makeBuilder: makeBuilder2, createAggregatedClient: createAggregatedClient2 } = (init_client2(), __toCommonJS(client_exports));
+    var { Command: $Command } = (init_client2(), __toCommonJS(client_exports));
+    exports2.$Command = $Command;
+    exports2.__Client = Client2;
+    var { resolveDefaultsModeConfig: resolveDefaultsModeConfig2, loadConfig: loadConfig2, NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS: NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS2, NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS: NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS2, NODE_REGION_CONFIG_OPTIONS: NODE_REGION_CONFIG_OPTIONS2, NODE_REGION_CONFIG_FILE_OPTIONS: NODE_REGION_CONFIG_FILE_OPTIONS2, resolveRegionConfig: resolveRegionConfig2 } = (init_config2(), __toCommonJS(config_exports));
+    var { BinaryDecisionDiagram: BinaryDecisionDiagram2, EndpointCache: EndpointCache2, decideEndpoint: decideEndpoint2, customEndpointFunctions: customEndpointFunctions2, resolveEndpointConfig: resolveEndpointConfig2, getEndpointPlugin: getEndpointPlugin2 } = (init_endpoints(), __toCommonJS(endpoints_exports));
+    var { parseUrl: parseUrl2, getHttpHandlerExtensionConfiguration: getHttpHandlerExtensionConfiguration2, resolveHttpHandlerRuntimeConfig: resolveHttpHandlerRuntimeConfig2, getContentLengthPlugin: getContentLengthPlugin2 } = (init_protocols(), __toCommonJS(protocols_exports));
+    var { DEFAULT_RETRY_MODE: DEFAULT_RETRY_MODE2, NODE_RETRY_MODE_CONFIG_OPTIONS: NODE_RETRY_MODE_CONFIG_OPTIONS2, NODE_MAX_ATTEMPT_CONFIG_OPTIONS: NODE_MAX_ATTEMPT_CONFIG_OPTIONS2, resolveRetryConfig: resolveRetryConfig2, getRetryPlugin: getRetryPlugin2 } = (init_retry2(), __toCommonJS(retry_exports));
+    var { TypeRegistry: TypeRegistry2, getSchemaSerdePlugin: getSchemaSerdePlugin2 } = (init_schema(), __toCommonJS(schema_exports));
+    var { resolveAwsSdkSigV4Config: resolveAwsSdkSigV4Config2, AwsSdkSigV4Signer: AwsSdkSigV4Signer2, NODE_AUTH_SCHEME_PREFERENCE_OPTIONS: NODE_AUTH_SCHEME_PREFERENCE_OPTIONS2 } = (init_httpAuthSchemes2(), __toCommonJS(httpAuthSchemes_exports));
+    var { defaultProvider } = require_dist_cjs18();
+    var { toUtf8: toUtf83, fromUtf8: fromUtf83, toBase64: toBase643, fromBase64: fromBase642, calculateBodyLength: calculateBodyLength2 } = (init_serde(), __toCommonJS(serde_exports));
+    var { streamCollector: streamCollector7, NodeHttpHandler } = require_dist_cjs8();
+    var { AwsJson1_0Protocol: AwsJson1_0Protocol2 } = (init_protocols2(), __toCommonJS(protocols_exports2));
+    var { Sha256, Md5 } = (init_checksum2(), __toCommonJS(checksum_exports));
+    var defaultSQSHttpAuthSchemeParametersProvider = async (config, context, input) => {
+      return {
+        operation: getSmithyContext2(context).operation,
+        region: await normalizeProvider3(config.region)() || (() => {
+          throw new Error("expected `region` to be configured for `aws.auth#sigv4`");
+        })()
+      };
+    };
+    function createAwsAuthSigv4HttpAuthOption5(authParameters) {
+      return {
+        schemeId: "aws.auth#sigv4",
+        signingProperties: {
+          name: "sqs",
+          region: authParameters.region
+        },
+        propertiesExtractor: (config, context) => ({
+          signingProperties: {
+            config,
+            context
+          }
+        })
+      };
+    }
+    var defaultSQSHttpAuthSchemeProvider = (authParameters) => {
+      const options = [];
+      switch (authParameters.operation) {
+        default: {
+          options.push(createAwsAuthSigv4HttpAuthOption5(authParameters));
+        }
+      }
+      return options;
+    };
+    var resolveHttpAuthSchemeConfig5 = (config) => {
+      const config_0 = resolveAwsSdkSigV4Config2(config);
+      return Object.assign(config_0, {
+        authSchemePreference: normalizeProvider3(config.authSchemePreference ?? [])
+      });
+    };
+    var resolveClientEndpointParameters5 = (options) => {
+      return Object.assign(options, {
+        useDualstackEndpoint: options.useDualstackEndpoint ?? false,
+        useFipsEndpoint: options.useFipsEndpoint ?? false,
+        defaultSigningName: "sqs"
+      });
+    };
+    var commonParams5 = {
+      UseFIPS: { type: "builtInParams", name: "useFipsEndpoint" },
+      Endpoint: { type: "builtInParams", name: "endpoint" },
+      Region: { type: "builtInParams", name: "region" },
+      UseDualStack: { type: "builtInParams", name: "useDualstackEndpoint" }
+    };
+    var version = "3.1090.0";
+    var packageInfo = {
+      version
+    };
+    var k5 = "ref";
+    var a5 = -1;
+    var b5 = true;
+    var c5 = "isSet";
+    var d5 = "PartitionResult";
+    var e5 = "booleanEquals";
+    var f5 = "getAttr";
+    var g5 = { [k5]: "Endpoint" };
+    var h5 = { [k5]: d5 };
+    var i5 = {};
+    var j5 = [{ [k5]: "Region" }];
+    var _data5 = {
+      conditions: [
+        [c5, [g5]],
+        [c5, j5],
+        ["aws.partition", j5, d5],
+        [e5, [{ [k5]: "UseFIPS" }, b5]],
+        [e5, [{ [k5]: "UseDualStack" }, b5]],
+        [e5, [{ fn: f5, argv: [h5, "supportsDualStack"] }, b5]],
+        [e5, [{ fn: f5, argv: [h5, "supportsFIPS"] }, b5]],
+        ["stringEquals", [{ fn: f5, argv: [h5, "name"] }, "aws-us-gov"]]
+      ],
+      results: [
+        [a5],
+        [a5, "Invalid Configuration: FIPS and custom endpoint are not supported"],
+        [a5, "Invalid Configuration: Dualstack and custom endpoint are not supported"],
+        [g5, i5],
+        ["https://sqs-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", i5],
+        [a5, "FIPS and DualStack are enabled, but this partition does not support one or both"],
+        ["https://sqs.{Region}.amazonaws.com", i5],
+        ["https://sqs-fips.{Region}.{PartitionResult#dnsSuffix}", i5],
+        [a5, "FIPS is enabled but this partition does not support FIPS"],
+        ["https://sqs.{Region}.{PartitionResult#dualStackDnsSuffix}", i5],
+        [a5, "DualStack is enabled but this partition does not support DualStack"],
+        ["https://sqs.{Region}.{PartitionResult#dnsSuffix}", i5],
+        [a5, "Invalid Configuration: Missing Region"]
+      ]
+    };
+    var root5 = 2;
+    var r5 = 1e8;
+    var nodes5 = new Int32Array([
+      -1,
+      1,
+      -1,
+      0,
+      13,
+      3,
+      1,
+      4,
+      r5 + 12,
+      2,
+      5,
+      r5 + 12,
+      3,
+      8,
+      6,
+      4,
+      7,
+      r5 + 11,
+      5,
+      r5 + 9,
+      r5 + 10,
+      4,
+      11,
+      9,
+      6,
+      10,
+      r5 + 8,
+      7,
+      r5 + 6,
+      r5 + 7,
+      5,
+      12,
+      r5 + 5,
+      6,
+      r5 + 4,
+      r5 + 5,
+      3,
+      r5 + 1,
+      14,
+      4,
+      r5 + 2,
+      r5 + 3
+    ]);
+    var bdd5 = BinaryDecisionDiagram2.from(nodes5, root5, _data5.conditions, _data5.results);
+    var cache5 = new EndpointCache2({
+      size: 50,
+      params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
+    });
+    var defaultEndpointResolver5 = (endpointParams, context = {}) => {
+      return cache5.get(endpointParams, () => decideEndpoint2(bdd5, {
+        endpointParams,
+        logger: context.logger
+      }));
+    };
+    customEndpointFunctions2.aws = awsEndpointFunctions2;
+    var SQSServiceException = class _SQSServiceException extends ServiceException2 {
+      constructor(options) {
+        super(options);
+        Object.setPrototypeOf(this, _SQSServiceException.prototype);
+      }
+    };
+    var InvalidAddress = class _InvalidAddress extends SQSServiceException {
+      name = "InvalidAddress";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidAddress",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidAddress.prototype);
+      }
+    };
+    var InvalidSecurity = class _InvalidSecurity extends SQSServiceException {
+      name = "InvalidSecurity";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidSecurity",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidSecurity.prototype);
+      }
+    };
+    var OverLimit = class _OverLimit extends SQSServiceException {
+      name = "OverLimit";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "OverLimit",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _OverLimit.prototype);
+      }
+    };
+    var QueueDoesNotExist = class _QueueDoesNotExist extends SQSServiceException {
+      name = "QueueDoesNotExist";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "QueueDoesNotExist",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _QueueDoesNotExist.prototype);
+      }
+    };
+    var RequestThrottled = class _RequestThrottled extends SQSServiceException {
+      name = "RequestThrottled";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "RequestThrottled",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _RequestThrottled.prototype);
+      }
+    };
+    var UnsupportedOperation = class _UnsupportedOperation extends SQSServiceException {
+      name = "UnsupportedOperation";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "UnsupportedOperation",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _UnsupportedOperation.prototype);
+      }
+    };
+    var ResourceNotFoundException2 = class _ResourceNotFoundException extends SQSServiceException {
+      name = "ResourceNotFoundException";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "ResourceNotFoundException",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _ResourceNotFoundException.prototype);
+      }
+    };
+    var MessageNotInflight = class _MessageNotInflight extends SQSServiceException {
+      name = "MessageNotInflight";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "MessageNotInflight",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _MessageNotInflight.prototype);
+      }
+    };
+    var ReceiptHandleIsInvalid = class _ReceiptHandleIsInvalid extends SQSServiceException {
+      name = "ReceiptHandleIsInvalid";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "ReceiptHandleIsInvalid",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _ReceiptHandleIsInvalid.prototype);
+      }
+    };
+    var BatchEntryIdsNotDistinct = class _BatchEntryIdsNotDistinct extends SQSServiceException {
+      name = "BatchEntryIdsNotDistinct";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "BatchEntryIdsNotDistinct",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _BatchEntryIdsNotDistinct.prototype);
+      }
+    };
+    var EmptyBatchRequest = class _EmptyBatchRequest extends SQSServiceException {
+      name = "EmptyBatchRequest";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "EmptyBatchRequest",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _EmptyBatchRequest.prototype);
+      }
+    };
+    var InvalidBatchEntryId = class _InvalidBatchEntryId extends SQSServiceException {
+      name = "InvalidBatchEntryId";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidBatchEntryId",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidBatchEntryId.prototype);
+      }
+    };
+    var TooManyEntriesInBatchRequest = class _TooManyEntriesInBatchRequest extends SQSServiceException {
+      name = "TooManyEntriesInBatchRequest";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "TooManyEntriesInBatchRequest",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _TooManyEntriesInBatchRequest.prototype);
+      }
+    };
+    var InvalidAttributeName = class _InvalidAttributeName extends SQSServiceException {
+      name = "InvalidAttributeName";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidAttributeName",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidAttributeName.prototype);
+      }
+    };
+    var InvalidAttributeValue = class _InvalidAttributeValue extends SQSServiceException {
+      name = "InvalidAttributeValue";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidAttributeValue",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidAttributeValue.prototype);
+      }
+    };
+    var QueueDeletedRecently = class _QueueDeletedRecently extends SQSServiceException {
+      name = "QueueDeletedRecently";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "QueueDeletedRecently",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _QueueDeletedRecently.prototype);
+      }
+    };
+    var QueueNameExists = class _QueueNameExists extends SQSServiceException {
+      name = "QueueNameExists";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "QueueNameExists",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _QueueNameExists.prototype);
+      }
+    };
+    var InvalidIdFormat = class _InvalidIdFormat extends SQSServiceException {
+      name = "InvalidIdFormat";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidIdFormat",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidIdFormat.prototype);
+      }
+    };
+    var PurgeQueueInProgress = class _PurgeQueueInProgress extends SQSServiceException {
+      name = "PurgeQueueInProgress";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "PurgeQueueInProgress",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _PurgeQueueInProgress.prototype);
+      }
+    };
+    var KmsAccessDenied = class _KmsAccessDenied extends SQSServiceException {
+      name = "KmsAccessDenied";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "KmsAccessDenied",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _KmsAccessDenied.prototype);
+      }
+    };
+    var KmsDisabled = class _KmsDisabled extends SQSServiceException {
+      name = "KmsDisabled";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "KmsDisabled",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _KmsDisabled.prototype);
+      }
+    };
+    var KmsInvalidKeyUsage = class _KmsInvalidKeyUsage extends SQSServiceException {
+      name = "KmsInvalidKeyUsage";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "KmsInvalidKeyUsage",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _KmsInvalidKeyUsage.prototype);
+      }
+    };
+    var KmsInvalidState = class _KmsInvalidState extends SQSServiceException {
+      name = "KmsInvalidState";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "KmsInvalidState",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _KmsInvalidState.prototype);
+      }
+    };
+    var KmsNotFound = class _KmsNotFound extends SQSServiceException {
+      name = "KmsNotFound";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "KmsNotFound",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _KmsNotFound.prototype);
+      }
+    };
+    var KmsOptInRequired = class _KmsOptInRequired extends SQSServiceException {
+      name = "KmsOptInRequired";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "KmsOptInRequired",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _KmsOptInRequired.prototype);
+      }
+    };
+    var KmsThrottled = class _KmsThrottled extends SQSServiceException {
+      name = "KmsThrottled";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "KmsThrottled",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _KmsThrottled.prototype);
+      }
+    };
+    var InvalidMessageContents = class _InvalidMessageContents extends SQSServiceException {
+      name = "InvalidMessageContents";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "InvalidMessageContents",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _InvalidMessageContents.prototype);
+      }
+    };
+    var BatchRequestTooLong = class _BatchRequestTooLong extends SQSServiceException {
+      name = "BatchRequestTooLong";
+      $fault = "client";
+      constructor(opts) {
+        super({
+          name: "BatchRequestTooLong",
+          $fault: "client",
+          ...opts
+        });
+        Object.setPrototypeOf(this, _BatchRequestTooLong.prototype);
+      }
+    };
+    var _A2 = "Actions";
+    var _AN = "ActionName";
+    var _ANOMM = "ApproximateNumberOfMessagesMoved";
+    var _ANOMTM = "ApproximateNumberOfMessagesToMove";
+    var _ANt = "AttributeNames";
+    var _ANtt = "AttributeName";
+    var _AP = "AddPermission";
+    var _APR = "AddPermissionRequest";
+    var _AWSAI = "AWSAccountIds";
+    var _AWSAIc = "AWSAccountId";
+    var _At = "Attributes";
+    var _Att = "Attribute";
+    var _B = "Body";
+    var _BEIND = "BatchEntryIdsNotDistinct";
+    var _BL = "BinaryList";
+    var _BLV = "BinaryListValues";
+    var _BLVi = "BinaryListValue";
+    var _BREE = "BatchResultErrorEntry";
+    var _BREEL = "BatchResultErrorEntryList";
+    var _BRTL = "BatchRequestTooLong";
+    var _BV = "BinaryValue";
+    var _C2 = "Code";
+    var _CMMT = "CancelMessageMoveTask";
+    var _CMMTR = "CancelMessageMoveTaskRequest";
+    var _CMMTRa = "CancelMessageMoveTaskResult";
+    var _CMV = "ChangeMessageVisibility";
+    var _CMVB = "ChangeMessageVisibilityBatch";
+    var _CMVBR = "ChangeMessageVisibilityBatchRequest";
+    var _CMVBRE = "ChangeMessageVisibilityBatchRequestEntry";
+    var _CMVBREL = "ChangeMessageVisibilityBatchRequestEntryList";
+    var _CMVBRELh = "ChangeMessageVisibilityBatchResultEntryList";
+    var _CMVBREh = "ChangeMessageVisibilityBatchResultEntry";
+    var _CMVBRh = "ChangeMessageVisibilityBatchResult";
+    var _CMVR = "ChangeMessageVisibilityRequest";
+    var _CQ = "CreateQueue";
+    var _CQR = "CreateQueueRequest";
+    var _CQRr = "CreateQueueResult";
+    var _DA = "DestinationArn";
+    var _DM = "DeleteMessage";
+    var _DMB = "DeleteMessageBatch";
+    var _DMBR = "DeleteMessageBatchRequest";
+    var _DMBRE = "DeleteMessageBatchRequestEntry";
+    var _DMBREL = "DeleteMessageBatchRequestEntryList";
+    var _DMBRELe = "DeleteMessageBatchResultEntryList";
+    var _DMBREe = "DeleteMessageBatchResultEntry";
+    var _DMBRe = "DeleteMessageBatchResult";
+    var _DMR = "DeleteMessageRequest";
+    var _DQ = "DeleteQueue";
+    var _DQR = "DeleteQueueRequest";
+    var _DS2 = "DelaySeconds";
+    var _DT = "DataType";
+    var _E2 = "Entries";
+    var _EBR = "EmptyBatchRequest";
+    var _F = "Failed";
+    var _FR = "FailureReason";
+    var _GQA = "GetQueueAttributes";
+    var _GQAR = "GetQueueAttributesRequest";
+    var _GQARe = "GetQueueAttributesResult";
+    var _GQU = "GetQueueUrl";
+    var _GQUR = "GetQueueUrlRequest";
+    var _GQURe = "GetQueueUrlResult";
+    var _I = "Id";
+    var _IA = "InvalidAddress";
+    var _IAN = "InvalidAttributeName";
+    var _IAV = "InvalidAttributeValue";
+    var _IBEI = "InvalidBatchEntryId";
+    var _IIF = "InvalidIdFormat";
+    var _IMC = "InvalidMessageContents";
+    var _IS = "InvalidSecurity";
+    var _K2 = "Key";
+    var _KAD = "KmsAccessDenied";
+    var _KD = "KmsDisabled";
+    var _KIKU = "KmsInvalidKeyUsage";
+    var _KIS = "KmsInvalidState";
+    var _KNF = "KmsNotFound";
+    var _KOIR = "KmsOptInRequired";
+    var _KT = "KmsThrottled";
+    var _L = "Label";
+    var _LDLSQ = "ListDeadLetterSourceQueues";
+    var _LDLSQR = "ListDeadLetterSourceQueuesRequest";
+    var _LDLSQRi = "ListDeadLetterSourceQueuesResult";
+    var _LMMT = "ListMessageMoveTasks";
+    var _LMMTR = "ListMessageMoveTasksRequest";
+    var _LMMTRE = "ListMessageMoveTasksResultEntry";
+    var _LMMTREL = "ListMessageMoveTasksResultEntryList";
+    var _LMMTRi = "ListMessageMoveTasksResult";
+    var _LQ = "ListQueues";
+    var _LQR = "ListQueuesRequest";
+    var _LQRi = "ListQueuesResult";
+    var _LQT = "ListQueueTags";
+    var _LQTR = "ListQueueTagsRequest";
+    var _LQTRi = "ListQueueTagsResult";
+    var _M = "Message";
+    var _MA = "MessageAttributes";
+    var _MAN = "MessageAttributeNames";
+    var _MANe = "MessageAttributeName";
+    var _MAV = "MessageAttributeValue";
+    var _MAe = "MessageAttribute";
+    var _MB = "MessageBody";
+    var _MBAM = "MessageBodyAttributeMap";
+    var _MBSAM = "MessageBodySystemAttributeMap";
+    var _MDI = "MessageDeduplicationId";
+    var _MDOB = "MD5OfBody";
+    var _MDOMA = "MD5OfMessageAttributes";
+    var _MDOMB = "MD5OfMessageBody";
+    var _MDOMSA = "MD5OfMessageSystemAttributes";
+    var _MGI = "MessageGroupId";
+    var _MI = "MessageId";
+    var _ML = "MessageList";
+    var _MNI = "MessageNotInflight";
+    var _MNOM = "MaxNumberOfMessages";
+    var _MNOMPS = "MaxNumberOfMessagesPerSecond";
+    var _MR = "MaxResults";
+    var _MSA = "MessageSystemAttributes";
+    var _MSAM = "MessageSystemAttributeMap";
+    var _MSAN = "MessageSystemAttributeNames";
+    var _MSAV = "MessageSystemAttributeValue";
+    var _MSAe = "MessageSystemAttribute";
+    var _Me = "Messages";
+    var _N = "Name";
+    var _NT = "NextToken";
+    var _OL = "OverLimit";
+    var _PQ = "PurgeQueue";
+    var _PQIP = "PurgeQueueInProgress";
+    var _PQR = "PurgeQueueRequest";
+    var _QAM = "QueueAttributeMap";
+    var _QDNE = "QueueDoesNotExist";
+    var _QDR = "QueueDeletedRecently";
+    var _QN = "QueueName";
+    var _QNE = "QueueNameExists";
+    var _QNP = "QueueNamePrefix";
+    var _QOAWSAI = "QueueOwnerAWSAccountId";
+    var _QU = "QueueUrl";
+    var _QUu = "QueueUrls";
+    var _R = "Results";
+    var _RH = "ReceiptHandle";
+    var _RHII = "ReceiptHandleIsInvalid";
+    var _RM = "ReceiveMessage";
+    var _RMR = "ReceiveMessageRequest";
+    var _RMRe = "ReceiveMessageResult";
+    var _RNFE2 = "ResourceNotFoundException";
+    var _RP = "RemovePermission";
+    var _RPR = "RemovePermissionRequest";
+    var _RRAI = "ReceiveRequestAttemptId";
+    var _RT3 = "RequestThrottled";
+    var _S = "Successful";
+    var _SA = "SourceArn";
+    var _SF = "SenderFault";
+    var _SL = "StringList";
+    var _SLV = "StringListValues";
+    var _SLVt = "StringListValue";
+    var _SM = "SendMessage";
+    var _SMB = "SendMessageBatch";
+    var _SMBR = "SendMessageBatchRequest";
+    var _SMBRE = "SendMessageBatchRequestEntry";
+    var _SMBREL = "SendMessageBatchRequestEntryList";
+    var _SMBRELe = "SendMessageBatchResultEntryList";
+    var _SMBREe = "SendMessageBatchResultEntry";
+    var _SMBRe = "SendMessageBatchResult";
+    var _SMMT = "StartMessageMoveTask";
+    var _SMMTR = "StartMessageMoveTaskRequest";
+    var _SMMTRt = "StartMessageMoveTaskResult";
+    var _SMR = "SendMessageRequest";
+    var _SMRe = "SendMessageResult";
+    var _SN2 = "SequenceNumber";
+    var _SQA = "SetQueueAttributes";
+    var _SQAR = "SetQueueAttributesRequest";
+    var _ST2 = "StartedTimestamp";
+    var _SV = "StringValue";
+    var _St = "Status";
+    var _T2 = "Tag";
+    var _TH = "TaskHandle";
+    var _TK = "TagKeys";
+    var _TKa = "TagKey";
+    var _TM = "TagMap";
+    var _TMEIBR = "TooManyEntriesInBatchRequest";
+    var _TQ = "TagQueue";
+    var _TQR = "TagQueueRequest";
+    var _Ta2 = "Tags";
+    var _UO = "UnsupportedOperation";
+    var _UQ = "UntagQueue";
+    var _UQR = "UntagQueueRequest";
+    var _V2 = "Value";
+    var _VT = "VisibilityTimeout";
+    var _WTS = "WaitTimeSeconds";
+    var _aQE2 = "awsQueryError";
+    var _c5 = "client";
+    var _e5 = "error";
+    var _hE5 = "httpError";
+    var _m4 = "message";
+    var _qU = "queueUrls";
+    var _s5 = "smithy.ts.sdk.synthetic.com.amazonaws.sqs";
+    var _t = "tags";
+    var _xF = "xmlFlattened";
+    var _xN = "xmlName";
+    var n05 = "com.amazonaws.sqs";
+    var _s_registry5 = TypeRegistry2.for(_s5);
+    var SQSServiceException$ = [-3, _s5, "SQSServiceException", 0, [], []];
+    _s_registry5.registerError(SQSServiceException$, SQSServiceException);
+    var n0_registry5 = TypeRegistry2.for(n05);
+    var BatchEntryIdsNotDistinct$ = [
+      -3,
+      n05,
+      _BEIND,
+      { [_aQE2]: [`AWS.SimpleQueueService.BatchEntryIdsNotDistinct`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(BatchEntryIdsNotDistinct$, BatchEntryIdsNotDistinct);
+    var BatchRequestTooLong$ = [
+      -3,
+      n05,
+      _BRTL,
+      { [_aQE2]: [`AWS.SimpleQueueService.BatchRequestTooLong`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(BatchRequestTooLong$, BatchRequestTooLong);
+    var EmptyBatchRequest$ = [
+      -3,
+      n05,
+      _EBR,
+      { [_aQE2]: [`AWS.SimpleQueueService.EmptyBatchRequest`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(EmptyBatchRequest$, EmptyBatchRequest);
+    var InvalidAddress$ = [
+      -3,
+      n05,
+      _IA,
+      { [_aQE2]: [`InvalidAddress`, 404], [_e5]: _c5, [_hE5]: 404 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidAddress$, InvalidAddress);
+    var InvalidAttributeName$ = [
+      -3,
+      n05,
+      _IAN,
+      { [_e5]: _c5 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidAttributeName$, InvalidAttributeName);
+    var InvalidAttributeValue$ = [
+      -3,
+      n05,
+      _IAV,
+      { [_e5]: _c5 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidAttributeValue$, InvalidAttributeValue);
+    var InvalidBatchEntryId$ = [
+      -3,
+      n05,
+      _IBEI,
+      { [_aQE2]: [`AWS.SimpleQueueService.InvalidBatchEntryId`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidBatchEntryId$, InvalidBatchEntryId);
+    var InvalidIdFormat$ = [
+      -3,
+      n05,
+      _IIF,
+      { [_e5]: _c5 },
+      [],
+      []
+    ];
+    n0_registry5.registerError(InvalidIdFormat$, InvalidIdFormat);
+    var InvalidMessageContents$ = [
+      -3,
+      n05,
+      _IMC,
+      { [_e5]: _c5 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidMessageContents$, InvalidMessageContents);
+    var InvalidSecurity$ = [
+      -3,
+      n05,
+      _IS,
+      { [_aQE2]: [`InvalidSecurity`, 403], [_e5]: _c5, [_hE5]: 403 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(InvalidSecurity$, InvalidSecurity);
+    var KmsAccessDenied$ = [
+      -3,
+      n05,
+      _KAD,
+      { [_aQE2]: [`KMS.AccessDeniedException`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(KmsAccessDenied$, KmsAccessDenied);
+    var KmsDisabled$ = [
+      -3,
+      n05,
+      _KD,
+      { [_aQE2]: [`KMS.DisabledException`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(KmsDisabled$, KmsDisabled);
+    var KmsInvalidKeyUsage$ = [
+      -3,
+      n05,
+      _KIKU,
+      { [_aQE2]: [`KMS.InvalidKeyUsageException`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(KmsInvalidKeyUsage$, KmsInvalidKeyUsage);
+    var KmsInvalidState$ = [
+      -3,
+      n05,
+      _KIS,
+      { [_aQE2]: [`KMS.InvalidStateException`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(KmsInvalidState$, KmsInvalidState);
+    var KmsNotFound$ = [
+      -3,
+      n05,
+      _KNF,
+      { [_aQE2]: [`KMS.NotFoundException`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(KmsNotFound$, KmsNotFound);
+    var KmsOptInRequired$ = [
+      -3,
+      n05,
+      _KOIR,
+      { [_aQE2]: [`KMS.OptInRequired`, 403], [_e5]: _c5, [_hE5]: 403 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(KmsOptInRequired$, KmsOptInRequired);
+    var KmsThrottled$ = [
+      -3,
+      n05,
+      _KT,
+      { [_aQE2]: [`KMS.ThrottlingException`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(KmsThrottled$, KmsThrottled);
+    var MessageNotInflight$ = [
+      -3,
+      n05,
+      _MNI,
+      { [_aQE2]: [`AWS.SimpleQueueService.MessageNotInflight`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [],
+      []
+    ];
+    n0_registry5.registerError(MessageNotInflight$, MessageNotInflight);
+    var OverLimit$ = [
+      -3,
+      n05,
+      _OL,
+      { [_aQE2]: [`OverLimit`, 403], [_e5]: _c5, [_hE5]: 403 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(OverLimit$, OverLimit);
+    var PurgeQueueInProgress$ = [
+      -3,
+      n05,
+      _PQIP,
+      { [_aQE2]: [`AWS.SimpleQueueService.PurgeQueueInProgress`, 403], [_e5]: _c5, [_hE5]: 403 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(PurgeQueueInProgress$, PurgeQueueInProgress);
+    var QueueDeletedRecently$ = [
+      -3,
+      n05,
+      _QDR,
+      { [_aQE2]: [`AWS.SimpleQueueService.QueueDeletedRecently`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(QueueDeletedRecently$, QueueDeletedRecently);
+    var QueueDoesNotExist$ = [
+      -3,
+      n05,
+      _QDNE,
+      { [_aQE2]: [`AWS.SimpleQueueService.NonExistentQueue`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(QueueDoesNotExist$, QueueDoesNotExist);
+    var QueueNameExists$ = [
+      -3,
+      n05,
+      _QNE,
+      { [_aQE2]: [`QueueAlreadyExists`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(QueueNameExists$, QueueNameExists);
+    var ReceiptHandleIsInvalid$ = [
+      -3,
+      n05,
+      _RHII,
+      { [_aQE2]: [`ReceiptHandleIsInvalid`, 404], [_e5]: _c5, [_hE5]: 404 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(ReceiptHandleIsInvalid$, ReceiptHandleIsInvalid);
+    var RequestThrottled$ = [
+      -3,
+      n05,
+      _RT3,
+      { [_aQE2]: [`RequestThrottled`, 403], [_e5]: _c5, [_hE5]: 403 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(RequestThrottled$, RequestThrottled);
+    var ResourceNotFoundException$2 = [
+      -3,
+      n05,
+      _RNFE2,
+      { [_aQE2]: [`ResourceNotFoundException`, 404], [_e5]: _c5, [_hE5]: 404 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(ResourceNotFoundException$2, ResourceNotFoundException2);
+    var TooManyEntriesInBatchRequest$ = [
+      -3,
+      n05,
+      _TMEIBR,
+      { [_aQE2]: [`AWS.SimpleQueueService.TooManyEntriesInBatchRequest`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(TooManyEntriesInBatchRequest$, TooManyEntriesInBatchRequest);
+    var UnsupportedOperation$ = [
+      -3,
+      n05,
+      _UO,
+      { [_aQE2]: [`AWS.SimpleQueueService.UnsupportedOperation`, 400], [_e5]: _c5, [_hE5]: 400 },
+      [_m4],
+      [0]
+    ];
+    n0_registry5.registerError(UnsupportedOperation$, UnsupportedOperation);
+    var errorTypeRegistries5 = [
+      _s_registry5,
+      n0_registry5
+    ];
+    var AddPermissionRequest$ = [
+      3,
+      n05,
+      _APR,
+      0,
+      [_QU, _L, _AWSAI, _A2],
+      [0, 0, [64 | 0, { [_xF]: 1, [_xN]: _AWSAIc }], [64 | 0, { [_xF]: 1, [_xN]: _AN }]],
+      4
+    ];
+    var BatchResultErrorEntry$ = [
+      3,
+      n05,
+      _BREE,
+      0,
+      [_I, _SF, _C2, _M],
+      [0, 2, 0, 0],
+      3
+    ];
+    var CancelMessageMoveTaskRequest$ = [
+      3,
+      n05,
+      _CMMTR,
+      0,
+      [_TH],
+      [0],
+      1
+    ];
+    var CancelMessageMoveTaskResult$ = [
+      3,
+      n05,
+      _CMMTRa,
+      0,
+      [_ANOMM],
+      [1]
+    ];
+    var ChangeMessageVisibilityBatchRequest$ = [
+      3,
+      n05,
+      _CMVBR,
+      0,
+      [_QU, _E2],
+      [0, [() => ChangeMessageVisibilityBatchRequestEntryList, { [_xF]: 1, [_xN]: _CMVBRE }]],
+      2
+    ];
+    var ChangeMessageVisibilityBatchRequestEntry$ = [
+      3,
+      n05,
+      _CMVBRE,
+      0,
+      [_I, _RH, _VT],
+      [0, 0, 1],
+      2
+    ];
+    var ChangeMessageVisibilityBatchResult$ = [
+      3,
+      n05,
+      _CMVBRh,
+      0,
+      [_S, _F],
+      [[() => ChangeMessageVisibilityBatchResultEntryList, { [_xF]: 1, [_xN]: _CMVBREh }], [() => BatchResultErrorEntryList, { [_xF]: 1, [_xN]: _BREE }]],
+      2
+    ];
+    var ChangeMessageVisibilityBatchResultEntry$ = [
+      3,
+      n05,
+      _CMVBREh,
+      0,
+      [_I],
+      [0],
+      1
+    ];
+    var ChangeMessageVisibilityRequest$ = [
+      3,
+      n05,
+      _CMVR,
+      0,
+      [_QU, _RH, _VT],
+      [0, 0, 1],
+      3
+    ];
+    var CreateQueueRequest$ = [
+      3,
+      n05,
+      _CQR,
+      0,
+      [_QN, _At, _t],
+      [0, [() => QueueAttributeMap, { [_xF]: 1, [_xN]: _Att }], [() => TagMap, { [_xF]: 1, [_xN]: _T2 }]],
+      1
+    ];
+    var CreateQueueResult$ = [
+      3,
+      n05,
+      _CQRr,
+      0,
+      [_QU],
+      [0]
+    ];
+    var DeleteMessageBatchRequest$ = [
+      3,
+      n05,
+      _DMBR,
+      0,
+      [_QU, _E2],
+      [0, [() => DeleteMessageBatchRequestEntryList, { [_xF]: 1, [_xN]: _DMBRE }]],
+      2
+    ];
+    var DeleteMessageBatchRequestEntry$ = [
+      3,
+      n05,
+      _DMBRE,
+      0,
+      [_I, _RH],
+      [0, 0],
+      2
+    ];
+    var DeleteMessageBatchResult$ = [
+      3,
+      n05,
+      _DMBRe,
+      0,
+      [_S, _F],
+      [[() => DeleteMessageBatchResultEntryList, { [_xF]: 1, [_xN]: _DMBREe }], [() => BatchResultErrorEntryList, { [_xF]: 1, [_xN]: _BREE }]],
+      2
+    ];
+    var DeleteMessageBatchResultEntry$ = [
+      3,
+      n05,
+      _DMBREe,
+      0,
+      [_I],
+      [0],
+      1
+    ];
+    var DeleteMessageRequest$ = [
+      3,
+      n05,
+      _DMR,
+      0,
+      [_QU, _RH],
+      [0, 0],
+      2
+    ];
+    var DeleteQueueRequest$ = [
+      3,
+      n05,
+      _DQR,
+      0,
+      [_QU],
+      [0],
+      1
+    ];
+    var GetQueueAttributesRequest$ = [
+      3,
+      n05,
+      _GQAR,
+      0,
+      [_QU, _ANt],
+      [0, [64 | 0, { [_xF]: 1, [_xN]: _ANtt }]],
+      1
+    ];
+    var GetQueueAttributesResult$ = [
+      3,
+      n05,
+      _GQARe,
+      0,
+      [_At],
+      [[() => QueueAttributeMap, { [_xF]: 1, [_xN]: _Att }]]
+    ];
+    var GetQueueUrlRequest$ = [
+      3,
+      n05,
+      _GQUR,
+      0,
+      [_QN, _QOAWSAI],
+      [0, 0],
+      1
+    ];
+    var GetQueueUrlResult$ = [
+      3,
+      n05,
+      _GQURe,
+      0,
+      [_QU],
+      [0]
+    ];
+    var ListDeadLetterSourceQueuesRequest$ = [
+      3,
+      n05,
+      _LDLSQR,
+      0,
+      [_QU, _NT, _MR],
+      [0, 0, 1],
+      1
+    ];
+    var ListDeadLetterSourceQueuesResult$ = [
+      3,
+      n05,
+      _LDLSQRi,
+      0,
+      [_qU, _NT],
+      [[64 | 0, { [_xF]: 1, [_xN]: _QU }], 0],
+      1
+    ];
+    var ListMessageMoveTasksRequest$ = [
+      3,
+      n05,
+      _LMMTR,
+      0,
+      [_SA, _MR],
+      [0, 1],
+      1
+    ];
+    var ListMessageMoveTasksResult$ = [
+      3,
+      n05,
+      _LMMTRi,
+      { [_xN]: _LMMTRi },
+      [_R],
+      [[() => ListMessageMoveTasksResultEntryList, { [_xF]: 1, [_xN]: _LMMTRE }]]
+    ];
+    var ListMessageMoveTasksResultEntry$ = [
+      3,
+      n05,
+      _LMMTRE,
+      0,
+      [_TH, _St, _SA, _DA, _MNOMPS, _ANOMM, _ANOMTM, _FR, _ST2],
+      [0, 0, 0, 0, 1, 1, 1, 0, 1]
+    ];
+    var ListQueuesRequest$ = [
+      3,
+      n05,
+      _LQR,
+      0,
+      [_QNP, _NT, _MR],
+      [0, 0, 1]
+    ];
+    var ListQueuesResult$ = [
+      3,
+      n05,
+      _LQRi,
+      0,
+      [_QUu, _NT],
+      [[64 | 0, { [_xF]: 1, [_xN]: _QU }], 0]
+    ];
+    var ListQueueTagsRequest$ = [
+      3,
+      n05,
+      _LQTR,
+      0,
+      [_QU],
+      [0],
+      1
+    ];
+    var ListQueueTagsResult$ = [
+      3,
+      n05,
+      _LQTRi,
+      0,
+      [_Ta2],
+      [[() => TagMap, { [_xF]: 1, [_xN]: _T2 }]]
+    ];
+    var Message$ = [
+      3,
+      n05,
+      _M,
+      0,
+      [_MI, _RH, _MDOB, _B, _At, _MDOMA, _MA],
+      [0, 0, 0, 0, [() => MessageSystemAttributeMap, { [_xF]: 1, [_xN]: _Att }], 0, [() => MessageBodyAttributeMap, { [_xF]: 1, [_xN]: _MAe }]]
+    ];
+    var MessageAttributeValue$ = [
+      3,
+      n05,
+      _MAV,
+      0,
+      [_DT, _SV, _BV, _SLV, _BLV],
+      [0, 0, 21, [() => StringList, { [_xF]: 1, [_xN]: _SLVt }], [() => BinaryList, { [_xF]: 1, [_xN]: _BLVi }]],
+      1
+    ];
+    var MessageSystemAttributeValue$ = [
+      3,
+      n05,
+      _MSAV,
+      0,
+      [_DT, _SV, _BV, _SLV, _BLV],
+      [0, 0, 21, [() => StringList, { [_xF]: 1, [_xN]: _SLVt }], [() => BinaryList, { [_xF]: 1, [_xN]: _BLVi }]],
+      1
+    ];
+    var PurgeQueueRequest$ = [
+      3,
+      n05,
+      _PQR,
+      0,
+      [_QU],
+      [0],
+      1
+    ];
+    var ReceiveMessageRequest$ = [
+      3,
+      n05,
+      _RMR,
+      0,
+      [_QU, _ANt, _MSAN, _MAN, _MNOM, _VT, _WTS, _RRAI],
+      [0, [64 | 0, { [_xF]: 1, [_xN]: _ANtt }], [64 | 0, { [_xF]: 1, [_xN]: _ANtt }], [64 | 0, { [_xF]: 1, [_xN]: _MANe }], 1, 1, 1, 0],
+      1
+    ];
+    var ReceiveMessageResult$ = [
+      3,
+      n05,
+      _RMRe,
+      0,
+      [_Me],
+      [[() => MessageList, { [_xF]: 1, [_xN]: _M }]]
+    ];
+    var RemovePermissionRequest$ = [
+      3,
+      n05,
+      _RPR,
+      0,
+      [_QU, _L],
+      [0, 0],
+      2
+    ];
+    var SendMessageBatchRequest$ = [
+      3,
+      n05,
+      _SMBR,
+      0,
+      [_QU, _E2],
+      [0, [() => SendMessageBatchRequestEntryList, { [_xF]: 1, [_xN]: _SMBRE }]],
+      2
+    ];
+    var SendMessageBatchRequestEntry$ = [
+      3,
+      n05,
+      _SMBRE,
+      0,
+      [_I, _MB, _DS2, _MA, _MSA, _MDI, _MGI],
+      [0, 0, 1, [() => MessageBodyAttributeMap, { [_xF]: 1, [_xN]: _MAe }], [() => MessageBodySystemAttributeMap, { [_xF]: 1, [_xN]: _MSAe }], 0, 0],
+      2
+    ];
+    var SendMessageBatchResult$ = [
+      3,
+      n05,
+      _SMBRe,
+      0,
+      [_S, _F],
+      [[() => SendMessageBatchResultEntryList, { [_xF]: 1, [_xN]: _SMBREe }], [() => BatchResultErrorEntryList, { [_xF]: 1, [_xN]: _BREE }]],
+      2
+    ];
+    var SendMessageBatchResultEntry$ = [
+      3,
+      n05,
+      _SMBREe,
+      0,
+      [_I, _MI, _MDOMB, _MDOMA, _MDOMSA, _SN2],
+      [0, 0, 0, 0, 0, 0],
+      3
+    ];
+    var SendMessageRequest$ = [
+      3,
+      n05,
+      _SMR,
+      0,
+      [_QU, _MB, _DS2, _MA, _MSA, _MDI, _MGI],
+      [0, 0, 1, [() => MessageBodyAttributeMap, { [_xF]: 1, [_xN]: _MAe }], [() => MessageBodySystemAttributeMap, { [_xF]: 1, [_xN]: _MSAe }], 0, 0],
+      2
+    ];
+    var SendMessageResult$ = [
+      3,
+      n05,
+      _SMRe,
+      0,
+      [_MDOMB, _MDOMA, _MDOMSA, _MI, _SN2],
+      [0, 0, 0, 0, 0]
+    ];
+    var SetQueueAttributesRequest$ = [
+      3,
+      n05,
+      _SQAR,
+      0,
+      [_QU, _At],
+      [0, [() => QueueAttributeMap, { [_xF]: 1, [_xN]: _Att }]],
+      2
+    ];
+    var StartMessageMoveTaskRequest$ = [
+      3,
+      n05,
+      _SMMTR,
+      0,
+      [_SA, _DA, _MNOMPS],
+      [0, 0, 1],
+      1
+    ];
+    var StartMessageMoveTaskResult$ = [
+      3,
+      n05,
+      _SMMTRt,
+      0,
+      [_TH],
+      [0]
+    ];
+    var TagQueueRequest$ = [
+      3,
+      n05,
+      _TQR,
+      0,
+      [_QU, _Ta2],
+      [0, [() => TagMap, { [_xF]: 1, [_xN]: _T2 }]],
+      2
+    ];
+    var UntagQueueRequest$ = [
+      3,
+      n05,
+      _UQR,
+      0,
+      [_QU, _TK],
+      [0, [64 | 0, { [_xF]: 1, [_xN]: _TKa }]],
+      2
+    ];
+    var __Unit = "unit";
+    var BatchResultErrorEntryList = [
+      1,
+      n05,
+      _BREEL,
+      0,
+      () => BatchResultErrorEntry$
+    ];
+    var BinaryList = [
+      1,
+      n05,
+      _BL,
+      0,
+      [
+        21,
+        { [_xN]: _BLVi }
+      ]
+    ];
+    var ChangeMessageVisibilityBatchRequestEntryList = [
+      1,
+      n05,
+      _CMVBREL,
+      0,
+      () => ChangeMessageVisibilityBatchRequestEntry$
+    ];
+    var ChangeMessageVisibilityBatchResultEntryList = [
+      1,
+      n05,
+      _CMVBRELh,
+      0,
+      () => ChangeMessageVisibilityBatchResultEntry$
+    ];
+    var DeleteMessageBatchRequestEntryList = [
+      1,
+      n05,
+      _DMBREL,
+      0,
+      () => DeleteMessageBatchRequestEntry$
+    ];
+    var DeleteMessageBatchResultEntryList = [
+      1,
+      n05,
+      _DMBRELe,
+      0,
+      () => DeleteMessageBatchResultEntry$
+    ];
+    var ListMessageMoveTasksResultEntryList = [
+      1,
+      n05,
+      _LMMTREL,
+      0,
+      () => ListMessageMoveTasksResultEntry$
+    ];
+    var MessageList = [
+      1,
+      n05,
+      _ML,
+      0,
+      [
+        () => Message$,
+        0
+      ]
+    ];
+    var SendMessageBatchRequestEntryList = [
+      1,
+      n05,
+      _SMBREL,
+      0,
+      [
+        () => SendMessageBatchRequestEntry$,
+        0
+      ]
+    ];
+    var SendMessageBatchResultEntryList = [
+      1,
+      n05,
+      _SMBRELe,
+      0,
+      () => SendMessageBatchResultEntry$
+    ];
+    var StringList = [
+      1,
+      n05,
+      _SL,
+      0,
+      [
+        0,
+        { [_xN]: _SLVt }
+      ]
+    ];
+    var MessageBodyAttributeMap = [
+      2,
+      n05,
+      _MBAM,
+      0,
+      [
+        0,
+        { [_xN]: _N }
+      ],
+      [
+        () => MessageAttributeValue$,
+        { [_xN]: _V2 }
+      ]
+    ];
+    var MessageBodySystemAttributeMap = [
+      2,
+      n05,
+      _MBSAM,
+      0,
+      [
+        0,
+        { [_xN]: _N }
+      ],
+      [
+        () => MessageSystemAttributeValue$,
+        { [_xN]: _V2 }
+      ]
+    ];
+    var MessageSystemAttributeMap = [
+      2,
+      n05,
+      _MSAM,
+      0,
+      [
+        0,
+        { [_xN]: _N }
+      ],
+      [
+        0,
+        { [_xN]: _V2 }
+      ]
+    ];
+    var QueueAttributeMap = [
+      2,
+      n05,
+      _QAM,
+      0,
+      [
+        0,
+        { [_xN]: _N }
+      ],
+      [
+        0,
+        { [_xN]: _V2 }
+      ]
+    ];
+    var TagMap = [
+      2,
+      n05,
+      _TM,
+      0,
+      [
+        0,
+        { [_xN]: _K2 }
+      ],
+      [
+        0,
+        { [_xN]: _V2 }
+      ]
+    ];
+    var AddPermission$ = [
+      9,
+      n05,
+      _AP,
+      0,
+      () => AddPermissionRequest$,
+      () => __Unit
+    ];
+    var CancelMessageMoveTask$ = [
+      9,
+      n05,
+      _CMMT,
+      0,
+      () => CancelMessageMoveTaskRequest$,
+      () => CancelMessageMoveTaskResult$
+    ];
+    var ChangeMessageVisibility$ = [
+      9,
+      n05,
+      _CMV,
+      0,
+      () => ChangeMessageVisibilityRequest$,
+      () => __Unit
+    ];
+    var ChangeMessageVisibilityBatch$ = [
+      9,
+      n05,
+      _CMVB,
+      0,
+      () => ChangeMessageVisibilityBatchRequest$,
+      () => ChangeMessageVisibilityBatchResult$
+    ];
+    var CreateQueue$ = [
+      9,
+      n05,
+      _CQ,
+      0,
+      () => CreateQueueRequest$,
+      () => CreateQueueResult$
+    ];
+    var DeleteMessage$ = [
+      9,
+      n05,
+      _DM,
+      0,
+      () => DeleteMessageRequest$,
+      () => __Unit
+    ];
+    var DeleteMessageBatch$ = [
+      9,
+      n05,
+      _DMB,
+      0,
+      () => DeleteMessageBatchRequest$,
+      () => DeleteMessageBatchResult$
+    ];
+    var DeleteQueue$ = [
+      9,
+      n05,
+      _DQ,
+      0,
+      () => DeleteQueueRequest$,
+      () => __Unit
+    ];
+    var GetQueueAttributes$ = [
+      9,
+      n05,
+      _GQA,
+      0,
+      () => GetQueueAttributesRequest$,
+      () => GetQueueAttributesResult$
+    ];
+    var GetQueueUrl$ = [
+      9,
+      n05,
+      _GQU,
+      0,
+      () => GetQueueUrlRequest$,
+      () => GetQueueUrlResult$
+    ];
+    var ListDeadLetterSourceQueues$ = [
+      9,
+      n05,
+      _LDLSQ,
+      0,
+      () => ListDeadLetterSourceQueuesRequest$,
+      () => ListDeadLetterSourceQueuesResult$
+    ];
+    var ListMessageMoveTasks$ = [
+      9,
+      n05,
+      _LMMT,
+      0,
+      () => ListMessageMoveTasksRequest$,
+      () => ListMessageMoveTasksResult$
+    ];
+    var ListQueues$ = [
+      9,
+      n05,
+      _LQ,
+      0,
+      () => ListQueuesRequest$,
+      () => ListQueuesResult$
+    ];
+    var ListQueueTags$ = [
+      9,
+      n05,
+      _LQT,
+      0,
+      () => ListQueueTagsRequest$,
+      () => ListQueueTagsResult$
+    ];
+    var PurgeQueue$ = [
+      9,
+      n05,
+      _PQ,
+      0,
+      () => PurgeQueueRequest$,
+      () => __Unit
+    ];
+    var ReceiveMessage$ = [
+      9,
+      n05,
+      _RM,
+      0,
+      () => ReceiveMessageRequest$,
+      () => ReceiveMessageResult$
+    ];
+    var RemovePermission$ = [
+      9,
+      n05,
+      _RP,
+      0,
+      () => RemovePermissionRequest$,
+      () => __Unit
+    ];
+    var SendMessage$ = [
+      9,
+      n05,
+      _SM,
+      0,
+      () => SendMessageRequest$,
+      () => SendMessageResult$
+    ];
+    var SendMessageBatch$ = [
+      9,
+      n05,
+      _SMB,
+      0,
+      () => SendMessageBatchRequest$,
+      () => SendMessageBatchResult$
+    ];
+    var SetQueueAttributes$ = [
+      9,
+      n05,
+      _SQA,
+      0,
+      () => SetQueueAttributesRequest$,
+      () => __Unit
+    ];
+    var StartMessageMoveTask$ = [
+      9,
+      n05,
+      _SMMT,
+      0,
+      () => StartMessageMoveTaskRequest$,
+      () => StartMessageMoveTaskResult$
+    ];
+    var TagQueue$ = [
+      9,
+      n05,
+      _TQ,
+      0,
+      () => TagQueueRequest$,
+      () => __Unit
+    ];
+    var UntagQueue$ = [
+      9,
+      n05,
+      _UQ,
+      0,
+      () => UntagQueueRequest$,
+      () => __Unit
+    ];
+    var getRuntimeConfig$1 = (config) => {
+      return {
+        apiVersion: "2012-11-05",
+        base64Decoder: config?.base64Decoder ?? fromBase642,
+        base64Encoder: config?.base64Encoder ?? toBase643,
+        disableHostPrefix: config?.disableHostPrefix ?? false,
+        endpointProvider: config?.endpointProvider ?? defaultEndpointResolver5,
+        extensions: config?.extensions ?? [],
+        httpAuthSchemeProvider: config?.httpAuthSchemeProvider ?? defaultSQSHttpAuthSchemeProvider,
+        httpAuthSchemes: config?.httpAuthSchemes ?? [
+          {
+            schemeId: "aws.auth#sigv4",
+            identityProvider: (ipc) => ipc.getIdentityProvider("aws.auth#sigv4"),
+            signer: new AwsSdkSigV4Signer2()
+          }
+        ],
+        logger: config?.logger ?? new NoOpLogger2(),
+        md5: config?.md5 ?? Md5,
+        protocol: config?.protocol ?? AwsJson1_0Protocol2,
+        protocolSettings: config?.protocolSettings ?? {
+          defaultNamespace: "com.amazonaws.sqs",
+          errorTypeRegistries: errorTypeRegistries5,
+          version: "2012-11-05",
+          serviceTarget: "AmazonSQS",
+          awsQueryCompatible: true
+        },
+        serviceId: config?.serviceId ?? "SQS",
+        sha256: config?.sha256 ?? Sha256,
+        urlParser: config?.urlParser ?? parseUrl2,
+        utf8Decoder: config?.utf8Decoder ?? fromUtf83,
+        utf8Encoder: config?.utf8Encoder ?? toUtf83
+      };
+    };
+    var getRuntimeConfig9 = (config) => {
+      emitWarningIfUnsupportedVersion3(process.version);
+      const defaultsMode = resolveDefaultsModeConfig2(config);
+      const defaultConfigProvider = () => defaultsMode().then(loadConfigsForDefaultMode2);
+      const clientSharedValues = getRuntimeConfig$1(config);
+      emitWarningIfUnsupportedVersion$1(process.version);
+      const loaderConfig = {
+        profile: config?.profile,
+        logger: clientSharedValues.logger
+      };
+      return {
+        ...clientSharedValues,
+        ...config,
+        runtime: "node",
+        defaultsMode,
+        authSchemePreference: config?.authSchemePreference ?? loadConfig2(NODE_AUTH_SCHEME_PREFERENCE_OPTIONS2, loaderConfig),
+        bodyLengthChecker: config?.bodyLengthChecker ?? calculateBodyLength2,
+        credentialDefaultProvider: config?.credentialDefaultProvider ?? defaultProvider,
+        defaultUserAgentProvider: config?.defaultUserAgentProvider ?? createDefaultUserAgentProvider2({ serviceId: clientSharedValues.serviceId, clientVersion: packageInfo.version }),
+        maxAttempts: config?.maxAttempts ?? loadConfig2(NODE_MAX_ATTEMPT_CONFIG_OPTIONS2, config),
+        region: config?.region ?? loadConfig2(NODE_REGION_CONFIG_OPTIONS2, { ...NODE_REGION_CONFIG_FILE_OPTIONS2, ...loaderConfig }),
+        requestHandler: NodeHttpHandler.create(config?.requestHandler ?? defaultConfigProvider),
+        retryMode: config?.retryMode ?? loadConfig2({
+          ...NODE_RETRY_MODE_CONFIG_OPTIONS2,
+          default: async () => (await defaultConfigProvider()).retryMode || DEFAULT_RETRY_MODE2
+        }, config),
+        streamCollector: config?.streamCollector ?? streamCollector7,
+        useDualstackEndpoint: config?.useDualstackEndpoint ?? loadConfig2(NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS2, loaderConfig),
+        useFipsEndpoint: config?.useFipsEndpoint ?? loadConfig2(NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS2, loaderConfig),
+        userAgentAppId: config?.userAgentAppId ?? loadConfig2(NODE_APP_ID_CONFIG_OPTIONS2, loaderConfig)
+      };
+    };
+    var getHttpAuthExtensionConfiguration5 = (runtimeConfig) => {
+      const _httpAuthSchemes = runtimeConfig.httpAuthSchemes;
+      let _httpAuthSchemeProvider = runtimeConfig.httpAuthSchemeProvider;
+      let _credentials = runtimeConfig.credentials;
+      return {
+        setHttpAuthScheme(httpAuthScheme) {
+          const index = _httpAuthSchemes.findIndex((scheme) => scheme.schemeId === httpAuthScheme.schemeId);
+          if (index === -1) {
+            _httpAuthSchemes.push(httpAuthScheme);
+          } else {
+            _httpAuthSchemes.splice(index, 1, httpAuthScheme);
+          }
+        },
+        httpAuthSchemes() {
+          return _httpAuthSchemes;
+        },
+        setHttpAuthSchemeProvider(httpAuthSchemeProvider) {
+          _httpAuthSchemeProvider = httpAuthSchemeProvider;
+        },
+        httpAuthSchemeProvider() {
+          return _httpAuthSchemeProvider;
+        },
+        setCredentials(credentials) {
+          _credentials = credentials;
+        },
+        credentials() {
+          return _credentials;
+        }
+      };
+    };
+    var resolveHttpAuthRuntimeConfig5 = (config) => {
+      return {
+        httpAuthSchemes: config.httpAuthSchemes(),
+        httpAuthSchemeProvider: config.httpAuthSchemeProvider(),
+        credentials: config.credentials()
+      };
+    };
+    var resolveRuntimeExtensions5 = (runtimeConfig, extensions) => {
+      const extensionConfiguration = Object.assign(getAwsRegionExtensionConfiguration2(runtimeConfig), getDefaultExtensionConfiguration2(runtimeConfig), getHttpHandlerExtensionConfiguration2(runtimeConfig), getHttpAuthExtensionConfiguration5(runtimeConfig));
+      extensions.forEach((extension) => extension.configure(extensionConfiguration));
+      return Object.assign(runtimeConfig, resolveAwsRegionExtensionConfiguration2(extensionConfiguration), resolveDefaultRuntimeConfig2(extensionConfiguration), resolveHttpHandlerRuntimeConfig2(extensionConfiguration), resolveHttpAuthRuntimeConfig5(extensionConfiguration));
+    };
+    var SQSClient = class extends Client2 {
+      config;
+      constructor(...[configuration]) {
+        const _config_0 = getRuntimeConfig9(configuration || {});
+        super(_config_0);
+        this.initConfig = _config_0;
+        const _config_1 = resolveClientEndpointParameters5(_config_0);
+        const _config_2 = resolveUserAgentConfig2(_config_1);
+        const _config_3 = resolveRetryConfig2(_config_2);
+        const _config_4 = resolveRegionConfig2(_config_3);
+        const _config_5 = resolveHostHeaderConfig2(_config_4);
+        const _config_6 = resolveEndpointConfig2(_config_5);
+        const _config_7 = resolveQueueUrlConfig(_config_6);
+        const _config_8 = resolveHttpAuthSchemeConfig5(_config_7);
+        const _config_9 = resolveRuntimeExtensions5(_config_8, configuration?.extensions || []);
+        this.config = _config_9;
+        this.middlewareStack.use(getSchemaSerdePlugin2(this.config));
+        this.middlewareStack.use(getUserAgentPlugin2(this.config));
+        this.middlewareStack.use(getRetryPlugin2(this.config));
+        this.middlewareStack.use(getContentLengthPlugin2(this.config));
+        this.middlewareStack.use(getHostHeaderPlugin2(this.config));
+        this.middlewareStack.use(getLoggerPlugin2(this.config));
+        this.middlewareStack.use(getRecursionDetectionPlugin2(this.config));
+        this.middlewareStack.use(getQueueUrlPlugin(this.config));
+        this.middlewareStack.use(getHttpAuthSchemeEndpointRuleSetPlugin2(this.config, {
+          httpAuthSchemeParametersProvider: defaultSQSHttpAuthSchemeParametersProvider,
+          identityProviderConfigProvider: async (config) => new DefaultIdentityProviderConfig2({
+            "aws.auth#sigv4": config.credentials
+          })
+        }));
+        this.middlewareStack.use(getHttpSigningPlugin2(this.config));
+      }
+      destroy() {
+        super.destroy();
+      }
+    };
+    var command5 = makeBuilder2(commonParams5, "AmazonSQS", "SQSClient", getEndpointPlugin2);
+    var _ep05 = {};
+    var _mw05 = (Command2, cs, config, o3) => [];
+    var _mw1 = (Command2, cs, config, o3) => [
+      getReceiveMessagePlugin(config),
+      getLongPollPlugin2(config)
+    ];
+    var _mw2 = (Command2, cs, config, o3) => [
+      getSendMessageBatchPlugin(config)
+    ];
+    var _mw3 = (Command2, cs, config, o3) => [
+      getSendMessagePlugin(config)
+    ];
+    var AddPermissionCommand = class extends command5(_ep05, _mw05, "AddPermission", AddPermission$) {
+    };
+    var CancelMessageMoveTaskCommand = class extends command5(_ep05, _mw05, "CancelMessageMoveTask", CancelMessageMoveTask$) {
+    };
+    var ChangeMessageVisibilityBatchCommand = class extends command5(_ep05, _mw05, "ChangeMessageVisibilityBatch", ChangeMessageVisibilityBatch$) {
+    };
+    var ChangeMessageVisibilityCommand = class extends command5(_ep05, _mw05, "ChangeMessageVisibility", ChangeMessageVisibility$) {
+    };
+    var CreateQueueCommand = class extends command5(_ep05, _mw05, "CreateQueue", CreateQueue$) {
+    };
+    var DeleteMessageBatchCommand = class extends command5(_ep05, _mw05, "DeleteMessageBatch", DeleteMessageBatch$) {
+    };
+    var DeleteMessageCommand = class extends command5(_ep05, _mw05, "DeleteMessage", DeleteMessage$) {
+    };
+    var DeleteQueueCommand = class extends command5(_ep05, _mw05, "DeleteQueue", DeleteQueue$) {
+    };
+    var GetQueueAttributesCommand = class extends command5(_ep05, _mw05, "GetQueueAttributes", GetQueueAttributes$) {
+    };
+    var GetQueueUrlCommand = class extends command5(_ep05, _mw05, "GetQueueUrl", GetQueueUrl$) {
+    };
+    var ListDeadLetterSourceQueuesCommand = class extends command5(_ep05, _mw05, "ListDeadLetterSourceQueues", ListDeadLetterSourceQueues$) {
+    };
+    var ListMessageMoveTasksCommand = class extends command5(_ep05, _mw05, "ListMessageMoveTasks", ListMessageMoveTasks$) {
+    };
+    var ListQueuesCommand = class extends command5(_ep05, _mw05, "ListQueues", ListQueues$) {
+    };
+    var ListQueueTagsCommand = class extends command5(_ep05, _mw05, "ListQueueTags", ListQueueTags$) {
+    };
+    var PurgeQueueCommand = class extends command5(_ep05, _mw05, "PurgeQueue", PurgeQueue$) {
+    };
+    var ReceiveMessageCommand = class extends command5(_ep05, _mw1, "ReceiveMessage", ReceiveMessage$) {
+    };
+    var RemovePermissionCommand = class extends command5(_ep05, _mw05, "RemovePermission", RemovePermission$) {
+    };
+    var SendMessageBatchCommand = class extends command5(_ep05, _mw2, "SendMessageBatch", SendMessageBatch$) {
+    };
+    var SendMessageCommand = class extends command5(_ep05, _mw3, "SendMessage", SendMessage$) {
+    };
+    var SetQueueAttributesCommand = class extends command5(_ep05, _mw05, "SetQueueAttributes", SetQueueAttributes$) {
+    };
+    var StartMessageMoveTaskCommand = class extends command5(_ep05, _mw05, "StartMessageMoveTask", StartMessageMoveTask$) {
+    };
+    var TagQueueCommand = class extends command5(_ep05, _mw05, "TagQueue", TagQueue$) {
+    };
+    var UntagQueueCommand = class extends command5(_ep05, _mw05, "UntagQueue", UntagQueue$) {
+    };
+    var paginateListDeadLetterSourceQueues = createPaginator2(SQSClient, ListDeadLetterSourceQueuesCommand, "NextToken", "NextToken", "MaxResults");
+    var paginateListQueues = createPaginator2(SQSClient, ListQueuesCommand, "NextToken", "NextToken", "MaxResults");
+    var commands5 = {
+      AddPermissionCommand,
+      CancelMessageMoveTaskCommand,
+      ChangeMessageVisibilityCommand,
+      ChangeMessageVisibilityBatchCommand,
+      CreateQueueCommand,
+      DeleteMessageCommand,
+      DeleteMessageBatchCommand,
+      DeleteQueueCommand,
+      GetQueueAttributesCommand,
+      GetQueueUrlCommand,
+      ListDeadLetterSourceQueuesCommand,
+      ListMessageMoveTasksCommand,
+      ListQueuesCommand,
+      ListQueueTagsCommand,
+      PurgeQueueCommand,
+      ReceiveMessageCommand,
+      RemovePermissionCommand,
+      SendMessageCommand,
+      SendMessageBatchCommand,
+      SetQueueAttributesCommand,
+      StartMessageMoveTaskCommand,
+      TagQueueCommand,
+      UntagQueueCommand
+    };
+    var paginators = {
+      paginateListDeadLetterSourceQueues,
+      paginateListQueues
+    };
+    var SQS = class extends SQSClient {
+    };
+    createAggregatedClient2(commands5, SQS, { paginators });
+    var QueueAttributeName = {
+      All: "All",
+      ApproximateNumberOfMessages: "ApproximateNumberOfMessages",
+      ApproximateNumberOfMessagesDelayed: "ApproximateNumberOfMessagesDelayed",
+      ApproximateNumberOfMessagesNotVisible: "ApproximateNumberOfMessagesNotVisible",
+      ContentBasedDeduplication: "ContentBasedDeduplication",
+      CreatedTimestamp: "CreatedTimestamp",
+      DeduplicationScope: "DeduplicationScope",
+      DelaySeconds: "DelaySeconds",
+      FifoQueue: "FifoQueue",
+      FifoThroughputLimit: "FifoThroughputLimit",
+      KmsDataKeyReusePeriodSeconds: "KmsDataKeyReusePeriodSeconds",
+      KmsMasterKeyId: "KmsMasterKeyId",
+      LastModifiedTimestamp: "LastModifiedTimestamp",
+      MaximumMessageSize: "MaximumMessageSize",
+      MessageRetentionPeriod: "MessageRetentionPeriod",
+      Policy: "Policy",
+      QueueArn: "QueueArn",
+      ReceiveMessageWaitTimeSeconds: "ReceiveMessageWaitTimeSeconds",
+      RedriveAllowPolicy: "RedriveAllowPolicy",
+      RedrivePolicy: "RedrivePolicy",
+      SqsManagedSseEnabled: "SqsManagedSseEnabled",
+      VisibilityTimeout: "VisibilityTimeout"
+    };
+    var MessageSystemAttributeName = {
+      AWSTraceHeader: "AWSTraceHeader",
+      All: "All",
+      ApproximateFirstReceiveTimestamp: "ApproximateFirstReceiveTimestamp",
+      ApproximateReceiveCount: "ApproximateReceiveCount",
+      DeadLetterQueueSourceArn: "DeadLetterQueueSourceArn",
+      MessageDeduplicationId: "MessageDeduplicationId",
+      MessageGroupId: "MessageGroupId",
+      SenderId: "SenderId",
+      SentTimestamp: "SentTimestamp",
+      SequenceNumber: "SequenceNumber"
+    };
+    var MessageSystemAttributeNameForSends = {
+      AWSTraceHeader: "AWSTraceHeader"
+    };
+    exports2.AddPermission$ = AddPermission$;
+    exports2.AddPermissionCommand = AddPermissionCommand;
+    exports2.AddPermissionRequest$ = AddPermissionRequest$;
+    exports2.BatchEntryIdsNotDistinct = BatchEntryIdsNotDistinct;
+    exports2.BatchEntryIdsNotDistinct$ = BatchEntryIdsNotDistinct$;
+    exports2.BatchRequestTooLong = BatchRequestTooLong;
+    exports2.BatchRequestTooLong$ = BatchRequestTooLong$;
+    exports2.BatchResultErrorEntry$ = BatchResultErrorEntry$;
+    exports2.CancelMessageMoveTask$ = CancelMessageMoveTask$;
+    exports2.CancelMessageMoveTaskCommand = CancelMessageMoveTaskCommand;
+    exports2.CancelMessageMoveTaskRequest$ = CancelMessageMoveTaskRequest$;
+    exports2.CancelMessageMoveTaskResult$ = CancelMessageMoveTaskResult$;
+    exports2.ChangeMessageVisibility$ = ChangeMessageVisibility$;
+    exports2.ChangeMessageVisibilityBatch$ = ChangeMessageVisibilityBatch$;
+    exports2.ChangeMessageVisibilityBatchCommand = ChangeMessageVisibilityBatchCommand;
+    exports2.ChangeMessageVisibilityBatchRequest$ = ChangeMessageVisibilityBatchRequest$;
+    exports2.ChangeMessageVisibilityBatchRequestEntry$ = ChangeMessageVisibilityBatchRequestEntry$;
+    exports2.ChangeMessageVisibilityBatchResult$ = ChangeMessageVisibilityBatchResult$;
+    exports2.ChangeMessageVisibilityBatchResultEntry$ = ChangeMessageVisibilityBatchResultEntry$;
+    exports2.ChangeMessageVisibilityCommand = ChangeMessageVisibilityCommand;
+    exports2.ChangeMessageVisibilityRequest$ = ChangeMessageVisibilityRequest$;
+    exports2.CreateQueue$ = CreateQueue$;
+    exports2.CreateQueueCommand = CreateQueueCommand;
+    exports2.CreateQueueRequest$ = CreateQueueRequest$;
+    exports2.CreateQueueResult$ = CreateQueueResult$;
+    exports2.DeleteMessage$ = DeleteMessage$;
+    exports2.DeleteMessageBatch$ = DeleteMessageBatch$;
+    exports2.DeleteMessageBatchCommand = DeleteMessageBatchCommand;
+    exports2.DeleteMessageBatchRequest$ = DeleteMessageBatchRequest$;
+    exports2.DeleteMessageBatchRequestEntry$ = DeleteMessageBatchRequestEntry$;
+    exports2.DeleteMessageBatchResult$ = DeleteMessageBatchResult$;
+    exports2.DeleteMessageBatchResultEntry$ = DeleteMessageBatchResultEntry$;
+    exports2.DeleteMessageCommand = DeleteMessageCommand;
+    exports2.DeleteMessageRequest$ = DeleteMessageRequest$;
+    exports2.DeleteQueue$ = DeleteQueue$;
+    exports2.DeleteQueueCommand = DeleteQueueCommand;
+    exports2.DeleteQueueRequest$ = DeleteQueueRequest$;
+    exports2.EmptyBatchRequest = EmptyBatchRequest;
+    exports2.EmptyBatchRequest$ = EmptyBatchRequest$;
+    exports2.GetQueueAttributes$ = GetQueueAttributes$;
+    exports2.GetQueueAttributesCommand = GetQueueAttributesCommand;
+    exports2.GetQueueAttributesRequest$ = GetQueueAttributesRequest$;
+    exports2.GetQueueAttributesResult$ = GetQueueAttributesResult$;
+    exports2.GetQueueUrl$ = GetQueueUrl$;
+    exports2.GetQueueUrlCommand = GetQueueUrlCommand;
+    exports2.GetQueueUrlRequest$ = GetQueueUrlRequest$;
+    exports2.GetQueueUrlResult$ = GetQueueUrlResult$;
+    exports2.InvalidAddress = InvalidAddress;
+    exports2.InvalidAddress$ = InvalidAddress$;
+    exports2.InvalidAttributeName = InvalidAttributeName;
+    exports2.InvalidAttributeName$ = InvalidAttributeName$;
+    exports2.InvalidAttributeValue = InvalidAttributeValue;
+    exports2.InvalidAttributeValue$ = InvalidAttributeValue$;
+    exports2.InvalidBatchEntryId = InvalidBatchEntryId;
+    exports2.InvalidBatchEntryId$ = InvalidBatchEntryId$;
+    exports2.InvalidIdFormat = InvalidIdFormat;
+    exports2.InvalidIdFormat$ = InvalidIdFormat$;
+    exports2.InvalidMessageContents = InvalidMessageContents;
+    exports2.InvalidMessageContents$ = InvalidMessageContents$;
+    exports2.InvalidSecurity = InvalidSecurity;
+    exports2.InvalidSecurity$ = InvalidSecurity$;
+    exports2.KmsAccessDenied = KmsAccessDenied;
+    exports2.KmsAccessDenied$ = KmsAccessDenied$;
+    exports2.KmsDisabled = KmsDisabled;
+    exports2.KmsDisabled$ = KmsDisabled$;
+    exports2.KmsInvalidKeyUsage = KmsInvalidKeyUsage;
+    exports2.KmsInvalidKeyUsage$ = KmsInvalidKeyUsage$;
+    exports2.KmsInvalidState = KmsInvalidState;
+    exports2.KmsInvalidState$ = KmsInvalidState$;
+    exports2.KmsNotFound = KmsNotFound;
+    exports2.KmsNotFound$ = KmsNotFound$;
+    exports2.KmsOptInRequired = KmsOptInRequired;
+    exports2.KmsOptInRequired$ = KmsOptInRequired$;
+    exports2.KmsThrottled = KmsThrottled;
+    exports2.KmsThrottled$ = KmsThrottled$;
+    exports2.ListDeadLetterSourceQueues$ = ListDeadLetterSourceQueues$;
+    exports2.ListDeadLetterSourceQueuesCommand = ListDeadLetterSourceQueuesCommand;
+    exports2.ListDeadLetterSourceQueuesRequest$ = ListDeadLetterSourceQueuesRequest$;
+    exports2.ListDeadLetterSourceQueuesResult$ = ListDeadLetterSourceQueuesResult$;
+    exports2.ListMessageMoveTasks$ = ListMessageMoveTasks$;
+    exports2.ListMessageMoveTasksCommand = ListMessageMoveTasksCommand;
+    exports2.ListMessageMoveTasksRequest$ = ListMessageMoveTasksRequest$;
+    exports2.ListMessageMoveTasksResult$ = ListMessageMoveTasksResult$;
+    exports2.ListMessageMoveTasksResultEntry$ = ListMessageMoveTasksResultEntry$;
+    exports2.ListQueueTags$ = ListQueueTags$;
+    exports2.ListQueueTagsCommand = ListQueueTagsCommand;
+    exports2.ListQueueTagsRequest$ = ListQueueTagsRequest$;
+    exports2.ListQueueTagsResult$ = ListQueueTagsResult$;
+    exports2.ListQueues$ = ListQueues$;
+    exports2.ListQueuesCommand = ListQueuesCommand;
+    exports2.ListQueuesRequest$ = ListQueuesRequest$;
+    exports2.ListQueuesResult$ = ListQueuesResult$;
+    exports2.Message$ = Message$;
+    exports2.MessageAttributeValue$ = MessageAttributeValue$;
+    exports2.MessageNotInflight = MessageNotInflight;
+    exports2.MessageNotInflight$ = MessageNotInflight$;
+    exports2.MessageSystemAttributeName = MessageSystemAttributeName;
+    exports2.MessageSystemAttributeNameForSends = MessageSystemAttributeNameForSends;
+    exports2.MessageSystemAttributeValue$ = MessageSystemAttributeValue$;
+    exports2.OverLimit = OverLimit;
+    exports2.OverLimit$ = OverLimit$;
+    exports2.PurgeQueue$ = PurgeQueue$;
+    exports2.PurgeQueueCommand = PurgeQueueCommand;
+    exports2.PurgeQueueInProgress = PurgeQueueInProgress;
+    exports2.PurgeQueueInProgress$ = PurgeQueueInProgress$;
+    exports2.PurgeQueueRequest$ = PurgeQueueRequest$;
+    exports2.QueueAttributeName = QueueAttributeName;
+    exports2.QueueDeletedRecently = QueueDeletedRecently;
+    exports2.QueueDeletedRecently$ = QueueDeletedRecently$;
+    exports2.QueueDoesNotExist = QueueDoesNotExist;
+    exports2.QueueDoesNotExist$ = QueueDoesNotExist$;
+    exports2.QueueNameExists = QueueNameExists;
+    exports2.QueueNameExists$ = QueueNameExists$;
+    exports2.ReceiptHandleIsInvalid = ReceiptHandleIsInvalid;
+    exports2.ReceiptHandleIsInvalid$ = ReceiptHandleIsInvalid$;
+    exports2.ReceiveMessage$ = ReceiveMessage$;
+    exports2.ReceiveMessageCommand = ReceiveMessageCommand;
+    exports2.ReceiveMessageRequest$ = ReceiveMessageRequest$;
+    exports2.ReceiveMessageResult$ = ReceiveMessageResult$;
+    exports2.RemovePermission$ = RemovePermission$;
+    exports2.RemovePermissionCommand = RemovePermissionCommand;
+    exports2.RemovePermissionRequest$ = RemovePermissionRequest$;
+    exports2.RequestThrottled = RequestThrottled;
+    exports2.RequestThrottled$ = RequestThrottled$;
+    exports2.ResourceNotFoundException = ResourceNotFoundException2;
+    exports2.ResourceNotFoundException$ = ResourceNotFoundException$2;
+    exports2.SQS = SQS;
+    exports2.SQSClient = SQSClient;
+    exports2.SQSServiceException = SQSServiceException;
+    exports2.SQSServiceException$ = SQSServiceException$;
+    exports2.SendMessage$ = SendMessage$;
+    exports2.SendMessageBatch$ = SendMessageBatch$;
+    exports2.SendMessageBatchCommand = SendMessageBatchCommand;
+    exports2.SendMessageBatchRequest$ = SendMessageBatchRequest$;
+    exports2.SendMessageBatchRequestEntry$ = SendMessageBatchRequestEntry$;
+    exports2.SendMessageBatchResult$ = SendMessageBatchResult$;
+    exports2.SendMessageBatchResultEntry$ = SendMessageBatchResultEntry$;
+    exports2.SendMessageCommand = SendMessageCommand;
+    exports2.SendMessageRequest$ = SendMessageRequest$;
+    exports2.SendMessageResult$ = SendMessageResult$;
+    exports2.SetQueueAttributes$ = SetQueueAttributes$;
+    exports2.SetQueueAttributesCommand = SetQueueAttributesCommand;
+    exports2.SetQueueAttributesRequest$ = SetQueueAttributesRequest$;
+    exports2.StartMessageMoveTask$ = StartMessageMoveTask$;
+    exports2.StartMessageMoveTaskCommand = StartMessageMoveTaskCommand;
+    exports2.StartMessageMoveTaskRequest$ = StartMessageMoveTaskRequest$;
+    exports2.StartMessageMoveTaskResult$ = StartMessageMoveTaskResult$;
+    exports2.TagQueue$ = TagQueue$;
+    exports2.TagQueueCommand = TagQueueCommand;
+    exports2.TagQueueRequest$ = TagQueueRequest$;
+    exports2.TooManyEntriesInBatchRequest = TooManyEntriesInBatchRequest;
+    exports2.TooManyEntriesInBatchRequest$ = TooManyEntriesInBatchRequest$;
+    exports2.UnsupportedOperation = UnsupportedOperation;
+    exports2.UnsupportedOperation$ = UnsupportedOperation$;
+    exports2.UntagQueue$ = UntagQueue$;
+    exports2.UntagQueueCommand = UntagQueueCommand;
+    exports2.UntagQueueRequest$ = UntagQueueRequest$;
+    exports2.errorTypeRegistries = errorTypeRegistries5;
+    exports2.paginateListDeadLetterSourceQueues = paginateListDeadLetterSourceQueues;
+    exports2.paginateListQueues = paginateListQueues;
+  }
+});
+
 // endMatch.ts
 var endMatch_exports = {};
 __export(endMatch_exports, {
@@ -33284,14 +35618,26 @@ var import_client_dynamodb = __toESM(require_dist_cjs20(), 1);
 var import_lib_dynamodb = __toESM(require_dist_cjs21(), 1);
 var import_dotenv = __toESM(require_main(), 1);
 var import_path = __toESM(require("path"), 1);
+var import_url = require("url");
+var import_meta = {};
+var envDirname = process.cwd();
+try {
+  if (typeof import_meta !== "undefined" && import_meta.url) {
+    envDirname = import_path.default.dirname((0, import_url.fileURLToPath)(import_meta.url));
+  }
+} catch {
+}
 import_dotenv.default.config({
-  path: import_path.default.resolve(process.cwd(), "Back-end/.env")
+  path: import_path.default.resolve(envDirname, "../../.env")
 });
 var client = new import_client_dynamodb.DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
   credentials: {
     accessKeyId: process.env.DB_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.DB_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || ""
+    secretAccessKey: process.env.DB_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || "",
+    ...process.env.AWS_SESSION_TOKEN && {
+      sessionToken: process.env.AWS_SESSION_TOKEN
+    }
   }
 });
 var dynamoDb = import_lib_dynamodb.DynamoDBDocumentClient.from(client, {
@@ -36750,6 +39096,28 @@ var handler = async (event) => {
         }
       })
     );
+    const sqsQueueUrl = process.env.SQS_MATCH_RESULTS_QUEUE_URL;
+    if (sqsQueueUrl && match.player_1?.user_id && match.player_2?.user_id) {
+      try {
+        const { SQSClient, SendMessageCommand } = await Promise.resolve().then(() => __toESM(require_dist_cjs24(), 1));
+        const sqsClient = new SQSClient({ region });
+        await sqsClient.send(
+          new SendMessageCommand({
+            QueueUrl: sqsQueueUrl,
+            MessageBody: JSON.stringify({
+              matchId,
+              winnerId,
+              reason,
+              endedAt: Date.now(),
+              player1: { userId: match.player_1.user_id },
+              player2: { userId: match.player_2.user_id }
+            })
+          })
+        );
+      } catch (sqsErr) {
+        console.error("Failed to send match result to SQS:", sqsErr);
+      }
+    }
     const p1Conn = match.player_1?.connection_id;
     const p2Conn = match.player_2?.connection_id;
     if (wsClient) {
