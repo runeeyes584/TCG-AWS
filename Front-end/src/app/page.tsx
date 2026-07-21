@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen,
   ChevronRight,
+  FlaskConical,
   Hash,
   Layers3,
   LogOut,
@@ -15,19 +16,21 @@ import {
   Trophy,
   Volume2,
   VolumeX,
+  Zap,
 } from "lucide-react";
 import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
 
-type LobbyTab = "duel" | "deck" | "collection" | "custom";
+type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial";
 
 const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "duel", label: "Duel", icon: Swords },
   { id: "deck", label: "Deck", icon: Layers3 },
   { id: "collection", label: "Collection", icon: BookOpen },
   { id: "custom", label: "Custom Match", icon: Hash },
+  { id: "trial", label: "Trial", icon: FlaskConical },
 ];
 
 export default function Home() {
@@ -84,6 +87,10 @@ export default function Home() {
 
   const createCustomMatch = () => {
     router.push(isSignedIn ? "/play?custom=create" : "/login");
+  };
+
+  const startTrial = () => {
+    router.push("/play?trial=1");
   };
 
   const joinCustomMatch = () => {
@@ -257,6 +264,21 @@ export default function Home() {
               >
                 <Hash size={19} />
                 <span>{isSignedIn ? "Join room" : "Sign in to join"}</span>
+              </button>
+            </div>
+          </div>
+        ) : activeTab === "trial" ? (
+          <div className="lobby-trial-mode">
+            <p className="lobby-eyebrow">Local Sandbox <span /> Solo Training</p>
+            <h1>Trial<br /><em>Mode</em></h1>
+            <p className="lobby-lede">Test cards and combos without matchmaking. Refill mana, draw cards, and refresh your attack token whenever you need.</p>
+
+            <div className="trial-mode-panel">
+              <span><Zap size={17} aria-hidden="true" /><b>Free resources</b><small>Mana controls</small></span>
+              <span><BookOpen size={17} aria-hidden="true" /><b>Open draws</b><small>Draw on demand</small></span>
+              <span><Swords size={17} aria-hidden="true" /><b>Repeat combat</b><small>Refresh attacks</small></span>
+              <button className="queue-action" onClick={startTrial}>
+                <FlaskConical size={19} aria-hidden="true" /> Start Trial
               </button>
             </div>
           </div>

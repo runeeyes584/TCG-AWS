@@ -1,6 +1,6 @@
 "use client";
 
-import { Gauge, House, List, RotateCcw, Search, Settings, Shield, Skull, Swords, Trophy, X, Zap } from "lucide-react";
+import { BookOpen, FlaskConical, Gauge, House, List, Plus, RotateCcw, Search, Settings, Shield, Skull, Swords, Trophy, X, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
@@ -46,6 +46,7 @@ export interface GameController {
   dispatchChain: ReturnType<typeof useLocalGame>["dispatchChain"];
   resetGame: ReturnType<typeof useLocalGame>["resetGame"];
   setDeveloperResources?: ReturnType<typeof useLocalGame>["setDeveloperResources"];
+  runTrialCommand?: ReturnType<typeof useLocalGame>["runTrialCommand"];
   playerProfiles?: RoomUpdate["players"];
 }
 
@@ -54,6 +55,7 @@ interface GameBoardViewProps {
   localPlayerId?: PlayerId;
   connectionStatus?: string;
   opponentConnected?: boolean;
+  trialMode?: boolean;
 }
 
 export function GameBoard({ controller }: Props) {
@@ -65,9 +67,10 @@ export function GameBoardView({
   controller,
   localPlayerId,
   connectionStatus,
-  opponentConnected = true
+  opponentConnected = true,
+  trialMode = false
 }: GameBoardViewProps) {
-  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, playerProfiles } = controller;
+  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles } = controller;
   useBattleMusic(gameState);
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
@@ -1003,6 +1006,7 @@ export function GameBoardView({
                 <GameCard
                   key={unit.instanceId}
                   unit={unit}
+                  compact
                   onClick={() =>
                     submitPendingAbilityTarget(targetDefinition.id, {
                       type: "UNIT",
@@ -1018,6 +1022,7 @@ export function GameBoardView({
                   <span className="pending-choice-zone-label">{playerId} Deck</span>
                   <GameCard
                     card={card}
+                    compact
                     onClick={() =>
                       submitPendingAbilityTarget(targetDefinition.id, {
                         type: "DECK_CARD",
@@ -1034,6 +1039,7 @@ export function GameBoardView({
                   <span className="pending-choice-zone-label">{playerId} Hand</span>
                   <GameCard
                     card={card}
+                    compact
                     onClick={() =>
                       submitPendingAbilityTarget(targetDefinition.id, {
                         type: "HAND_CARD",
@@ -1059,6 +1065,7 @@ export function GameBoardView({
                         cardId: entry.cardId,
                         ownerId: entry.ownerId
                       }}
+                      compact
                       onClick={
                         canRevive
                           ? () =>
@@ -1373,6 +1380,7 @@ export function GameBoardView({
         <GameCard
           unit={unit}
           compact
+          board
           selected={
             unit.instanceId === selectedBlockerId ||
             attackerIds.includes(unit.instanceId) ||
@@ -1422,6 +1430,7 @@ export function GameBoardView({
         <GameCard
           unit={unit}
           compact
+          board
           selected={
             unit.instanceId === selectedBlockerId ||
             attackerIds.includes(unit.instanceId) ||
@@ -1504,6 +1513,27 @@ export function GameBoardView({
             </button>
           ) : null}
         </div>
+
+        {trialMode && runTrialCommand ? (
+          <section className="trial-console" aria-label="Trial controls">
+            <strong><FlaskConical size={15} aria-hidden="true" /> Trial</strong>
+            <button type="button" onClick={() => runTrialCommand("ADD_MANA")} title="Add one mana">
+              <Plus size={15} aria-hidden="true" /> Mana
+            </button>
+            <button type="button" onClick={() => runTrialCommand("MAX_MANA")} title="Fill mana and spell mana">
+              <Zap size={15} aria-hidden="true" /> Max
+            </button>
+            <button type="button" onClick={() => dispatch({ type: "DRAW_CARD", playerId: "P1" }, "Trial: P1 drew a card.")} title="Draw a card">
+              <BookOpen size={15} aria-hidden="true" /> Draw
+            </button>
+            <button type="button" onClick={() => runTrialCommand("READY_ATTACK")} title="Refresh the attack token">
+              <Swords size={15} aria-hidden="true" /> Attack
+            </button>
+            <button type="button" onClick={resetGame} title="Reset trial">
+              <RotateCcw size={15} aria-hidden="true" /> Reset
+            </button>
+          </section>
+        ) : null}
 
         {connectionStatus && !opponentConnected ? (
           <div className="opponent-disconnected-notice" role="status">

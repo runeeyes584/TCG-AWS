@@ -84,10 +84,6 @@ export default function CardGalleryPage() {
     filteredCards.find((card) => card.type === selectedType) ??
     filteredCards[0] ??
     cards[0];
-  const previewInstance = useMemo(
-    () => toInstance(previewCard, "gallery-preview"),
-    [previewCard]
-  );
   const handlePreview = useCallback((cardId: string) => {
     setPreviewCardId(cardId);
   }, []);
@@ -170,8 +166,16 @@ export default function CardGalleryPage() {
           <aside className="gallery-preview-panel" aria-label="Card preview">
             {previewCard ? (
               <>
-                <div className="gallery-preview-card">
-                  <GameCard card={previewInstance} showDescription />
+                <div className={`gallery-preview-card gallery-preview-card--${previewCard.type}`}>
+                  {previewCard.imageUrl ? (
+                    <img
+                      src={previewCard.imageUrl}
+                      alt={`${previewCard.name} artwork`}
+                      draggable={false}
+                    />
+                  ) : (
+                    <span className="gallery-preview-card__empty">No artwork</span>
+                  )}
                 </div>
                 <div className="gallery-preview-copy">
                   <small>{previewCard.archetype ?? "Unaligned"} / {previewCard.rarity ?? previewCard.type}</small>

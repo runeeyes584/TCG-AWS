@@ -5,7 +5,6 @@ import { X } from "lucide-react";
 import { useHover } from "../../../contexts/HoverContext";
 import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
-import { GameCard } from "../cards/game-card";
 import { StatPip, type StatKind } from "../stat-pip";
 
 /**
@@ -73,8 +72,16 @@ export function DetailPanel() {
           </div>
         </div>
 
-        <div className="mx-auto aspect-[5/7] w-[250px] max-w-full">
-          <GameCard card={card} unit={unit} showDescription={false} />
+        <div className={`inspector-artwork inspector-artwork--${definition.type}`}>
+          {definition.imageUrl ? (
+            <img
+              src={definition.imageUrl}
+              alt={`${definition.name} artwork`}
+              draggable={false}
+            />
+          ) : (
+            <span>No artwork</span>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2">
