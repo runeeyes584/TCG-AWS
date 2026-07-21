@@ -98,6 +98,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       socket = socketManager.connect(token, email);
 
       socket.on("connect", () => {
+      refreshRetried = false;
       setStatus("Connected");
       setError(undefined);
       // Auto-rejoin if room code exists
@@ -119,7 +120,9 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
       socket.on("connect_error", (connectError: { message?: string }) => {
         const message = connectError.message || "Unable to connect to the game server.";
-        if (isRefreshableAuthError(message) && !refreshRetried) {
+        const storedToken = localStorage.getItem("accessToken");
+        const tokenNeedsRefresh = !storedToken || accessTokenNeedsRefresh(storedToken);
+        if ((isRefreshableAuthError(message) || tokenNeedsRefresh) && !refreshRetried) {
           refreshRetried = true;
           setStatus("Refreshing session");
           void refreshAccessToken()
@@ -151,18 +154,23 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       addClientLog(message);
       });
 
-      socket.on("room:update", (update: RoomUpdate) => {
-      roomCodeRef.current = update.roomCode;
-      setRoomCode(update.roomCode);
+      socket.on("room:update", (update: Partial<RoomUpdate> & Pick<RoomUpdate, "playerId" | "state">) => {
+      const nextRoomCode = update.roomCode ?? roomCodeRef.current;
+      roomCodeRef.current = nextRoomCode;
+      setRoomCode(nextRoomCode);
       setLocalPlayerId(update.playerId);
-      setOpponentConnected(update.opponentConnected);
-      setPlayerProfiles(update.players);
+      setOpponentConnected(update.opponentConnected ?? true);
+      if (update.players) setPlayerProfiles(update.players);
       setGameState(update.state);
-      setActionLog(update.log);
-      setStatus(update.opponentConnected ? "Opponent connected" : "Waiting for opponent");
+      if (update.log) setActionLog(update.log);
+      setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
       });
 
-      socket.on("matchmaking:searching", () => {
+      socket.on("matchmaking:searching", (message?: { roomCode?: string }) => {
+      if (message?.roomCode) {
+        roomCodeRef.current = message.roomCode;
+        setRoomCode(message.roomCode);
+      }
       setSearching(true);
       setStatus("Searching for opponent...");
       });
@@ -173,11 +181,25 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setStatus("Matchmaking cancelled");
       });
 
-      socket.on("matchmaking:found", () => {
+      socket.on("matchmaking:found", (message?: { roomCode?: string; playerId?: PlayerId; state?: GameState }) => {
+      if (message?.roomCode) {
+        roomCodeRef.current = message.roomCode;
+        setRoomCode(message.roomCode);
+      }
+      if (message?.playerId) setLocalPlayerId(message.playerId);
+      if (message?.state) setGameState(message.state);
+      setOpponentConnected(true);
       setSearching(false);
       setQueueTime(0);
       setStatus("Match Found!");
       setInGame(true);
+      });
+
+      socket.on("match:ended", (message?: { state?: GameState }) => {
+      if (message?.state) setGameState(message.state);
+      setSearching(false);
+      setInGame(false);
+      setStatus("Match ended");
       });
     };
 
@@ -193,6 +215,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       socket?.off("matchmaking:searching");
       socket?.off("matchmaking:cancelled");
       socket?.off("matchmaking:found");
+      socket?.off("match:ended");
       socketManager.disconnect();
     };
   }, []);
@@ -249,7 +272,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   }
 
   function dispatch(action: GameAction): boolean {
-    socketManager.dispatchAction(action, (response: any) => {
+    socketManager.dispatchAction(roomCodeRef.current, action, (response: any) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);

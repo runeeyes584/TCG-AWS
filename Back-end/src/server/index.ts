@@ -44,8 +44,12 @@ type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 // const dev = process.env.NODE_ENV !== "production";
 // const hostname = process.env.HOSTNAME ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 5000);
-const hostname = "localhost";
+const hostname = process.env.SERVER_HOST ?? "0.0.0.0";
 const developerToolsEnabled = process.env.ENABLE_DEVTOOLS === "true";
+const allowedOrigins = (process.env.FRONTEND_ORIGINS ?? "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 // const app = next({ dev, hostname, port, dir: resolve(process.cwd(), "Front-end") });
 // const app = next({
 //     dev,
@@ -63,9 +67,13 @@ const disconnectGracePeriodMs = 45_000;
 
 const expressApp = express();
 
+if (process.env.NODE_ENV === "production") {
+    expressApp.set("trust proxy", 1);
+}
+
 expressApp.use(
     cors({
-        origin: "http://localhost:3000",
+        origin: allowedOrigins,
         credentials: true
     })
 );

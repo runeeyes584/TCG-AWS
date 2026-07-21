@@ -89,18 +89,20 @@ const getCredentials = async (): Promise<any> => {
   }
 
   // PHƯƠNG ÁN 4: Sử dụng credentials mặc định của Lambda Role hiện tại
-  return {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-    ...(process.env.AWS_SESSION_TOKEN && {
-      sessionToken: process.env.AWS_SESSION_TOKEN,
-    }),
-  };
+  throw new Error("Custom DynamoDB credentials were requested but could not be resolved.");
 };
+
+const usesCustomCredentials = Boolean(
+  process.env.DB_SECRET_NAME ||
+  process.env.DB_SECRET_KEY ||
+  process.env.CROSS_ACCOUNT_ROLE_ARN ||
+  process.env.DB_ACCESS_KEY_ID
+);
 
 const client = new DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
-  credentials: getCredentials
+  // Omit credentials in Lambda so the AWS SDK uses the function execution role.
+  ...(usesCustomCredentials ? { credentials: getCredentials } : {})
 });
 
 export const dynamoDb = DynamoDBDocumentClient.from(client, {
