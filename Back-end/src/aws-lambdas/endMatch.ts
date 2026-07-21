@@ -91,26 +91,34 @@ export const handler = async (event: any) => {
 
     // 4b. Gửi kết quả trận đấu vào AWS SQS Queue cho PostMatchWorker xử lý bất đồng bộ
     const sqsQueueUrl = process.env.SQS_MATCH_RESULTS_QUEUE_URL;
-    if (sqsQueueUrl && match.player_1?.user_id && match.player_2?.user_id) {
-      try {
-        const { SQSClient, SendMessageCommand } = await import("@aws-sdk/client-sqs");
-        const sqsClient = new SQSClient({ region });
-        await sqsClient.send(
-          new SendMessageCommand({
-            QueueUrl: sqsQueueUrl,
-            MessageBody: JSON.stringify({
-              matchId,
-              winnerId,
-              reason,
-              endedAt: Date.now(),
-              player1: { userId: match.player_1.user_id },
-              player2: { userId: match.player_2.user_id }
+    if (sqsQueueUrl) {
+      if (match.player_1?.user_id && match.player_2?.user_id) {
+        try {
+          console.log(`[SQS] Đang gửi kết quả trận đấu ${matchId} vào SQS Queue: ${sqsQueueUrl}...`);
+          const { SQSClient, SendMessageCommand } = await import("@aws-sdk/client-sqs");
+          const sqsClient = new SQSClient({ region });
+          await sqsClient.send(
+            new SendMessageCommand({
+              QueueUrl: sqsQueueUrl,
+              MessageBody: JSON.stringify({
+                matchId,
+                winnerId,
+                reason,
+                endedAt: Date.now(),
+                player1: { userId: match.player_1.user_id },
+                player2: { userId: match.player_2.user_id }
+              })
             })
-          })
-        );
-      } catch (sqsErr) {
-        console.error("Failed to send match result to SQS:", sqsErr);
+          );
+          console.log(`[SQS] Đã gửi kết quả trận đấu ${matchId} vào SQS Queue thành công!`);
+        } catch (sqsErr) {
+          console.error("[SQS] Lỗi khi gửi tin nhắn vào SQS:", sqsErr);
+        }
+      } else {
+        console.warn(`[SQS] Bỏ qua SQS vì trận đấu ${matchId} chưa đủ 2 người chơi (P1: ${match.player_1?.user_id}, P2: ${match.player_2?.user_id}).`);
       }
+    } else {
+      console.warn("[SQS] Chưa cấu hình biến môi trường SQS_MATCH_RESULTS_QUEUE_URL.");
     }
 
     // 5. Gửi thông báo kết thúc trận đấu cho 2 người chơi

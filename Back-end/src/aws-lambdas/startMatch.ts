@@ -55,7 +55,8 @@ export const handler = async (event: any) => {
         },
         player_2: null,
         engine_state: initialEngineState,
-        created_at: Date.now()
+        created_at: Date.now(),
+        expire_at: Math.floor(Date.now() / 1000) + 2 * 3600 // TTL 2 giờ (tính bằng giây)
       };
 
       await docClient.send(
