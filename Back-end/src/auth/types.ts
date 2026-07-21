@@ -1,3 +1,13 @@
+import type { JWTPayload } from "jose";
+
+export interface CognitoPayload extends JWTPayload {
+    sub: string;
+    username?: string;
+    email?: string;
+    token_use?: "access" | "id";
+    client_id?: string;
+}
+
 export interface RegisterRequest {
   email: string;
   username: string;

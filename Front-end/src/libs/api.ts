@@ -34,6 +34,22 @@ export interface PendingMatch {
     roomCode: string;
 }
 
+export interface CreateDeckPayload {
+    deckName: string;
+    cardIds: string[];
+}
+
+
+export interface CreateDeckResponse {
+    success: boolean;
+    data: {
+        deckId: string;
+        deckName: string;
+        cardIds: string[];
+        updatedAt: number;
+    };
+}
+
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
@@ -195,4 +211,18 @@ export async function resetPassword(
             password
         })
     });
+}
+
+export async function createDeck(
+    payload: CreateDeckPayload
+): Promise<CreateDeckResponse> {
+
+    return request<CreateDeckResponse>(
+        "/decks/create",
+        {
+            method: "POST",
+            body: JSON.stringify(payload)
+        }
+    );
+
 }

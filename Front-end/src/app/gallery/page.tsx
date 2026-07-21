@@ -107,6 +107,15 @@ export default function CardGalleryPage() {
             <strong>Card Gallery</strong>
             <small>Kaleidoscope Archive</small>
           </div>
+
+          <div className="gallery-header-actions">
+            <button
+              className="gallery-create-deck"
+              onClick={() => window.location.assign("/create-your-card")}
+            >
+              Create Your Card
+            </button>
+          </div>
         </header>
 
         <section className="gallery-console" aria-label="Card collection">
