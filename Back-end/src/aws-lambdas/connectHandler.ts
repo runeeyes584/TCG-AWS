@@ -18,25 +18,27 @@ export const handler = async (event: any) => {
   const queryParams = event.queryStringParameters || {};
   const token = queryParams.token || event.headers?.Authorization?.replace("Bearer ", "");
 
-  let userId = connectionId;
+  if (!token || !JWKS) {
+    return { statusCode: 401, body: "Unauthorized: Cognito access token is required." };
+  }
+
+  let userId: string;
   let username = queryParams.username || "Player";
 
-  // 1. Xác thực Token nếu có truyền vào
-  if (token && JWKS) {
-    try {
-      const { payload } = await jwtVerify(token, JWKS, {
-        issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`
-      });
+  // 1. Xác thực Cognito access token trước khi mở WebSocket.
+  try {
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`
+    });
 
-      if (payload.token_use === "access" && payload.client_id === clientId) {
-        userId = payload.sub as string;
-        username = (payload.username as string) || username;
-      }
-    } catch (err) {
-      console.error("Token verification failed:", err);
-      // Từ chối kết nối nếu Token không hợp lệ
-      return { statusCode: 401, body: "Unauthorized: Invalid token." };
+    if (payload.token_use !== "access" || payload.client_id !== clientId || typeof payload.sub !== "string") {
+      return { statusCode: 401, body: "Unauthorized: Invalid access token." };
     }
+    userId = payload.sub;
+    username = (payload.username as string) || username;
+  } catch (err) {
+    console.error("Token verification failed:", err);
+    return { statusCode: 401, body: "Unauthorized: Invalid token." };
   }
 
   // 2. Lưu thông tin kết nối vào bảng Connections trong DynamoDB
