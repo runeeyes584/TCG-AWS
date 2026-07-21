@@ -16,10 +16,16 @@ export interface LogEntry {
   message: string;
 }
 
-export function useLocalGame() {
+export type TrialCommand = "ADD_MANA" | "MAX_MANA" | "READY_ATTACK";
+
+interface LocalGameOptions {
+  trialMode?: boolean;
+}
+
+export function useLocalGame({ trialMode = false }: LocalGameOptions = {}) {
   const initialState = useMemo(
-    () => createInitialGameState(buildDeck("P1"), buildDeck("P2"), Date.now()),
-    []
+    () => createLocalState(trialMode),
+    [trialMode]
   );
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [actionLog, setActionLog] = useState<LogEntry[]>([
@@ -68,8 +74,58 @@ export function useLocalGame() {
   }
 
   function resetGame() {
-    setGameState(createInitialGameState(buildDeck("P1"), buildDeck("P2"), Date.now()));
-    setActionLog([{ id: Date.now(), message: "New local battle created." }]);
+    setGameState(createLocalState(trialMode));
+    setActionLog([{ id: Date.now(), message: trialMode ? "Trial reset." : "New local battle created." }]);
+  }
+
+  function runTrialCommand(command: TrialCommand) {
+    if (!trialMode) return;
+
+    setGameState((current) => {
+      const next = structuredClone(current);
+      const player = next.players.P1;
+
+      if (command === "ADD_MANA") {
+        player.maxMana = Math.min(10, Math.max(player.maxMana, player.mana) + 1);
+        player.mana = Math.min(10, player.mana + 1);
+      } else if (command === "MAX_MANA") {
+        player.maxMana = 10;
+        player.mana = 10;
+        player.spellMana = 3;
+      } else {
+        next.phase = "ACTION";
+        next.activePlayerId = "P1";
+        next.priorityPlayerId = "P1";
+        next.attackTokenPlayerId = "P1";
+        next.attackTokenAvailable = true;
+        next.pendingChoice = undefined;
+        next.combat.attackers = [];
+        next.consecutivePasses = 0;
+
+        for (const unit of next.players.P1.board) {
+          unit.exhausted = false;
+          unit.attacking = false;
+          unit.blockingUnitId = undefined;
+          unit.blockedByUnitId = undefined;
+        }
+        for (const unit of next.players.P2.board) {
+          unit.attacking = false;
+          unit.blockingUnitId = undefined;
+          unit.blockedByUnitId = undefined;
+        }
+      }
+
+      next.visualEvents = [];
+      return next;
+    });
+
+    addLog(
+      command === "ADD_MANA"
+        ? "Trial: P1 gained 1 mana."
+        : command === "MAX_MANA"
+          ? "Trial: P1 resources filled."
+          : "Trial: P1 attack token refreshed."
+    );
   }
 
   function setDeveloperResources(updates: DeveloperResourceUpdate[]) {
@@ -97,11 +153,19 @@ export function useLocalGame() {
     dispatch,
     dispatchChain,
     resetGame,
-    setDeveloperResources
+    setDeveloperResources,
+    runTrialCommand
   };
 }
 
 const buildDeck = buildDefaultDeck;
+
+function createLocalState(trialMode: boolean) {
+  const state = createInitialGameState(buildDeck("P1"), buildDeck("P2"), Date.now());
+  return trialMode
+    ? applyAction(state, { type: "START_GAME", firstPlayerId: "P1" })
+    : state;
+}
 
 function describeAction(action: GameAction): string {
   switch (action.type) {
