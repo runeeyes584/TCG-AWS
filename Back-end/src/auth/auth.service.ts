@@ -17,7 +17,7 @@ import {
 
 import { cognito } from "./cognito";
 import { env } from "../config/env";
-import { secretHash } from "./utils";
+import { secretHashAuthParameters, secretHashField } from "./utils";
 import { validateRegister } from "./validators";
 import { LoginRequest, RegisterRequest, VerifyRequest } from "./types";
 import { normalizeConfirmationCode } from "./confirmationCode";
@@ -36,7 +36,7 @@ export async function register(data: RegisterRequest) {
                 ClientId: env.clientId,
                 Username: email,
                 Password: password,
-                SecretHash: secretHash(email),
+                ...secretHashField(email),
                 UserAttributes: [
                     {
                         Name: "email",
@@ -70,7 +70,7 @@ export async function register(data: RegisterRequest) {
                     new ResendConfirmationCodeCommand({
                         ClientId: env.clientId,
                         Username: email,
-                        SecretHash: secretHash(email),
+                        ...secretHashField(email),
                     })
                 );
 
@@ -111,7 +111,7 @@ export async function verify(data: VerifyRequest) {
 
             ConfirmationCode: code,
 
-            SecretHash: secretHash(email)
+            ...secretHashField(email)
 
         });
 
@@ -157,7 +157,7 @@ export async function login(data: LoginRequest) {
 
                 PASSWORD: password,
 
-                SECRET_HASH: secretHash(email)
+                ...secretHashAuthParameters(email)
 
             }
 
@@ -215,7 +215,7 @@ export async function refresh(
 
             REFRESH_TOKEN: refreshToken,
 
-            SECRET_HASH: secretHash(email)
+            ...secretHashAuthParameters(email)
 
         }
 
@@ -247,7 +247,7 @@ export async function forgotPassword(email: string) {
     const command = new ForgotPasswordCommand({
         ClientId: env.clientId,
         Username: email,
-        SecretHash: secretHash(email)
+        ...secretHashField(email)
     });
 
     await cognito.send(command);
@@ -270,7 +270,7 @@ export async function resetPassword(
         Username: email,
         ConfirmationCode: normalizedCode,
         Password: password,
-        SecretHash: secretHash(email)
+        ...secretHashField(email)
     });
 
     await cognito.send(command);
