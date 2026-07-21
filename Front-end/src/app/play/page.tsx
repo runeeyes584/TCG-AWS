@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -27,7 +27,7 @@ function formatTime(seconds: number) {
   return `${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
 }
 
-export default function PlayPage() {
+function PlayPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeRoomCode = searchParams.get("room") ?? undefined;
@@ -258,5 +258,17 @@ export default function PlayPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function PlayPage() {
+  return (
+    <Suspense fallback={
+      <div className="matchmaking-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0c', color: '#fff' }}>
+        <span>Loading Ranked Circuit...</span>
+      </div>
+    }>
+      <PlayPageContent />
+    </Suspense>
   );
 }
