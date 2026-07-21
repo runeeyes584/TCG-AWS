@@ -54,6 +54,21 @@ function isGone(error: any): boolean {
   return error?.name === "GoneException" || error?.$metadata?.httpStatusCode === 410;
 }
 
+function clientErrorMessage(error: any): string {
+  switch (error?.name) {
+    case "AccessDeniedException":
+    case "AccessDenied":
+      return "The game server is not authorized to access matchmaking resources.";
+    case "ResourceNotFoundException":
+      return "The game server cannot find a matchmaking table. Please contact support.";
+    case "CredentialsProviderError":
+    case "InvalidSignatureException":
+      return "The game server credentials are invalid. Please contact support.";
+    default:
+      return "Matchmaking could not start. Please try again.";
+  }
+}
+
 function managementEndpoint(event: any): string {
   const configuredEndpoint = process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "");
   if (configuredEndpoint) return configuredEndpoint;
@@ -161,6 +176,18 @@ async function sendMessage(
   } catch (error) {
     if (isGone(error)) return false;
     throw error;
+  }
+}
+
+async function notifyClientError(
+  wsClient: ApiGatewayManagementApiClient,
+  connectionId: string,
+  message: string
+): Promise<void> {
+  try {
+    await sendMessage(wsClient, connectionId, { event: "game:error", message });
+  } catch (notificationError) {
+    console.error("Unable to send matchmaking error to client:", notificationError);
   }
 }
 
@@ -334,6 +361,15 @@ export const handler = async (event: any) => {
 
   let lockOwner: string | undefined;
   try {
+    console.info("Matchmaking request received", {
+      connectionId,
+      region,
+      connectionsTable,
+      gameStateTable,
+      userProfileTable,
+      eloRange
+    });
+
     const connectionResult = await dynamoDb.send(new GetCommand({
       TableName: connectionsTable,
       Key: { connection_id: connectionId },
@@ -341,12 +377,18 @@ export const handler = async (event: any) => {
     }));
     const connection = connectionResult.Item;
     if (!connection?.user_id) {
+      await notifyClientError(
+        wsClient,
+        connectionId,
+        "Your game connection is not authenticated. Reconnect and sign in again."
+      );
       return { statusCode: 401, body: "Connection is not authenticated." };
     }
 
     const userId = String(connection.user_id);
     const username = String(connection.username || "Player");
     const playerElo = await loadElo(userId);
+    console.info("Matchmaking player loaded", { connectionId, userId, playerElo });
 
     const owner = String(event.requestContext?.requestId || randomUUID());
     lockOwner = owner;
@@ -354,6 +396,10 @@ export const handler = async (event: any) => {
 
     const nowSeconds = Math.floor(Date.now() / 1000);
     const waitingMatches = await loadWaitingMatches();
+    console.info("Matchmaking waiting matches loaded", {
+      connectionId,
+      waitingMatchCount: waitingMatches.length
+    });
     const candidates: MatchRecord[] = [];
 
     for (const match of waitingMatches) {
@@ -465,6 +511,11 @@ export const handler = async (event: any) => {
         return { statusCode: 410, body: "Connection closed before match notification." };
       }
 
+      console.info("Matchmaking match started", {
+        matchId: pendingMatch.match_id,
+        player1UserId: pendingMatch.player_1.user_id,
+        player2UserId: userId
+      });
       return { statusCode: 200, body: "Match started." };
     }
 
@@ -475,16 +526,20 @@ export const handler = async (event: any) => {
       elo: playerElo,
       wsClient
     });
+    console.info("Matchmaking waiting match created", { matchId, connectionId, userId, playerElo });
     return { statusCode: 200, body: `Waiting for opponent in ${matchId}.` };
   } catch (error: any) {
-    console.error("StartMatch Error:", error);
+    console.error("StartMatch Error:", {
+      name: error?.name,
+      message: error?.message,
+      statusCode: error?.$metadata?.httpStatusCode
+    });
     const statusCode = error?.message === "Matchmaking is busy. Please retry." ? 503 : 500;
-    if (statusCode === 503) {
-      await sendMessage(wsClient, connectionId, {
-        event: "game:error",
-        message: "Matchmaking is busy. Please try again."
-      }).catch(() => false);
-    }
+    await notifyClientError(
+      wsClient,
+      connectionId,
+      statusCode === 503 ? "Matchmaking is busy. Please try again." : clientErrorMessage(error)
+    );
     return { statusCode, body: error?.message || "Unable to start matchmaking." };
   } finally {
     if (lockOwner) await releaseMatchmakingLock(lockOwner);
