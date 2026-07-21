@@ -38773,15 +38773,17 @@ try {
   }
 } catch {
 }
-import_dotenv.default.config({
-  path: import_path.default.resolve(envDirname, "../../.env")
-});
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  import_dotenv.default.config({
+    path: import_path.default.resolve(envDirname, "../../.env")
+  });
+}
 var cachedCredentials = null;
 var getCredentials = async () => {
   if (cachedCredentials) {
     return cachedCredentials;
   }
-  const secretName = process.env.DB_SECRET_NAME;
+  const secretName = process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY;
   if (secretName) {
     try {
       const { SecretsManagerClient, GetSecretValueCommand } = await Promise.resolve().then(() => __toESM(require_dist_cjs25(), 1));
@@ -42277,12 +42279,14 @@ var handler = async (event) => {
       new import_lib_dynamodb2.UpdateCommand({
         TableName: "GameState",
         Key: { match_id: matchId },
-        UpdateExpression: "SET #status = :finishedStatus, engine_state = :es, winner_id = :wId",
+        UpdateExpression: "SET #status = :finishedStatus, engine_state = :es, winner_id = :wId, expire_at = :exp",
         ExpressionAttributeNames: { "#status": "status" },
         ExpressionAttributeValues: {
           ":finishedStatus": "FINISHED",
           ":es": finalEngineState,
-          ":wId": winnerId || null
+          ":wId": winnerId || null,
+          ":exp": Math.floor(Date.now() / 1e3) + 7 * 24 * 3600
+          // Expire in 7 days (seconds)
         }
       })
     );
@@ -42300,26 +42304,34 @@ var handler = async (event) => {
       })
     );
     const sqsQueueUrl = process.env.SQS_MATCH_RESULTS_QUEUE_URL;
-    if (sqsQueueUrl && match.player_1?.user_id && match.player_2?.user_id) {
-      try {
-        const { SQSClient, SendMessageCommand } = await Promise.resolve().then(() => __toESM(require_dist_cjs27(), 1));
-        const sqsClient = new SQSClient({ region });
-        await sqsClient.send(
-          new SendMessageCommand({
-            QueueUrl: sqsQueueUrl,
-            MessageBody: JSON.stringify({
-              matchId,
-              winnerId,
-              reason,
-              endedAt: Date.now(),
-              player1: { userId: match.player_1.user_id },
-              player2: { userId: match.player_2.user_id }
+    if (sqsQueueUrl) {
+      if (match.player_1?.user_id && match.player_2?.user_id) {
+        try {
+          console.log(`[SQS] \u0110ang g\u1EEDi k\u1EBFt qu\u1EA3 tr\u1EADn \u0111\u1EA5u ${matchId} v\xE0o SQS Queue: ${sqsQueueUrl}...`);
+          const { SQSClient, SendMessageCommand } = await Promise.resolve().then(() => __toESM(require_dist_cjs27(), 1));
+          const sqsClient = new SQSClient({ region });
+          await sqsClient.send(
+            new SendMessageCommand({
+              QueueUrl: sqsQueueUrl,
+              MessageBody: JSON.stringify({
+                matchId,
+                winnerId,
+                reason,
+                endedAt: Date.now(),
+                player1: { userId: match.player_1.user_id },
+                player2: { userId: match.player_2.user_id }
+              })
             })
-          })
-        );
-      } catch (sqsErr) {
-        console.error("Failed to send match result to SQS:", sqsErr);
+          );
+          console.log(`[SQS] \u0110\xE3 g\u1EEDi k\u1EBFt qu\u1EA3 tr\u1EADn \u0111\u1EA5u ${matchId} v\xE0o SQS Queue th\xE0nh c\xF4ng!`);
+        } catch (sqsErr) {
+          console.error("[SQS] L\u1ED7i khi g\u1EEDi tin nh\u1EAFn v\xE0o SQS:", sqsErr);
+        }
+      } else {
+        console.warn(`[SQS] B\u1ECF qua SQS v\xEC tr\u1EADn \u0111\u1EA5u ${matchId} ch\u01B0a \u0111\u1EE7 2 ng\u01B0\u1EDDi ch\u01A1i (P1: ${match.player_1?.user_id}, P2: ${match.player_2?.user_id}).`);
       }
+    } else {
+      console.warn("[SQS] Ch\u01B0a c\u1EA5u h\xECnh bi\u1EBFn m\xF4i tr\u01B0\u1EDDng SQS_MATCH_RESULTS_QUEUE_URL.");
     }
     const p1Conn = match.player_1?.connection_id;
     const p2Conn = match.player_2?.connection_id;

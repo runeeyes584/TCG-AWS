@@ -36439,15 +36439,17 @@ try {
   }
 } catch {
 }
-import_dotenv.default.config({
-  path: import_path.default.resolve(envDirname, "../../.env")
-});
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  import_dotenv.default.config({
+    path: import_path.default.resolve(envDirname, "../../.env")
+  });
+}
 var cachedCredentials = null;
 var getCredentials = async () => {
   if (cachedCredentials) {
     return cachedCredentials;
   }
-  const secretName = process.env.DB_SECRET_NAME;
+  const secretName = process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY;
   if (secretName) {
     try {
       const { SecretsManagerClient, GetSecretValueCommand } = await Promise.resolve().then(() => __toESM(require_dist_cjs25(), 1));
@@ -40073,7 +40075,9 @@ var handler = async (event) => {
         },
         player_2: null,
         engine_state: initialEngineState,
-        created_at: Date.now()
+        created_at: Date.now(),
+        expire_at: Math.floor(Date.now() / 1e3) + 2 * 3600
+        // TTL 2 giờ (tính bằng giây)
       };
       await docClient.send(
         new import_lib_dynamodb2.PutCommand({
