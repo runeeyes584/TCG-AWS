@@ -924,3 +924,16 @@ Creating turbopack project {
  GET /gallery 200 in 90ms (next.js: 41ms, application-code: 49ms)
  GET /gallery 200 in 36ms (next.js: 1973µs, application-code: 34ms)
  GET /gallery 200 in 19ms (next.js: 2ms, application-code: 16ms)
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.15.43.199:3000
+- Environments: .env.local
+✓ Ready in 718ms
+Creating turbopack project {
+  dir: 'E:\\A.PRJ\\Kaleidoscope TCG\\TCG-AWS\\Front-end',
+  testMode: true
+}
+- Experiments (use with caution):
+  ✓ externalDir
+
+ GET /gallery 200 in 1129ms (next.js: 768ms, application-code: 362ms)
