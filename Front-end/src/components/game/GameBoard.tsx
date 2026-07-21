@@ -1606,6 +1606,11 @@ export function GameBoardView({
             }
             canSelect={canSelectGraveyardCard(viewingGraveyard)}
             allowedTypes={getGraveyardAllowedTypes()}
+            selectionPrompt={
+              selectedSpell
+                ? `${cardDef(selectedSpell).name}: ${describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}`
+                : undefined
+            }
             onSelectCard={(cardInstanceId) =>
               selectGraveyardCard(viewingGraveyard, cardInstanceId)
             }
@@ -1878,7 +1883,7 @@ export function GameBoardView({
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
-          {selectedSpell && !selectedSpellTarget ? (
+          {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
             <section className="spell-panel spell-targeting-window" aria-label="Spell targeting">
               <div className="spell-summary">
                 <strong>{cardDef(selectedSpell).name}</strong>

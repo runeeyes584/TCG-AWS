@@ -20,6 +20,7 @@ export interface GameCardProps {
   onDoubleClick?: () => void;
   onPreviewChange?: (previewing: boolean) => void;
   visualEvents?: VisualEvent[];
+  staticRender?: boolean;
 }
 
 const CARD_FRAMES: Record<
@@ -46,7 +47,8 @@ export const GameCard: React.FC<GameCardProps> = ({
   onClick,
   onDoubleClick,
   onPreviewChange,
-  visualEvents
+  visualEvents,
+  staticRender = false
 }) => {
   const { selectCard, setHoveredCard } = useHover();
   const cardId = unit?.cardId ?? card?.cardId;
@@ -217,6 +219,18 @@ export const GameCard: React.FC<GameCardProps> = ({
     transitionSpeed: 1000,
     className: `game-card-tilt-wrapper ${isChampion ? "game-card-tilt-wrapper--champion" : ""}`,
   };
+
+  if (staticRender) {
+    return (
+      <div className="game-card-stable-wrapper game-card-stable-wrapper--static">
+        <div className="game-card-tilt-wrapper">
+          <div className={className} data-card-ui>
+            {content}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!onClick && !onDoubleClick) {
     return (

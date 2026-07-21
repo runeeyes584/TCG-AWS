@@ -1,0 +1,3703 @@
+[
+  {
+    "id": "null-circuit-unit-01",
+    "name": "Packet Sprite",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-01/400/600",
+    "description": "When I'm summoned, draw a Null Circuit card.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-01-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Null Circuit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-02",
+    "name": "Backdoor Courier",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-02/400/600",
+    "description": "When I'm summoned, restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-02-mana",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-03",
+    "name": "Proxy Familiar",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-03/400/600",
+    "description": "When you banish a card, grant me +1|+1.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-03-banish",
+        "when": {
+          "event": "CARD_BANISHED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-04",
+    "name": "Cache Diver",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-04/400/600",
+    "description": "Play: return an allied unit or champion from your graveyard to hand.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-04-rebirth",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "REBIRTH_CARD",
+            "target": "target",
+            "allowedTypes": [
+              "UNIT",
+              "CHAMPION"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-05",
+    "name": "Cipher Moth",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-05/400/600",
+    "description": "Play: banish a unit or champion from the enemy graveyard.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-05-banish-enemy",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BANISH_GRAVEYARD",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-06",
+    "name": "Ghost Node",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-06/400/600",
+    "description": "When you cast a spell, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-06-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-07",
+    "name": "Blacksite Runner",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-07/400/600",
+    "description": "Play: create a random Null Circuit spell in hand.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-07-create",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-08",
+    "name": "Loop Warden",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-08/400/600",
+    "description": "Round start: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-08-round-mana",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-09",
+    "name": "Null Archivist",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-09/400/600",
+    "description": "Play: recall an enemy unit.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-09-recall",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-10",
+    "name": "Forked Daemon",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-10/400/600",
+    "description": "When an enemy unit dies, deal 1 to the enemy Nexus.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-10-death-ping",
+        "when": {
+          "event": "UNIT_DIED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-11",
+    "name": "Redline Hacker",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-11/400/600",
+    "description": "When you cast your second spell each round, grant me Barrier.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-11-barrier",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          },
+          {
+            "type": "SPELLS_CAST_THIS_ROUND_AT_LEAST",
+            "count": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-12",
+    "name": "Banishment Broker",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-12/400/600",
+    "description": "Play: draw a spell.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-12-draw-spell",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-13",
+    "name": "Recursive Chimera",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-13/400/600",
+    "description": "Attack: I gain +2|+0 this round.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-13-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 2,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-14",
+    "name": "Kernel Reaper",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-14/400/600",
+    "description": "Play: summon a Null Circuit unit costing 3 or less from your deck.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-14-summon",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Null Circuit",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 3,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-15",
+    "name": "Paradox Hydra",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-15/400/600",
+    "description": "Round end: deal 1 to all active enemies.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-15-burn",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "BURN_ACTIVE_ENEMIES",
+            "amount": 1,
+            "target": "ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-16",
+    "name": "Rootkit Sovereign",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-16/400/600",
+    "description": "When you banish a card, draw 1.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-16-banish-draw",
+        "when": {
+          "event": "CARD_BANISHED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-17",
+    "name": "Event Horizon Engine",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Null Circuit",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-17/400/600",
+    "description": "Round start: create a random Null Circuit card in hand.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-17-random",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-18",
+    "name": "Queen Zero",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Null Circuit",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-18/400/600",
+    "description": "Play: recall an enemy unit and grant me Barrier.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-18-boss",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-1",
+    "name": "Nyx Byteweaver",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-1/400/600",
+    "description": "Level up after 4 spells cast.",
+    "level": 1,
+    "championId": "null-circuit-champion-1",
+    "levelUpCondition": {
+      "type": "SPELLS_CAST",
+      "threshold": 4
+    },
+    "level2CardCode": "null-circuit-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-1-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-1-lv2",
+    "name": "Nyx Byteweaver, Ascended",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-1-lv2/400/600",
+    "description": "Leveled form of Nyx Byteweaver.",
+    "level": 2,
+    "championId": "null-circuit-champion-1",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-1-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "SELF"
+          },
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-2",
+    "name": "Axiom, the Null Crown",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-2/400/600",
+    "description": "Level up after 3 allies died.",
+    "level": 1,
+    "championId": "null-circuit-champion-2",
+    "levelUpCondition": {
+      "type": "ALLIES_DIED",
+      "threshold": 3
+    },
+    "level2CardCode": "null-circuit-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-2-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-2-lv2",
+    "name": "Axiom, the Null Crown, Ascended",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-2-lv2/400/600",
+    "description": "Leveled form of Axiom, the Null Crown.",
+    "level": 2,
+    "championId": "null-circuit-champion-2",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-2-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "SELF"
+          },
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-01",
+    "name": "Delete Trace",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-01/400/600",
+    "description": "Draw a Null Circuit card.",
+    "effects": [
+      {
+        "type": "DRAW_CARD_BY_FILTER",
+        "count": 1,
+        "archetype": "Null Circuit",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-02",
+    "name": "Emergency Fork",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-02/400/600",
+    "description": "Deal 2 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 2,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-03",
+    "name": "Cold Reboot",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-03/400/600",
+    "description": "Recall an allied unit, then draw 1.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ALLY_UNIT"
+      },
+      {
+        "type": "DRAW_CARD",
+        "count": 1,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-04",
+    "name": "Quarantine Zone",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-04/400/600",
+    "description": "Banish a card from a graveyard.",
+    "effects": [
+      {
+        "type": "BANISH_GRAVEYARD",
+        "target": "ENEMY_GRAVEYARD"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-05",
+    "name": "Recursive Call",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-05/400/600",
+    "description": "Return an allied unit or champion from your graveyard to hand.",
+    "effects": [
+      {
+        "type": "REBIRTH_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "UNIT",
+          "CHAMPION"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-06",
+    "name": "Blackout Protocol",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-06/400/600",
+    "description": "Recall an enemy unit and restore 2 spell mana.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ENEMY_UNIT"
+      },
+      {
+        "type": "RESTORE_SPELL_MANA",
+        "amount": 2,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-07",
+    "name": "Zero-Day Bloom",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-07/400/600",
+    "description": "Deal 2 to all active enemies.",
+    "effects": [
+      {
+        "type": "BURN_ACTIVE_ENEMIES",
+        "amount": 2,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-08",
+    "name": "Return from Null",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-08/400/600",
+    "description": "Revive an allied champion from your graveyard.",
+    "effects": [
+      {
+        "type": "REVIVE_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "CHAMPION"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-01",
+    "name": "Keymouse Scout",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-01/400/600",
+    "description": "Play: grant an ally +0|+1.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-01-guard",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-02",
+    "name": "Candle Page",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-02/400/600",
+    "description": "Play: draw a Silverkeep spell.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-02-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Silverkeep",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-03",
+    "name": "Clockwork Butler",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-03/400/600",
+    "description": "When you cast a spell, I gain +0|+1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-03-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-04",
+    "name": "Teacup Mimic",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-04/400/600",
+    "description": "Play: give an enemy -1|-0 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-04-debuff",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": 0,
+            "duration": "THIS_ROUND",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-05",
+    "name": "Whispering Maid",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-05/400/600",
+    "description": "When an ally blocks, grant it +0|+1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-05-block",
+        "when": {
+          "event": "BLOCK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "EVENT_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-06",
+    "name": "Hallway Sentry",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-06/400/600",
+    "description": "Play: deal 1 to an enemy unit.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-06-ping",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-07",
+    "name": "Silver Keysmith",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-07/400/600",
+    "description": "Round start: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-07-mana",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-08",
+    "name": "Banquet Steward",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-08/400/600",
+    "description": "Play: summon a Silverkeep unit costing 2 or less from your deck.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-08-summon",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Silverkeep",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 2,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-09",
+    "name": "Mirror Porter",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-09/400/600",
+    "description": "Play: recall an enemy unit.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-09-recall",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-10",
+    "name": "Ballroom Duelist",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-10/400/600",
+    "description": "When an enemy unit is damaged, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-10-damage",
+        "when": {
+          "event": "UNIT_DAMAGED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-11",
+    "name": "Trapwright",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-11/400/600",
+    "description": "Play: give an enemy -2|-1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-11-snare",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -2,
+            "healthDelta": -1,
+            "duration": "THIS_ROUND",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-12",
+    "name": "Lady's Hound",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-12/400/600",
+    "description": "When an enemy dies, draw 1.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-12-death-draw",
+        "when": {
+          "event": "UNIT_DIED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-13",
+    "name": "Chamberlain Orfeo",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-13/400/600",
+    "description": "Play: revive an allied unit from your graveyard.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-13-revive",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "REVIVE_CARD",
+            "target": "target",
+            "allowedTypes": [
+              "UNIT"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-14",
+    "name": "Iron Door Warden",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-14/400/600",
+    "description": "When you cast your second spell each round, deal 1 to a random enemy.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-14-trap",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          },
+          {
+            "type": "SPELLS_CAST_THIS_ROUND_AT_LEAST",
+            "count": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "RANDOM_ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-15",
+    "name": "Midnight Concierge",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-15/400/600",
+    "description": "Round end: grant all active allies +0|+1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-15-fortify",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-16",
+    "name": "Castle Executioner",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-16/400/600",
+    "description": "Play: deal 2 to an enemy unit.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-16-execute",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 2,
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-17",
+    "name": "Grand Clock Sentinel",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Silverkeep",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-17/400/600",
+    "description": "Round start: create a random Silverkeep spell in hand.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-17-prepare",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Silverkeep",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-18",
+    "name": "Silverkeep Behemoth",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Silverkeep",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-18/400/600",
+    "description": "Play: deal 1 to all active enemies and gain Tough.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-18-boss",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "BURN_ACTIVE_ENEMIES",
+            "amount": 1,
+            "target": "ENEMY_UNIT"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "TOUGH",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-1",
+    "name": "Lady Miravel of Silverkeep",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-1/400/600",
+    "description": "Level up after 3 enemies died.",
+    "level": 1,
+    "championId": "silverkeep-champion-1",
+    "levelUpCondition": {
+      "type": "ENEMIES_DIED",
+      "threshold": 3
+    },
+    "level2CardCode": "silverkeep-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-1-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "RANDOM_ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-1-lv2",
+    "name": "Lady Miravel of Silverkeep, Ascended",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-1-lv2/400/600",
+    "description": "Leveled form of Lady Miravel of Silverkeep.",
+    "level": 2,
+    "championId": "silverkeep-champion-1",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-1-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": -1,
+            "duration": "THIS_ROUND",
+            "target": "RANDOM_ENEMY_UNIT"
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-2",
+    "name": "Vesper, Palace Architect",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-2/400/600",
+    "description": "Level up after 4 spells cast.",
+    "level": 1,
+    "championId": "silverkeep-champion-2",
+    "levelUpCondition": {
+      "type": "SPELLS_CAST",
+      "threshold": 4
+    },
+    "level2CardCode": "silverkeep-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-2-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "RANDOM_ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-2-lv2",
+    "name": "Vesper, Palace Architect, Ascended",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-2-lv2/400/600",
+    "description": "Leveled form of Vesper, Palace Architect.",
+    "level": 2,
+    "championId": "silverkeep-champion-2",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-2-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": -1,
+            "duration": "THIS_ROUND",
+            "target": "RANDOM_ENEMY_UNIT"
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-01",
+    "name": "A Most Cordial Welcome",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-01/400/600",
+    "description": "Grant an ally Barrier.",
+    "effects": [
+      {
+        "type": "GRANT_KEYWORD",
+        "keyword": "BARRIER",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-02",
+    "name": "Wrong Door",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-02/400/600",
+    "description": "Give an enemy -2|-0 this round.",
+    "effects": [
+      {
+        "type": "DEBUFF_UNIT",
+        "attackDelta": -2,
+        "healthDelta": 0,
+        "duration": "THIS_ROUND",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-03",
+    "name": "Dinner Is Served",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-03/400/600",
+    "description": "Deal 2 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 2,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-04",
+    "name": "Hidden Passage",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-04/400/600",
+    "description": "Recall an enemy unit.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-05",
+    "name": "Grand Reopening",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-05/400/600",
+    "description": "Summon a Silverkeep unit costing 3 or less from your deck.",
+    "effects": [
+      {
+        "type": "SUMMON_FROM_DECK",
+        "archetype": "Silverkeep",
+        "cardTypes": [
+          "unit"
+        ],
+        "maxCost": 3,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-06",
+    "name": "No Guests Beyond Midnight",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-06/400/600",
+    "description": "Revive an allied unit.",
+    "effects": [
+      {
+        "type": "REVIVE_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "UNIT"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-07",
+    "name": "The Lady's Decree",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-07/400/600",
+    "description": "Give an enemy -3|-3 this round.",
+    "effects": [
+      {
+        "type": "DEBUFF_UNIT",
+        "attackDelta": -3,
+        "healthDelta": -3,
+        "duration": "THIS_ROUND",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-08",
+    "name": "Castle Without Exit",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-08/400/600",
+    "description": "Deal 3 to all active enemies.",
+    "effects": [
+      {
+        "type": "BURN_ACTIVE_ENEMIES",
+        "amount": 3,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-01",
+    "name": "Hearthscale Page",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-01/400/600",
+    "description": "Play: draw an Emberwing Retinue unit.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-01-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Emberwing Retinue",
+            "cardType": "unit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-02",
+    "name": "Tea-Bearing Whelp",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-02/400/600",
+    "description": "Play: grant an ally +1|+0.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-02-buff",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "PERMANENT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-03",
+    "name": "Linenwing Attendant",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-03/400/600",
+    "description": "When you play a card, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-03-recall-watch",
+        "when": {
+          "event": "CARD_PLAYED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-04",
+    "name": "Pantry Drake",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-04/400/600",
+    "description": "Play: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-04-mana",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-05",
+    "name": "Coppertray Maid",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-05/400/600",
+    "description": "Attack: grant me Quick Attack.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-05-quick",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "QUICK_ATTACK",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-06",
+    "name": "Ashbroom Keeper",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-06/400/600",
+    "description": "Play: summon an Emberwing Retinue unit costing 2 or less from your deck.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-06-summon",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Emberwing Retinue",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 2,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-07",
+    "name": "Cinderhouse Cook",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-07/400/600",
+    "description": "When you attack, grant a random combat ally +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-07-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "EVENT_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-08",
+    "name": "Library Wyvern",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-08/400/600",
+    "description": "Play: recall an ally to grant me +2|+2 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-08-exchange",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          },
+          {
+            "type": "BUFF_UNIT",
+            "attack": 2,
+            "health": 2,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-09",
+    "name": "Moonbath Attendant",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-09/400/600",
+    "description": "Round start: create a random Emberwing Retinue unit in hand.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-09-create",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Emberwing Retinue",
+            "cardType": "unit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-10",
+    "name": "Scarlet Chambermaid",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-10/400/600",
+    "description": "Attack: I gain +2|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-10-power",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 2,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-11",
+    "name": "Brassbell Drake",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-11/400/600",
+    "description": "Play: grant an ally Barrier.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-11-barrier",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-12",
+    "name": "Emberhall Steward",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-12/400/600",
+    "description": "Round end: recall me and draw 1.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-12-return",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "SELF"
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-13",
+    "name": "Sapphire House Dragon",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-13/400/600",
+    "description": "Play: summon an Emberwing Retinue unit costing 3 or less from hand or deck.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-13-deploy",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_HAND_OR_DECK",
+            "archetype": "Emberwing Retinue",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 3,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-14",
+    "name": "Crimson House Dragon",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-14/400/600",
+    "description": "Attack: deal 1 to the enemy Nexus.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-14-nexus",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-15",
+    "name": "Ivory House Dragon",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-15/400/600",
+    "description": "Play: grant all active allies +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-15-formation",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-16",
+    "name": "Obsidian House Dragon",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-16/400/600",
+    "description": "Play: deal 2 to an enemy and grant me Overwhelm.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-16-strike",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 2,
+            "target": "target"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "OVERWHELM",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-17",
+    "name": "First-Flame Matron",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Emberwing Retinue",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-17/400/600",
+    "description": "Round start: grant all active allies +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-17-matron",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-18",
+    "name": "Manor-Sky Calamity",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Emberwing Retinue",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-18/400/600",
+    "description": "Play: summon a Retinue unit costing 5 or less, then grant all allies +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-18-boss",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_HAND_OR_DECK",
+            "archetype": "Emberwing Retinue",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 5,
+            "target": "SELF"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-1",
+    "name": "Rhea, Hearthwing Headmaid",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-1/400/600",
+    "description": "Level up after 2 this champion struck.",
+    "level": 1,
+    "championId": "emberwing-retinue-champion-1",
+    "levelUpCondition": {
+      "type": "THIS_CHAMPION_STRUCK",
+      "threshold": 2
+    },
+    "level2CardCode": "emberwing-retinue-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-1-lv1-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-1-lv2",
+    "name": "Rhea, Hearthwing Headmaid, Ascended",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-1-lv2/400/600",
+    "description": "Leveled form of Rhea, Hearthwing Headmaid.",
+    "level": 2,
+    "championId": "emberwing-retinue-champion-1",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-1-lv2-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 2,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          },
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-2",
+    "name": "Tiamara, Lady of the Roost",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-2/400/600",
+    "description": "Level up after 8 nexus damage dealt.",
+    "level": 1,
+    "championId": "emberwing-retinue-champion-2",
+    "levelUpCondition": {
+      "type": "NEXUS_DAMAGE_DEALT",
+      "threshold": 8
+    },
+    "level2CardCode": "emberwing-retinue-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-2-lv1-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-2-lv2",
+    "name": "Tiamara, Lady of the Roost, Ascended",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-2-lv2/400/600",
+    "description": "Leveled form of Tiamara, Lady of the Roost.",
+    "level": 2,
+    "championId": "emberwing-retinue-champion-2",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-2-lv2-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 2,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          },
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-01",
+    "name": "Perfect Hospitality",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-01/400/600",
+    "description": "Grant an ally +1|+1 this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 1,
+        "health": 1,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-02",
+    "name": "Change of Uniform",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-02/400/600",
+    "description": "Recall an ally and draw 1.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ALLY_UNIT"
+      },
+      {
+        "type": "DRAW_CARD",
+        "count": 1,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-03",
+    "name": "Call from the Roost",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-03/400/600",
+    "description": "Draw an Emberwing Retinue unit.",
+    "effects": [
+      {
+        "type": "DRAW_CARD_BY_FILTER",
+        "count": 1,
+        "archetype": "Emberwing Retinue",
+        "cardType": "unit",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-04",
+    "name": "Polished to a Shine",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-04/400/600",
+    "description": "Grant an ally Quick Attack.",
+    "effects": [
+      {
+        "type": "GRANT_KEYWORD",
+        "keyword": "QUICK_ATTACK",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-05",
+    "name": "Dragon's Tea Break",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-05/400/600",
+    "description": "Summon an Emberwing Retinue unit costing 3 or less from hand or deck.",
+    "effects": [
+      {
+        "type": "SUMMON_FROM_HAND_OR_DECK",
+        "archetype": "Emberwing Retinue",
+        "cardTypes": [
+          "unit"
+        ],
+        "maxCost": 3,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-06",
+    "name": "Return Before Dawn",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-06/400/600",
+    "description": "Grant all active allies +2|+0 this round.",
+    "effects": [
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 2,
+        "health": 0,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-07",
+    "name": "The Manor Takes Flight",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-07/400/600",
+    "description": "Deal 3 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 3,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-08",
+    "name": "All Wings to the Hall",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-08/400/600",
+    "description": "Summon a Retinue unit costing 5 or less and grant all allies +1|+1 this round.",
+    "effects": [
+      {
+        "type": "SUMMON_FROM_HAND_OR_DECK",
+        "archetype": "Emberwing Retinue",
+        "cardTypes": [
+          "unit"
+        ],
+        "maxCost": 5,
+        "target": "SELF"
+      },
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 1,
+        "health": 1,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-01",
+    "name": "Mintbud Tender",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-01/400/600",
+    "description": "Play: heal your Nexus 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-01-heal",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-02",
+    "name": "Rosemary Familiar",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-02/400/600",
+    "description": "Play: heal an ally 2.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-02-heal-unit",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-03",
+    "name": "Basil Acolyte",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-03/400/600",
+    "description": "When an allied unit is healed, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-03-heal-watch",
+        "when": {
+          "event": "UNIT_HEALED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-04",
+    "name": "Lavender Mender",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-04/400/600",
+    "description": "Round start: heal your Nexus 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-04-round-heal",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-05",
+    "name": "Thymeglass Sprite",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-05/400/600",
+    "description": "Play: grant a damaged ally +1|+1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-05-growth",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-06",
+    "name": "Sagewind Gardener",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-06/400/600",
+    "description": "When you cast a spell, heal me 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-06-spell-heal",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-07",
+    "name": "Jasmine Listener",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-07/400/600",
+    "description": "Play: draw a Verdant Covenant spell.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-07-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Verdant Covenant",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-08",
+    "name": "Camellia Keeper",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-08/400/600",
+    "description": "When an ally is healed, grant it +0|+1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-08-bless",
+        "when": {
+          "event": "UNIT_HEALED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "EVENT_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-09",
+    "name": "Marjoram Priest",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-09/400/600",
+    "description": "Round start: if your Nexus is below 15 health, draw 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-09-low-health",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "conditions": [
+          {
+            "type": "NEXUS_HEALTH_BELOW",
+            "player": "SELF",
+            "amount": 15
+          }
+        ],
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-10",
+    "name": "Bergamot Dryad",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-10/400/600",
+    "description": "Play: heal your Nexus 2 and grant me Barrier.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-10-barrier",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-11",
+    "name": "Roseheart Druid",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-11/400/600",
+    "description": "When an ally is healed, grant me +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-11-rose",
+        "when": {
+          "event": "UNIT_HEALED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-12",
+    "name": "Laurel Apothecary",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-12/400/600",
+    "description": "Play: revive an allied unit from your graveyard.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-12-revive",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "REVIVE_CARD",
+            "target": "target",
+            "allowedTypes": [
+              "UNIT"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-13",
+    "name": "Magnolia Guardian",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Verdant Covenant",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-13/400/600",
+    "description": "Round start: heal all active allies 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-13-heal-all",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-14",
+    "name": "Lotuswell Mystic",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Verdant Covenant",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-14/400/600",
+    "description": "Play: heal an ally 3 and grant it Tough.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-14-tough",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 3,
+            "target": "target"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "TOUGH",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-15",
+    "name": "Cedar Sanctuary",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Verdant Covenant",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-15/400/600",
+    "description": "Round end: heal your Nexus 2.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-15-sanctuary",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-16",
+    "name": "Ancient Myrrhkeeper",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Verdant Covenant",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-16/400/600",
+    "description": "When you cast your second spell each round, grant all allies +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-16-bloom",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          },
+          {
+            "type": "SPELLS_CAST_THIS_ROUND_AT_LEAST",
+            "count": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-17",
+    "name": "Worldroot Stag",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Verdant Covenant",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-17/400/600",
+    "description": "Round start: heal your Nexus 3 and create a Verdant Covenant spell.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-17-worldroot",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 3,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Verdant Covenant",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-18",
+    "name": "Garden of First Breath",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Verdant Covenant",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-18/400/600",
+    "description": "Play: heal your Nexus 4 and grant all active allies +1|+2 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-18-boss",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 4,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 2,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-1",
+    "name": "Aurelia, Dawn Perfumer",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Verdant Covenant",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-1/400/600",
+    "description": "Level up after 4 spells cast.",
+    "level": 1,
+    "championId": "verdant-covenant-champion-1",
+    "levelUpCondition": {
+      "type": "SPELLS_CAST",
+      "threshold": 4
+    },
+    "level2CardCode": "verdant-covenant-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-1-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-1-lv2",
+    "name": "Aurelia, Dawn Perfumer, Ascended",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Verdant Covenant",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-1-lv2/400/600",
+    "description": "Leveled form of Aurelia, Dawn Perfumer.",
+    "level": 2,
+    "championId": "verdant-covenant-champion-1",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-1-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-2",
+    "name": "Sylva, Heart of the Garden",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Verdant Covenant",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-2/400/600",
+    "description": "Level up after 2 this champion struck.",
+    "level": 1,
+    "championId": "verdant-covenant-champion-2",
+    "levelUpCondition": {
+      "type": "THIS_CHAMPION_STRUCK",
+      "threshold": 2
+    },
+    "level2CardCode": "verdant-covenant-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-2-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-2-lv2",
+    "name": "Sylva, Heart of the Garden, Ascended",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Verdant Covenant",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-2-lv2/400/600",
+    "description": "Leveled form of Sylva, Heart of the Garden.",
+    "level": 2,
+    "championId": "verdant-covenant-champion-2",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-2-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-01",
+    "name": "Morning Dew",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-01/400/600",
+    "description": "Heal your Nexus 2.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 2,
+        "target": "ALLY_NEXUS"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-02",
+    "name": "Breeze Through Basil",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Verdant Covenant",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-02/400/600",
+    "description": "Heal an ally 3.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 3,
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-03",
+    "name": "Fragrant Remedy",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-03/400/600",
+    "description": "Grant an ally +1|+2 this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 1,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-04",
+    "name": "Sunlit Conservatory",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-04/400/600",
+    "description": "Heal your Nexus 3 and draw 1.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 3,
+        "target": "ALLY_NEXUS"
+      },
+      {
+        "type": "DRAW_CARD",
+        "count": 1,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-05",
+    "name": "Overgrown Blessing",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Verdant Covenant",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-05/400/600",
+    "description": "Grant an ally +2|+2 and Tough this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 2,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      },
+      {
+        "type": "GRANT_KEYWORD",
+        "keyword": "TOUGH",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-06",
+    "name": "Rain on the Glasshouse",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Verdant Covenant",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-06/400/600",
+    "description": "Heal all active allies through +0|+2 this round.",
+    "effects": [
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 0,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-07",
+    "name": "Season of Abundance",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Verdant Covenant",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-07/400/600",
+    "description": "Revive an allied unit and heal your Nexus 2.",
+    "effects": [
+      {
+        "type": "REVIVE_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "UNIT"
+        ]
+      },
+      {
+        "type": "HEAL",
+        "amount": 2,
+        "target": "ALLY_NEXUS"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-08",
+    "name": "The Garden Remembers",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Verdant Covenant",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-08/400/600",
+    "description": "Heal your Nexus 5 and grant all active allies +2|+2 this round.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 5,
+        "target": "ALLY_NEXUS"
+      },
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 2,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  }
+]

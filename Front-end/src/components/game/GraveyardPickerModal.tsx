@@ -11,6 +11,7 @@ interface GraveyardPickerModalProps {
   selectedCardInstanceId?: string;
   canSelect?: boolean;
   allowedTypes?: GraveyardEntryType[];
+  selectionPrompt?: string;
   onSelectCard?: (cardInstanceId: string) => void;
   onClose: () => void;
 }
@@ -22,6 +23,7 @@ export function GraveyardPickerModal({
   selectedCardInstanceId,
   canSelect = false,
   allowedTypes,
+  selectionPrompt,
   onSelectCard,
   onClose
 }: GraveyardPickerModalProps) {
@@ -36,7 +38,10 @@ export function GraveyardPickerModal({
     <div className="graveyard-modal-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onClose}>
       <div className="graveyard-modal-content graveyard-modal-v2" onClick={(event) => event.stopPropagation()}>
         <header>
-          <h2 id={titleId}>{playerName}&apos;s Graveyard</h2>
+          <div className="graveyard-modal__heading">
+            <h2 id={titleId}>{playerName}&apos;s Graveyard</h2>
+            {canSelect && selectionPrompt ? <small>{selectionPrompt}</small> : null}
+          </div>
           <button className="graveyard-modal__close" type="button" onClick={onClose} aria-label="Close graveyard">
             <X size={20} aria-hidden="true" />
           </button>
