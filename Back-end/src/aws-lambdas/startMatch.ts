@@ -50,23 +50,17 @@ function positiveNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function isGone(error: any): boolean {
-  return error?.name === "GoneException" || error?.$metadata?.httpStatusCode === 410;
+function finiteNumber(...values: unknown[]): number | undefined {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+  return undefined;
 }
 
-function clientErrorMessage(error: any): string {
-  switch (error?.name) {
-    case "AccessDeniedException":
-    case "AccessDenied":
-      return "The game server is not authorized to access matchmaking resources.";
-    case "ResourceNotFoundException":
-      return "The game server cannot find a matchmaking table. Please contact support.";
-    case "CredentialsProviderError":
-    case "InvalidSignatureException":
-      return "The game server credentials are invalid. Please contact support.";
-    default:
-      return "Matchmaking could not start. Please try again.";
-  }
+function isGone(error: any): boolean {
+  return error?.name === "GoneException" || error?.$metadata?.httpStatusCode === 410;
 }
 
 function managementEndpoint(event: any): string {
@@ -126,7 +120,15 @@ async function loadElo(userId: string): Promise<number> {
     ConsistentRead: true
   }));
   const item = result.Item;
-  return Number(item?.stats?.elo_rating ?? item?.stats?.rank_points ?? item?.elo ?? 1000);
+  return finiteNumber(
+    item?.stats?.elo_rating,
+    item?.stats?.rank_points,
+    item?.stats?.rating,
+    item?.elo_rating,
+    item?.rank_points,
+    item?.rating,
+    item?.elo
+  ) ?? 1000;
 }
 
 async function loadWaitingMatches(): Promise<MatchRecord[]> {
@@ -176,18 +178,6 @@ async function sendMessage(
   } catch (error) {
     if (isGone(error)) return false;
     throw error;
-  }
-}
-
-async function notifyClientError(
-  wsClient: ApiGatewayManagementApiClient,
-  connectionId: string,
-  message: string
-): Promise<void> {
-  try {
-    await sendMessage(wsClient, connectionId, { event: "game:error", message });
-  } catch (notificationError) {
-    console.error("Unable to send matchmaking error to client:", notificationError);
   }
 }
 
@@ -292,7 +282,8 @@ async function createWaitingMatch(input: {
 
 async function claimMatch(
   match: MatchRecord,
-  player2: PlayerRecord
+  player2: PlayerRecord,
+  player1Elo: number
 ): Promise<GameState | undefined> {
   const updatedEngineState = applyAction(match.engine_state, {
     type: "START_GAME",
@@ -304,7 +295,8 @@ async function claimMatch(
       TableName: gameStateTable,
       Key: { match_id: match.match_id },
       UpdateExpression:
-        "SET #status = :active, player_2 = :player2, engine_state = :engineState, expire_at = :expireAt",
+        "SET #status = :active, player_1.elo = :player1Elo, player_2 = :player2, " +
+        "engine_state = :engineState, expire_at = :expireAt",
       ConditionExpression:
         "#status = :waiting AND (attribute_not_exists(player_2) OR player_2 = :emptyPlayer) " +
         "AND (attribute_not_exists(expire_at) OR expire_at > :now)",
@@ -312,6 +304,7 @@ async function claimMatch(
       ExpressionAttributeValues: {
         ":active": "IN_PROGRESS",
         ":waiting": "WAITING",
+        ":player1Elo": player1Elo,
         ":player2": player2,
         ":emptyPlayer": null,
         ":engineState": updatedEngineState,
@@ -377,11 +370,6 @@ export const handler = async (event: any) => {
     }));
     const connection = connectionResult.Item;
     if (!connection?.user_id) {
-      await notifyClientError(
-        wsClient,
-        connectionId,
-        "Your game connection is not authenticated. Reconnect and sign in again."
-      );
       return { statusCode: 401, body: "Connection is not authenticated." };
     }
 
@@ -396,11 +384,7 @@ export const handler = async (event: any) => {
 
     const nowSeconds = Math.floor(Date.now() / 1000);
     const waitingMatches = await loadWaitingMatches();
-    console.info("Matchmaking waiting matches loaded", {
-      connectionId,
-      waitingMatchCount: waitingMatches.length
-    });
-    const candidates: MatchRecord[] = [];
+    const candidates: Array<{ match: MatchRecord; opponentElo: number }> = [];
 
     for (const match of waitingMatches) {
       if (!match.player_1?.connection_id || !match.player_1?.user_id) {
@@ -443,17 +427,22 @@ export const handler = async (event: any) => {
         return { statusCode: 409, body: "Already in queue." };
       }
 
-      const opponentElo = Number(match.player_1.elo ?? 1000);
-      if (Math.abs(opponentElo - playerElo) <= eloRange) candidates.push(match);
+      // Always compare the latest rating from UserProfile. The value stored in a
+      // WAITING record is only a snapshot and older queue records may not have it.
+      const opponentElo = await loadElo(String(match.player_1.user_id));
+      if (Math.abs(opponentElo - playerElo) <= eloRange) {
+        candidates.push({ match, opponentElo });
+      }
     }
 
     candidates.sort((left, right) => {
-      const leftDifference = Math.abs(Number(left.player_1.elo ?? 1000) - playerElo);
-      const rightDifference = Math.abs(Number(right.player_1.elo ?? 1000) - playerElo);
-      return leftDifference - rightDifference || left.created_at - right.created_at;
+      const leftDifference = Math.abs(left.opponentElo - playerElo);
+      const rightDifference = Math.abs(right.opponentElo - playerElo);
+      return leftDifference - rightDifference || left.match.created_at - right.match.created_at;
     });
 
-    for (const pendingMatch of candidates) {
+    for (const candidate of candidates) {
+      const pendingMatch = candidate.match;
       const player2: PlayerRecord = {
         user_id: userId,
         connection_id: connectionId,
@@ -462,7 +451,7 @@ export const handler = async (event: any) => {
         elo: playerElo,
         connected: true
       };
-      const updatedEngineState = await claimMatch(pendingMatch, player2);
+      const updatedEngineState = await claimMatch(pendingMatch, player2, candidate.opponentElo);
       if (!updatedEngineState) continue;
 
       await dynamoDb.send(new UpdateCommand({
@@ -498,7 +487,7 @@ export const handler = async (event: any) => {
         event: "matchmaking:found",
         roomCode: pendingMatch.match_id,
         playerId: "P2",
-        opponentElo: Number(pendingMatch.player_1.elo ?? 1000),
+        opponentElo: candidate.opponentElo,
         state: redactStateForPlayer(updatedEngineState, "P2")
       });
 
@@ -511,11 +500,6 @@ export const handler = async (event: any) => {
         return { statusCode: 410, body: "Connection closed before match notification." };
       }
 
-      console.info("Matchmaking match started", {
-        matchId: pendingMatch.match_id,
-        player1UserId: pendingMatch.player_1.user_id,
-        player2UserId: userId
-      });
       return { statusCode: 200, body: "Match started." };
     }
 
@@ -526,20 +510,22 @@ export const handler = async (event: any) => {
       elo: playerElo,
       wsClient
     });
-    console.info("Matchmaking waiting match created", { matchId, connectionId, userId, playerElo });
     return { statusCode: 200, body: `Waiting for opponent in ${matchId}.` };
   } catch (error: any) {
-    console.error("StartMatch Error:", {
+    console.error("StartMatch Error", {
       name: error?.name,
       message: error?.message,
-      statusCode: error?.$metadata?.httpStatusCode
+      statusCode: error?.$metadata?.httpStatusCode,
+      requestId: event.requestContext?.requestId,
+      connectionId
     });
     const statusCode = error?.message === "Matchmaking is busy. Please retry." ? 503 : 500;
-    await notifyClientError(
-      wsClient,
-      connectionId,
-      statusCode === 503 ? "Matchmaking is busy. Please try again." : clientErrorMessage(error)
-    );
+    if (statusCode === 503) {
+      await sendMessage(wsClient, connectionId, {
+        event: "game:error",
+        message: "Matchmaking is busy. Please try again."
+      }).catch(() => false);
+    }
     return { statusCode, body: error?.message || "Unable to start matchmaking." };
   } finally {
     if (lockOwner) await releaseMatchmakingLock(lockOwner);

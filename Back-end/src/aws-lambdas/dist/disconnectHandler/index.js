@@ -36445,6 +36445,16 @@ if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
   });
 }
 var cachedCredentials = null;
+var isLambdaRuntime = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+var hasLegacyCustomCredentialSettings = Boolean(
+  process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY || process.env.CROSS_ACCOUNT_ROLE_ARN || process.env.DB_ACCESS_KEY_ID
+);
+var usesCustomCredentials = process.env.DYNAMODB_CREDENTIAL_MODE === "custom" || !isLambdaRuntime && hasLegacyCustomCredentialSettings;
+if (isLambdaRuntime && hasLegacyCustomCredentialSettings && !usesCustomCredentials) {
+  console.info(
+    "DynamoDB is using the Lambda execution role. Set DYNAMODB_CREDENTIAL_MODE=custom only for an intentional cross-account credential source."
+  );
+}
 var getCredentials = async () => {
   if (cachedCredentials) {
     return cachedCredentials;
@@ -36461,9 +36471,16 @@ var getCredentials = async () => {
       );
       if (response.SecretString) {
         const secretObj = JSON.parse(response.SecretString);
+        const accessKeyId = secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID;
+        const secretAccessKey = secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY;
+        if (!accessKeyId || !secretAccessKey) {
+          throw new Error(
+            "The configured DynamoDB credential secret does not contain AWS accessKeyId and secretAccessKey."
+          );
+        }
         cachedCredentials = {
-          accessKeyId: secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID || "",
-          secretAccessKey: secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY || "",
+          accessKeyId,
+          secretAccessKey,
           ...secretObj.sessionToken && { sessionToken: secretObj.sessionToken }
         };
         console.log("[SecretsManager] T\u1EA3i credentials th\xE0nh c\xF4ng!");
@@ -36501,9 +36518,6 @@ var getCredentials = async () => {
   }
   throw new Error("Custom DynamoDB credentials were requested but could not be resolved.");
 };
-var usesCustomCredentials = Boolean(
-  process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY || process.env.CROSS_ACCOUNT_ROLE_ARN || process.env.DB_ACCESS_KEY_ID
-);
 var client = new import_client_dynamodb.DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
   // Omit credentials in Lambda so the AWS SDK uses the function execution role.
