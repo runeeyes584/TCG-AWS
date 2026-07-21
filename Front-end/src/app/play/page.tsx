@@ -250,7 +250,7 @@ function OnlinePlayPageContent() {
           )}
         </motion.section>
 
-        {pendingMatch ? <PendingMatchDialog isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+        {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
 
         <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
           <Headphones size={15} />
