@@ -870,3 +870,57 @@ Creating turbopack project {
  GET /gallery 200 in 49ms (next.js: 3ms, application-code: 46ms)
  GET /gallery 200 in 24ms (next.js: 2ms, application-code: 22ms)
  GET /gallery 200 in 452ms (next.js: 5ms, application-code: 447ms)
+ GET / 200 in 73ms (next.js: 12ms, application-code: 61ms)
+ GET /gallery 200 in 20ms (next.js: 4ms, application-code: 17ms)
+✓ Compiled in 17ms
+ GET /gallery 200 in 96ms (next.js: 45ms, application-code: 52ms)
+ GET /gallery 200 in 34ms (next.js: 2ms, application-code: 32ms)
+ GET /gallery 200 in 17ms (next.js: 1977µs, application-code: 15ms)
+✓ Compiled in 17ms
+ GET /gallery 200 in 95ms (next.js: 41ms, application-code: 54ms)
+ GET /gallery 200 in 40ms (next.js: 2ms, application-code: 38ms)
+ GET /gallery 200 in 23ms (next.js: 2ms, application-code: 21ms)
+✓ Compiled in 18ms
+ GET /gallery 200 in 85ms (next.js: 41ms, application-code: 44ms)
+ GET /gallery 200 in 42ms (next.js: 3ms, application-code: 39ms)
+ GET /gallery 200 in 19ms (next.js: 3ms, application-code: 16ms)
+✓ Compiled in 20ms
+ GET /gallery 200 in 116ms (next.js: 60ms, application-code: 56ms)
+ GET /gallery 200 in 40ms (next.js: 3ms, application-code: 37ms)
+ GET /gallery 200 in 20ms (next.js: 2ms, application-code: 18ms)
+✓ Compiled in 21ms
+ GET /gallery 200 in 89ms (next.js: 40ms, application-code: 49ms)
+ GET /gallery 200 in 33ms (next.js: 2ms, application-code: 31ms)
+ GET /gallery 200 in 18ms (next.js: 2ms, application-code: 16ms)
+✓ Compiled in 22ms
+ GET /gallery 200 in 100ms (next.js: 50ms, application-code: 50ms)
+ GET /gallery 200 in 36ms (next.js: 2ms, application-code: 33ms)
+ GET /gallery 200 in 21ms (next.js: 1948µs, application-code: 19ms)
+✓ Compiled in 17ms
+ GET /gallery 200 in 94ms (next.js: 43ms, application-code: 52ms)
+ GET /gallery 200 in 34ms (next.js: 2ms, application-code: 32ms)
+ GET /gallery 200 in 18ms (next.js: 2ms, application-code: 16ms)
+✓ Compiled in 21ms
+ GET /gallery 200 in 101ms (next.js: 41ms, application-code: 61ms)
+ GET /gallery 200 in 45ms (next.js: 3ms, application-code: 42ms)
+ GET /gallery 200 in 26ms (next.js: 3ms, application-code: 23ms)
+✓ Compiled in 18ms
+ GET /gallery 200 in 96ms (next.js: 41ms, application-code: 55ms)
+ GET /gallery 200 in 36ms (next.js: 2ms, application-code: 34ms)
+ GET /gallery 200 in 21ms (next.js: 2ms, application-code: 19ms)
+✓ Compiled in 17ms
+ GET /gallery 200 in 92ms (next.js: 40ms, application-code: 52ms)
+ GET /gallery 200 in 36ms (next.js: 2ms, application-code: 34ms)
+ GET /gallery 200 in 18ms (next.js: 2ms, application-code: 16ms)
+✓ Compiled in 20ms
+ GET /gallery 200 in 102ms (next.js: 43ms, application-code: 59ms)
+ GET /gallery 200 in 41ms (next.js: 2ms, application-code: 38ms)
+ GET /gallery 200 in 24ms (next.js: 2ms, application-code: 21ms)
+✓ Compiled in 18ms
+ GET /gallery 200 in 99ms (next.js: 43ms, application-code: 56ms)
+ GET /gallery 200 in 38ms (next.js: 2ms, application-code: 36ms)
+ GET /gallery 200 in 22ms (next.js: 2ms, application-code: 20ms)
+✓ Compiled in 23ms
+ GET /gallery 200 in 90ms (next.js: 41ms, application-code: 49ms)
+ GET /gallery 200 in 36ms (next.js: 1973µs, application-code: 34ms)
+ GET /gallery 200 in 19ms (next.js: 2ms, application-code: 16ms)
