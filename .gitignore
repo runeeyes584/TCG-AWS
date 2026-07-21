@@ -71,3 +71,4 @@ package-lock.json
 .env
 .env.local
 tsconfig.tsbuildinfo
+Front-end/out
