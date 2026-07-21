@@ -31853,7 +31853,7 @@ var require_dist_cjs21 = __commonJS({
         return async () => handler2(this.clientCommand);
       }
     };
-    var DeleteCommand = class extends DynamoDBDocumentClientCommand {
+    var DeleteCommand2 = class extends DynamoDBDocumentClientCommand {
       input;
       inputKeyNodes = {
         Key: ALL_VALUES,
@@ -32250,7 +32250,7 @@ var require_dist_cjs21 = __commonJS({
         }
       }
       delete(args, optionsOrCb, cb) {
-        const command6 = new DeleteCommand(args);
+        const command6 = new DeleteCommand2(args);
         if (typeof optionsOrCb === "function") {
           this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
@@ -32383,7 +32383,7 @@ var require_dist_cjs21 = __commonJS({
     exports2.BatchExecuteStatementCommand = BatchExecuteStatementCommand;
     exports2.BatchGetCommand = BatchGetCommand;
     exports2.BatchWriteCommand = BatchWriteCommand;
-    exports2.DeleteCommand = DeleteCommand;
+    exports2.DeleteCommand = DeleteCommand2;
     exports2.DynamoDBDocument = DynamoDBDocument;
     exports2.DynamoDBDocumentClient = DynamoDBDocumentClient2;
     exports2.DynamoDBDocumentClientCommand = DynamoDBDocumentClientCommand;
@@ -32912,13 +32912,13 @@ var require_dist_cjs22 = __commonJS({
     var _mw06 = (Command2, cs, config, o3) => [];
     var DeleteConnectionCommand = class extends command6(_ep06, _mw06, "DeleteConnection", DeleteConnection$) {
     };
-    var GetConnectionCommand = class extends command6(_ep06, _mw06, "GetConnection", GetConnection$) {
+    var GetConnectionCommand2 = class extends command6(_ep06, _mw06, "GetConnection", GetConnection$) {
     };
     var PostToConnectionCommand2 = class extends command6(_ep06, _mw06, "PostToConnection", PostToConnection$) {
     };
     var commands6 = {
       DeleteConnectionCommand,
-      GetConnectionCommand,
+      GetConnectionCommand: GetConnectionCommand2,
       PostToConnectionCommand: PostToConnectionCommand2
     };
     var ApiGatewayManagementApi = class extends ApiGatewayManagementApiClient2 {
@@ -32934,7 +32934,7 @@ var require_dist_cjs22 = __commonJS({
     exports2.ForbiddenException = ForbiddenException;
     exports2.ForbiddenException$ = ForbiddenException$;
     exports2.GetConnection$ = GetConnection$;
-    exports2.GetConnectionCommand = GetConnectionCommand;
+    exports2.GetConnectionCommand = GetConnectionCommand2;
     exports2.GetConnectionRequest$ = GetConnectionRequest$;
     exports2.GetConnectionResponse$ = GetConnectionResponse$;
     exports2.GoneException = GoneException;
@@ -36421,6 +36421,7 @@ __export(startMatch_exports, {
   handler: () => handler
 });
 module.exports = __toCommonJS(startMatch_exports);
+var import_node_crypto6 = require("node:crypto");
 var import_lib_dynamodb2 = __toESM(require_dist_cjs21(), 1);
 var import_client_apigatewaymanagementapi = __toESM(require_dist_cjs22(), 1);
 
@@ -43223,137 +43224,393 @@ function buildSampleLocalDeck() {
 }
 
 // Back-end/src/aws-lambdas/startMatch.ts
-var region = process.env.AWS_REGION || "ap-southeast-1";
-var docClient = dynamoDb;
-var handler = async (event) => {
-  const connectionId = event.requestContext.connectionId;
-  const callbackUrl = `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
-  const wsClient = new import_client_apigatewaymanagementapi.ApiGatewayManagementApiClient({ endpoint: callbackUrl, region });
+var region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
+var connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
+var gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
+var userProfileTable = process.env.USER_PROFILE_TABLE || "UserProfile";
+var eloRange = positiveNumber(process.env.MATCHMAKING_ELO_RANGE, 200);
+var waitingTtlSeconds = positiveNumber(process.env.MATCHMAKING_WAIT_TTL_SECONDS, 600);
+var matchTtlSeconds = positiveNumber(process.env.MATCH_TTL_SECONDS, 86400);
+var lockTtlSeconds = 10;
+var matchmakingLockId = "__MATCHMAKING_LOCK__";
+function positiveNumber(value, fallback2) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback2;
+}
+function isGone(error2) {
+  return error2?.name === "GoneException" || error2?.$metadata?.httpStatusCode === 410;
+}
+function managementEndpoint(event) {
+  const configuredEndpoint = process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "");
+  if (configuredEndpoint) return configuredEndpoint;
+  return `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
+}
+async function sleep2(milliseconds) {
+  await new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+async function acquireMatchmakingLock(owner) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const now = Math.floor(Date.now() / 1e3);
+    try {
+      await dynamoDb.send(new import_lib_dynamodb2.PutCommand({
+        TableName: gameStateTable,
+        Item: {
+          match_id: matchmakingLockId,
+          status: "LOCK",
+          lock_owner: owner,
+          expire_at: now + lockTtlSeconds
+        },
+        ConditionExpression: "attribute_not_exists(match_id) OR expire_at < :now",
+        ExpressionAttributeValues: { ":now": now }
+      }));
+      return;
+    } catch (error2) {
+      if (error2?.name !== "ConditionalCheckFailedException") throw error2;
+      await sleep2(50 + attempt * 25);
+    }
+  }
+  throw new Error("Matchmaking is busy. Please retry.");
+}
+async function releaseMatchmakingLock(owner) {
   try {
-    const connectionResult = await docClient.send(
-      new import_lib_dynamodb2.GetCommand({
-        TableName: "Connections",
-        Key: { connection_id: connectionId }
-      })
-    );
+    await dynamoDb.send(new import_lib_dynamodb2.DeleteCommand({
+      TableName: gameStateTable,
+      Key: { match_id: matchmakingLockId },
+      ConditionExpression: "lock_owner = :owner",
+      ExpressionAttributeValues: { ":owner": owner }
+    }));
+  } catch (error2) {
+    if (error2?.name !== "ConditionalCheckFailedException") {
+      console.error("Unable to release matchmaking lock:", error2);
+    }
+  }
+}
+async function loadElo(userId) {
+  const result = await dynamoDb.send(new import_lib_dynamodb2.GetCommand({
+    TableName: userProfileTable,
+    Key: { user_id: userId },
+    ConsistentRead: true
+  }));
+  const item = result.Item;
+  return Number(item?.stats?.elo_rating ?? item?.stats?.rank_points ?? item?.elo ?? 1e3);
+}
+async function loadWaitingMatches() {
+  const matches = [];
+  let exclusiveStartKey;
+  do {
+    const result = await dynamoDb.send(new import_lib_dynamodb2.ScanCommand({
+      TableName: gameStateTable,
+      FilterExpression: "#status = :waiting",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: { ":waiting": "WAITING" },
+      ExclusiveStartKey: exclusiveStartKey,
+      ConsistentRead: true
+    }));
+    matches.push(...result.Items || []);
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+  return matches;
+}
+async function connectionIsAlive(wsClient, connectionId) {
+  try {
+    await wsClient.send(new import_client_apigatewaymanagementapi.GetConnectionCommand({ ConnectionId: connectionId }));
+    return true;
+  } catch (error2) {
+    if (isGone(error2)) return false;
+    throw error2;
+  }
+}
+async function sendMessage(wsClient, connectionId, payload2) {
+  try {
+    await wsClient.send(new import_client_apigatewaymanagementapi.PostToConnectionCommand({
+      ConnectionId: connectionId,
+      Data: Buffer.from(JSON.stringify(payload2))
+    }));
+    return true;
+  } catch (error2) {
+    if (isGone(error2)) return false;
+    throw error2;
+  }
+}
+async function removeConnectionMatch(connectionId, matchId) {
+  try {
+    await dynamoDb.send(new import_lib_dynamodb2.UpdateCommand({
+      TableName: connectionsTable,
+      Key: { connection_id: connectionId },
+      UpdateExpression: "REMOVE match_id",
+      ConditionExpression: "match_id = :matchId",
+      ExpressionAttributeValues: { ":matchId": matchId }
+    }));
+  } catch (error2) {
+    if (error2?.name !== "ConditionalCheckFailedException") throw error2;
+  }
+}
+async function deleteWaitingMatch(match) {
+  try {
+    await dynamoDb.send(new import_lib_dynamodb2.DeleteCommand({
+      TableName: gameStateTable,
+      Key: { match_id: match.match_id },
+      ConditionExpression: "#status = :waiting",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: { ":waiting": "WAITING" }
+    }));
+    if (match.player_1?.connection_id) {
+      await removeConnectionMatch(match.player_1.connection_id, match.match_id);
+    }
+  } catch (error2) {
+    if (error2?.name !== "ConditionalCheckFailedException") throw error2;
+  }
+}
+async function createWaitingMatch(input) {
+  const now = Date.now();
+  const matchId = `MATCH_${now}_${(0, import_node_crypto6.randomUUID)()}`;
+  const initialEngineState = createInitialGameState(
+    buildDefaultDeck("P1"),
+    buildDefaultDeck("P2"),
+    now
+  );
+  const match = {
+    match_id: matchId,
+    status: "WAITING",
+    player_1: {
+      user_id: input.userId,
+      connection_id: input.connectionId,
+      username: input.username,
+      player_id: "P1",
+      elo: input.elo,
+      connected: true
+    },
+    player_2: null,
+    engine_state: initialEngineState,
+    created_at: now,
+    expire_at: Math.floor(now / 1e3) + waitingTtlSeconds
+  };
+  await dynamoDb.send(new import_lib_dynamodb2.PutCommand({
+    TableName: gameStateTable,
+    Item: {
+      ...match,
+      current_round: initialEngineState.round,
+      turn_player_id: "P1"
+    },
+    ConditionExpression: "attribute_not_exists(match_id)"
+  }));
+  await dynamoDb.send(new import_lib_dynamodb2.UpdateCommand({
+    TableName: connectionsTable,
+    Key: { connection_id: input.connectionId },
+    UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
+    ConditionExpression: "attribute_exists(connection_id) AND user_id = :userId",
+    ExpressionAttributeValues: {
+      ":matchId": matchId,
+      ":connectedAt": now,
+      ":userId": input.userId
+    }
+  }));
+  const delivered = await sendMessage(input.wsClient, input.connectionId, {
+    event: "matchmaking:searching",
+    roomCode: matchId,
+    elo: input.elo,
+    eloRange
+  });
+  if (!delivered) {
+    await deleteWaitingMatch(match);
+    throw new Error("WebSocket connection closed before matchmaking started.");
+  }
+  return matchId;
+}
+async function claimMatch(match, player2) {
+  const updatedEngineState = applyAction(match.engine_state, {
+    type: "START_GAME",
+    firstPlayerId: "P1"
+  });
+  try {
+    await dynamoDb.send(new import_lib_dynamodb2.UpdateCommand({
+      TableName: gameStateTable,
+      Key: { match_id: match.match_id },
+      UpdateExpression: "SET #status = :active, player_2 = :player2, engine_state = :engineState, expire_at = :expireAt",
+      ConditionExpression: "#status = :waiting AND (attribute_not_exists(player_2) OR player_2 = :emptyPlayer) AND (attribute_not_exists(expire_at) OR expire_at > :now)",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":active": "IN_PROGRESS",
+        ":waiting": "WAITING",
+        ":player2": player2,
+        ":emptyPlayer": null,
+        ":engineState": updatedEngineState,
+        ":expireAt": Math.floor(Date.now() / 1e3) + matchTtlSeconds,
+        ":now": Math.floor(Date.now() / 1e3)
+      }
+    }));
+    return updatedEngineState;
+  } catch (error2) {
+    if (error2?.name === "ConditionalCheckFailedException") return void 0;
+    throw error2;
+  }
+}
+async function deleteClaimedMatch(match, player2) {
+  try {
+    await dynamoDb.send(new import_lib_dynamodb2.DeleteCommand({
+      TableName: gameStateTable,
+      Key: { match_id: match.match_id },
+      ConditionExpression: "#status = :active AND player_2.user_id = :userId AND player_2.connection_id = :connectionId",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":active": "IN_PROGRESS",
+        ":userId": player2.user_id,
+        ":connectionId": player2.connection_id
+      }
+    }));
+  } catch (error2) {
+    if (error2?.name !== "ConditionalCheckFailedException") throw error2;
+  }
+  await Promise.allSettled([
+    removeConnectionMatch(match.player_1.connection_id, match.match_id),
+    removeConnectionMatch(player2.connection_id, match.match_id)
+  ]);
+}
+var handler = async (event) => {
+  const connectionId = event.requestContext?.connectionId;
+  if (!connectionId) return { statusCode: 400, body: "Missing connection ID." };
+  const wsClient = new import_client_apigatewaymanagementapi.ApiGatewayManagementApiClient({
+    endpoint: managementEndpoint(event),
+    region
+  });
+  let lockOwner;
+  try {
+    const connectionResult = await dynamoDb.send(new import_lib_dynamodb2.GetCommand({
+      TableName: connectionsTable,
+      Key: { connection_id: connectionId },
+      ConsistentRead: true
+    }));
     const connection = connectionResult.Item;
     if (!connection?.user_id) {
       return { statusCode: 401, body: "Connection is not authenticated." };
     }
-    const userId = connection.user_id;
-    const username = connection.username || "Player";
-    const scanResult = await docClient.send(
-      new import_lib_dynamodb2.ScanCommand({
-        TableName: "GameState",
-        FilterExpression: "#status = :waitingStatus",
-        ExpressionAttributeNames: { "#status": "status" },
-        ExpressionAttributeValues: { ":waitingStatus": "WAITING" }
-      })
-    );
-    const pendingMatch = scanResult.Items?.[0];
-    if (!pendingMatch) {
-      const matchId = `MATCH_${Date.now()}_${Math.floor(Math.random() * 1e3)}`;
-      const initialEngineState = createInitialGameState(
-        buildDefaultDeck("P1"),
-        buildDefaultDeck("P2"),
-        Date.now()
-      );
-      const newMatchItem = {
-        match_id: matchId,
-        status: "WAITING",
-        current_round: initialEngineState.round,
-        turn_player_id: "P1",
-        player_1: {
-          user_id: userId,
-          connection_id: connectionId,
-          username,
-          player_id: "P1"
-        },
-        player_2: null,
-        engine_state: initialEngineState,
-        created_at: Date.now(),
-        expire_at: Math.floor(Date.now() / 1e3) + 2 * 3600
-        // TTL 2 giờ (tính bằng giây)
-      };
-      await docClient.send(
-        new import_lib_dynamodb2.PutCommand({
-          TableName: "GameState",
-          Item: newMatchItem
-        })
-      );
-      await docClient.send(
-        new import_lib_dynamodb2.PutCommand({
-          TableName: "Connections",
-          Item: { connection_id: connectionId, user_id: userId, match_id: matchId, connected_at: Date.now() }
-        })
-      );
-      await wsClient.send(
-        new import_client_apigatewaymanagementapi.PostToConnectionCommand({
-          ConnectionId: connectionId,
-          Data: Buffer.from(JSON.stringify({ event: "matchmaking:searching", roomCode: matchId }))
-        })
-      );
-      return { statusCode: 200, body: "Waiting for opponent." };
-    } else {
-      const matchId = pendingMatch.match_id;
-      if (pendingMatch.player_1.user_id === userId) {
-        await wsClient.send(
-          new import_client_apigatewaymanagementapi.PostToConnectionCommand({
-            ConnectionId: connectionId,
-            Data: Buffer.from(JSON.stringify({ event: "game:error", message: "Already in queue." }))
-          })
-        );
-        return { statusCode: 400, body: "Already in queue." };
+    const userId = String(connection.user_id);
+    const username = String(connection.username || "Player");
+    const playerElo = await loadElo(userId);
+    const owner = String(event.requestContext?.requestId || (0, import_node_crypto6.randomUUID)());
+    lockOwner = owner;
+    await acquireMatchmakingLock(owner);
+    const nowSeconds = Math.floor(Date.now() / 1e3);
+    const waitingMatches = await loadWaitingMatches();
+    const candidates = [];
+    for (const match of waitingMatches) {
+      if (!match.player_1?.connection_id || !match.player_1?.user_id) {
+        await deleteWaitingMatch(match);
+        continue;
       }
-      let updatedEngineState = applyAction(pendingMatch.engine_state, { type: "START_GAME", firstPlayerId: "P1" });
-      const player2Info = {
+      if (match.expire_at && match.expire_at <= nowSeconds) {
+        await deleteWaitingMatch(match);
+        continue;
+      }
+      const player1Alive = await connectionIsAlive(wsClient, match.player_1.connection_id);
+      if (!player1Alive) {
+        await deleteWaitingMatch(match);
+        continue;
+      }
+      if (match.player_1.user_id === userId) {
+        if (match.player_1.connection_id === connectionId) {
+          await dynamoDb.send(new import_lib_dynamodb2.UpdateCommand({
+            TableName: connectionsTable,
+            Key: { connection_id: connectionId },
+            UpdateExpression: "SET match_id = :matchId",
+            ExpressionAttributeValues: { ":matchId": match.match_id }
+          }));
+          await sendMessage(wsClient, connectionId, {
+            event: "matchmaking:searching",
+            roomCode: match.match_id,
+            elo: playerElo,
+            eloRange
+          });
+          return { statusCode: 200, body: "Already waiting for an opponent." };
+        }
+        await sendMessage(wsClient, connectionId, {
+          event: "game:error",
+          message: "This account is already searching from another connection."
+        });
+        return { statusCode: 409, body: "Already in queue." };
+      }
+      const opponentElo = Number(match.player_1.elo ?? 1e3);
+      if (Math.abs(opponentElo - playerElo) <= eloRange) candidates.push(match);
+    }
+    candidates.sort((left, right) => {
+      const leftDifference = Math.abs(Number(left.player_1.elo ?? 1e3) - playerElo);
+      const rightDifference = Math.abs(Number(right.player_1.elo ?? 1e3) - playerElo);
+      return leftDifference - rightDifference || left.created_at - right.created_at;
+    });
+    for (const pendingMatch of candidates) {
+      const player2 = {
         user_id: userId,
         connection_id: connectionId,
         username,
-        player_id: "P2"
+        player_id: "P2",
+        elo: playerElo,
+        connected: true
       };
-      await docClient.send(
-        new import_lib_dynamodb2.UpdateCommand({
-          TableName: "GameState",
-          Key: { match_id: matchId },
-          UpdateExpression: "SET #status = :status, player_2 = :p2, engine_state = :engineState",
-          ExpressionAttributeNames: { "#status": "status" },
-          ExpressionAttributeValues: {
-            ":status": "IN_PROGRESS",
-            ":p2": player2Info,
-            ":engineState": updatedEngineState
-          }
-        })
+      const updatedEngineState = await claimMatch(pendingMatch, player2);
+      if (!updatedEngineState) continue;
+      await dynamoDb.send(new import_lib_dynamodb2.UpdateCommand({
+        TableName: connectionsTable,
+        Key: { connection_id: connectionId },
+        UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
+        ConditionExpression: "attribute_exists(connection_id) AND user_id = :userId",
+        ExpressionAttributeValues: {
+          ":matchId": pendingMatch.match_id,
+          ":connectedAt": Date.now(),
+          ":userId": userId
+        }
+      }));
+      const player1Delivered = await sendMessage(
+        wsClient,
+        pendingMatch.player_1.connection_id,
+        {
+          event: "matchmaking:found",
+          roomCode: pendingMatch.match_id,
+          playerId: "P1",
+          opponentElo: playerElo,
+          state: redactStateForPlayer(updatedEngineState, "P1")
+        }
       );
-      await docClient.send(
-        new import_lib_dynamodb2.PutCommand({
-          TableName: "Connections",
-          Item: { connection_id: connectionId, user_id: userId, match_id: matchId, connected_at: Date.now() }
-        })
-      );
-      const p1ConnectionId = pendingMatch.player_1.connection_id;
-      const p2ConnectionId = connectionId;
-      const payloadP1 = {
+      if (!player1Delivered) {
+        await deleteClaimedMatch(pendingMatch, player2);
+        continue;
+      }
+      const player2Delivered = await sendMessage(wsClient, connectionId, {
         event: "matchmaking:found",
-        roomCode: matchId,
-        playerId: "P1",
-        state: redactStateForPlayer(updatedEngineState, "P1")
-      };
-      const payloadP2 = {
-        event: "matchmaking:found",
-        roomCode: matchId,
+        roomCode: pendingMatch.match_id,
         playerId: "P2",
+        opponentElo: Number(pendingMatch.player_1.elo ?? 1e3),
         state: redactStateForPlayer(updatedEngineState, "P2")
-      };
-      await Promise.all([
-        wsClient.send(new import_client_apigatewaymanagementapi.PostToConnectionCommand({ ConnectionId: p1ConnectionId, Data: Buffer.from(JSON.stringify(payloadP1)) })),
-        wsClient.send(new import_client_apigatewaymanagementapi.PostToConnectionCommand({ ConnectionId: p2ConnectionId, Data: Buffer.from(JSON.stringify(payloadP2)) }))
-      ]);
+      });
+      if (!player2Delivered) {
+        await deleteClaimedMatch(pendingMatch, player2);
+        await sendMessage(wsClient, pendingMatch.player_1.connection_id, {
+          event: "game:error",
+          message: "The opponent disconnected before the match started. Please search again."
+        });
+        return { statusCode: 410, body: "Connection closed before match notification." };
+      }
       return { statusCode: 200, body: "Match started." };
     }
+    const matchId = await createWaitingMatch({
+      connectionId,
+      userId,
+      username,
+      elo: playerElo,
+      wsClient
+    });
+    return { statusCode: 200, body: `Waiting for opponent in ${matchId}.` };
   } catch (error2) {
     console.error("StartMatch Error:", error2);
-    return { statusCode: 500, body: error2.message };
+    const statusCode = error2?.message === "Matchmaking is busy. Please retry." ? 503 : 500;
+    if (statusCode === 503) {
+      await sendMessage(wsClient, connectionId, {
+        event: "game:error",
+        message: "Matchmaking is busy. Please try again."
+      }).catch(() => false);
+    }
+    return { statusCode, body: error2?.message || "Unable to start matchmaking." };
+  } finally {
+    if (lockOwner) await releaseMatchmakingLock(lockOwner);
   }
 };
 function redactStateForPlayer(state2, viewerId) {
