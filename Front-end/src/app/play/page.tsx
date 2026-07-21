@@ -19,6 +19,7 @@ import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
 import { useGameMatch } from "../../hooks/useGameMatch";
+import { useLocalGame } from "../../hooks/useLocalGame";
 import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../../libs/api";
 
 function formatTime(seconds: number) {
@@ -27,7 +28,7 @@ function formatTime(seconds: number) {
   return `${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
 }
 
-function PlayPageContent() {
+function OnlinePlayPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeRoomCode = searchParams.get("room") ?? undefined;
@@ -259,6 +260,18 @@ function PlayPageContent() {
       </section>
     </main>
   );
+}
+
+function TrialPlayPageContent() {
+  const controller = useLocalGame({ trialMode: true });
+  return <GameBoardView controller={controller} trialMode />;
+}
+
+function PlayPageContent() {
+  const searchParams = useSearchParams();
+  return searchParams.get("trial") === "1"
+    ? <TrialPlayPageContent />
+    : <OnlinePlayPageContent />;
 }
 
 export default function PlayPage() {

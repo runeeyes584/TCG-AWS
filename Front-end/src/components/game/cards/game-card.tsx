@@ -13,6 +13,7 @@ export interface GameCardProps {
   unit?: UnitInstance;
   variant?: "default" | "hand";
   compact?: boolean;
+  board?: boolean;
   showDescription?: boolean;
   selected?: boolean;
   className?: string;
@@ -41,6 +42,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   unit,
   variant = "default",
   compact = false,
+  board = false,
   showDescription = true,
   selected = false,
   className: cardClassName,
@@ -101,6 +103,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     "game-card-v2",
     "is-clickable",
     compact ? "game-card-v2--compact" : "",
+    board ? "card-view--board" : "",
     variant === "hand" ? "card-view--hand" : "",
     !showDescription ? "game-card-v2--art-full" : "",
     `game-card-v2--${definition.type}`,
