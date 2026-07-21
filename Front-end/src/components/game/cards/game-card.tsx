@@ -100,6 +100,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     "card-view",
     "game-card-v2",
     "is-clickable",
+    compact ? "game-card-v2--compact" : "",
     variant === "hand" ? "card-view--hand" : "",
     !showDescription ? "game-card-v2--art-full" : "",
     `game-card-v2--${definition.type}`,
@@ -116,38 +117,66 @@ export const GameCard: React.FC<GameCardProps> = ({
 
   const content = (
     <>
-      <span className="game-card-v2__art" style={cardArtworkStyle(definition.imageUrl)} aria-hidden="true" />
-      <span className="game-card-v2__art-overlay" aria-hidden="true" />
-      {isChampion ? <span className="game-card-v2__champion-flicker" aria-hidden="true" /> : null}
+      <span className="game-card-v2__header">
+        <StatPip
+          kind="mana"
+          value={definition.cost}
+          size="sm"
+          className="game-card-v2__stat-pip game-card-v2__stat-pip--mana"
+        />
+        <FrameIcon className="game-card-v2__type-icon" size={12} aria-hidden="true" />
+        <span className="game-card-v2__name">{definition.name}</span>
+      </span>
 
-      {!compact ? (
-        <>
-          <span className="game-card-v2__header">
-            <FrameIcon className="game-card-v2__type-icon" size={12} aria-hidden="true" />
-            <span className="game-card-v2__name">{definition.name}</span>
+      <span className="game-card-v2__art-stage" aria-hidden="true">
+        <span className="game-card-v2__art" style={cardArtworkStyle(definition.imageUrl)} />
+        <span className="game-card-v2__art-overlay" />
+        {isChampion ? <span className="game-card-v2__champion-flicker" /> : null}
+      </span>
+
+      <span className="game-card-v2__footer">
+        <span className="game-card-v2__details">
+          <span className="game-card-v2__type-label">
+            <ScrollText size={9} aria-hidden="true" />
+            {frame.label}
           </span>
-
-          {showDescription ? (
-            <span className="game-card-v2__details">
-              <span className="game-card-v2__type-label">
-                <ScrollText size={9} aria-hidden="true" />
-                {frame.label}
-              </span>
-              {description ? <span className="game-card-v2__description">{description}</span> : null}
-            </span>
+          {!compact && showDescription && description ? (
+            <span className="game-card-v2__description">{description}</span>
           ) : null}
-        </>
-      ) : null}
+        </span>
 
-      <StatPip
-        kind="mana"
-        value={definition.cost}
-        size="sm"
-        className="game-card-v2__stat-pip game-card-v2__stat-pip--mana"
-      />
+        {!compact && (definition.spellSpeed || definition.keywords?.length || unit?.modifiers.length) ? (
+          <span className="game-card-v2__meta-row">
+            {showDescription && definition.spellSpeed ? (
+              <span className="game-card-v2__speed">{definition.spellSpeed}</span>
+            ) : null}
+            {definition.keywords?.length ? (
+              <span className="game-card-v2__keywords">
+                {definition.keywords.map((keyword) => (
+                  <span className="game-card-v2__keyword" key={keyword} title={keyword}>
+                    {keyword.slice(0, 2)}
+                  </span>
+                ))}
+              </span>
+            ) : null}
+            {unit?.modifiers.length ? (
+              <span className="game-card-v2__effects">
+                {unit.modifiers.map((modifier) => (
+                  <span
+                    className="game-card-v2__effect"
+                    key={modifier.id}
+                    title={`${modifier.sourceName} ${formatEffect(modifier.attackDelta, modifier.healthDelta)}`}
+                  >
+                    {formatEffect(modifier.attackDelta, modifier.healthDelta)}
+                  </span>
+                ))}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
 
-      {!isSpell ? (
-        <>
+        {!isSpell ? (
+          <span className="game-card-v2__stats">
           <StatPip
             kind="attack"
             value={attack ?? "-"}
@@ -160,36 +189,9 @@ export const GameCard: React.FC<GameCardProps> = ({
             size="sm"
             className="game-card-v2__stat-pip game-card-v2__stat-pip--health"
           />
-        </>
-      ) : null}
-
-      {!compact && showDescription && definition.spellSpeed ? (
-        <span className="game-card-v2__speed">{definition.spellSpeed}</span>
-      ) : null}
-
-      {!compact && definition.keywords?.length ? (
-        <span className="game-card-v2__keywords">
-          {definition.keywords.map((keyword) => (
-            <span className="game-card-v2__keyword" key={keyword} title={keyword}>
-              {keyword.slice(0, 2)}
-            </span>
-          ))}
-        </span>
-      ) : null}
-
-      {!compact && unit?.modifiers.length ? (
-        <span className="game-card-v2__effects">
-          {unit.modifiers.map((modifier) => (
-            <span
-              className="game-card-v2__effect"
-              key={modifier.id}
-              title={`${modifier.sourceName} ${formatEffect(modifier.attackDelta, modifier.healthDelta)}`}
-            >
-              {formatEffect(modifier.attackDelta, modifier.healthDelta)}
-            </span>
-          ))}
-        </span>
-      ) : null}
+          </span>
+        ) : null}
+      </span>
 
       {floatingEvents?.length ? (
         <span className="floating-events-container">
