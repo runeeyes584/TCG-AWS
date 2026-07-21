@@ -21,6 +21,7 @@ import {
 import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
+import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
 
 type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial";
@@ -183,7 +184,6 @@ export default function Home() {
           <strong>{playerName}</strong>
           <span title={email}><Shield size={13} /> {email}</span>
         </div>
-        <div className="lobby-profile__rank"><small>RANK</small><strong>VII</strong></div>
         <div className="lobby-profile__stats" aria-label="Player statistics">
           <span><b>{elo.toLocaleString()}</b><small>ELO</small></span>
           <span><b>{wins}</b><small>WINS</small></span>
@@ -197,6 +197,10 @@ export default function Home() {
             key={id}
             className={`lobby-nav__item ${activeTab === id ? "is-active" : ""}`}
             onClick={() => {
+              if (id === "deck") {
+                router.push("/deck-builder");
+                return;
+              }
               if (id === "collection") {
                 router.push("/gallery");
                 return;
@@ -219,7 +223,6 @@ export default function Home() {
             <p className="lobby-lede">Command your deck, read the field, and turn a single shard of advantage into victory.</p>
 
             <div className="lobby-queue">
-              <div className="queue-rank"><span>VII</span></div>
               <div className="queue-copy"><small>Ranked Duel</small><strong>Prism Vanguard</strong></div>
               <div className="queue-elo"><small>YOUR ELO</small><strong>{elo.toLocaleString()}</strong></div>
               <button className="queue-action" onClick={startDuel}>
@@ -233,6 +236,8 @@ export default function Home() {
             <p className="lobby-eyebrow">Private Room <span /> Friendly Duel</p>
             <h1>Custom<br /><em>Match</em></h1>
             <p className="lobby-lede">Create a room for a friend or enter their room ID to jump straight into a private duel.</p>
+
+            <DeckSelectionPanel className="lobby-deck-selection" />
 
             <div className="custom-match-panel">
               <button className="queue-action custom-match-create" onClick={createCustomMatch}>
@@ -272,6 +277,8 @@ export default function Home() {
             <p className="lobby-eyebrow">Local Sandbox <span /> Solo Training</p>
             <h1>Trial<br /><em>Mode</em></h1>
             <p className="lobby-lede">Test cards and combos without matchmaking. Refill mana, draw cards, and refresh your attack token whenever you need.</p>
+
+            <DeckSelectionPanel className="lobby-deck-selection" />
 
             <div className="trial-mode-panel">
               <span><Zap size={17} aria-hidden="true" /><b>Free resources</b><small>Mana controls</small></span>

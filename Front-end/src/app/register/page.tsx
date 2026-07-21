@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertCircle, Eye, EyeOff, LockKeyhole, Mail, UserRound, UserRoundPlus } from "lucide-react";
 import { register } from "../../libs/api";
+import { AuthShell } from "../../components/auth/AuthShell";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -12,102 +15,97 @@ export default function RegisterPage() {
     const [password, setPassword] = useState("");
 
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
 
-    const submit = async () => {
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError("");
+
         if (!username || !email || !password) {
-            alert("Vui lòng nhập đầy đủ thông tin.");
+            setError("Vui lòng nhập đầy đủ thông tin.");
             return;
         }
 
         try {
             setLoading(true);
 
-            const result = await register(username, email, password);
-
-            alert(result.message || "Verification code sent.");
+            await register(username, email, password);
 
             router.push(`/verify?email=${encodeURIComponent(email)}`);
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Không thể tạo tài khoản. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-8">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-gray-800">
-                        Create Account
-                    </h1>
-                    <p className="mt-2 text-gray-500">
-                        Đăng ký để bắt đầu sử dụng Kaleidoscope TCG
-                    </p>
-                </div>
-
-                <div className="space-y-5">
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            Username
-                        </label>
-
+        <AuthShell
+            eyebrow="New operative"
+            title={<>Forge your <em>Identity</em></>}
+            description="Tạo hồ sơ, xây dựng bộ bài và bước vào Prism Arena."
+            footer={<>Đã có tài khoản? <Link href="/login">Sign in</Link></>}
+        >
+            <form className="auth-form" onSubmit={submit} noValidate>
+                <label className="auth-field">
+                    <span>Operative name</span>
+                    <div className="auth-input">
+                        <UserRound size={17} aria-hidden="true" />
                         <input
                             type="text"
-                            placeholder="Your username"
+                            placeholder="Choose your callsign"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="w-full rounded-lg border text-gray-900 border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            autoComplete="username"
+                            autoFocus
+                            required
                         />
                     </div>
+                </label>
 
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            Email
-                        </label>
-
+                <label className="auth-field">
+                    <span>Email address</span>
+                    <div className="auth-input">
+                        <Mail size={17} aria-hidden="true" />
                         <input
                             type="email"
-                            placeholder="example@gmail.com"
+                            placeholder="operative@kaleidoscope.gg"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full rounded-lg border text-gray-900 border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            autoComplete="email"
+                            required
                         />
                     </div>
+                </label>
 
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            Password
-                        </label>
-
+                <label className="auth-field">
+                    <span>Password</span>
+                    <div className="auth-input">
+                        <LockKeyhole size={17} aria-hidden="true" />
                         <input
-                            type="password"
-                            placeholder="••••••••"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Create a secure password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full rounded-lg border text-gray-900 border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            autoComplete="new-password"
+                            required
                         />
+                        <button type="button" className="auth-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                        </button>
                     </div>
+                </label>
 
-                    <button
-                        onClick={submit}
-                        disabled={loading}
-                        className="w-full rounded-lg bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-green-300"
-                    >
-                        {loading ? "Registering..." : "Create Account"}
-                    </button>
-                </div>
+                <p className="auth-form__hint">Your email will receive a verification code.</p>
 
-                <div className="mt-6 text-center text-sm text-gray-500">
-                    Đã có tài khoản?{" "}
-                    <button
-                        onClick={() => router.push("/login")}
-                        className="font-semibold text-blue-600 hover:underline"
-                    >
-                        Đăng nhập
-                    </button>
-                </div>
-            </div>
-        </main>
+                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+
+                <button type="submit" disabled={loading} className="auth-submit">
+                    <UserRoundPlus size={18} />
+                    <span>{loading ? "Creating profile..." : "Create operative"}</span>
+                </button>
+            </form>
+        </AuthShell>
     );
 }

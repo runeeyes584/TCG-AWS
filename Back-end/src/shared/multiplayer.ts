@@ -1,13 +1,18 @@
 import type { GameAction, GameState, PlayerId } from "../game/types";
 
 export interface ClientToServerEvents {
-  "room:create": (ack: RoomAck) => void;
-  "room:join": (roomCode: string, ack: RoomAck) => void;
+  "room:create": (selection: MatchmakingDeckSelection | undefined, ack: RoomAck) => void;
+  "room:join": (roomCode: string, selection: MatchmakingDeckSelection | undefined, ack: RoomAck) => void;
   "game:action": (action: GameAction, ack?: ActionAck) => void;
   "game:reset": (ack?: ActionAck) => void;
   "developer:resources": (updates: DeveloperResourceUpdate[], ack?: ActionAck) => void;
-  "matchmaking:start": () => void;
+  "matchmaking:start": (selection?: MatchmakingDeckSelection) => void;
   "matchmaking:cancel": () => void;
+}
+
+export interface MatchmakingDeckSelection {
+  deckId?: string;
+  cardIds?: string[];
 }
 
 export interface DeveloperResourceUpdate {

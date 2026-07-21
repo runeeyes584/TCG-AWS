@@ -1,3 +1,5 @@
+import type { SavedDeck } from "../decks/deck.types";
+
 export interface User {
     id: string;
     email: string;
@@ -6,6 +8,7 @@ export interface User {
     elo: number;
     wins: number;
     losses: number;
+    decks?: Record<string, SavedDeck>;
 }
 
 export interface OnlinePlayer {

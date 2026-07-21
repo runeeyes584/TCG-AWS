@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   CircleDotDashed,
-  Crown,
   Headphones,
   Radio,
   Search,
@@ -18,9 +17,11 @@ import {
 import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
+import { DeckSelectionPanel } from "../../components/deck/DeckSelectionPanel";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import { useLocalGame } from "../../hooks/useLocalGame";
 import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../../libs/api";
+import { getDefaultLocalDeck, getSelectedDeckId, loadLocalDecks, type LocalDeck } from "../../libs/localDecks";
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60);
@@ -40,6 +41,7 @@ function OnlinePlayPageContent() {
   const [profile, setProfile] = useState<PlayerProfile>();
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
 
   useEffect(() => {
     const audio = new Audio("/audio/findmatch.mp3");
@@ -116,7 +118,7 @@ function OnlinePlayPageContent() {
       audio.currentTime = 0;
       void audio.play().catch(() => undefined);
     }
-    controller.startMatchmaking();
+    controller.startMatchmaking({ deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
   };
 
   const cancelSearch = () => {
@@ -152,7 +154,6 @@ function OnlinePlayPageContent() {
   const winRate = profile && profile.wins + profile.losses > 0
     ? Math.round((profile.wins / (profile.wins + profile.losses)) * 100)
     : 0;
-
   return (
     <main className={`matchmaking-shell ${controller.searching ? "is-searching" : ""} ${pendingMatch ? "is-pending-match" : ""}`}>
       <div className="matchmaking-grid" aria-hidden="true" />
@@ -215,7 +216,6 @@ function OnlinePlayPageContent() {
                 <span><ShieldCheck size={13} /> Prism Vanguard</span>
               </div>
             </div>
-            <div className="matchmaking-rank"><Crown size={16} /><span>VII</span></div>
           </div>
 
           <div className="matchmaking-scan" aria-live="polite">
@@ -250,6 +250,12 @@ function OnlinePlayPageContent() {
           )}
         </motion.section>
 
+        <DeckSelectionPanel
+          className="matchmaking-deck-panel"
+          disabled={controller.searching}
+          onDeckChange={setSelectedDeck}
+        />
+
         {pendingMatch ? <PendingMatchDialog isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
 
         <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
@@ -263,8 +269,31 @@ function OnlinePlayPageContent() {
 }
 
 function TrialPlayPageContent() {
-  const controller = useLocalGame({ trialMode: true });
-  return <GameBoardView controller={controller} trialMode />;
+  const [selectedDeck, setSelectedDeck] = useState<LocalDeck>();
+
+  useEffect(() => {
+    const decks = loadLocalDecks();
+    const selectedId = getSelectedDeckId();
+    setSelectedDeck(decks.find((deck) => deck.deckId === selectedId) ?? decks[0]);
+  }, []);
+
+  if (!selectedDeck) {
+    return <div className="trial-loading">Preparing trial deck...</div>;
+  }
+
+  return <TrialGame deck={selectedDeck} />;
+}
+
+function TrialGame({ deck }: { deck: LocalDeck }) {
+  const router = useRouter();
+  const controller = useLocalGame({ trialMode: true, playerDeckCardIds: deck.cardIds });
+  return (
+    <GameBoardView
+      controller={controller}
+      trialMode
+      onExitTrial={() => router.push("/")}
+    />
+  );
 }
 
 function PlayPageContent() {

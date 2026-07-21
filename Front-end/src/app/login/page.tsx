@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertCircle, Eye, EyeOff, LockKeyhole, LogIn, Mail } from "lucide-react";
 import { login } from "../../libs/api";
+import { AuthShell } from "../../components/auth/AuthShell";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -10,10 +13,15 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
 
-    const submit = async () => {
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError("");
+
         if (!email || !password) {
-            alert("Vui lòng nhập đầy đủ email và mật khẩu.");
+            setError("Vui lòng nhập đầy đủ email và mật khẩu.");
             return;
         }
 
@@ -26,84 +34,67 @@ export default function LoginPage() {
             localStorage.setItem("email", email);
             router.push("/play");
 
-            // alert(result.message || "Đăng nhập thành công!");
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Không thể đăng nhập. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 flex items-center justify-center px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800">
-                        Welcome Back
-                    </h1>
-                    <p className="text-gray-500 mt-2">
-                        Đăng nhập để tiếp tục
-                    </p>
-                </div>
-
-                <div className="space-y-5">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Email
-                        </label>
-
+        <AuthShell
+            eyebrow="Operative access"
+            title={<>Return to the <em>Arena</em></>}
+            description="Đăng nhập để tiếp tục hành trình trong Prism Arena."
+            footer={<>Chưa có tài khoản? <Link href="/register">Create operative</Link></>}
+        >
+            <form className="auth-form" onSubmit={submit} noValidate>
+                <label className="auth-field">
+                    <span>Email address</span>
+                    <div className="auth-input">
+                        <Mail size={17} aria-hidden="true" />
                         <input
                             type="email"
-                            placeholder="example@gmail.com"
+                            placeholder="operative@kaleidoscope.gg"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full rounded-lg text-gray-900 border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                            autoComplete="email"
+                            autoFocus
+                            required
                         />
                     </div>
+                </label>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Password
-                        </label>
-
+                <label className="auth-field">
+                    <span>Password</span>
+                    <div className="auth-input">
+                        <LockKeyhole size={17} aria-hidden="true" />
                         <input
-                            type="password"
-                            placeholder="••••••••"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full rounded-lg border text-gray-900 border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                            autoComplete="current-password"
+                            required
                         />
-
-                        <div className="mt-2 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={() => router.push("/forgot-password")}
-                                className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
-                            >
-                                Quên mật khẩu?
-                            </button>
-                        </div>
+                        <button type="button" className="auth-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                        </button>
                     </div>
+                </label>
 
-                    <button
-                        onClick={submit}
-                        disabled={loading}
-                        className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 active:scale-[0.99] transition disabled:bg-blue-300 disabled:cursor-not-allowed"
-                    >
-                        {loading ? "Logging in..." : "Login"}
-                    </button>
+                <div className="auth-form__meta">
+                    <span>Encrypted session</span>
+                    <Link href="/forgot-password">Quên mật khẩu?</Link>
                 </div>
 
-                <div className="mt-6 text-center text-sm text-gray-500">
-                    Chưa có tài khoản?{" "}
-                    <button
-                        onClick={() => router.push("/register")}
-                        className="font-semibold text-blue-600 hover:underline"
-                    >
-                        Đăng ký ngay
-                    </button>
-                </div>
-            </div>
-        </div>
+                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+
+                <button type="submit" disabled={loading} className="auth-submit">
+                    <LogIn size={18} />
+                    <span>{loading ? "Authenticating..." : "Enter the arena"}</span>
+                </button>
+            </form>
+        </AuthShell>
     );
 }

@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertCircle, KeyRound, Mail } from "lucide-react";
 import { forgotPassword } from "../../libs/api";
+import { AuthShell } from "../../components/auth/AuthShell";
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
@@ -10,76 +13,65 @@ export default function ForgotPasswordPage() {
     const [email, setEmail] = useState("");
 
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    const submit = async () => {
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError("");
+
         if (!email) {
-            alert("Vui lòng nhập email.");
+            setError("Vui lòng nhập email của tài khoản.");
             return;
         }
 
         try {
             setLoading(true);
 
-            const result = await forgotPassword(email);
-
-            alert(result.message || "Verification code sent.");
+            await forgotPassword(email);
 
             router.push(
                 `/reset-password?email=${encodeURIComponent(email)}`
             );
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Không thể gửi mã xác thực. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 flex items-center justify-center px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800">
-                        Forgot Password
-                    </h1>
-
-                    <p className="mt-2 text-gray-500">
-                        Nhập email để nhận mã xác thực.
-                    </p>
-                </div>
-
-                <div className="space-y-5">
-                    <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700">
-                            Email
-                        </label>
-
+        <AuthShell
+            eyebrow="Account recovery"
+            title={<>Recover your <em>Access</em></>}
+            description="Nhập email đã đăng ký. Prism Network sẽ gửi mã xác thực để đặt lại mật khẩu."
+            footer={<>Đã nhớ mật khẩu? <Link href="/login">Return to sign in</Link></>}
+        >
+            <form className="auth-form" onSubmit={submit} noValidate>
+                <label className="auth-field">
+                    <span>Email address</span>
+                    <div className="auth-input">
+                        <Mail size={17} aria-hidden="true" />
                         <input
                             type="email"
-                            placeholder="example@gmail.com"
+                            placeholder="operative@kaleidoscope.gg"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            autoComplete="email"
+                            autoFocus
+                            required
                         />
                     </div>
+                </label>
 
-                    <button
-                        onClick={submit}
-                        disabled={loading}
-                        className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300"
-                    >
-                        {loading ? "Sending..." : "Send Verification Code"}
-                    </button>
-                </div>
+                <p className="auth-form__hint">The verification code will be valid for a limited time.</p>
 
-                <div className="mt-6 text-center">
-                    <button
-                        onClick={() => router.push("/login")}
-                        className="text-sm font-medium text-blue-600 hover:underline"
-                    >
-                        ← Quay lại đăng nhập
-                    </button>
-                </div>
-            </div>
-        </div>
+                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+
+                <button type="submit" disabled={loading} className="auth-submit">
+                    <KeyRound size={18} />
+                    <span>{loading ? "Transmitting code..." : "Send verification code"}</span>
+                </button>
+            </form>
+        </AuthShell>
     );
 }
