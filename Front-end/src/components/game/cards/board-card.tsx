@@ -39,6 +39,7 @@ export function BoardCard({
       <GameCard
         unit={unit}
         compact
+        board
         selected={selected}
         onClick={onClick}
         visualEvents={visualEvents}

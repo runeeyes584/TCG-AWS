@@ -9,7 +9,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/36326160.jpg",
     "description": "When I'm summoned, draw a Null Circuit card.",
     "abilities": [
       {
@@ -36,7 +36,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54257392.jpg",
     "description": "When I'm summoned, restore 1 spell mana.",
     "abilities": [
       {
@@ -62,7 +62,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/73810864.jpg",
     "description": "When you banish a card, grant me +1|+1.",
     "abilities": [
       {
@@ -98,7 +98,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/82699999.jpg",
     "description": "Play: return an allied unit or champion from your graveyard to hand.",
     "abilities": [
       {
@@ -133,7 +133,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/81078880.jpg",
     "description": "Play: banish a unit or champion from the enemy graveyard.",
     "abilities": [
       {
@@ -164,7 +164,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/9205573.jpg",
     "description": "When you cast a spell, I gain +1|+0 this round.",
     "abilities": [
       {
@@ -200,7 +200,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-07/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/6636319.jpg",
     "description": "Play: create a random Null Circuit spell in hand.",
     "abilities": [
       {
@@ -227,7 +227,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/36609518.jpg",
     "description": "Round start: restore 1 spell mana.",
     "abilities": [
       {
@@ -255,7 +255,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-09/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/93672138.jpg",
     "description": "Play: recall an enemy unit.",
     "abilities": [
       {
@@ -286,7 +286,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-10/400/600",
+    "imageUrl": " https://images.ygoprodeck.com/images/cards_cropped/62098216.jpg",
     "description": "When an enemy unit dies, deal 1 to the enemy Nexus.",
     "abilities": [
       {
@@ -320,7 +320,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-11/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/34365442.jpg",
     "description": "When you cast your second spell each round, grant me Barrier.",
     "abilities": [
       {
@@ -358,7 +358,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-12/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/60759087.jpg",
     "description": "Play: draw a spell.",
     "abilities": [
       {
@@ -385,7 +385,7 @@
     "archetype": "Null Circuit",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-13/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/98360333.jpg",
     "description": "Attack: I gain +2|+0 this round.",
     "abilities": [
       {
@@ -421,7 +421,7 @@
     "archetype": "Null Circuit",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-14/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/8083925.jpg",
     "description": "Play: summon a Null Circuit unit costing 3 or less from your deck.",
     "abilities": [
       {
@@ -451,7 +451,7 @@
     "archetype": "Null Circuit",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-15/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54611591.jpg",
     "description": "Round end: deal 1 to all active enemies.",
     "abilities": [
       {
@@ -479,7 +479,7 @@
     "archetype": "Null Circuit",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-16/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/81005500.jpg",
     "description": "When you banish a card, draw 1.",
     "abilities": [
       {
@@ -513,7 +513,7 @@
     "archetype": "Null Circuit",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-17/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/4341721.jpg",
     "description": "Round start: create a random Null Circuit card in hand.",
     "abilities": [
       {
@@ -541,7 +541,7 @@
     "archetype": "Null Circuit",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-unit-18/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/78598237.jpg",
     "description": "Play: recall an enemy unit and grant me Barrier.",
     "abilities": [
       {
@@ -577,7 +577,7 @@
     "archetype": "Null Circuit",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-1/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/68059897.jpg",
     "description": "Level up after 4 spells cast.",
     "level": 1,
     "championId": "null-circuit-champion-1",
@@ -620,7 +620,7 @@
     "archetype": "Null Circuit",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-1-lv2/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21848500.jpg",
     "description": "Leveled form of Nyx Byteweaver.",
     "level": 2,
     "championId": "null-circuit-champion-1",
@@ -664,7 +664,7 @@
     "archetype": "Null Circuit",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-2/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/95454996.jpg",
     "description": "Level up after 3 allies died.",
     "level": 1,
     "championId": "null-circuit-champion-2",
@@ -707,7 +707,7 @@
     "archetype": "Null Circuit",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-champion-2-lv2/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21848500.jpg",
     "description": "Leveled form of Axiom, the Null Crown.",
     "level": 2,
     "championId": "null-circuit-champion-2",
@@ -750,7 +750,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/57111661.jpg",
     "description": "Draw a Null Circuit card.",
     "effects": [
       {
@@ -770,7 +770,7 @@
     "archetype": "Null Circuit",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/68337209.jpg",
     "description": "Deal 2 to an enemy unit.",
     "effects": [
       {
@@ -789,7 +789,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/93453053.jpg",
     "description": "Recall an allied unit, then draw 1.",
     "effects": [
       {
@@ -812,7 +812,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/80181649.jpg",
     "description": "Banish a card from a graveyard.",
     "effects": [
       {
@@ -830,7 +830,7 @@
     "archetype": "Null Circuit",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/35487920.jpg",
     "description": "Return an allied unit or champion from your graveyard to hand.",
     "effects": [
       {
@@ -852,7 +852,7 @@
     "archetype": "Null Circuit",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/20726052.jpg",
     "description": "Recall an enemy unit and restore 2 spell mana.",
     "effects": [
       {
@@ -875,7 +875,7 @@
     "archetype": "Null Circuit",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-07/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/61976639.jpg",
     "description": "Deal 2 to all active enemies.",
     "effects": [
       {
@@ -894,7 +894,7 @@
     "archetype": "Null Circuit",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/null-circuit-spell-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/94722358.jpg",
     "description": "Revive an allied champion from your graveyard.",
     "effects": [
       {
@@ -908,7 +908,7 @@
   },
   {
     "id": "silverkeep-unit-01",
-    "name": "Keymouse Scout",
+    "name": "Silverkeep Elis",
     "cost": 1,
     "type": "unit",
     "attack": 1,
@@ -916,7 +916,7 @@
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/16474916.jpg",
     "description": "Play: grant an ally +0|+1.",
     "abilities": [
       {
@@ -942,7 +942,7 @@
   },
   {
     "id": "silverkeep-unit-02",
-    "name": "Candle Page",
+    "name": "Silverkeep Irene",
     "cost": 1,
     "type": "unit",
     "attack": 2,
@@ -950,7 +950,7 @@
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/79858629.jpg",
     "description": "Play: draw a Silverkeep spell.",
     "abilities": [
       {
@@ -970,7 +970,7 @@
   },
   {
     "id": "silverkeep-unit-03",
-    "name": "Clockwork Butler",
+    "name": "Silverkeep Martha",
     "cost": 2,
     "type": "unit",
     "attack": 2,
@@ -978,7 +978,7 @@
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/37343995.jpg",
     "description": "When you cast a spell, I gain +0|+1 this round.",
     "abilities": [
       {
@@ -1006,7 +1006,7 @@
   },
   {
     "id": "silverkeep-unit-04",
-    "name": "Teacup Mimic",
+    "name": "Silverkeep Sophia",
     "cost": 2,
     "type": "unit",
     "attack": 1,
@@ -1014,7 +1014,7 @@
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/5352328.jpg",
     "description": "Play: give an enemy -1|-0 this round.",
     "abilities": [
       {
@@ -1040,7 +1040,7 @@
   },
   {
     "id": "silverkeep-unit-05",
-    "name": "Whispering Maid",
+    "name": "Silverkeep Stella",
     "cost": 2,
     "type": "unit",
     "attack": 3,
@@ -1048,7 +1048,7 @@
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/43863925.jpg",
     "description": "When an ally blocks, grant it +0|+1 this round.",
     "abilities": [
       {
@@ -1076,7 +1076,7 @@
   },
   {
     "id": "silverkeep-unit-06",
-    "name": "Hallway Sentry",
+    "name": "Silverkeep Asohilla",
     "cost": 3,
     "type": "unit",
     "attack": 2,
@@ -1084,7 +1084,7 @@
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/41524885.jpg",
     "description": "Play: deal 1 to an enemy unit.",
     "abilities": [
       {
@@ -1108,7 +1108,7 @@
   },
   {
     "id": "silverkeep-unit-07",
-    "name": "Silver Keysmith",
+    "name": "Silverkeep Gabryht",
     "cost": 3,
     "type": "unit",
     "attack": 3,
@@ -1116,7 +1116,7 @@
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-07/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/5530780.jpg",
     "description": "Round start: restore 1 spell mana.",
     "abilities": [
       {
@@ -1136,7 +1136,7 @@
   },
   {
     "id": "silverkeep-unit-08",
-    "name": "Banquet Steward",
+    "name": "Silverkeep Casspitel",
     "cost": 3,
     "type": "unit",
     "attack": 1,
@@ -1144,7 +1144,7 @@
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/78135071.jpg",
     "description": "Play: summon a Silverkeep unit costing 2 or less from your deck.",
     "abilities": [
       {
@@ -1166,7 +1166,7 @@
   },
   {
     "id": "silverkeep-unit-09",
-    "name": "Mirror Porter",
+    "name": "Silverkeep Mikaliss",
     "cost": 4,
     "type": "unit",
     "attack": 3,
@@ -1174,7 +1174,7 @@
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-09/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/42741437.jpg",
     "description": "Play: recall an enemy unit.",
     "abilities": [
       {
@@ -1197,7 +1197,7 @@
   },
   {
     "id": "silverkeep-unit-10",
-    "name": "Ballroom Duelist",
+    "name": "Silverkeep Karmaelle",
     "cost": 4,
     "type": "unit",
     "attack": 4,
@@ -1205,7 +1205,7 @@
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-10/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/77675029.jpg",
     "description": "When an enemy unit is damaged, I gain +1|+0 this round.",
     "abilities": [
       {
@@ -1233,7 +1233,7 @@
   },
   {
     "id": "silverkeep-unit-11",
-    "name": "Trapwright",
+    "name": "Silverkeep Marnifica",
     "cost": 4,
     "type": "unit",
     "attack": 2,
@@ -1241,7 +1241,7 @@
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-11/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/59242457.jpg",
     "description": "Play: give an enemy -2|-1 this round.",
     "abilities": [
       {
@@ -1267,7 +1267,7 @@
   },
   {
     "id": "silverkeep-unit-12",
-    "name": "Lady's Hound",
+    "name": "Silverkeep Ace Raye",
     "cost": 5,
     "type": "unit",
     "attack": 4,
@@ -1275,7 +1275,7 @@
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-12/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/26077387.jpg",
     "description": "When an enemy dies, draw 1.",
     "abilities": [
       {
@@ -1301,7 +1301,7 @@
   },
   {
     "id": "silverkeep-unit-13",
-    "name": "Chamberlain Orfeo",
+    "name": "Silverkeep Ace Roze",
     "cost": 5,
     "type": "unit",
     "attack": 5,
@@ -1309,7 +1309,7 @@
     "archetype": "Silverkeep",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-13/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/37351133.jpg",
     "description": "Play: revive an allied unit from your graveyard.",
     "abilities": [
       {
@@ -1335,7 +1335,7 @@
   },
   {
     "id": "silverkeep-unit-14",
-    "name": "Iron Door Warden",
+    "name": "Silverkeep Rayze Kagari",
     "cost": 5,
     "type": "unit",
     "attack": 3,
@@ -1343,7 +1343,7 @@
     "archetype": "Silverkeep",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-14/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/63288573.jpg",
     "description": "When you cast your second spell each round, deal 1 to a random enemy.",
     "abilities": [
       {
@@ -1373,7 +1373,7 @@
   },
   {
     "id": "silverkeep-unit-15",
-    "name": "Midnight Concierge",
+    "name": "Silverkeep Rayze Hayate",
     "cost": 6,
     "type": "unit",
     "attack": 5,
@@ -1381,7 +1381,7 @@
     "archetype": "Silverkeep",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-15/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/8491308.jpg",
     "description": "Round end: grant all active allies +0|+1 this round.",
     "abilities": [
       {
@@ -1403,7 +1403,7 @@
   },
   {
     "id": "silverkeep-unit-16",
-    "name": "Castle Executioner",
+    "name": "Silverkeep Rayze Shizuku",
     "cost": 6,
     "type": "unit",
     "attack": 6,
@@ -1411,7 +1411,7 @@
     "archetype": "Silverkeep",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-16/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/90673288.jpg",
     "description": "Play: deal 2 to an enemy unit.",
     "abilities": [
       {
@@ -1435,7 +1435,7 @@
   },
   {
     "id": "silverkeep-unit-17",
-    "name": "Grand Clock Sentinel",
+    "name": "Silverkeep Rayze Kaiia",
     "cost": 7,
     "type": "unit",
     "attack": 7,
@@ -1443,7 +1443,7 @@
     "archetype": "Silverkeep",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-17/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/12421694.jpg",
     "description": "Round start: create a random Silverkeep spell in hand.",
     "abilities": [
       {
@@ -1464,7 +1464,7 @@
   },
   {
     "id": "silverkeep-unit-18",
-    "name": "Silverkeep Behemoth",
+    "name": "Silverkeep Rayze Zeke",
     "cost": 8,
     "type": "unit",
     "attack": 8,
@@ -1472,7 +1472,7 @@
     "archetype": "Silverkeep",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-unit-18/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/75147529.jpg",
     "description": "Play: deal 1 to all active enemies and gain Tough.",
     "abilities": [
       {
@@ -1495,7 +1495,7 @@
   },
   {
     "id": "silverkeep-champion-1",
-    "name": "Lady Miravel of Silverkeep",
+    "name": "Silverkeep Rayze Zero",
     "cost": 4,
     "type": "champion",
     "attack": 3,
@@ -1503,7 +1503,7 @@
     "archetype": "Silverkeep",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-1/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/76072561.jpg",
     "description": "Level up after 3 enemies died.",
     "level": 1,
     "championId": "silverkeep-champion-1",
@@ -1536,7 +1536,7 @@
   },
   {
     "id": "silverkeep-champion-1-lv2",
-    "name": "Lady Miravel of Silverkeep, Ascended",
+    "name": "Silverkeep Rayze Zero Awakening",
     "cost": 4,
     "type": "champion",
     "attack": 5,
@@ -1544,8 +1544,8 @@
     "archetype": "Silverkeep",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-1-lv2/400/600",
-    "description": "Leveled form of Lady Miravel of Silverkeep.",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/17217034.jpg",
+    "description": "Leveled form of Silverkeep Rayze Zero.",
     "level": 2,
     "championId": "silverkeep-champion-1",
     "abilities": [
@@ -1579,7 +1579,7 @@
   },
   {
     "id": "silverkeep-champion-2",
-    "name": "Vesper, Palace Architect",
+    "name": "Silverkeep Rayze Algea",
     "cost": 5,
     "type": "champion",
     "attack": 4,
@@ -1587,7 +1587,7 @@
     "archetype": "Silverkeep",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-2/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/98462037.jpg",
     "description": "Level up after 4 spells cast.",
     "level": 1,
     "championId": "silverkeep-champion-2",
@@ -1620,7 +1620,7 @@
   },
   {
     "id": "silverkeep-champion-2-lv2",
-    "name": "Vesper, Palace Architect, Ascended",
+    "name": "Silverkeep Rayze Algea Awakening",
     "cost": 5,
     "type": "champion",
     "attack": 6,
@@ -1628,8 +1628,8 @@
     "archetype": "Silverkeep",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-champion-2-lv2/400/600",
-    "description": "Leveled form of Vesper, Palace Architect.",
+    "imageUrl": "https://ygoprodeck.com/card/14269",
+    "description": "Leveled form of Silverkeep Rayze Algea.",
     "level": 2,
     "championId": "silverkeep-champion-2",
     "abilities": [
@@ -1663,14 +1663,14 @@
   },
   {
     "id": "silverkeep-spell-01",
-    "name": "A Most Cordial Welcome",
+    "name": "Silverkeep Burn!",
     "cost": 1,
     "type": "spell",
     "spellSpeed": "burst",
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/99550630.jpg",
     "description": "Grant an ally Barrier.",
     "effects": [
       {
@@ -1682,14 +1682,14 @@
   },
   {
     "id": "silverkeep-spell-02",
-    "name": "Wrong Door",
+    "name": "Silverkeep Jamming",
     "cost": 2,
     "type": "spell",
     "spellSpeed": "fast",
     "archetype": "Silverkeep",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/25955749.jpg",
     "description": "Give an enemy -2|-0 this round.",
     "effects": [
       {
@@ -1703,14 +1703,14 @@
   },
   {
     "id": "silverkeep-spell-03",
-    "name": "Dinner Is Served",
+    "name": "Silverkeep Fight",
     "cost": 2,
     "type": "spell",
     "spellSpeed": "fast",
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/46271408.jpg",
     "description": "Deal 2 to an enemy unit.",
     "effects": [
       {
@@ -1722,14 +1722,14 @@
   },
   {
     "id": "silverkeep-spell-04",
-    "name": "Hidden Passage",
+    "name": "Silverkeep Vector",
     "cost": 3,
     "type": "spell",
     "spellSpeed": "slow",
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21623008.jpg",
     "description": "Recall an enemy unit.",
     "effects": [
       {
@@ -1740,14 +1740,14 @@
   },
   {
     "id": "silverkeep-spell-05",
-    "name": "Grand Reopening",
+    "name": "Silverkeep Landing",
     "cost": 4,
     "type": "spell",
     "spellSpeed": "fast",
     "archetype": "Silverkeep",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/25733157.jpg",
     "description": "Summon a Silverkeep unit costing 3 or less from your deck.",
     "effects": [
       {
@@ -1763,14 +1763,14 @@
   },
   {
     "id": "silverkeep-spell-06",
-    "name": "No Guests Beyond Midnight",
+    "name": "Silverkeep Aura!",
     "cost": 5,
     "type": "spell",
     "spellSpeed": "slow",
     "archetype": "Silverkeep",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/52340444.jpg",
     "description": "Revive an allied unit.",
     "effects": [
       {
@@ -1784,14 +1784,14 @@
   },
   {
     "id": "silverkeep-spell-07",
-    "name": "The Lady's Decree",
+    "name": "Silverkeep Shark-hunt",
     "cost": 6,
     "type": "spell",
     "spellSpeed": "slow",
     "archetype": "Silverkeep",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-07/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/51227866.jpg",
     "description": "Give an enemy -3|-3 this round.",
     "effects": [
       {
@@ -1805,14 +1805,14 @@
   },
   {
     "id": "silverkeep-spell-08",
-    "name": "Castle Without Exit",
+    "name": "Silverkeep Engage",
     "cost": 7,
     "type": "spell",
     "spellSpeed": "slow",
     "archetype": "Silverkeep",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/silverkeep-spell-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/9726840.jpg",
     "description": "Deal 3 to all active enemies.",
     "effects": [
       {
@@ -1824,7 +1824,7 @@
   },
   {
     "id": "emberwing-retinue-unit-01",
-    "name": "Hearthscale Page",
+    "name": "Emberwing Retinue Chamber",
     "cost": 1,
     "type": "unit",
     "attack": 1,
@@ -1832,7 +1832,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/32600024.jpg",
     "description": "Play: draw an Emberwing Retinue unit.",
     "abilities": [
       {
@@ -1852,7 +1852,7 @@
   },
   {
     "id": "emberwing-retinue-unit-02",
-    "name": "Tea-Bearing Whelp",
+    "name": "Emberwing Retinue Kitchen",
     "cost": 1,
     "type": "unit",
     "attack": 2,
@@ -1860,7 +1860,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/16960120.jpg",
     "description": "Play: grant an ally +1|+0.",
     "abilities": [
       {
@@ -1886,7 +1886,7 @@
   },
   {
     "id": "emberwing-retinue-unit-03",
-    "name": "Linenwing Attendant",
+    "name": "Emberwing Retinue Nurse",
     "cost": 2,
     "type": "unit",
     "attack": 2,
@@ -1894,7 +1894,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40398073.jpg",
     "description": "When you play a card, I gain +1|+0 this round.",
     "abilities": [
       {
@@ -1922,7 +1922,7 @@
   },
   {
     "id": "emberwing-retinue-unit-04",
-    "name": "Pantry Drake",
+    "name": "Emberwing Retinue Parlor",
     "cost": 2,
     "type": "unit",
     "attack": 1,
@@ -1930,7 +1930,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/88453933.jpg",
     "description": "Play: restore 1 spell mana.",
     "abilities": [
       {
@@ -1948,7 +1948,7 @@
   },
   {
     "id": "emberwing-retinue-unit-05",
-    "name": "Coppertray Maid",
+    "name": "Emberwing Retinue Laudry",
     "cost": 2,
     "type": "unit",
     "attack": 3,
@@ -1956,7 +1956,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/13171876.jpg",
     "description": "Attack: grant me Quick Attack.",
     "abilities": [
       {
@@ -1982,7 +1982,7 @@
   },
   {
     "id": "emberwing-retinue-unit-06",
-    "name": "Ashbroom Keeper",
+    "name": "Emberwing Retinue Cehrmba",
     "cost": 3,
     "type": "unit",
     "attack": 2,
@@ -1990,7 +1990,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/12163590.jpg",
     "description": "Play: summon an Emberwing Retinue unit costing 2 or less from your deck.",
     "abilities": [
       {
@@ -2012,7 +2012,7 @@
   },
   {
     "id": "emberwing-retinue-unit-07",
-    "name": "Cinderhouse Cook",
+    "name": "Emberwing Retinue Ernus",
     "cost": 3,
     "type": "unit",
     "attack": 3,
@@ -2020,7 +2020,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-07/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/76782778.jpg",
     "description": "When you attack, grant a random combat ally +1|+0 this round.",
     "abilities": [
       {
@@ -2048,7 +2048,7 @@
   },
   {
     "id": "emberwing-retinue-unit-08",
-    "name": "Library Wyvern",
+    "name": "Emberwing Retinue Lorpar",
     "cost": 3,
     "type": "unit",
     "attack": 1,
@@ -2056,7 +2056,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/15848542.jpg",
     "description": "Play: recall an ally to grant me +2|+2 this round.",
     "abilities": [
       {
@@ -2086,7 +2086,7 @@
   },
   {
     "id": "emberwing-retinue-unit-09",
-    "name": "Moonbath Attendant",
+    "name": "Emberwing Retinue Nudyarl",
     "cost": 4,
     "type": "unit",
     "attack": 3,
@@ -2094,7 +2094,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-09/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/49575521.jpg",
     "description": "Round start: create a random Emberwing Retinue unit in hand.",
     "abilities": [
       {
@@ -2115,7 +2115,7 @@
   },
   {
     "id": "emberwing-retinue-unit-10",
-    "name": "Scarlet Chambermaid",
+    "name": "Emberwing Retinue Tinkhec",
     "cost": 4,
     "type": "unit",
     "attack": 4,
@@ -2123,7 +2123,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-10/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/42055234.jpg",
     "description": "Attack: I gain +2|+0 this round.",
     "abilities": [
       {
@@ -2151,7 +2151,7 @@
   },
   {
     "id": "emberwing-retinue-unit-11",
-    "name": "Brassbell Drake",
+    "name": "Emberwing Retinue ETC",
     "cost": 4,
     "type": "unit",
     "attack": 2,
@@ -2159,7 +2159,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-11/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/7594154.jpg",
     "description": "Play: grant an ally Barrier.",
     "abilities": [
       {
@@ -2183,7 +2183,7 @@
   },
   {
     "id": "emberwing-retinue-unit-12",
-    "name": "Emberhall Steward",
+    "name": "Emberwing Retinue Lady",
     "cost": 5,
     "type": "unit",
     "attack": 4,
@@ -2191,7 +2191,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-12/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/48658295.jpg",
     "description": "Round end: recall me and draw 1.",
     "abilities": [
       {
@@ -2215,7 +2215,7 @@
   },
   {
     "id": "emberwing-retinue-unit-13",
-    "name": "Sapphire House Dragon",
+    "name": "Emberwing Retinue Atpool",
     "cost": 5,
     "type": "unit",
     "attack": 5,
@@ -2223,7 +2223,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-13/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/96127902.jpg",
     "description": "Play: summon an Emberwing Retinue unit costing 3 or less from hand or deck.",
     "abilities": [
       {
@@ -2245,7 +2245,7 @@
   },
   {
     "id": "emberwing-retinue-unit-14",
-    "name": "Crimson House Dragon",
+    "name": "Emberwing Retinue Renny",
     "cost": 5,
     "type": "unit",
     "attack": 3,
@@ -2253,7 +2253,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-14/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/7656689.jpg",
     "description": "Attack: deal 1 to the enemy Nexus.",
     "abilities": [
       {
@@ -2279,7 +2279,7 @@
   },
   {
     "id": "emberwing-retinue-unit-15",
-    "name": "Ivory House Dragon",
+    "name": "Emberwing Retinue Verre",
     "cost": 6,
     "type": "unit",
     "attack": 5,
@@ -2287,7 +2287,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-15/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/22623509.jpg",
     "description": "Play: grant all active allies +1|+0 this round.",
     "abilities": [
       {
@@ -2307,7 +2307,7 @@
   },
   {
     "id": "emberwing-retinue-unit-16",
-    "name": "Obsidian House Dragon",
+    "name": "Emberwing Retinue Master Verre",
     "cost": 6,
     "type": "unit",
     "attack": 6,
@@ -2315,7 +2315,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-16/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21522601.jpg",
     "description": "Play: deal 2 to an enemy and grant me Overwhelm.",
     "abilities": [
       {
@@ -2344,7 +2344,7 @@
   },
   {
     "id": "emberwing-retinue-unit-17",
-    "name": "First-Flame Matron",
+    "name": "Emberwing Retinue Extreme Verre",
     "cost": 7,
     "type": "unit",
     "attack": 7,
@@ -2352,7 +2352,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-17/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/33475154.jpg",
     "description": "Round start: grant all active allies +1|+1 this round.",
     "abilities": [
       {
@@ -2374,7 +2374,7 @@
   },
   {
     "id": "emberwing-retinue-unit-18",
-    "name": "Manor-Sky Calamity",
+    "name": "Emberwing Retinue Miss Genni",
     "cost": 8,
     "type": "unit",
     "attack": 8,
@@ -2382,7 +2382,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-unit-18/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/64756282.jpg",
     "description": "Play: summon a Retinue unit costing 5 or less, then grant all allies +1|+0 this round.",
     "abilities": [
       {
@@ -2411,7 +2411,7 @@
   },
   {
     "id": "emberwing-retinue-champion-1",
-    "name": "Rhea, Hearthwing Headmaid",
+    "name": "Emberwing Retinue Master Relliona",
     "cost": 4,
     "type": "champion",
     "attack": 3,
@@ -2419,7 +2419,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-1/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/72498838.jpg",
     "description": "Level up after 2 this champion struck.",
     "level": 1,
     "championId": "emberwing-retinue-champion-1",
@@ -2454,7 +2454,7 @@
   },
   {
     "id": "emberwing-retinue-champion-1-lv2",
-    "name": "Rhea, Hearthwing Headmaid, Ascended",
+    "name": "Emberwing Retinue Master Relliona, Ascended",
     "cost": 4,
     "type": "champion",
     "attack": 5,
@@ -2462,7 +2462,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-1-lv2/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/74689476.jpg",
     "description": "Leveled form of Rhea, Hearthwing Headmaid.",
     "level": 2,
     "championId": "emberwing-retinue-champion-1",
@@ -2497,7 +2497,7 @@
   },
   {
     "id": "emberwing-retinue-champion-2",
-    "name": "Tiamara, Lady of the Roost",
+    "name": "Emberwing Retinue Housekeeper",
     "cost": 5,
     "type": "champion",
     "attack": 4,
@@ -2505,7 +2505,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-2/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/41232647.jpg",
     "description": "Level up after 8 nexus damage dealt.",
     "level": 1,
     "championId": "emberwing-retinue-champion-2",
@@ -2540,7 +2540,7 @@
   },
   {
     "id": "emberwing-retinue-champion-2-lv2",
-    "name": "Tiamara, Lady of the Roost, Ascended",
+    "name": "Emberwing Retinue Housekeeper Dragon Form",
     "cost": 5,
     "type": "champion",
     "attack": 6,
@@ -2548,8 +2548,8 @@
     "archetype": "Emberwing Retinue",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-champion-2-lv2/400/600",
-    "description": "Leveled form of Tiamara, Lady of the Roost.",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/24799107.jpg",
+    "description": "Leveled form of Emberwing Retinue Housekeeper.",
     "level": 2,
     "championId": "emberwing-retinue-champion-2",
     "abilities": [
@@ -2583,14 +2583,14 @@
   },
   {
     "id": "emberwing-retinue-spell-01",
-    "name": "Perfect Hospitality",
+    "name": "Emberwing Retinue Send-off",
     "cost": 1,
     "type": "spell",
     "spellSpeed": "burst",
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/15754711.jpg",
     "description": "Grant an ally +1|+1 this round.",
     "effects": [
       {
@@ -2604,14 +2604,14 @@
   },
   {
     "id": "emberwing-retinue-spell-02",
-    "name": "Change of Uniform",
+    "name": "Emberwing Retinue Change-off",
     "cost": 2,
     "type": "spell",
     "spellSpeed": "fast",
     "archetype": "Emberwing Retinue",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40110009.jpg",
     "description": "Recall an ally and draw 1.",
     "effects": [
       {
@@ -2627,14 +2627,14 @@
   },
   {
     "id": "emberwing-retinue-spell-03",
-    "name": "Call from the Roost",
+    "name": "Emberwing Retinue Call-party",
     "cost": 2,
     "type": "spell",
     "spellSpeed": "fast",
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/78231355.jpg",
     "description": "Draw an Emberwing Retinue unit.",
     "effects": [
       {
@@ -2648,14 +2648,14 @@
   },
   {
     "id": "emberwing-retinue-spell-04",
-    "name": "Polished to a Shine",
+    "name": "Emberwing Retinue Downtime",
     "cost": 3,
     "type": "spell",
     "spellSpeed": "slow",
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/77515704.jpg",
     "description": "Grant an ally Quick Attack.",
     "effects": [
       {
@@ -2667,14 +2667,14 @@
   },
   {
     "id": "emberwing-retinue-spell-05",
-    "name": "Dragon's Tea Break",
+    "name": "Emberwing Retinue Prepare",
     "cost": 4,
     "type": "spell",
     "spellSpeed": "fast",
     "archetype": "Emberwing Retinue",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/57416183.jpg",
     "description": "Summon an Emberwing Retinue unit costing 3 or less from hand or deck.",
     "effects": [
       {
@@ -2690,14 +2690,14 @@
   },
   {
     "id": "emberwing-retinue-spell-06",
-    "name": "Return Before Dawn",
+    "name": "Emberwing Retinue Welcome",
     "cost": 5,
     "type": "spell",
     "spellSpeed": "slow",
     "archetype": "Emberwing Retinue",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/14625090.jpg",
     "description": "Grant all active allies +2|+0 this round.",
     "effects": [
       {
@@ -2718,7 +2718,7 @@
     "archetype": "Emberwing Retinue",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-07/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/35098357.jpg",
     "description": "Deal 3 to an enemy unit.",
     "effects": [
       {
@@ -2730,14 +2730,14 @@
   },
   {
     "id": "emberwing-retinue-spell-08",
-    "name": "All Wings to the Hall",
+    "name": "Emberwing Retinue FInally",
     "cost": 7,
     "type": "spell",
     "spellSpeed": "slow",
     "archetype": "Emberwing Retinue",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/emberwing-retinue-spell-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/83301414.jpg",
     "description": "Summon a Retinue unit costing 5 or less and grant all allies +1|+1 this round.",
     "effects": [
       {
@@ -2760,15 +2760,15 @@
   },
   {
     "id": "verdant-covenant-unit-01",
-    "name": "Mintbud Tender",
+    "name": "Albaz exapatisIA",
     "cost": 1,
     "type": "unit",
     "attack": 1,
     "health": 2,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/44716748.jpg",
     "description": "Play: heal your Nexus 1.",
     "abilities": [
       {
@@ -2786,15 +2786,15 @@
   },
   {
     "id": "verdant-covenant-unit-02",
-    "name": "Rosemary Familiar",
+    "name": "Albaz tromarIA",
     "cost": 1,
     "type": "unit",
     "attack": 2,
     "health": 1,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/29570824.jpg",
     "description": "Play: heal an ally 2.",
     "abilities": [
       {
@@ -2818,15 +2818,15 @@
   },
   {
     "id": "verdant-covenant-unit-03",
-    "name": "Basil Acolyte",
+    "name": "Albaz alazoneIA",
     "cost": 2,
     "type": "unit",
     "attack": 2,
     "health": 2,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/92171126.jpg",
     "description": "When an allied unit is healed, I gain +1|+0 this round.",
     "abilities": [
       {
@@ -2854,15 +2854,15 @@
   },
   {
     "id": "verdant-covenant-unit-04",
-    "name": "Lavender Mender",
+    "name": "Albaz oknirIA",
     "cost": 2,
     "type": "unit",
     "attack": 1,
     "health": 3,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/55965529.jpg",
     "description": "Round start: heal your Nexus 1.",
     "abilities": [
       {
@@ -2882,15 +2882,15 @@
   },
   {
     "id": "verdant-covenant-unit-05",
-    "name": "Thymeglass Sprite",
+    "name": "Albaz Uiazzzz",
     "cost": 2,
     "type": "unit",
     "attack": 3,
     "health": 1,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/56187077.jpg",
     "description": "Play: grant a damaged ally +1|+1.",
     "abilities": [
       {
@@ -2916,15 +2916,15 @@
   },
   {
     "id": "verdant-covenant-unit-06",
-    "name": "Sagewind Gardener",
+    "name": "Albaz Unit MAR",
     "cost": 3,
     "type": "unit",
     "attack": 2,
     "health": 3,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54842941.jpg",
     "description": "When you cast a spell, heal me 1.",
     "abilities": [
       {
@@ -2950,16 +2950,16 @@
   },
   {
     "id": "verdant-covenant-unit-07",
-    "name": "Jasmine Listener",
+    "name": "Albaz Unit COMBINE",
     "cost": 3,
     "type": "unit",
     "attack": 3,
     "health": 2,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-07/400/600",
-    "description": "Play: draw a Verdant Covenant spell.",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54842941.jpg",
+    "description": "Play: draw a Albaz spell.",
     "abilities": [
       {
         "id": "verdant-covenant-unit-07-draw",
@@ -2968,7 +2968,7 @@
           {
             "type": "DRAW_CARD_BY_FILTER",
             "count": 1,
-            "archetype": "Verdant Covenant",
+            "archetype": "Albaz",
             "cardType": "spell",
             "target": "SELF"
           }
@@ -2978,15 +2978,15 @@
   },
   {
     "id": "verdant-covenant-unit-08",
-    "name": "Camellia Keeper",
+    "name": "Albaz Unit XOR",
     "cost": 3,
     "type": "unit",
     "attack": 1,
     "health": 4,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/82359538.jpg",
     "description": "When an ally is healed, grant it +0|+1.",
     "abilities": [
       {
@@ -3014,15 +3014,15 @@
   },
   {
     "id": "verdant-covenant-unit-09",
-    "name": "Marjoram Priest",
+    "name": "Albaz Unit NOR",
     "cost": 4,
     "type": "unit",
     "attack": 3,
     "health": 4,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-09/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/71801447.jpg",
     "description": "Round start: if your Nexus is below 15 health, draw 1.",
     "abilities": [
       {
@@ -3049,15 +3049,15 @@
   },
   {
     "id": "verdant-covenant-unit-10",
-    "name": "Bergamot Dryad",
+    "name": "Albaz Unit AND",
     "cost": 4,
     "type": "unit",
     "attack": 4,
     "health": 3,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-10/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/81237046.jpg",
     "description": "Play: heal your Nexus 2 and grant me Barrier.",
     "abilities": [
       {
@@ -3080,15 +3080,15 @@
   },
   {
     "id": "verdant-covenant-unit-11",
-    "name": "Roseheart Druid",
+    "name": "Albaz Unit STEAL",
     "cost": 4,
     "type": "unit",
     "attack": 2,
     "health": 5,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-11/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/13073850.jpg",
     "description": "When an ally is healed, grant me +1|+1 this round.",
     "abilities": [
       {
@@ -3116,15 +3116,15 @@
   },
   {
     "id": "verdant-covenant-unit-12",
-    "name": "Laurel Apothecary",
+    "name": "Albaz HELIX",
     "cost": 5,
     "type": "unit",
     "attack": 4,
     "health": 5,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-12/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/37991342.jpg",
     "description": "Play: revive an allied unit from your graveyard.",
     "abilities": [
       {
@@ -3150,15 +3150,15 @@
   },
   {
     "id": "verdant-covenant-unit-13",
-    "name": "Magnolia Guardian",
+    "name": "Albaz Unit MONOLITH",
     "cost": 5,
     "type": "unit",
     "attack": 5,
     "health": 4,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-13/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/51194046.jpg",
     "description": "Round start: heal all active allies 1.",
     "abilities": [
       {
@@ -3180,15 +3180,15 @@
   },
   {
     "id": "verdant-covenant-unit-14",
-    "name": "Lotuswell Mystic",
+    "name": "Albaz Unit DISK",
     "cost": 5,
     "type": "unit",
     "attack": 3,
     "health": 6,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-14/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/64496451.jpg",
     "description": "Play: heal an ally 3 and grant it Tough.",
     "abilities": [
       {
@@ -3217,15 +3217,15 @@
   },
   {
     "id": "verdant-covenant-unit-15",
-    "name": "Cedar Sanctuary",
+    "name": "Albaz Unit SCOUT",
     "cost": 6,
     "type": "unit",
     "attack": 5,
     "health": 6,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-15/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/65518099.jpg",
     "description": "Round end: heal your Nexus 2.",
     "abilities": [
       {
@@ -3245,15 +3245,15 @@
   },
   {
     "id": "verdant-covenant-unit-16",
-    "name": "Ancient Myrrhkeeper",
+    "name": "Albaz Unit SHELL",
     "cost": 6,
     "type": "unit",
     "attack": 6,
     "health": 5,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-16/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/90885155.jpg",
     "description": "When you cast your second spell each round, grant all allies +1|+1 this round.",
     "abilities": [
       {
@@ -3285,16 +3285,16 @@
   },
   {
     "id": "verdant-covenant-unit-17",
-    "name": "Worldroot Stag",
+    "name": "Albaz Unit CARIER",
     "cost": 7,
     "type": "unit",
     "attack": 7,
     "health": 7,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-17/400/600",
-    "description": "Round start: heal your Nexus 3 and create a Verdant Covenant spell.",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/91907707.jpg",
+    "description": "Round start: heal your Nexus 3 and create a Albaz spell.",
     "abilities": [
       {
         "id": "verdant-covenant-unit-17-worldroot",
@@ -3309,7 +3309,7 @@
           },
           {
             "type": "CREATE_RANDOM_CARD",
-            "archetype": "Verdant Covenant",
+            "archetype": "Albaz",
             "cardType": "spell",
             "target": "SELF"
           }
@@ -3319,15 +3319,15 @@
   },
   {
     "id": "verdant-covenant-unit-18",
-    "name": "Garden of First Breath",
+    "name": "Albaz Unit HUNTER",
     "cost": 8,
     "type": "unit",
     "attack": 8,
     "health": 8,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-unit-18/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/87588741.jpg",
     "description": "Play: heal your Nexus 4 and grant all active allies +1|+2 this round.",
     "abilities": [
       {
@@ -3352,15 +3352,15 @@
   },
   {
     "id": "verdant-covenant-champion-1",
-    "name": "Aurelia, Dawn Perfumer",
+    "name": "Albaz TOWER",
     "cost": 4,
     "type": "champion",
     "attack": 3,
     "health": 4,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-1/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/27279764.jpg",
     "description": "Level up after 4 spells cast.",
     "level": 1,
     "championId": "verdant-covenant-champion-1",
@@ -3393,16 +3393,16 @@
   },
   {
     "id": "verdant-covenant-champion-1-lv2",
-    "name": "Aurelia, Dawn Perfumer, Ascended",
+    "name": "Albaz TOWER, Ascended",
     "cost": 4,
     "type": "champion",
     "attack": 5,
     "health": 6,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-1-lv2/400/600",
-    "description": "Leveled form of Aurelia, Dawn Perfumer.",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/27279764.jpg0",
+    "description": "Leveled form of Albaz TOWER.",
     "level": 2,
     "championId": "verdant-covenant-champion-1",
     "abilities": [
@@ -3436,15 +3436,15 @@
   },
   {
     "id": "verdant-covenant-champion-2",
-    "name": "Sylva, Heart of the Garden",
+    "name": "Albaz BASE",
     "cost": 5,
     "type": "champion",
     "attack": 4,
     "health": 5,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "champion",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-2/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40061558.jpg",
     "description": "Level up after 2 this champion struck.",
     "level": 1,
     "championId": "verdant-covenant-champion-2",
@@ -3477,16 +3477,16 @@
   },
   {
     "id": "verdant-covenant-champion-2-lv2",
-    "name": "Sylva, Heart of the Garden, Ascended",
+    "name": "Albaz BASE, Ascended",
     "cost": 5,
     "type": "champion",
     "attack": 6,
     "health": 7,
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "champion",
     "collectible": false,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-champion-2-lv2/400/600",
-    "description": "Leveled form of Sylva, Heart of the Garden.",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40061558.jpg",
+    "description": "Leveled form of Albaz BASE.",
     "level": 2,
     "championId": "verdant-covenant-champion-2",
     "abilities": [
@@ -3520,14 +3520,14 @@
   },
   {
     "id": "verdant-covenant-spell-01",
-    "name": "Morning Dew",
+    "name": "Albaz Spell GATE",
     "cost": 1,
     "type": "spell",
     "spellSpeed": "burst",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-01/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/20426907.jpg",
     "description": "Heal your Nexus 2.",
     "effects": [
       {
@@ -3539,14 +3539,14 @@
   },
   {
     "id": "verdant-covenant-spell-02",
-    "name": "Breeze Through Basil",
+    "name": "Albaz Spell SOUL",
     "cost": 2,
     "type": "spell",
     "spellSpeed": "fast",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "common",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-02/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/17639150.jpg",
     "description": "Heal an ally 3.",
     "effects": [
       {
@@ -3558,14 +3558,14 @@
   },
   {
     "id": "verdant-covenant-spell-03",
-    "name": "Fragrant Remedy",
+    "name": "Albaz Spell END",
     "cost": 2,
     "type": "spell",
     "spellSpeed": "fast",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-03/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/20447641.jpg",
     "description": "Grant an ally +1|+2 this round.",
     "effects": [
       {
@@ -3579,14 +3579,14 @@
   },
   {
     "id": "verdant-covenant-spell-04",
-    "name": "Sunlit Conservatory",
+    "name": "Albaz Spell SEED",
     "cost": 3,
     "type": "spell",
     "spellSpeed": "slow",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-04/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/30845999.jpg",
     "description": "Heal your Nexus 3 and draw 1.",
     "effects": [
       {
@@ -3603,14 +3603,14 @@
   },
   {
     "id": "verdant-covenant-spell-05",
-    "name": "Overgrown Blessing",
+    "name": "Albaz Spell DESTRUCTION",
     "cost": 4,
     "type": "spell",
     "spellSpeed": "fast",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "rare",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-05/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/43034264.jpg",
     "description": "Grant an ally +2|+2 and Tough this round.",
     "effects": [
       {
@@ -3629,14 +3629,14 @@
   },
   {
     "id": "verdant-covenant-spell-06",
-    "name": "Rain on the Glasshouse",
+    "name": "Albaz Spell DARKNESS",
     "cost": 5,
     "type": "spell",
     "spellSpeed": "slow",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-06/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/22423493.jpg",
     "description": "Heal all active allies through +0|+2 this round.",
     "effects": [
       {
@@ -3650,14 +3650,14 @@
   },
   {
     "id": "verdant-covenant-spell-07",
-    "name": "Season of Abundance",
+    "name": "Albaz Spell RISE",
     "cost": 6,
     "type": "spell",
     "spellSpeed": "slow",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "epic",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-07/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/4450854.jpg",
     "description": "Revive an allied unit and heal your Nexus 2.",
     "effects": [
       {
@@ -3676,14 +3676,14 @@
   },
   {
     "id": "verdant-covenant-spell-08",
-    "name": "The Garden Remembers",
+    "name": "Albaz Spell COUNTER",
     "cost": 7,
     "type": "spell",
     "spellSpeed": "slow",
-    "archetype": "Verdant Covenant",
+    "archetype": "Albaz",
     "rarity": "legendary",
     "collectible": true,
-    "imageUrl": "https://picsum.photos/seed/verdant-covenant-spell-08/400/600",
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/80015408.jpg",
     "description": "Heal your Nexus 5 and grant all active allies +2|+2 this round.",
     "effects": [
       {
@@ -3697,6 +3697,227 @@
         "health": 2,
         "duration": "THIS_ROUND",
         "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-01",
+    "name": "Wandering Squire",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/15582767.jpg",
+    "description": "Play: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "neutral-unit-01-mana",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-02",
+    "name": "Gift CARD",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/39526584.jpg",
+    "description": "Play: heal your Nexus 1.",
+    "abilities": [
+      {
+        "id": "neutral-unit-02-heal",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-03",
+    "name": "Roadside Scholar",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/71818935.jpg",
+    "description": "Play: draw 1.",
+    "abilities": [
+      {
+        "id": "neutral-unit-03-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-04",
+    "name": "Ironclad Mercenary",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 4,
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/98127546.jpg",
+    "description": "Tough."
+  },
+  {
+    "id": "neutral-unit-05",
+    "name": "Veteran Vanguard",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 5,
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/12171659.jpg",
+    "description": "Play: give an ally +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "neutral-unit-05-buff",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-01",
+    "name": "Quick Mend",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/34541863.jpg",
+    "description": "Heal an ally 2.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 2,
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-02",
+    "name": "Battle Trick",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/64163367.jpg",
+    "description": "Give an ally +2|+0 this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 2,
+        "health": 0,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-03",
+    "name": "Arcane Insight",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/33503878.jpg",
+    "description": "Draw 2.",
+    "effects": [
+      {
+        "type": "DRAW_CARD",
+        "count": 2,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-04",
+    "name": "Repulse",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/23784496.jpg",
+    "description": "Recall an enemy unit.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-05",
+    "name": "Final Spark",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/34838437.jpg",
+    "description": "Deal 4 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 4,
+        "target": "ENEMY_UNIT"
       }
     ]
   }
