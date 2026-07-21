@@ -5,9 +5,10 @@ import type { GameController } from "../components/game/GameBoard";
 import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { createInitialGameState } from "@backend/game/core/engine";
 import type { GameAction, GameState, PlayerId } from "@backend/game/types";
-import type { DeveloperResourceUpdate, RoomUpdate } from "@backend/shared/multiplayer";
+import type { DeveloperResourceUpdate, MatchmakingDeckSelection, RoomUpdate } from "@backend/shared/multiplayer";
 import { accessTokenNeedsRefresh, refreshToken } from "../libs/api";
 import { socketManager } from "../libs/socket";
+import { getSelectedDeckId, loadLocalDecks } from "../libs/localDecks";
 
 export interface SocketGameController extends GameController {
   roomCode?: string;
@@ -17,7 +18,7 @@ export interface SocketGameController extends GameController {
   error?: string;
   createRoom: () => void;
   joinRoom: (roomCode: string) => void;
-  startMatchmaking(): void;
+  startMatchmaking(selection?: MatchmakingDeckSelection): void;
   cancelMatchmaking(): void;
   searching: boolean;
   queueTime: number;
@@ -102,7 +103,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setError(undefined);
       // Auto-rejoin if room code exists
       if (roomCodeRef.current) {
-        socketManager.joinRoom(roomCodeRef.current, (response: any) => {
+        socketManager.joinRoom(roomCodeRef.current, getLocalDeckSelection(), (response: any) => {
           if (!response.ok) {
             setError(response.error);
             addClientLog(response.error);
@@ -211,7 +212,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
   function createRoom() {
     setError(undefined);
-    socketManager.createRoom((response: any) => {
+    socketManager.createRoom(getLocalDeckSelection(), (response: any) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
@@ -235,7 +236,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       return;
     }
 
-    socketManager.joinRoom(normalizedRoomCode, (response: any) => {
+    socketManager.joinRoom(normalizedRoomCode, getLocalDeckSelection(), (response: any) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
@@ -272,7 +273,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     });
   }
 
-  function startMatchmaking() {
+  function startMatchmaking(selection?: MatchmakingDeckSelection) {
     if (!socketManager.getSocket()?.connected) {
       setError("Connecting to the game server. Please try again in a moment.");
       return;
@@ -281,7 +282,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     setError(undefined);
     setQueueTime(0);
     setSearching(true);
-    socketManager.startMatchmaking();
+    socketManager.startMatchmaking(selection);
   }
 
   function setDeveloperResources(updates: DeveloperResourceUpdate[]) {
@@ -326,4 +327,13 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   );
 
   return controller;
+}
+
+function getLocalDeckSelection(): MatchmakingDeckSelection | undefined {
+  const decks = loadLocalDecks();
+  const selectedDeckId = getSelectedDeckId();
+  const selectedDeck = decks.find((deck) => deck.deckId === selectedDeckId) ?? decks[0];
+  return selectedDeck
+    ? { deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds }
+    : undefined;
 }

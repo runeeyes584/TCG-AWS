@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, FlaskConical, Gauge, House, List, Plus, RotateCcw, Search, Settings, Shield, Skull, Swords, Trophy, X, Zap } from "lucide-react";
+import { BookOpen, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Shield, Skull, Swords, Trophy, X, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
@@ -56,6 +56,7 @@ interface GameBoardViewProps {
   connectionStatus?: string;
   opponentConnected?: boolean;
   trialMode?: boolean;
+  onExitTrial?: () => void;
 }
 
 export function GameBoard({ controller }: Props) {
@@ -68,7 +69,8 @@ export function GameBoardView({
   localPlayerId,
   connectionStatus,
   opponentConnected = true,
-  trialMode = false
+  trialMode = false,
+  onExitTrial
 }: GameBoardViewProps) {
   const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles } = controller;
   useBattleMusic(gameState);
@@ -78,6 +80,8 @@ export function GameBoardView({
   const [selectedCostTargets, setSelectedCostTargets] = useState<SpellTarget[]>([]);
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | undefined>();
+  const [showExitTrialDialog, setShowExitTrialDialog] = useState(false);
+  const [showSurrenderDialog, setShowSurrenderDialog] = useState(false);
   const developerToolsEnabled = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
   const canEditDeveloperResources = developerToolsEnabled && Boolean(setDeveloperResources);
   const [previewCard, setPreviewCard] = useState<CardInstance>();
@@ -96,6 +100,18 @@ export function GameBoardView({
     message: string;
   }>();
   const previousChampionIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!showExitTrialDialog && !showSurrenderDialog) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowExitTrialDialog(false);
+        setShowSurrenderDialog(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showExitTrialDialog, showSurrenderDialog]);
   const viewerPlayerId: PlayerId = localPlayerId ?? "P1";
   const opponentPlayerId = opponentOf(viewerPlayerId);
   const attackPlayerId = gameState.attackTokenPlayerId;
@@ -244,11 +260,9 @@ export function GameBoardView({
   }
 
   function surrender() {
-    if (!localPlayerId || !window.confirm("Bạn có chắc muốn đầu hàng không?")) {
-      return;
-    }
-
+    if (!localPlayerId) return;
     dispatch({ type: "SURRENDER", playerId: localPlayerId });
+    setShowSurrenderDialog(false);
   }
 
   function playCard(playerId: PlayerId, card: CardInstance) {
@@ -1506,7 +1520,7 @@ export function GameBoardView({
             <button
               type="button"
               className="utility-dock__surrender"
-              onClick={surrender}
+              onClick={() => setShowSurrenderDialog(true)}
               disabled={!gameState.started || Boolean(gameState.winnerId)}
             >
               Đầu hàng
@@ -1532,7 +1546,70 @@ export function GameBoardView({
             <button type="button" onClick={resetGame} title="Reset trial">
               <RotateCcw size={15} aria-hidden="true" /> Reset
             </button>
+            {onExitTrial ? (
+              <button className="trial-console__exit" type="button" onClick={() => setShowExitTrialDialog(true)} title="Exit Trial Duel">
+                <LogOut size={15} aria-hidden="true" /> Exit
+              </button>
+            ) : null}
           </section>
+        ) : null}
+
+        {showExitTrialDialog && onExitTrial ? (
+          <div
+            className="trial-exit-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trial-exit-title"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setShowExitTrialDialog(false);
+            }}
+          >
+            <section className="trial-exit-dialog">
+              <div className="trial-exit-dialog__icon" aria-hidden="true"><LogOut size={24} /></div>
+              <div className="trial-exit-dialog__copy">
+                <span>Trial session</span>
+                <h2 id="trial-exit-title">Leave the arena?</h2>
+                <p>Tiến trình thử nghiệm hiện tại sẽ bị hủy và bạn sẽ trở về Lobby.</p>
+              </div>
+              <div className="trial-exit-dialog__actions">
+                <button type="button" onClick={() => setShowExitTrialDialog(false)} autoFocus>
+                  Continue Trial
+                </button>
+                <button type="button" className="trial-exit-dialog__confirm" onClick={onExitTrial}>
+                  <LogOut size={16} aria-hidden="true" /> Exit to Lobby
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {showSurrenderDialog && localPlayerId ? (
+          <div
+            className="trial-exit-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="surrender-title"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setShowSurrenderDialog(false);
+            }}
+          >
+            <section className="trial-exit-dialog surrender-dialog">
+              <div className="trial-exit-dialog__icon" aria-hidden="true"><Flag size={24} /></div>
+              <div className="trial-exit-dialog__copy">
+                <span>Match command</span>
+                <h2 id="surrender-title">Surrender duel?</h2>
+                <p>Đối thủ sẽ được xử thắng và kết quả trận đấu sẽ được ghi nhận ngay lập tức.</p>
+              </div>
+              <div className="trial-exit-dialog__actions">
+                <button type="button" onClick={() => setShowSurrenderDialog(false)} autoFocus>
+                  Continue Duel
+                </button>
+                <button type="button" className="trial-exit-dialog__confirm" onClick={surrender}>
+                  <Flag size={16} aria-hidden="true" /> Surrender
+                </button>
+              </div>
+            </section>
+          </div>
         ) : null}
 
         {connectionStatus && !opponentConnected ? (

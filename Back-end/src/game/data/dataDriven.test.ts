@@ -11,7 +11,7 @@ import {
   listCards,
   registerCardDefinition
 } from "../entities/cardRegistry";
-import cardsJson from "./cards.json";
+import cardsJson from "./archetypeCards.json";
 import { applyAction, createInitialGameState } from "../core/engine";
 import { CardDefinition, GameValidationError, PlayerId } from "../types";
 

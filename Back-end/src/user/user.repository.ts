@@ -4,12 +4,13 @@ import { fileURLToPath } from "node:url";
 
 import { User } from "./user.types";
 import { calculateElo } from "../matchmaking/elo";
+import type { SaveDeckPayload, SavedDeck } from "../decks/deck.types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const FILE = path.join(__dirname, "../data/user.json");
-let matchResultWriteQueue: Promise<void> = Promise.resolve();
+let userWriteQueue: Promise<void> = Promise.resolve();
 
 export async function getUsers(): Promise<User[]> {
     const json = await fs.readFile(FILE, "utf8");
@@ -47,8 +48,26 @@ export async function updateUser(user: User) {
     await saveUsers(users);
 }
 
+export function saveUserDeck(userId: string, payload: SaveDeckPayload): Promise<SavedDeck> {
+    const task = userWriteQueue.then(async () => {
+        const users = await getUsers();
+        const user = users.find((candidate) => candidate.id === userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const savedDeck: SavedDeck = { ...payload, cardIds: [...payload.cardIds], updatedAt: Date.now() };
+        user.decks = { ...(user.decks || {}), [payload.deckId]: savedDeck };
+        await saveUsers(users);
+        return savedDeck;
+    });
+
+    userWriteQueue = task.then(() => undefined, () => undefined);
+    return task;
+}
+
 export function recordMatchResult(winnerId: string, loserId: string): Promise<{ winner: User; loser: User }> {
-    const task = matchResultWriteQueue.then(async () => {
+    const task = userWriteQueue.then(async () => {
         const users = await getUsers();
         const winner = users.find((user) => user.id === winnerId);
         const loser = users.find((user) => user.id === loserId);
@@ -67,7 +86,7 @@ export function recordMatchResult(winnerId: string, loserId: string): Promise<{ 
         return { winner, loser };
     });
 
-    matchResultWriteQueue = task.then(
+    userWriteQueue = task.then(
         () => undefined,
         () => undefined
     );

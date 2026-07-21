@@ -1,3 +1,5 @@
+import type { SavedDeck } from "../decks/deck.types";
+
 // ─── Player State ────────────────────────────────────────────────────────────
 
 export interface PlayerState {
@@ -52,6 +54,7 @@ export interface UserProfile {
   avatar_url?: string;
   stats: UserStats;
   created_at: string; // ISO 8601
+  decks?: Record<string, SavedDeck>;
 }
 
 export interface UserStats {

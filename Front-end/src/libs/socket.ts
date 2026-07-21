@@ -3,6 +3,7 @@ import type { GameAction } from "@backend/game/types";
 import type {
   ClientToServerEvents,
   DeveloperResourceUpdate,
+  MatchmakingDeckSelection,
   ServerToClientEvents
 } from "@backend/shared/multiplayer";
 
@@ -39,12 +40,12 @@ class SocketManager {
   }
 
   // --- API Methods (Emit) ---
-  public createRoom(callback: (response: any) => void) {
-    this.socket?.emit("room:create", callback);
+  public createRoom(selection: MatchmakingDeckSelection | undefined, callback: (response: any) => void) {
+    this.socket?.emit("room:create", selection, callback);
   }
 
-  public joinRoom(roomCode: string, callback: (response: any) => void) {
-    this.socket?.emit("room:join", roomCode, callback);
+  public joinRoom(roomCode: string, selection: MatchmakingDeckSelection | undefined, callback: (response: any) => void) {
+    this.socket?.emit("room:join", roomCode, selection, callback);
   }
 
   public dispatchAction(action: GameAction, callback: (response: any) => void) {
@@ -62,8 +63,8 @@ class SocketManager {
     this.socket?.emit("developer:resources", updates, callback);
   }
 
-  public startMatchmaking() {
-    this.socket?.emit("matchmaking:start");
+  public startMatchmaking(selection?: MatchmakingDeckSelection) {
+    this.socket?.emit("matchmaking:start", selection);
   }
 
   public cancelMatchmaking() {

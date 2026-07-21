@@ -568,3 +568,216 @@ expected `,` or `}` at line 2962 column 40
     at <unknown> (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_client_16lnmlo._.js:2680:13)
     at WebSocket.handleMessage (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_client_16lnmlo._.js:2325:17) (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_client_16lnmlo._.js:2774:21)
 ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <section className="lane hand-..." aria-label="opponent hand">
+      <div>
+      <div className={"card-gri..."}>
+        <AnimatePresence initial={false}>
+          <PresenceChild isPresent={true} initial={false} custom={undefined} presenceAffectsLayout={true} mode="sync" ...>
+            <PopChild pop={false} isPresent={true} anchorX="left" anchorY="top" root={undefined}>
+              <PopChildMeasure isPresent={true} childRef={{current:null}} sizeRef={{...}} pop={false}>
+                <motion.div className={"hand-mot..."} layout={true} initial={{opacity:0, ...}} ...>
+                  <MeasureLayout>
+                  <div className={"hand-mot..."} style={{opacity:0.94, ...}} ref={function useMotionRef.useCallback}>
+                    <HandCard className="hand-card-..." card={{...}} selected={false} hovered={false} playable={false} ...>
+                      <GameCard card={{...}} variant="hand" compact={true} selected={false} className="hand-card-..." ...>
+                        <div className="game-card-..." onMouseEnter={function onMouseEnter} ...>
+                          <a glareEnable={false} glareMaxOpacity={0.45} glareColor="#ffffff" glarePosition="all" ...>
+                            <div ref={function ref} onMouseEnter={function} onMouseMove={function} ...>
+                              <button
++                               className="card-view game-card-v2 is-clickable game-card-v2--compact card-view--hand g..."
+-                               className="card-view game-card-v2 is-clickable game-card-v2--compact card-view--hand g..."
+                                type="button"
+                                data-card-ui={true}
+                                onClick={function handleClick}
+                                onDoubleClick={undefined}
+                              >
+                                <span className="game-card-...">
+                                  <StatPip kind="mana" value={4} size="sm" className="game-card-...">
+                                    <span className="relative f...">
+                                      <Zap>
+                                      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
++                                       4
+-                                       6
+                                  ...
+                                ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at throwOnHydrationMismatch (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3318:56)
+    at prepareToHydrateHostInstance (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3372:23)
+    at completeWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6922:60)
+    at runWithFiberInDEV (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at completeUnitOfWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9622:23)
+    at performUnitOfWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9557:28)
+    at workLoopConcurrentByScheduler (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9551:58)
+    at renderRootConcurrent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9534:71)
+    at performWorkOnRoot (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64)
+    at span (<anonymous>)
+    at StatPip (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:489:215)
+    at GameCard (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:624:223)
+    at HandCard (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1290:215)
+    at <unknown> (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1432:242)
+    at Array.map (<anonymous>)
+    at Hand (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1387:37)
+    at GameBoardView (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:8625:227)
+    at TrialPlayPageContent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11339:214)
+    at PlayPageContent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11357:250)
+    at PlayPage (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11397:221)
+    at ClientPageRoot (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_1e9_p6y._.js:4461:50)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <section className="lane hand-..." aria-label="opponent hand">
+      <div>
+      <div className={"card-gri..."}>
+        <AnimatePresence initial={false}>
+          <PresenceChild isPresent={true} initial={false} custom={undefined} presenceAffectsLayout={true} mode="sync" ...>
+            <PopChild pop={false} isPresent={true} anchorX="left" anchorY="top" root={undefined}>
+              <PopChildMeasure isPresent={true} childRef={{current:null}} sizeRef={{...}} pop={false}>
+                <motion.div className={"hand-mot..."} layout={true} initial={{opacity:0, ...}} ...>
+                  <MeasureLayout>
+                  <div className={"hand-mot..."} style={{opacity:0.94, ...}} ref={function useMotionRef.useCallback}>
+                    <HandCard className="hand-card-..." card={{...}} selected={false} hovered={false} playable={false} ...>
+                      <GameCard card={{...}} variant="hand" compact={true} selected={false} className="hand-card-..." ...>
+                        <div className="game-card-..." onMouseEnter={function onMouseEnter} ...>
+                          <a glareEnable={false} glareMaxOpacity={0.45} glareColor="#ffffff" glarePosition="all" ...>
+                            <div ref={function ref} onMouseEnter={function} onMouseMove={function} ...>
+                              <button
++                               className="card-view game-card-v2 is-clickable game-card-v2--compact card-view--hand g..."
+-                               className="card-view game-card-v2 is-clickable game-card-v2--compact card-view--hand g..."
+                                type="button"
+                                data-card-ui={true}
+                                onClick={function handleClick}
+                                onDoubleClick={undefined}
+                              >
+                                <span className="game-card-...">
+                                  <StatPip kind="mana" value={1} size="sm" className="game-card-...">
+                                    <span className="relative f...">
+                                      <Zap>
+                                      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
++                                       1
+-                                       6
+                                  ...
+                                ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at throwOnHydrationMismatch (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3318:56)
+    at prepareToHydrateHostInstance (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3372:23)
+    at completeWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6922:60)
+    at runWithFiberInDEV (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at completeUnitOfWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9622:23)
+    at performUnitOfWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9557:28)
+    at workLoopConcurrentByScheduler (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9551:58)
+    at renderRootConcurrent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9534:71)
+    at performWorkOnRoot (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64)
+    at span (<anonymous>)
+    at StatPip (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:489:215)
+    at GameCard (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:624:223)
+    at HandCard (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1290:215)
+    at <unknown> (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1432:242)
+    at Array.map (<anonymous>)
+    at Hand (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1387:37)
+    at GameBoardView (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:8625:227)
+    at TrialPlayPageContent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11339:214)
+    at PlayPageContent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11357:250)
+    at PlayPage (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11397:221)
+    at ClientPageRoot (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_1e9_p6y._.js:4461:50)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <section className="lane hand-..." aria-label="opponent hand">
+      <div>
+      <div className={"card-gri..."}>
+        <AnimatePresence initial={false}>
+          <PresenceChild isPresent={true} initial={false} custom={undefined} presenceAffectsLayout={true} mode="sync" ...>
+            <PopChild pop={false} isPresent={true} anchorX="left" anchorY="top" root={undefined}>
+              <PopChildMeasure isPresent={true} childRef={{current:null}} sizeRef={{...}} pop={false}>
+                <motion.div className={"hand-mot..."} layout={true} initial={{opacity:0, ...}} ...>
+                  <MeasureLayout>
+                  <div className={"hand-mot..."} style={{opacity:0.94, ...}} ref={function useMotionRef.useCallback}>
+                    <HandCard className="hand-card-..." card={{...}} selected={false} hovered={false} playable={false} ...>
+                      <GameCard card={{...}} variant="hand" compact={true} selected={false} className="hand-card-..." ...>
+                        <div className="game-card-..." onMouseEnter={function onMouseEnter} ...>
+                          <a glareEnable={false} glareMaxOpacity={0.45} glareColor="#ffffff" glarePosition="all" ...>
+                            <div ref={function ref} onMouseEnter={function} onMouseMove={function} ...>
+                              <button
++                               className="card-view game-card-v2 is-clickable game-card-v2--compact card-view--hand g..."
+-                               className="card-view game-card-v2 is-clickable game-card-v2--compact card-view--hand g..."
+                                type="button"
+                                data-card-ui={true}
+                                onClick={function handleClick}
+                                onDoubleClick={undefined}
+                              >
+                                <span className="game-card-...">
+                                  <StatPip kind="mana" value={3} size="sm" className="game-card-...">
+                                    <span className="relative f...">
+                                      <Zap>
+                                      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
++                                       3
+-                                       7
+                                  ...
+                                ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at throwOnHydrationMismatch (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3318:56)
+    at prepareToHydrateHostInstance (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3372:23)
+    at completeWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6922:60)
+    at runWithFiberInDEV (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at completeUnitOfWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9622:23)
+    at performUnitOfWork (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9557:28)
+    at workLoopConcurrentByScheduler (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9551:58)
+    at renderRootConcurrent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9534:71)
+    at performWorkOnRoot (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64)
+    at span (<anonymous>)
+    at StatPip (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:489:215)
+    at GameCard (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:624:223)
+    at HandCard (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1290:215)
+    at <unknown> (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1432:242)
+    at Array.map (<anonymous>)
+    at Hand (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:1387:37)
+    at GameBoardView (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:8625:227)
+    at TrialPlayPageContent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11339:214)
+    at PlayPageContent (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11357:250)
+    at PlayPage (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/_03h13-g._.js:11397:221)
+    at ClientPageRoot (file://E:/A.PRJ/Kaleidoscope TCG/TCG-AWS/Front-end/.next/dev/static/chunks/node_modules_next_dist_1e9_p6y._.js:4461:50)
