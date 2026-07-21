@@ -14,7 +14,8 @@ type Callback = (response: { ok: true } | { ok: false; error: string }) => void;
 class SocketManager {
   private socket: GameSocket | ApiGatewaySocket | null = null;
   private readonly useApiGateway = Boolean(process.env.NEXT_PUBLIC_WS_URL);
-  private readonly socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+  private readonly socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
+    || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "");
 
   public connect(token: string, username: string): RealtimeSocket {
     if (this.useApiGateway) {
@@ -23,6 +24,9 @@ class SocketManager {
     }
 
     if (!this.socket) {
+      if (!this.socketUrl) {
+        throw new Error("NEXT_PUBLIC_WS_URL or NEXT_PUBLIC_SOCKET_URL is required outside local development.");
+      }
       this.socket = io(this.socketUrl, {
         autoConnect: false,
         transports: ["websocket", "polling"],

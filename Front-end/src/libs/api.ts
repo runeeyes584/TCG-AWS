@@ -1,6 +1,9 @@
 import type { SaveDeckPayload, SavedDeck } from "@backend/decks/deck.types";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = (
+    configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "")
+).replace(/\/$/, "");
 
 export interface LoginResponse {
     success: boolean;
@@ -56,6 +59,9 @@ async function request<T = any>(
         : window.localStorage.getItem("accessToken");
 
     const requestUrl = /^https?:\/\//.test(url) ? url : `${API_URL}${url}`;
+    if (!/^https?:\/\//.test(requestUrl)) {
+        throw new Error("NEXT_PUBLIC_API_URL is required outside local development.");
+    }
     const response = await fetch(requestUrl, {
         credentials: "include",
         headers: {
