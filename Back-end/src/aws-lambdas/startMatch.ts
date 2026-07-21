@@ -1,10 +1,11 @@
-import { ScanCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, ScanCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from "@aws-sdk/client-apigatewaymanagementapi";
 import { dynamoDb } from "../config/dynamodb";
 
 // Import trực tiếp từ Game Engine có sẵn trong dự án của bạn
 import { createInitialGameState, applyAction } from "../game/core/engine";
 import { buildDefaultDeck } from "../game/entities/defaultDeck";
+import type { GameState, PlayerId } from "../game/types";
 
 const region = process.env.AWS_REGION || "ap-southeast-1";
 const docClient = dynamoDb;
@@ -14,11 +15,22 @@ export const handler = async (event: any) => {
   const callbackUrl = `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
   const wsClient = new ApiGatewayManagementApiClient({ endpoint: callbackUrl, region });
 
-  const body = event.body ? JSON.parse(event.body) : {};
-  const userId = body.userId || event.requestContext.authorizer?.principalId || connectionId;
-  const username = body.username || "Player";
-
   try {
+    // Never trust userId supplied by the browser. The authenticated identity was
+    // persisted by the $connect Lambda under this API Gateway connection ID.
+    const connectionResult = await docClient.send(
+      new GetCommand({
+        TableName: "Connections",
+        Key: { connection_id: connectionId }
+      })
+    );
+    const connection = connectionResult.Item;
+    if (!connection?.user_id) {
+      return { statusCode: 401, body: "Connection is not authenticated." };
+    }
+    const userId = connection.user_id as string;
+    const username = (connection.username as string | undefined) || "Player";
+
     // 1. Quét tìm trận đấu ở trạng thái WAITING trong bảng GameState
     const scanResult = await docClient.send(
       new ScanCommand({
@@ -133,8 +145,18 @@ export const handler = async (event: any) => {
       const p1ConnectionId = pendingMatch.player_1.connection_id;
       const p2ConnectionId = connectionId;
 
-      const payloadP1 = { event: "matchmaking:found", roomCode: matchId, playerId: "P1", state: updatedEngineState };
-      const payloadP2 = { event: "matchmaking:found", roomCode: matchId, playerId: "P2", state: updatedEngineState };
+      const payloadP1 = {
+        event: "matchmaking:found",
+        roomCode: matchId,
+        playerId: "P1",
+        state: redactStateForPlayer(updatedEngineState, "P1")
+      };
+      const payloadP2 = {
+        event: "matchmaking:found",
+        roomCode: matchId,
+        playerId: "P2",
+        state: redactStateForPlayer(updatedEngineState, "P2")
+      };
 
       await Promise.all([
         wsClient.send(new PostToConnectionCommand({ ConnectionId: p1ConnectionId, Data: Buffer.from(JSON.stringify(payloadP1)) })),
@@ -148,3 +170,22 @@ export const handler = async (event: any) => {
     return { statusCode: 500, body: error.message };
   }
 };
+
+function redactStateForPlayer(state: GameState, viewerId: PlayerId): GameState {
+  const visibleState = structuredClone(state);
+  const opponentId: PlayerId = viewerId === "P1" ? "P2" : "P1";
+  const opponent = visibleState.players[opponentId];
+
+  opponent.hand = opponent.hand.map((_, index) => ({
+    instanceId: `hidden-hand-${opponentId}-${index}`,
+    cardId: "hidden-card",
+    ownerId: opponentId
+  }));
+  opponent.deck = opponent.deck.map((_, index) => ({
+    instanceId: `hidden-deck-${opponentId}-${index}`,
+    cardId: "hidden-card",
+    ownerId: opponentId
+  }));
+
+  return visibleState;
+}

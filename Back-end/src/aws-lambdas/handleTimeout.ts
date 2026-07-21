@@ -91,7 +91,7 @@ export const handler = async (event: any) => {
           wsClient.send(
             new PostToConnectionCommand({
               ConnectionId: p1Conn,
-              Data: Buffer.from(JSON.stringify({ event: "room:update", playerId: "P1", state: stateForP1 }))
+              Data: Buffer.from(JSON.stringify({ event: "room:update", roomCode: matchId, playerId: "P1", opponentConnected: true, state: stateForP1 }))
             })
           )
         );
@@ -101,7 +101,7 @@ export const handler = async (event: any) => {
           wsClient.send(
             new PostToConnectionCommand({
               ConnectionId: p2Conn,
-              Data: Buffer.from(JSON.stringify({ event: "room:update", playerId: "P2", state: stateForP2 }))
+              Data: Buffer.from(JSON.stringify({ event: "room:update", roomCode: matchId, playerId: "P2", opponentConnected: true, state: stateForP2 }))
             })
           )
         );

@@ -3,6 +3,13 @@ import * as authService from "./auth.service";
 import { LoginRequest, RegisterRequest, VerifyRequest, ResetPasswordRequest, ForgotPasswordRequest } from "./types";
 import { getUserByEmail } from "../user/user.repository";
 
+const productionCookies = process.env.NODE_ENV === "production";
+const authCookieOptions = {
+    httpOnly: true,
+    secure: productionCookies,
+    sameSite: productionCookies ? "none" as const : "lax" as const
+};
+
 export async function register(
     req: Request<{}, {}, RegisterRequest>,
     res: Response
@@ -66,26 +73,20 @@ export async function login(
             "access_token",
             result.accessToken,
             {
-                httpOnly: true,
-                secure: false,      // localhost
-                sameSite: "lax",
+                ...authCookieOptions,
                 maxAge: 60 * 60 * 1000
             }
         );
 
         res.cookie("email", req.body.email, {
-            httpOnly: true,
-            sameSite: "lax",
-            secure: false
+            ...authCookieOptions
         });
 
         res.cookie(
             "refresh_token",
             result.refreshToken,
             {
-                httpOnly: true,
-                secure: false,
-                sameSite: "lax",
+                ...authCookieOptions,
                 maxAge: 30 * 24 * 60 * 60 * 1000
             }
         );
@@ -132,9 +133,9 @@ export async function logout(
         // Nếu token đã hết hạn thì vẫn tiếp tục xóa cookie
     }
 
-    res.clearCookie("access_token");
-    res.clearCookie("refresh_token");
-    res.clearCookie("email");
+    res.clearCookie("access_token", authCookieOptions);
+    res.clearCookie("refresh_token", authCookieOptions);
+    res.clearCookie("email", authCookieOptions);
 
     return res.json({
 
@@ -199,9 +200,7 @@ export async function refresh(
             "access_token",
             result.accessToken,
             {
-                httpOnly: true,
-                secure: false,
-                sameSite: "lax",
+                ...authCookieOptions,
                 maxAge: 60 * 60 * 1000
             }
         );
