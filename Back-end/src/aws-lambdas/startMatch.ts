@@ -15,6 +15,7 @@ import { dynamoDb } from "../config/dynamodb";
 import { createInitialGameState, applyAction } from "../game/core/engine";
 import { buildDefaultDeck } from "../game/entities/defaultDeck";
 import type { GameState, PlayerId } from "../game/types";
+import { enqueueTurnTimeout } from "./turnTimeoutQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
@@ -40,6 +41,7 @@ type MatchRecord = {
   status: "WAITING" | "IN_PROGRESS";
   player_1: PlayerRecord;
   player_2?: PlayerRecord | null;
+  state_version?: number;
   engine_state: GameState;
   created_at: number;
   expire_at?: number;
@@ -239,6 +241,7 @@ async function createWaitingMatch(input: {
       connected: true
     },
     player_2: null,
+    state_version: 0,
     engine_state: initialEngineState,
     created_at: now,
     expire_at: Math.floor(now / 1000) + waitingTtlSeconds
@@ -289,6 +292,16 @@ async function claimMatch(
     type: "START_GAME",
     firstPlayerId: "P1"
   });
+  const currentVersion = match.state_version ?? 0;
+  const nextVersion = currentVersion + 1;
+
+  // The first turn has no player action to schedule it. Register its deadline
+  // before claiming the match; a losing claim only leaves a stale SQS message.
+  await enqueueTurnTimeout({
+    matchId: match.match_id,
+    state: updatedEngineState,
+    stateVersion: nextVersion
+  });
 
   try {
     await dynamoDb.send(new UpdateCommand({
@@ -296,9 +309,11 @@ async function claimMatch(
       Key: { match_id: match.match_id },
       UpdateExpression:
         "SET #status = :active, player_1.elo = :player1Elo, player_2 = :player2, " +
-        "engine_state = :engineState, expire_at = :expireAt",
+        "engine_state = :engineState, expire_at = :expireAt, state_version = :nextVersion, " +
+        "current_round = :round, turn_player_id = :nextPlayerId",
       ConditionExpression:
         "#status = :waiting AND (attribute_not_exists(player_2) OR player_2 = :emptyPlayer) " +
+        "AND (attribute_not_exists(state_version) OR state_version = :currentVersion) " +
         "AND (attribute_not_exists(expire_at) OR expire_at > :now)",
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
@@ -307,7 +322,11 @@ async function claimMatch(
         ":player1Elo": player1Elo,
         ":player2": player2,
         ":emptyPlayer": null,
+        ":currentVersion": currentVersion,
+        ":nextVersion": nextVersion,
         ":engineState": updatedEngineState,
+        ":round": updatedEngineState.round,
+        ":nextPlayerId": updatedEngineState.priorityPlayerId,
         ":expireAt": Math.floor(Date.now() / 1000) + matchTtlSeconds,
         ":now": Math.floor(Date.now() / 1000)
       }
