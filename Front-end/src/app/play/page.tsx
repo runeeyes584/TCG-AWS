@@ -31,8 +31,10 @@ export default function PlayPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeRoomCode = searchParams.get("room") ?? undefined;
+  const createCustomMatch = searchParams.get("custom") === "create";
   const controller = useGameMatch(resumeRoomCode);
   const musicRef = useRef<HTMLAudioElement | null>(null);
+  const customCreateRequestedRef = useRef(false);
   const [muted, setMuted] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile>();
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
@@ -55,14 +57,28 @@ export default function PlayPage() {
   }, []);
 
   useEffect(() => {
-    if (resumeRoomCode) {
+    if (resumeRoomCode || createCustomMatch) {
       return;
     }
 
     void getPendingMatch()
       .then((result) => setPendingMatch(result.match))
       .catch(() => undefined);
-  }, [resumeRoomCode]);
+  }, [createCustomMatch, resumeRoomCode]);
+
+  useEffect(() => {
+    if (
+      !createCustomMatch ||
+      resumeRoomCode ||
+      customCreateRequestedRef.current ||
+      controller.status !== "Connected"
+    ) {
+      return;
+    }
+
+    customCreateRequestedRef.current = true;
+    controller.createRoom();
+  }, [controller, createCustomMatch, resumeRoomCode]);
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
