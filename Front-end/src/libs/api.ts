@@ -32,6 +32,7 @@ export interface PlayerProfile {
 
 export interface PendingMatch {
     roomCode: string;
+    status: "WAITING" | "IN_PROGRESS";
 }
 
 async function request<T = any>(

@@ -301,7 +301,7 @@ export default function Home() {
         <span>Kaleidoscope TCG <b>v0.1.0</b></span>
       </footer>
 
-      {pendingMatch ? <PendingMatchDialog isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+      {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
     </main>
   );
 }

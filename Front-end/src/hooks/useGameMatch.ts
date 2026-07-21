@@ -101,14 +101,11 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       refreshRetried = false;
       setStatus("Connected");
       setError(undefined);
-      // Auto-rejoin if room code exists
+      // matchfinding-start doubles as the server-side resume handshake. This
+      // uses an already configured API Gateway route instead of a non-existent
+      // Socket.IO-style joinRoom acknowledgement.
       if (roomCodeRef.current) {
-        socketManager.joinRoom(roomCodeRef.current, (response: any) => {
-          if (!response.ok) {
-            setError(response.error);
-            addClientLog(response.error);
-          }
-        });
+        socketManager.startMatchmaking();
       }
       });
 

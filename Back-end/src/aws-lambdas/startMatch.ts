@@ -375,6 +375,34 @@ export const handler = async (event: any) => {
 
     const userId = String(connection.user_id);
     const username = String(connection.username || "Player");
+
+    // `matchfinding-start` also acts as the resume handshake. API Gateway has
+    // no Socket.IO acknowledgements, so reusing this existing configured route
+    // avoids a second, easy-to-forget WebSocket route just for reconnecting.
+    const existingMatchId = typeof connection.match_id === "string" ? connection.match_id : undefined;
+    if (existingMatchId) {
+      const existing = await dynamoDb.send(new GetCommand({
+        TableName: gameStateTable,
+        Key: { match_id: existingMatchId },
+        ConsistentRead: true
+      }));
+      const activeMatch = existing.Item as MatchRecord | undefined;
+      if (activeMatch?.status === "IN_PROGRESS") {
+        const playerId: PlayerId | undefined =
+          activeMatch.player_1?.user_id === userId && activeMatch.player_1?.connection_id === connectionId ? "P1" :
+          activeMatch.player_2?.user_id === userId && activeMatch.player_2?.connection_id === connectionId ? "P2" : undefined;
+        if (playerId) {
+          await sendMessage(wsClient, connectionId, {
+            event: "matchmaking:found",
+            roomCode: activeMatch.match_id,
+            playerId,
+            state: redactStateForPlayer(activeMatch.engine_state, playerId)
+          });
+          return { statusCode: 200, body: "Active match resumed." };
+        }
+      }
+    }
+
     const playerElo = await loadElo(userId);
     console.info("Matchmaking player loaded", { connectionId, userId, playerElo });
 
