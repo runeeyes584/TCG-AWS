@@ -1,10 +1,12 @@
-import { ScanCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, ScanCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from "@aws-sdk/client-apigatewaymanagementapi";
 import { dynamoDb } from "../config/dynamodb";
 
 // Import trực tiếp từ Game Engine có sẵn trong dự án của bạn
 import { createInitialGameState, applyAction } from "../game/core/engine";
-import { buildDefaultDeck } from "../game/entities/defaultDeck";
+import { buildDeckFromCardIds, buildDefaultDeck } from "../game/entities/defaultDeck";
+import { validateDeck } from "../game/rules/deckRules";
+import type { MatchmakingDeckSelection } from "../shared/multiplayer";
 
 const region = process.env.AWS_REGION || "ap-southeast-1";
 const docClient = dynamoDb;
@@ -15,8 +17,19 @@ export const handler = async (event: any) => {
   const wsClient = new ApiGatewayManagementApiClient({ endpoint: callbackUrl, region });
 
   const body = event.body ? JSON.parse(event.body) : {};
-  const userId = body.userId || event.requestContext.authorizer?.principalId || connectionId;
-  const username = body.username || "Player";
+
+  const connectionResult = await docClient.send(new GetCommand({
+    TableName: process.env.CONNECTIONS_TABLE || "Connections",
+    Key: { connection_id: connectionId }
+  }));
+  const connection = connectionResult.Item;
+  if (!connection?.user_id) {
+    return { statusCode: 401, body: "Unauthorized connection." };
+  }
+
+  const userId = connection.user_id as string;
+  const username = (connection.username as string) || "Player";
+  const deckSelection = normalizeDeckSelection(body.deckSelection);
 
   try {
     // 1. Quét tìm trận đấu ở trạng thái WAITING trong bảng GameState
@@ -37,7 +50,7 @@ export const handler = async (event: any) => {
       
       // Tạo GameState ban đầu từ Game Engine
       const initialEngineState = createInitialGameState(
-        buildDefaultDeck("P1"),
+        buildSelectedDeck(deckSelection, "P1"),
         buildDefaultDeck("P2"),
         Date.now()
       );
@@ -51,7 +64,9 @@ export const handler = async (event: any) => {
           user_id: userId,
           connection_id: connectionId,
           username: username,
-          player_id: "P1"
+          player_id: "P1",
+          selected_deck_id: deckSelection?.deckId,
+          selected_deck_card_ids: deckSelection?.cardIds
         },
         player_2: null,
         engine_state: initialEngineState,
@@ -98,13 +113,23 @@ export const handler = async (event: any) => {
       }
 
       // Khởi chạy action START_GAME qua Game Engine
-      let updatedEngineState = applyAction(pendingMatch.engine_state, { type: "START_GAME", firstPlayerId: "P1" });
+      let updatedEngineState = createInitialGameState(
+        buildSelectedDeck({
+          deckId: pendingMatch.player_1.selected_deck_id,
+          cardIds: pendingMatch.player_1.selected_deck_card_ids
+        }, "P1"),
+        buildSelectedDeck(deckSelection, "P2"),
+        Date.now()
+      );
+      updatedEngineState = applyAction(updatedEngineState, { type: "START_GAME", firstPlayerId: "P1" });
 
       const player2Info = {
         user_id: userId,
         connection_id: connectionId,
         username: username,
-        player_id: "P2"
+        player_id: "P2",
+        selected_deck_id: deckSelection?.deckId,
+        selected_deck_card_ids: deckSelection?.cardIds
       };
 
       // Đổi trạng thái trận đấu thành IN_PROGRESS trong DynamoDB
@@ -148,3 +173,19 @@ export const handler = async (event: any) => {
     return { statusCode: 500, body: error.message };
   }
 };
+
+function normalizeDeckSelection(value: unknown): MatchmakingDeckSelection | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const selection = value as MatchmakingDeckSelection;
+  if (!Array.isArray(selection.cardIds) || !validateDeck(selection.cardIds).valid) return undefined;
+  return {
+    deckId: typeof selection.deckId === "string" ? selection.deckId : undefined,
+    cardIds: [...selection.cardIds]
+  };
+}
+
+function buildSelectedDeck(selection: MatchmakingDeckSelection | undefined, playerId: "P1" | "P2") {
+  return selection?.cardIds
+    ? buildDeckFromCardIds(selection.cardIds, playerId, selection.deckId || "selected")
+    : buildDefaultDeck(playerId);
+}
