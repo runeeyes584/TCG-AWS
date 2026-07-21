@@ -34,6 +34,12 @@ export const handler = async (
   const queryParams = event.queryStringParameters || {};
   const token = getAccessToken(event);
 
+  console.info("WebSocket connect request received", {
+    connectionId,
+    connectionsTable,
+    dynamoRegion: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1"
+  });
+
   if (!hasValidCognitoRegion()) {
     console.error(
       "COGNITO_REGION does not match the region encoded in COGNITO_USER_POOL_ID."
@@ -77,9 +83,15 @@ export const handler = async (
       })
     );
 
+    console.info("WebSocket connection persisted", { connectionId, userId });
+
     return { statusCode: 200, body: "Connected successfully." };
   } catch (error: any) {
-    console.error("Connect Lambda Error:", error);
-    return { statusCode: 500, body: error.message };
+    console.error("Connect Lambda Error:", {
+      name: error?.name,
+      message: error?.message,
+      statusCode: error?.$metadata?.httpStatusCode
+    });
+    return { statusCode: 500, body: error?.message || "Unable to persist connection." };
   }
 };

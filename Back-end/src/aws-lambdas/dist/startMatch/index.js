@@ -36446,6 +36446,16 @@ if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
   });
 }
 var cachedCredentials = null;
+var isLambdaRuntime = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+var hasLegacyCustomCredentialSettings = Boolean(
+  process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY || process.env.CROSS_ACCOUNT_ROLE_ARN || process.env.DB_ACCESS_KEY_ID
+);
+var usesCustomCredentials = process.env.DYNAMODB_CREDENTIAL_MODE === "custom" || !isLambdaRuntime && hasLegacyCustomCredentialSettings;
+if (isLambdaRuntime && hasLegacyCustomCredentialSettings && !usesCustomCredentials) {
+  console.info(
+    "DynamoDB is using the Lambda execution role. Set DYNAMODB_CREDENTIAL_MODE=custom only for an intentional cross-account credential source."
+  );
+}
 var getCredentials = async () => {
   if (cachedCredentials) {
     return cachedCredentials;
@@ -36462,9 +36472,16 @@ var getCredentials = async () => {
       );
       if (response.SecretString) {
         const secretObj = JSON.parse(response.SecretString);
+        const accessKeyId = secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID;
+        const secretAccessKey = secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY;
+        if (!accessKeyId || !secretAccessKey) {
+          throw new Error(
+            "The configured DynamoDB credential secret does not contain AWS accessKeyId and secretAccessKey."
+          );
+        }
         cachedCredentials = {
-          accessKeyId: secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID || "",
-          secretAccessKey: secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY || "",
+          accessKeyId,
+          secretAccessKey,
           ...secretObj.sessionToken && { sessionToken: secretObj.sessionToken }
         };
         console.log("[SecretsManager] T\u1EA3i credentials th\xE0nh c\xF4ng!");
@@ -36502,9 +36519,6 @@ var getCredentials = async () => {
   }
   throw new Error("Custom DynamoDB credentials were requested but could not be resolved.");
 };
-var usesCustomCredentials = Boolean(
-  process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY || process.env.CROSS_ACCOUNT_ROLE_ARN || process.env.DB_ACCESS_KEY_ID
-);
 var client = new import_client_dynamodb.DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
   // Omit credentials in Lambda so the AWS SDK uses the function execution role.
@@ -43240,6 +43254,20 @@ function positiveNumber(value, fallback2) {
 function isGone(error2) {
   return error2?.name === "GoneException" || error2?.$metadata?.httpStatusCode === 410;
 }
+function clientErrorMessage(error2) {
+  switch (error2?.name) {
+    case "AccessDeniedException":
+    case "AccessDenied":
+      return "The game server is not authorized to access matchmaking resources.";
+    case "ResourceNotFoundException":
+      return "The game server cannot find a matchmaking table. Please contact support.";
+    case "CredentialsProviderError":
+    case "InvalidSignatureException":
+      return "The game server credentials are invalid. Please contact support.";
+    default:
+      return "Matchmaking could not start. Please try again.";
+  }
+}
 function managementEndpoint(event) {
   const configuredEndpoint = process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "");
   if (configuredEndpoint) return configuredEndpoint;
@@ -43330,6 +43358,13 @@ async function sendMessage(wsClient, connectionId, payload2) {
   } catch (error2) {
     if (isGone(error2)) return false;
     throw error2;
+  }
+}
+async function notifyClientError(wsClient, connectionId, message) {
+  try {
+    await sendMessage(wsClient, connectionId, { event: "game:error", message });
+  } catch (notificationError) {
+    console.error("Unable to send matchmaking error to client:", notificationError);
   }
 }
 async function removeConnectionMatch(connectionId, matchId) {
@@ -43475,6 +43510,14 @@ var handler = async (event) => {
   });
   let lockOwner;
   try {
+    console.info("Matchmaking request received", {
+      connectionId,
+      region,
+      connectionsTable,
+      gameStateTable,
+      userProfileTable,
+      eloRange
+    });
     const connectionResult = await dynamoDb.send(new import_lib_dynamodb2.GetCommand({
       TableName: connectionsTable,
       Key: { connection_id: connectionId },
@@ -43482,16 +43525,26 @@ var handler = async (event) => {
     }));
     const connection = connectionResult.Item;
     if (!connection?.user_id) {
+      await notifyClientError(
+        wsClient,
+        connectionId,
+        "Your game connection is not authenticated. Reconnect and sign in again."
+      );
       return { statusCode: 401, body: "Connection is not authenticated." };
     }
     const userId = String(connection.user_id);
     const username = String(connection.username || "Player");
     const playerElo = await loadElo(userId);
+    console.info("Matchmaking player loaded", { connectionId, userId, playerElo });
     const owner = String(event.requestContext?.requestId || (0, import_node_crypto6.randomUUID)());
     lockOwner = owner;
     await acquireMatchmakingLock(owner);
     const nowSeconds = Math.floor(Date.now() / 1e3);
     const waitingMatches = await loadWaitingMatches();
+    console.info("Matchmaking waiting matches loaded", {
+      connectionId,
+      waitingMatchCount: waitingMatches.length
+    });
     const candidates = [];
     for (const match of waitingMatches) {
       if (!match.player_1?.connection_id || !match.player_1?.user_id) {
@@ -43589,6 +43642,11 @@ var handler = async (event) => {
         });
         return { statusCode: 410, body: "Connection closed before match notification." };
       }
+      console.info("Matchmaking match started", {
+        matchId: pendingMatch.match_id,
+        player1UserId: pendingMatch.player_1.user_id,
+        player2UserId: userId
+      });
       return { statusCode: 200, body: "Match started." };
     }
     const matchId = await createWaitingMatch({
@@ -43598,16 +43656,20 @@ var handler = async (event) => {
       elo: playerElo,
       wsClient
     });
+    console.info("Matchmaking waiting match created", { matchId, connectionId, userId, playerElo });
     return { statusCode: 200, body: `Waiting for opponent in ${matchId}.` };
   } catch (error2) {
-    console.error("StartMatch Error:", error2);
+    console.error("StartMatch Error:", {
+      name: error2?.name,
+      message: error2?.message,
+      statusCode: error2?.$metadata?.httpStatusCode
+    });
     const statusCode = error2?.message === "Matchmaking is busy. Please retry." ? 503 : 500;
-    if (statusCode === 503) {
-      await sendMessage(wsClient, connectionId, {
-        event: "game:error",
-        message: "Matchmaking is busy. Please try again."
-      }).catch(() => false);
-    }
+    await notifyClientError(
+      wsClient,
+      connectionId,
+      statusCode === 503 ? "Matchmaking is busy. Please try again." : clientErrorMessage(error2)
+    );
     return { statusCode, body: error2?.message || "Unable to start matchmaking." };
   } finally {
     if (lockOwner) await releaseMatchmakingLock(lockOwner);
