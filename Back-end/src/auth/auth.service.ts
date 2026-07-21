@@ -21,6 +21,7 @@ import { secretHash } from "./utils";
 import { validateRegister } from "./validators";
 import { LoginRequest, RegisterRequest, VerifyRequest } from "./types";
 import { normalizeConfirmationCode } from "./confirmationCode";
+import { ensureUserProfile } from "../user/user.repository";
 
 export async function register(data: RegisterRequest) {
 
@@ -30,7 +31,7 @@ export async function register(data: RegisterRequest) {
 
     try {
 
-        await cognito.send(
+        const response = await cognito.send(
             new SignUpCommand({
                 ClientId: env.clientId,
                 Username: email,
@@ -48,6 +49,10 @@ export async function register(data: RegisterRequest) {
                 ],
             })
         );
+
+        if (response.UserSub) {
+            await ensureUserProfile({ id: response.UserSub, email, username });
+        }
 
 
         return {

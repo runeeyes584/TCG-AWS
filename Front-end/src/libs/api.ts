@@ -132,9 +132,17 @@ export async function logout() {
 
 export async function refreshToken(): Promise<RefreshTokenResponse> {
 
+    const storedRefreshToken = typeof window === "undefined"
+        ? undefined
+        : window.localStorage.getItem("refreshToken");
+    const email = typeof window === "undefined"
+        ? undefined
+        : window.localStorage.getItem("email");
+
     return request<RefreshTokenResponse>("/auth/refresh", {
 
-        method: "POST"
+        method: "POST",
+        body: JSON.stringify({ refreshToken: storedRefreshToken, email })
 
     });
 

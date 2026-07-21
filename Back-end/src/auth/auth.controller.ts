@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import * as authService from "./auth.service";
 import { LoginRequest, RegisterRequest, VerifyRequest, ResetPasswordRequest, ForgotPasswordRequest } from "./types";
-import { getUserByEmail } from "../user/user.repository";
+import { ensureUserProfile, getUserById } from "../user/user.repository";
 
 const productionCookies = process.env.NODE_ENV === "production";
 const authCookieOptions = {
@@ -120,7 +120,10 @@ export async function logout(
 
     try {
 
-        const accessToken = req.cookies.access_token;
+        const authorization = req.header("authorization");
+        const accessToken = req.cookies.access_token || (
+            authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length).trim() : undefined
+        );
 
         if (accessToken) {
 
@@ -152,8 +155,19 @@ export async function me(
     res: Response
 ) {
 
-    const email = req.cookies.email ?? (req as any).user?.username;
-    const user = email ? await getUserByEmail(email) : undefined;
+    const payload = (req as any).user || {};
+    const userId = typeof payload.sub === "string" ? payload.sub : undefined;
+    const email = req.cookies.email ?? (typeof payload.username === "string" ? payload.username : "");
+    let user = userId ? await getUserById(userId) : undefined;
+    if (!user && userId) {
+        user = await ensureUserProfile({
+            id: userId,
+            email,
+            username: typeof payload.preferred_username === "string"
+                ? payload.preferred_username
+                : `User_${userId.slice(0, 5)}`
+        });
+    }
 
     return res.json({
 
@@ -170,8 +184,8 @@ export async function refresh(
     res: Response
 ) {
 
-    const refreshToken = req.cookies.refresh_token;
-    const email = req.cookies.email;
+    const refreshToken = req.cookies.refresh_token || req.body?.refreshToken;
+    const email = req.cookies.email || req.body?.email;
 
     if (!refreshToken || !email) {
 
