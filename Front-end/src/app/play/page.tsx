@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -27,12 +27,14 @@ function formatTime(seconds: number) {
   return `${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
 }
 
-export default function PlayPage() {
+function PlayPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeRoomCode = searchParams.get("room") ?? undefined;
+  const createCustomMatch = searchParams.get("custom") === "create";
   const controller = useGameMatch(resumeRoomCode);
   const musicRef = useRef<HTMLAudioElement | null>(null);
+  const customCreateRequestedRef = useRef(false);
   const [muted, setMuted] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile>();
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
@@ -55,14 +57,28 @@ export default function PlayPage() {
   }, []);
 
   useEffect(() => {
-    if (resumeRoomCode) {
+    if (resumeRoomCode || createCustomMatch) {
       return;
     }
 
     void getPendingMatch()
       .then((result) => setPendingMatch(result.match))
       .catch(() => undefined);
-  }, [resumeRoomCode]);
+  }, [createCustomMatch, resumeRoomCode]);
+
+  useEffect(() => {
+    if (
+      !createCustomMatch ||
+      resumeRoomCode ||
+      customCreateRequestedRef.current ||
+      controller.status !== "Connected"
+    ) {
+      return;
+    }
+
+    customCreateRequestedRef.current = true;
+    controller.createRoom();
+  }, [controller, createCustomMatch, resumeRoomCode]);
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
@@ -242,5 +258,17 @@ export default function PlayPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function PlayPage() {
+  return (
+    <Suspense fallback={
+      <div className="matchmaking-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0c', color: '#fff' }}>
+        <span>Loading Ranked Circuit...</span>
+      </div>
+    }>
+      <PlayPageContent />
+    </Suspense>
   );
 }

@@ -1003,6 +1003,7 @@ export function GameBoardView({
                 <GameCard
                   key={unit.instanceId}
                   unit={unit}
+                  compact
                   onClick={() =>
                     submitPendingAbilityTarget(targetDefinition.id, {
                       type: "UNIT",
@@ -1018,6 +1019,7 @@ export function GameBoardView({
                   <span className="pending-choice-zone-label">{playerId} Deck</span>
                   <GameCard
                     card={card}
+                    compact
                     onClick={() =>
                       submitPendingAbilityTarget(targetDefinition.id, {
                         type: "DECK_CARD",
@@ -1034,6 +1036,7 @@ export function GameBoardView({
                   <span className="pending-choice-zone-label">{playerId} Hand</span>
                   <GameCard
                     card={card}
+                    compact
                     onClick={() =>
                       submitPendingAbilityTarget(targetDefinition.id, {
                         type: "HAND_CARD",
@@ -1059,6 +1062,7 @@ export function GameBoardView({
                         cardId: entry.cardId,
                         ownerId: entry.ownerId
                       }}
+                      compact
                       onClick={
                         canRevive
                           ? () =>
@@ -1606,6 +1610,11 @@ export function GameBoardView({
             }
             canSelect={canSelectGraveyardCard(viewingGraveyard)}
             allowedTypes={getGraveyardAllowedTypes()}
+            selectionPrompt={
+              selectedSpell
+                ? `${cardDef(selectedSpell).name}: ${describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}`
+                : undefined
+            }
             onSelectCard={(cardInstanceId) =>
               selectGraveyardCard(viewingGraveyard, cardInstanceId)
             }
@@ -1878,7 +1887,7 @@ export function GameBoardView({
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
-          {selectedSpell && !selectedSpellTarget ? (
+          {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
             <section className="spell-panel spell-targeting-window" aria-label="Spell targeting">
               <div className="spell-summary">
                 <strong>{cardDef(selectedSpell).name}</strong>

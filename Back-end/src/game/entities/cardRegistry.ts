@@ -1,5 +1,5 @@
-import coreCardsJson from "../data/cards.json";
-import UiaCardsJson from "../data/UiaCard.json";
+
+import archetypeCardsJson from "../data/archetypeCards.json";
 
 import {
   Ability,
@@ -14,8 +14,7 @@ const cardMap = new Map<string, CardDefinition>();
 
 
 for (const card of [
-  // ...(coreCardsJson as CardDefinition[]),
-  ...(UiaCardsJson as CardDefinition[])
+  ...(archetypeCardsJson as CardDefinition[])
 ]) {
   registerCardDefinition(card);
 }

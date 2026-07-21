@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen,
   ChevronRight,
+  Hash,
   Layers3,
   LogOut,
   Menu,
@@ -20,12 +21,13 @@ import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
 
-type LobbyTab = "duel" | "deck" | "collection";
+type LobbyTab = "duel" | "deck" | "collection" | "custom";
 
 const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "duel", label: "Duel", icon: Swords },
   { id: "deck", label: "Deck", icon: Layers3 },
   { id: "collection", label: "Collection", icon: BookOpen },
+  { id: "custom", label: "Custom Match", icon: Hash },
 ];
 
 export default function Home() {
@@ -40,6 +42,7 @@ export default function Home() {
   const [losses, setLosses] = useState(0);
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [customRoomCode, setCustomRoomCode] = useState("");
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
 
   useEffect(() => {
@@ -77,6 +80,24 @@ export default function Home() {
 
   const startDuel = () => {
     router.push(isSignedIn ? "/play" : "/login");
+  };
+
+  const createCustomMatch = () => {
+    router.push(isSignedIn ? "/play?custom=create" : "/login");
+  };
+
+  const joinCustomMatch = () => {
+    if (!isSignedIn) {
+      router.push("/login");
+      return;
+    }
+
+    const roomCode = customRoomCode.trim().toUpperCase();
+    if (!roomCode) {
+      return;
+    }
+
+    router.push(`/play?room=${encodeURIComponent(roomCode)}`);
   };
 
   const signOut = () => {
@@ -168,7 +189,13 @@ export default function Home() {
           <button
             key={id}
             className={`lobby-nav__item ${activeTab === id ? "is-active" : ""}`}
-            onClick={() => setActiveTab(id)}
+            onClick={() => {
+              if (id === "collection") {
+                router.push("/gallery");
+                return;
+              }
+              setActiveTab(id);
+            }}
           >
             <Icon size={19} aria-hidden="true" />
             <span>{label}</span>
@@ -194,6 +221,45 @@ export default function Home() {
               </button>
             </div>
           </>
+        ) : activeTab === "custom" ? (
+          <div className="lobby-custom-match">
+            <p className="lobby-eyebrow">Private Room <span /> Friendly Duel</p>
+            <h1>Custom<br /><em>Match</em></h1>
+            <p className="lobby-lede">Create a room for a friend or enter their room ID to jump straight into a private duel.</p>
+
+            <div className="custom-match-panel">
+              <button className="queue-action custom-match-create" onClick={createCustomMatch}>
+                <Swords size={20} />
+                <span>{isSignedIn ? "Create room" : "Sign in to create"}</span>
+              </button>
+
+              <label className="custom-room-field">
+                <span>Room ID</span>
+                <input
+                  value={customRoomCode}
+                  maxLength={8}
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  placeholder="ABCDE"
+                  onChange={(event) => setCustomRoomCode(event.target.value.toUpperCase())}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      joinCustomMatch();
+                    }
+                  }}
+                />
+              </label>
+
+              <button
+                className="queue-action custom-match-join"
+                onClick={joinCustomMatch}
+                disabled={isSignedIn && customRoomCode.trim().length === 0}
+              >
+                <Hash size={19} />
+                <span>{isSignedIn ? "Join room" : "Sign in to join"}</span>
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="lobby-placeholder">
             <p className="lobby-eyebrow">Arsenal</p>

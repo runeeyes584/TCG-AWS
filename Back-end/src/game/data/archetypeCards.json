@@ -1,0 +1,3924 @@
+[
+  {
+    "id": "null-circuit-unit-01",
+    "name": "Packet Sprite",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/36326160.jpg",
+    "description": "When I'm summoned, draw a Null Circuit card.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-01-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Null Circuit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-02",
+    "name": "Backdoor Courier",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54257392.jpg",
+    "description": "When I'm summoned, restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-02-mana",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-03",
+    "name": "Proxy Familiar",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/73810864.jpg",
+    "description": "When you banish a card, grant me +1|+1.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-03-banish",
+        "when": {
+          "event": "CARD_BANISHED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-04",
+    "name": "Cache Diver",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/82699999.jpg",
+    "description": "Play: return an allied unit or champion from your graveyard to hand.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-04-rebirth",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "REBIRTH_CARD",
+            "target": "target",
+            "allowedTypes": [
+              "UNIT",
+              "CHAMPION"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-05",
+    "name": "Cipher Moth",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/81078880.jpg",
+    "description": "Play: banish a unit or champion from the enemy graveyard.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-05-banish-enemy",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BANISH_GRAVEYARD",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-06",
+    "name": "Ghost Node",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/9205573.jpg",
+    "description": "When you cast a spell, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-06-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-07",
+    "name": "Blacksite Runner",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/6636319.jpg",
+    "description": "Play: create a random Null Circuit spell in hand.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-07-create",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-08",
+    "name": "Loop Warden",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/36609518.jpg",
+    "description": "Round start: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-08-round-mana",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-09",
+    "name": "Null Archivist",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/93672138.jpg",
+    "description": "Play: recall an enemy unit.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-09-recall",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-10",
+    "name": "Forked Daemon",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": " https://images.ygoprodeck.com/images/cards_cropped/62098216.jpg",
+    "description": "When an enemy unit dies, deal 1 to the enemy Nexus.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-10-death-ping",
+        "when": {
+          "event": "UNIT_DIED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-11",
+    "name": "Redline Hacker",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/34365442.jpg",
+    "description": "When you cast your second spell each round, grant me Barrier.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-11-barrier",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          },
+          {
+            "type": "SPELLS_CAST_THIS_ROUND_AT_LEAST",
+            "count": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-12",
+    "name": "Banishment Broker",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/60759087.jpg",
+    "description": "Play: draw a spell.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-12-draw-spell",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-13",
+    "name": "Recursive Chimera",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/98360333.jpg",
+    "description": "Attack: I gain +2|+0 this round.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-13-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 2,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-14",
+    "name": "Kernel Reaper",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/8083925.jpg",
+    "description": "Play: summon a Null Circuit unit costing 3 or less from your deck.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-14-summon",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Null Circuit",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 3,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-15",
+    "name": "Paradox Hydra",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54611591.jpg",
+    "description": "Round end: deal 1 to all active enemies.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-15-burn",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "BURN_ACTIVE_ENEMIES",
+            "amount": 1,
+            "target": "ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-16",
+    "name": "Rootkit Sovereign",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/81005500.jpg",
+    "description": "When you banish a card, draw 1.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-16-banish-draw",
+        "when": {
+          "event": "CARD_BANISHED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-17",
+    "name": "Event Horizon Engine",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Null Circuit",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/4341721.jpg",
+    "description": "Round start: create a random Null Circuit card in hand.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-17-random",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-unit-18",
+    "name": "Queen Zero",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Null Circuit",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/78598237.jpg",
+    "description": "Play: recall an enemy unit and grant me Barrier.",
+    "abilities": [
+      {
+        "id": "null-circuit-unit-18-boss",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-1",
+    "name": "Nyx Byteweaver",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/68059897.jpg",
+    "description": "Level up after 4 spells cast.",
+    "level": 1,
+    "championId": "null-circuit-champion-1",
+    "levelUpCondition": {
+      "type": "SPELLS_CAST",
+      "threshold": 4
+    },
+    "level2CardCode": "null-circuit-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-1-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-1-lv2",
+    "name": "Nyx Byteweaver, Ascended",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21848500.jpg",
+    "description": "Leveled form of Nyx Byteweaver.",
+    "level": 2,
+    "championId": "null-circuit-champion-1",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-1-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "SELF"
+          },
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-2",
+    "name": "Axiom, the Null Crown",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/95454996.jpg",
+    "description": "Level up after 3 allies died.",
+    "level": 1,
+    "championId": "null-circuit-champion-2",
+    "levelUpCondition": {
+      "type": "ALLIES_DIED",
+      "threshold": 3
+    },
+    "level2CardCode": "null-circuit-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-2-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-champion-2-lv2",
+    "name": "Axiom, the Null Crown, Ascended",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Null Circuit",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21848500.jpg",
+    "description": "Leveled form of Axiom, the Null Crown.",
+    "level": 2,
+    "championId": "null-circuit-champion-2",
+    "abilities": [
+      {
+        "id": "null-circuit-champion-2-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "SELF"
+          },
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Null Circuit",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-01",
+    "name": "Delete Trace",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/57111661.jpg",
+    "description": "Draw a Null Circuit card.",
+    "effects": [
+      {
+        "type": "DRAW_CARD_BY_FILTER",
+        "count": 1,
+        "archetype": "Null Circuit",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-02",
+    "name": "Emergency Fork",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Null Circuit",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/68337209.jpg",
+    "description": "Deal 2 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 2,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-03",
+    "name": "Cold Reboot",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/93453053.jpg",
+    "description": "Recall an allied unit, then draw 1.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ALLY_UNIT"
+      },
+      {
+        "type": "DRAW_CARD",
+        "count": 1,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-04",
+    "name": "Quarantine Zone",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/80181649.jpg",
+    "description": "Banish a card from a graveyard.",
+    "effects": [
+      {
+        "type": "BANISH_GRAVEYARD",
+        "target": "ENEMY_GRAVEYARD"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-05",
+    "name": "Recursive Call",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Null Circuit",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/35487920.jpg",
+    "description": "Return an allied unit or champion from your graveyard to hand.",
+    "effects": [
+      {
+        "type": "REBIRTH_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "UNIT",
+          "CHAMPION"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-06",
+    "name": "Blackout Protocol",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/20726052.jpg",
+    "description": "Recall an enemy unit and restore 2 spell mana.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ENEMY_UNIT"
+      },
+      {
+        "type": "RESTORE_SPELL_MANA",
+        "amount": 2,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-07",
+    "name": "Zero-Day Bloom",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/61976639.jpg",
+    "description": "Deal 2 to all active enemies.",
+    "effects": [
+      {
+        "type": "BURN_ACTIVE_ENEMIES",
+        "amount": 2,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "null-circuit-spell-08",
+    "name": "Return from Null",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Null Circuit",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/94722358.jpg",
+    "description": "Revive an allied champion from your graveyard.",
+    "effects": [
+      {
+        "type": "REVIVE_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "CHAMPION"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-01",
+    "name": "Silverkeep Elis",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/16474916.jpg",
+    "description": "Play: grant an ally +0|+1.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-01-guard",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-02",
+    "name": "Silverkeep Irene",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/79858629.jpg",
+    "description": "Play: draw a Silverkeep spell.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-02-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Silverkeep",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-03",
+    "name": "Silverkeep Martha",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/37343995.jpg",
+    "description": "When you cast a spell, I gain +0|+1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-03-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-04",
+    "name": "Silverkeep Sophia",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/5352328.jpg",
+    "description": "Play: give an enemy -1|-0 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-04-debuff",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": 0,
+            "duration": "THIS_ROUND",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-05",
+    "name": "Silverkeep Stella",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/43863925.jpg",
+    "description": "When an ally blocks, grant it +0|+1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-05-block",
+        "when": {
+          "event": "BLOCK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "EVENT_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-06",
+    "name": "Silverkeep Asohilla",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/41524885.jpg",
+    "description": "Play: deal 1 to an enemy unit.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-06-ping",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-07",
+    "name": "Silverkeep Gabryht",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/5530780.jpg",
+    "description": "Round start: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-07-mana",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-08",
+    "name": "Silverkeep Casspitel",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/78135071.jpg",
+    "description": "Play: summon a Silverkeep unit costing 2 or less from your deck.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-08-summon",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Silverkeep",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 2,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-09",
+    "name": "Silverkeep Mikaliss",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/42741437.jpg",
+    "description": "Play: recall an enemy unit.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-09-recall",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-10",
+    "name": "Silverkeep Karmaelle",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/77675029.jpg",
+    "description": "When an enemy unit is damaged, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-10-damage",
+        "when": {
+          "event": "UNIT_DAMAGED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-11",
+    "name": "Silverkeep Marnifica",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/59242457.jpg",
+    "description": "Play: give an enemy -2|-1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-11-snare",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -2,
+            "healthDelta": -1,
+            "duration": "THIS_ROUND",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-12",
+    "name": "Silverkeep Ace Raye",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/26077387.jpg",
+    "description": "When an enemy dies, draw 1.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-12-death-draw",
+        "when": {
+          "event": "UNIT_DIED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "ENEMY"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-13",
+    "name": "Silverkeep Ace Roze",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/37351133.jpg",
+    "description": "Play: revive an allied unit from your graveyard.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-13-revive",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "REVIVE_CARD",
+            "target": "target",
+            "allowedTypes": [
+              "UNIT"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-14",
+    "name": "Silverkeep Rayze Kagari",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/63288573.jpg",
+    "description": "When you cast your second spell each round, deal 1 to a random enemy.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-14-trap",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          },
+          {
+            "type": "SPELLS_CAST_THIS_ROUND_AT_LEAST",
+            "count": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "RANDOM_ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-15",
+    "name": "Silverkeep Rayze Hayate",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/8491308.jpg",
+    "description": "Round end: grant all active allies +0|+1 this round.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-15-fortify",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-16",
+    "name": "Silverkeep Rayze Shizuku",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/90673288.jpg",
+    "description": "Play: deal 2 to an enemy unit.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-16-execute",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 2,
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-17",
+    "name": "Silverkeep Rayze Kaiia",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Silverkeep",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/12421694.jpg",
+    "description": "Round start: create a random Silverkeep spell in hand.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-17-prepare",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Silverkeep",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-unit-18",
+    "name": "Silverkeep Rayze Zeke",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Silverkeep",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/75147529.jpg",
+    "description": "Play: deal 1 to all active enemies and gain Tough.",
+    "abilities": [
+      {
+        "id": "silverkeep-unit-18-boss",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "BURN_ACTIVE_ENEMIES",
+            "amount": 1,
+            "target": "ENEMY_UNIT"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "TOUGH",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-1",
+    "name": "Silverkeep Rayze Zero",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/76072561.jpg",
+    "description": "Level up after 3 enemies died.",
+    "level": 1,
+    "championId": "silverkeep-champion-1",
+    "levelUpCondition": {
+      "type": "ENEMIES_DIED",
+      "threshold": 3
+    },
+    "level2CardCode": "silverkeep-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-1-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "RANDOM_ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-1-lv2",
+    "name": "Silverkeep Rayze Zero Awakening",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/17217034.jpg",
+    "description": "Leveled form of Silverkeep Rayze Zero.",
+    "level": 2,
+    "championId": "silverkeep-champion-1",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-1-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": -1,
+            "duration": "THIS_ROUND",
+            "target": "RANDOM_ENEMY_UNIT"
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-2",
+    "name": "Silverkeep Rayze Algea",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/98462037.jpg",
+    "description": "Level up after 4 spells cast.",
+    "level": 1,
+    "championId": "silverkeep-champion-2",
+    "levelUpCondition": {
+      "type": "SPELLS_CAST",
+      "threshold": 4
+    },
+    "level2CardCode": "silverkeep-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-2-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "RANDOM_ENEMY_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-champion-2-lv2",
+    "name": "Silverkeep Rayze Algea Awakening",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Silverkeep",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://ygoprodeck.com/card/14269",
+    "description": "Leveled form of Silverkeep Rayze Algea.",
+    "level": 2,
+    "championId": "silverkeep-champion-2",
+    "abilities": [
+      {
+        "id": "silverkeep-champion-2-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEBUFF_UNIT",
+            "attackDelta": -1,
+            "healthDelta": -1,
+            "duration": "THIS_ROUND",
+            "target": "RANDOM_ENEMY_UNIT"
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-01",
+    "name": "Silverkeep Burn!",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/99550630.jpg",
+    "description": "Grant an ally Barrier.",
+    "effects": [
+      {
+        "type": "GRANT_KEYWORD",
+        "keyword": "BARRIER",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-02",
+    "name": "Silverkeep Jamming",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Silverkeep",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/25955749.jpg",
+    "description": "Give an enemy -2|-0 this round.",
+    "effects": [
+      {
+        "type": "DEBUFF_UNIT",
+        "attackDelta": -2,
+        "healthDelta": 0,
+        "duration": "THIS_ROUND",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-03",
+    "name": "Silverkeep Fight",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/46271408.jpg",
+    "description": "Deal 2 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 2,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-04",
+    "name": "Silverkeep Vector",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21623008.jpg",
+    "description": "Recall an enemy unit.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-05",
+    "name": "Silverkeep Landing",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Silverkeep",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/25733157.jpg",
+    "description": "Summon a Silverkeep unit costing 3 or less from your deck.",
+    "effects": [
+      {
+        "type": "SUMMON_FROM_DECK",
+        "archetype": "Silverkeep",
+        "cardTypes": [
+          "unit"
+        ],
+        "maxCost": 3,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-06",
+    "name": "Silverkeep Aura!",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/52340444.jpg",
+    "description": "Revive an allied unit.",
+    "effects": [
+      {
+        "type": "REVIVE_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "UNIT"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-07",
+    "name": "Silverkeep Shark-hunt",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/51227866.jpg",
+    "description": "Give an enemy -3|-3 this round.",
+    "effects": [
+      {
+        "type": "DEBUFF_UNIT",
+        "attackDelta": -3,
+        "healthDelta": -3,
+        "duration": "THIS_ROUND",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "silverkeep-spell-08",
+    "name": "Silverkeep Engage",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Silverkeep",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/9726840.jpg",
+    "description": "Deal 3 to all active enemies.",
+    "effects": [
+      {
+        "type": "BURN_ACTIVE_ENEMIES",
+        "amount": 3,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-01",
+    "name": "Emberwing Retinue Chamber",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/32600024.jpg",
+    "description": "Play: draw an Emberwing Retinue unit.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-01-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Emberwing Retinue",
+            "cardType": "unit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-02",
+    "name": "Emberwing Retinue Kitchen",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/16960120.jpg",
+    "description": "Play: grant an ally +1|+0.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-02-buff",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "PERMANENT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-03",
+    "name": "Emberwing Retinue Nurse",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40398073.jpg",
+    "description": "When you play a card, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-03-recall-watch",
+        "when": {
+          "event": "CARD_PLAYED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-04",
+    "name": "Emberwing Retinue Parlor",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/88453933.jpg",
+    "description": "Play: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-04-mana",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-05",
+    "name": "Emberwing Retinue Laudry",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/13171876.jpg",
+    "description": "Attack: grant me Quick Attack.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-05-quick",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "QUICK_ATTACK",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-06",
+    "name": "Emberwing Retinue Cehrmba",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/12163590.jpg",
+    "description": "Play: summon an Emberwing Retinue unit costing 2 or less from your deck.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-06-summon",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_DECK",
+            "archetype": "Emberwing Retinue",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 2,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-07",
+    "name": "Emberwing Retinue Ernus",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/76782778.jpg",
+    "description": "When you attack, grant a random combat ally +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-07-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "EVENT_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-08",
+    "name": "Emberwing Retinue Lorpar",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/15848542.jpg",
+    "description": "Play: recall an ally to grant me +2|+2 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-08-exchange",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "target"
+          },
+          {
+            "type": "BUFF_UNIT",
+            "attack": 2,
+            "health": 2,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-09",
+    "name": "Emberwing Retinue Nudyarl",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/49575521.jpg",
+    "description": "Round start: create a random Emberwing Retinue unit in hand.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-09-create",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Emberwing Retinue",
+            "cardType": "unit",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-10",
+    "name": "Emberwing Retinue Tinkhec",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/42055234.jpg",
+    "description": "Attack: I gain +2|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-10-power",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 2,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-11",
+    "name": "Emberwing Retinue ETC",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/7594154.jpg",
+    "description": "Play: grant an ally Barrier.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-11-barrier",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-12",
+    "name": "Emberwing Retinue Lady",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/48658295.jpg",
+    "description": "Round end: recall me and draw 1.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-12-return",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "RECALL_UNIT",
+            "target": "SELF"
+          },
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-13",
+    "name": "Emberwing Retinue Atpool",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/96127902.jpg",
+    "description": "Play: summon an Emberwing Retinue unit costing 3 or less from hand or deck.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-13-deploy",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_HAND_OR_DECK",
+            "archetype": "Emberwing Retinue",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 3,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-14",
+    "name": "Emberwing Retinue Renny",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/7656689.jpg",
+    "description": "Attack: deal 1 to the enemy Nexus.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-14-nexus",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-15",
+    "name": "Emberwing Retinue Verre",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/22623509.jpg",
+    "description": "Play: grant all active allies +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-15-formation",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-16",
+    "name": "Emberwing Retinue Master Verre",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/21522601.jpg",
+    "description": "Play: deal 2 to an enemy and grant me Overwhelm.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-16-strike",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ENEMY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 2,
+            "target": "target"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "OVERWHELM",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-17",
+    "name": "Emberwing Retinue Extreme Verre",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Emberwing Retinue",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/33475154.jpg",
+    "description": "Round start: grant all active allies +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-17-matron",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-unit-18",
+    "name": "Emberwing Retinue Miss Genni",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Emberwing Retinue",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/64756282.jpg",
+    "description": "Play: summon a Retinue unit costing 5 or less, then grant all allies +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-unit-18-boss",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "SUMMON_FROM_HAND_OR_DECK",
+            "archetype": "Emberwing Retinue",
+            "cardTypes": [
+              "unit"
+            ],
+            "maxCost": 5,
+            "target": "SELF"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-1",
+    "name": "Emberwing Retinue Master Relliona",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/72498838.jpg",
+    "description": "Level up after 2 this champion struck.",
+    "level": 1,
+    "championId": "emberwing-retinue-champion-1",
+    "levelUpCondition": {
+      "type": "THIS_CHAMPION_STRUCK",
+      "threshold": 2
+    },
+    "level2CardCode": "emberwing-retinue-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-1-lv1-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-1-lv2",
+    "name": "Emberwing Retinue Master Relliona, Ascended",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/74689476.jpg",
+    "description": "Leveled form of Rhea, Hearthwing Headmaid.",
+    "level": 2,
+    "championId": "emberwing-retinue-champion-1",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-1-lv2-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 2,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          },
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-2",
+    "name": "Emberwing Retinue Housekeeper",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/41232647.jpg",
+    "description": "Level up after 8 nexus damage dealt.",
+    "level": 1,
+    "championId": "emberwing-retinue-champion-2",
+    "levelUpCondition": {
+      "type": "NEXUS_DAMAGE_DEALT",
+      "threshold": 8
+    },
+    "level2CardCode": "emberwing-retinue-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-2-lv1-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-champion-2-lv2",
+    "name": "Emberwing Retinue Housekeeper Dragon Form",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Emberwing Retinue",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/24799107.jpg",
+    "description": "Leveled form of Emberwing Retinue Housekeeper.",
+    "level": 2,
+    "championId": "emberwing-retinue-champion-2",
+    "abilities": [
+      {
+        "id": "emberwing-retinue-champion-2-lv2-attack",
+        "when": {
+          "event": "ATTACK_DECLARED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 2,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          },
+          {
+            "type": "DEAL_DAMAGE",
+            "amount": 1,
+            "target": "ENEMY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-01",
+    "name": "Emberwing Retinue Send-off",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/15754711.jpg",
+    "description": "Grant an ally +1|+1 this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 1,
+        "health": 1,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-02",
+    "name": "Emberwing Retinue Change-off",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Emberwing Retinue",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40110009.jpg",
+    "description": "Recall an ally and draw 1.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ALLY_UNIT"
+      },
+      {
+        "type": "DRAW_CARD",
+        "count": 1,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-03",
+    "name": "Emberwing Retinue Call-party",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/78231355.jpg",
+    "description": "Draw an Emberwing Retinue unit.",
+    "effects": [
+      {
+        "type": "DRAW_CARD_BY_FILTER",
+        "count": 1,
+        "archetype": "Emberwing Retinue",
+        "cardType": "unit",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-04",
+    "name": "Emberwing Retinue Downtime",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/77515704.jpg",
+    "description": "Grant an ally Quick Attack.",
+    "effects": [
+      {
+        "type": "GRANT_KEYWORD",
+        "keyword": "QUICK_ATTACK",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-05",
+    "name": "Emberwing Retinue Prepare",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Emberwing Retinue",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/57416183.jpg",
+    "description": "Summon an Emberwing Retinue unit costing 3 or less from hand or deck.",
+    "effects": [
+      {
+        "type": "SUMMON_FROM_HAND_OR_DECK",
+        "archetype": "Emberwing Retinue",
+        "cardTypes": [
+          "unit"
+        ],
+        "maxCost": 3,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-06",
+    "name": "Emberwing Retinue Welcome",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/14625090.jpg",
+    "description": "Grant all active allies +2|+0 this round.",
+    "effects": [
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 2,
+        "health": 0,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-07",
+    "name": "The Manor Takes Flight",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/35098357.jpg",
+    "description": "Deal 3 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 3,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "emberwing-retinue-spell-08",
+    "name": "Emberwing Retinue FInally",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Emberwing Retinue",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/83301414.jpg",
+    "description": "Summon a Retinue unit costing 5 or less and grant all allies +1|+1 this round.",
+    "effects": [
+      {
+        "type": "SUMMON_FROM_HAND_OR_DECK",
+        "archetype": "Emberwing Retinue",
+        "cardTypes": [
+          "unit"
+        ],
+        "maxCost": 5,
+        "target": "SELF"
+      },
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 1,
+        "health": 1,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-01",
+    "name": "Albaz exapatisIA",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/44716748.jpg",
+    "description": "Play: heal your Nexus 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-01-heal",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-02",
+    "name": "Albaz tromarIA",
+    "cost": 1,
+    "type": "unit",
+    "attack": 2,
+    "health": 1,
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/29570824.jpg",
+    "description": "Play: heal an ally 2.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-02-heal-unit",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-03",
+    "name": "Albaz alazoneIA",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/92171126.jpg",
+    "description": "When an allied unit is healed, I gain +1|+0 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-03-heal-watch",
+        "when": {
+          "event": "UNIT_HEALED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 0,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-04",
+    "name": "Albaz oknirIA",
+    "cost": 2,
+    "type": "unit",
+    "attack": 1,
+    "health": 3,
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/55965529.jpg",
+    "description": "Round start: heal your Nexus 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-04-round-heal",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-05",
+    "name": "Albaz Uiazzzz",
+    "cost": 2,
+    "type": "unit",
+    "attack": 3,
+    "health": 1,
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/56187077.jpg",
+    "description": "Play: grant a damaged ally +1|+1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-05-growth",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-06",
+    "name": "Albaz Unit MAR",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54842941.jpg",
+    "description": "When you cast a spell, heal me 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-06-spell-heal",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-07",
+    "name": "Albaz Unit COMBINE",
+    "cost": 3,
+    "type": "unit",
+    "attack": 3,
+    "health": 2,
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/54842941.jpg",
+    "description": "Play: draw a Albaz spell.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-07-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD_BY_FILTER",
+            "count": 1,
+            "archetype": "Albaz",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-08",
+    "name": "Albaz Unit XOR",
+    "cost": 3,
+    "type": "unit",
+    "attack": 1,
+    "health": 4,
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/82359538.jpg",
+    "description": "When an ally is healed, grant it +0|+1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-08-bless",
+        "when": {
+          "event": "UNIT_HEALED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 0,
+            "health": 1,
+            "duration": "PERMANENT",
+            "target": "EVENT_UNIT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-09",
+    "name": "Albaz Unit NOR",
+    "cost": 4,
+    "type": "unit",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/71801447.jpg",
+    "description": "Round start: if your Nexus is below 15 health, draw 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-09-low-health",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "conditions": [
+          {
+            "type": "NEXUS_HEALTH_BELOW",
+            "player": "SELF",
+            "amount": 15
+          }
+        ],
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-10",
+    "name": "Albaz Unit AND",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 3,
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/81237046.jpg",
+    "description": "Play: heal your Nexus 2 and grant me Barrier.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-10-barrier",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "BARRIER",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-11",
+    "name": "Albaz Unit STEAL",
+    "cost": 4,
+    "type": "unit",
+    "attack": 2,
+    "health": 5,
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/13073850.jpg",
+    "description": "When an ally is healed, grant me +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-11-rose",
+        "when": {
+          "event": "UNIT_HEALED"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-12",
+    "name": "Albaz HELIX",
+    "cost": 5,
+    "type": "unit",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/37991342.jpg",
+    "description": "Play: revive an allied unit from your graveyard.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-12-revive",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_GRAVEYARD"
+          }
+        ],
+        "effects": [
+          {
+            "type": "REVIVE_CARD",
+            "target": "target",
+            "allowedTypes": [
+              "UNIT"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-13",
+    "name": "Albaz Unit MONOLITH",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 4,
+    "archetype": "Albaz",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/51194046.jpg",
+    "description": "Round start: heal all active allies 1.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-13-heal-all",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 0,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-14",
+    "name": "Albaz Unit DISK",
+    "cost": 5,
+    "type": "unit",
+    "attack": 3,
+    "health": 6,
+    "archetype": "Albaz",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/64496451.jpg",
+    "description": "Play: heal an ally 3 and grant it Tough.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-14-tough",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 3,
+            "target": "target"
+          },
+          {
+            "type": "GRANT_KEYWORD",
+            "keyword": "TOUGH",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-15",
+    "name": "Albaz Unit SCOUT",
+    "cost": 6,
+    "type": "unit",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Albaz",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/65518099.jpg",
+    "description": "Round end: heal your Nexus 2.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-15-sanctuary",
+        "when": {
+          "event": "ROUND_ENDED"
+        },
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-16",
+    "name": "Albaz Unit SHELL",
+    "cost": 6,
+    "type": "unit",
+    "attack": 6,
+    "health": 5,
+    "archetype": "Albaz",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/90885155.jpg",
+    "description": "When you cast your second spell each round, grant all allies +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-16-bloom",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          },
+          {
+            "type": "SPELLS_CAST_THIS_ROUND_AT_LEAST",
+            "count": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-17",
+    "name": "Albaz Unit CARIER",
+    "cost": 7,
+    "type": "unit",
+    "attack": 7,
+    "health": 7,
+    "archetype": "Albaz",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/91907707.jpg",
+    "description": "Round start: heal your Nexus 3 and create a Albaz spell.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-17-worldroot",
+        "when": {
+          "event": "ROUND_STARTED"
+        },
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 3,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "CREATE_RANDOM_CARD",
+            "archetype": "Albaz",
+            "cardType": "spell",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-unit-18",
+    "name": "Albaz Unit HUNTER",
+    "cost": 8,
+    "type": "unit",
+    "attack": 8,
+    "health": 8,
+    "archetype": "Albaz",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/87588741.jpg",
+    "description": "Play: heal your Nexus 4 and grant all active allies +1|+2 this round.",
+    "abilities": [
+      {
+        "id": "verdant-covenant-unit-18-boss",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 4,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 2,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-1",
+    "name": "Albaz TOWER",
+    "cost": 4,
+    "type": "champion",
+    "attack": 3,
+    "health": 4,
+    "archetype": "Albaz",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/27279764.jpg",
+    "description": "Level up after 4 spells cast.",
+    "level": 1,
+    "championId": "verdant-covenant-champion-1",
+    "levelUpCondition": {
+      "type": "SPELLS_CAST",
+      "threshold": 4
+    },
+    "level2CardCode": "verdant-covenant-champion-1-lv2",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-1-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-1-lv2",
+    "name": "Albaz TOWER, Ascended",
+    "cost": 4,
+    "type": "champion",
+    "attack": 5,
+    "health": 6,
+    "archetype": "Albaz",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/27279764.jpg0",
+    "description": "Leveled form of Albaz TOWER.",
+    "level": 2,
+    "championId": "verdant-covenant-champion-1",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-1-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-2",
+    "name": "Albaz BASE",
+    "cost": 5,
+    "type": "champion",
+    "attack": 4,
+    "health": 5,
+    "archetype": "Albaz",
+    "rarity": "champion",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40061558.jpg",
+    "description": "Level up after 2 this champion struck.",
+    "level": 1,
+    "championId": "verdant-covenant-champion-2",
+    "levelUpCondition": {
+      "type": "THIS_CHAMPION_STRUCK",
+      "threshold": 2
+    },
+    "level2CardCode": "verdant-covenant-champion-2-lv2",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-2-lv1-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-champion-2-lv2",
+    "name": "Albaz BASE, Ascended",
+    "cost": 5,
+    "type": "champion",
+    "attack": 6,
+    "health": 7,
+    "archetype": "Albaz",
+    "rarity": "champion",
+    "collectible": false,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/40061558.jpg",
+    "description": "Leveled form of Albaz BASE.",
+    "level": 2,
+    "championId": "verdant-covenant-champion-2",
+    "abilities": [
+      {
+        "id": "verdant-covenant-champion-2-lv2-spell",
+        "when": {
+          "event": "SPELL_CAST"
+        },
+        "conditions": [
+          {
+            "type": "EVENT_PLAYER_IS",
+            "player": "SELF"
+          }
+        ],
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 2,
+            "target": "ALLY_NEXUS"
+          },
+          {
+            "type": "BUFF_ACTIVE_ALLIES",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-01",
+    "name": "Albaz Spell GATE",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/20426907.jpg",
+    "description": "Heal your Nexus 2.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 2,
+        "target": "ALLY_NEXUS"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-02",
+    "name": "Albaz Spell SOUL",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Albaz",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/17639150.jpg",
+    "description": "Heal an ally 3.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 3,
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-03",
+    "name": "Albaz Spell END",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/20447641.jpg",
+    "description": "Grant an ally +1|+2 this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 1,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-04",
+    "name": "Albaz Spell SEED",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/30845999.jpg",
+    "description": "Heal your Nexus 3 and draw 1.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 3,
+        "target": "ALLY_NEXUS"
+      },
+      {
+        "type": "DRAW_CARD",
+        "count": 1,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-05",
+    "name": "Albaz Spell DESTRUCTION",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "Albaz",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/43034264.jpg",
+    "description": "Grant an ally +2|+2 and Tough this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 2,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      },
+      {
+        "type": "GRANT_KEYWORD",
+        "keyword": "TOUGH",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-06",
+    "name": "Albaz Spell DARKNESS",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Albaz",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/22423493.jpg",
+    "description": "Heal all active allies through +0|+2 this round.",
+    "effects": [
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 0,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-07",
+    "name": "Albaz Spell RISE",
+    "cost": 6,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Albaz",
+    "rarity": "epic",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/4450854.jpg",
+    "description": "Revive an allied unit and heal your Nexus 2.",
+    "effects": [
+      {
+        "type": "REVIVE_CARD",
+        "target": "ALLY_GRAVEYARD",
+        "allowedTypes": [
+          "UNIT"
+        ]
+      },
+      {
+        "type": "HEAL",
+        "amount": 2,
+        "target": "ALLY_NEXUS"
+      }
+    ]
+  },
+  {
+    "id": "verdant-covenant-spell-08",
+    "name": "Albaz Spell COUNTER",
+    "cost": 7,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "Albaz",
+    "rarity": "legendary",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/80015408.jpg",
+    "description": "Heal your Nexus 5 and grant all active allies +2|+2 this round.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 5,
+        "target": "ALLY_NEXUS"
+      },
+      {
+        "type": "BUFF_ACTIVE_ALLIES",
+        "attack": 2,
+        "health": 2,
+        "duration": "THIS_ROUND",
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-01",
+    "name": "Wandering Squire",
+    "cost": 1,
+    "type": "unit",
+    "attack": 1,
+    "health": 2,
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/15582767.jpg",
+    "description": "Play: restore 1 spell mana.",
+    "abilities": [
+      {
+        "id": "neutral-unit-01-mana",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "RESTORE_SPELL_MANA",
+            "amount": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-02",
+    "name": "Gift CARD",
+    "cost": 2,
+    "type": "unit",
+    "attack": 2,
+    "health": 2,
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/39526584.jpg",
+    "description": "Play: heal your Nexus 1.",
+    "abilities": [
+      {
+        "id": "neutral-unit-02-heal",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "HEAL",
+            "amount": 1,
+            "target": "ALLY_NEXUS"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-03",
+    "name": "Roadside Scholar",
+    "cost": 3,
+    "type": "unit",
+    "attack": 2,
+    "health": 3,
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/71818935.jpg",
+    "description": "Play: draw 1.",
+    "abilities": [
+      {
+        "id": "neutral-unit-03-draw",
+        "onPlay": true,
+        "effects": [
+          {
+            "type": "DRAW_CARD",
+            "count": 1,
+            "target": "SELF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-unit-04",
+    "name": "Ironclad Mercenary",
+    "cost": 4,
+    "type": "unit",
+    "attack": 4,
+    "health": 4,
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/98127546.jpg",
+    "description": "Tough."
+  },
+  {
+    "id": "neutral-unit-05",
+    "name": "Veteran Vanguard",
+    "cost": 5,
+    "type": "unit",
+    "attack": 5,
+    "health": 5,
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/12171659.jpg",
+    "description": "Play: give an ally +1|+1 this round.",
+    "abilities": [
+      {
+        "id": "neutral-unit-05-buff",
+        "onPlay": true,
+        "targets": [
+          {
+            "id": "target",
+            "kind": "ALLY_UNIT"
+          }
+        ],
+        "effects": [
+          {
+            "type": "BUFF_UNIT",
+            "attack": 1,
+            "health": 1,
+            "duration": "THIS_ROUND",
+            "target": "target"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-01",
+    "name": "Quick Mend",
+    "cost": 1,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/34541863.jpg",
+    "description": "Heal an ally 2.",
+    "effects": [
+      {
+        "type": "HEAL",
+        "amount": 2,
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-02",
+    "name": "Battle Trick",
+    "cost": 2,
+    "type": "spell",
+    "spellSpeed": "burst",
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/64163367.jpg",
+    "description": "Give an ally +2|+0 this round.",
+    "effects": [
+      {
+        "type": "BUFF_UNIT",
+        "attack": 2,
+        "health": 0,
+        "duration": "THIS_ROUND",
+        "target": "ALLY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-03",
+    "name": "Arcane Insight",
+    "cost": 3,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "none",
+    "rarity": "common",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/33503878.jpg",
+    "description": "Draw 2.",
+    "effects": [
+      {
+        "type": "DRAW_CARD",
+        "count": 2,
+        "target": "SELF"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-04",
+    "name": "Repulse",
+    "cost": 4,
+    "type": "spell",
+    "spellSpeed": "fast",
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/23784496.jpg",
+    "description": "Recall an enemy unit.",
+    "effects": [
+      {
+        "type": "RECALL_UNIT",
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  },
+  {
+    "id": "neutral-spell-05",
+    "name": "Final Spark",
+    "cost": 5,
+    "type": "spell",
+    "spellSpeed": "slow",
+    "archetype": "none",
+    "rarity": "rare",
+    "collectible": true,
+    "imageUrl": "https://images.ygoprodeck.com/images/cards_cropped/34838437.jpg",
+    "description": "Deal 4 to an enemy unit.",
+    "effects": [
+      {
+        "type": "DEAL_DAMAGE",
+        "amount": 4,
+        "target": "ENEMY_UNIT"
+      }
+    ]
+  }
+]
