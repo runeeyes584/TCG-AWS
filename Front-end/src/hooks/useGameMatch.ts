@@ -50,6 +50,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   const [error, setError] = useState<string>();
   const [resumeRequired, setResumeRequired] = useState<SocketGameController["resumeRequired"]>();
   const roomCodeRef = useRef<string | undefined>(resumeRoomCode);
+  const resumeAttemptsRef = useRef(0);
   const [actionLog, setActionLog] = useState<Array<{ id: number; message: string }>>([
     { id: 1, message: "Game match hook loaded." }
   ]);
@@ -105,6 +106,12 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
       socket = socketManager.connect(token, email);
 
+      const requestResume = () => {
+        if (!active || !resumeRoomCode || !socketManager.getSocket()?.connected) return;
+        resumeAttemptsRef.current += 1;
+        socketManager.resumeMatch();
+      };
+
       socket.on("connect", () => {
       refreshRetried = false;
       setStatus("Connected");
@@ -113,7 +120,10 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       // Codes learned later from the server use the generic resume handshake.
       if (resumeRoomCode) {
         roomCodeRef.current = resumeRoomCode.trim().toUpperCase();
-        socketManager.resumeMatch();
+        // API Gateway reports the transport open before its $connect Lambda
+        // has finished persisting/rebinding the connection. Let that write
+        // settle; transient recovery errors below are retried explicitly.
+        window.setTimeout(requestResume, 250);
       } else if (roomCodeRef.current) {
         const knownRoomCode = roomCodeRef.current;
         if (/^[A-HJ-NP-Z2-9]{6}$/.test(knownRoomCode)) {
@@ -164,6 +174,14 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       });
 
       socket.on("game:error", (message: string) => {
+      if (
+        resumeRoomCode &&
+        /Match recovery is still initializing/i.test(message) &&
+        resumeAttemptsRef.current < 3
+      ) {
+        window.setTimeout(requestResume, 250 * resumeAttemptsRef.current);
+        return;
+      }
       setError(message);
       addClientLog(message);
       });

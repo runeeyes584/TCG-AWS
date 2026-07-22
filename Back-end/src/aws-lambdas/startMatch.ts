@@ -762,6 +762,12 @@ export const handler = async (event: any) => {
     const resumeRequested = body.resume === true;
     const resumeRequired = connection.resume_required === true;
     const existingMatchId = typeof connection.match_id === "string" ? connection.match_id : undefined;
+    // `$connect` writes the Connections record before it finishes rebinding an
+    // unfinished match.  A resume request that arrives in that small window
+    // must never fall through to public matchmaking.
+    if (resumeRequested && !existingMatchId) {
+      throw new RequestError(409, "Match recovery is still initializing. Please retry.");
+    }
     if (existingMatchId) {
       const existing = await dynamoDb.send(new GetCommand({
         TableName: gameStateTable,
@@ -868,6 +874,9 @@ export const handler = async (event: any) => {
         throw new RequestError(409, "Cancel public matchmaking before creating or joining a room.");
       } else if (!associatedMatch || associatedMatch.status !== "WAITING") {
         await removeConnectionMatch(connectionId, existingMatchId);
+        if (resumeRequested) {
+          throw new RequestError(410, "The unfinished match is no longer active.");
+        }
       }
     }
 

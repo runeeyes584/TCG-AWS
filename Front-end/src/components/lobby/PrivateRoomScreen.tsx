@@ -169,7 +169,11 @@ export function PrivateRoomScreen(props: {
         if (!(error instanceof Error) || !/No waiting room was found/i.test(error.message)) throw error;
       }
     }
-    throw lastError instanceof Error ? lastError : new Error("No waiting room was found.");
+    // DELETE/cancel is idempotent. A 404 after the retries means that the
+    // opponent, timeout cleanup or disconnect cleanup already removed it;
+    // leaving the room must still return the player to the lobby.
+    if (lastError instanceof Error && /No waiting room was found/i.test(lastError.message)) return;
+    throw lastError instanceof Error ? lastError : new Error("Unable to cancel the waiting room.");
   }
 
   const resumePendingMatch = () => {
