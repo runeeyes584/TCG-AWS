@@ -168,6 +168,25 @@ expressApp.post("/matches/pending/forfeit", authenticate, async (req, res) => {
   return res.json({ success: true });
 });
 
+// Mirrors the production HTTP endpoint used by /room-create.  A room that has
+// not started is not a match and must be removed without awarding a win/loss.
+expressApp.post("/matches/pending/cancel", authenticate, (req, res) => {
+  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
+  if (typeof userId !== "string") {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  const room = findWaitingRoomOwnedBy(userId);
+  if (!room) {
+    return res.status(404).json({ success: false, message: "No waiting room was found." });
+  }
+
+  clearRoomTimer(room.code);
+  clearDisconnectGraceTimer(room.code);
+  rooms.delete(room.code);
+  return res.json({ success: true, message: "Waiting room cancelled." });
+});
+
 const httpServer = createServer(expressApp);
 
 // await app.prepare();
@@ -707,6 +726,15 @@ function findPendingRoomForUser(userId: string): Room | undefined {
       room.state.started &&
       !room.state.winnerId &&
       room.players.some((player) => player.userId === userId && !player.connected)
+  );
+}
+
+function findWaitingRoomOwnedBy(userId: string): Room | undefined {
+  return [...rooms.values()].find(
+    (room) =>
+      !room.state.started &&
+      !room.state.winnerId &&
+      room.players.some((player) => player.playerId === "P1" && player.userId === userId)
   );
 }
 
