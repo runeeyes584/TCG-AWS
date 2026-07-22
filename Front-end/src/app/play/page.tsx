@@ -32,10 +32,8 @@ function OnlinePlayPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeRoomCode = searchParams.get("room") ?? undefined;
-  const createCustomMatch = searchParams.get("custom") === "create";
   const controller = useGameMatch(resumeRoomCode);
   const musicRef = useRef<HTMLAudioElement | null>(null);
-  const customCreateRequestedRef = useRef(false);
   const [muted, setMuted] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile>();
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
@@ -58,28 +56,14 @@ function OnlinePlayPageContent() {
   }, []);
 
   useEffect(() => {
-    if (resumeRoomCode || createCustomMatch) {
+    if (resumeRoomCode) {
       return;
     }
 
     void getPendingMatch()
       .then((result) => setPendingMatch(result.match))
       .catch(() => undefined);
-  }, [createCustomMatch, resumeRoomCode]);
-
-  useEffect(() => {
-    if (
-      !createCustomMatch ||
-      resumeRoomCode ||
-      customCreateRequestedRef.current ||
-      controller.status !== "Connected"
-    ) {
-      return;
-    }
-
-    customCreateRequestedRef.current = true;
-    controller.createRoom();
-  }, [controller, createCustomMatch, resumeRoomCode]);
+  }, [resumeRoomCode]);
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
@@ -267,11 +251,22 @@ function TrialPlayPageContent() {
   return <GameBoardView controller={controller} trialMode />;
 }
 
+function RouteRedirect({ href }: { href: string }) {
+  const router = useRouter();
+  useEffect(() => router.replace(href), [href, router]);
+  return null;
+}
+
 function PlayPageContent() {
   const searchParams = useSearchParams();
-  return searchParams.get("trial") === "1"
-    ? <TrialPlayPageContent />
-    : <OnlinePlayPageContent />;
+  if (searchParams.get("trial") === "1") return <TrialPlayPageContent />;
+  if (searchParams.get("custom") === "create") return <RouteRedirect href="/room-create" />;
+
+  const legacyRoomCode = searchParams.get("room")?.trim().toUpperCase();
+  if (legacyRoomCode && /^[A-HJ-NP-Z2-9]{6}$/.test(legacyRoomCode)) {
+    return <RouteRedirect href={`/room-join?room=${encodeURIComponent(legacyRoomCode)}`} />;
+  }
+  return <OnlinePlayPageContent />;
 }
 
 export default function PlayPage() {
