@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import {
   DeleteCommand,
   GetCommand,
@@ -26,6 +26,12 @@ const waitingTtlSeconds = positiveNumber(process.env.MATCHMAKING_WAIT_TTL_SECOND
 const matchTtlSeconds = positiveNumber(process.env.MATCH_TTL_SECONDS, 86400);
 const lockTtlSeconds = 10;
 const matchmakingLockId = "__MATCHMAKING_LOCK__";
+const roomCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const roomCodeLength = 6;
+const privateRoomCreateAttempts = 8;
+
+type MatchType = "PUBLIC" | "PRIVATE";
+type StartRoute = "matchfinding-start" | "room-create" | "room-join";
 
 type PlayerRecord = {
   user_id: string;
@@ -38,6 +44,8 @@ type PlayerRecord = {
 
 type MatchRecord = {
   match_id: string;
+  match_type?: MatchType;
+  join_code?: string;
   status: "WAITING" | "IN_PROGRESS";
   player_1: PlayerRecord;
   player_2?: PlayerRecord | null;
@@ -46,6 +54,53 @@ type MatchRecord = {
   created_at: number;
   expire_at?: number;
 };
+
+class RequestError extends Error {
+  constructor(public readonly statusCode: number, message: string) {
+    super(message);
+    this.name = "RequestError";
+  }
+}
+
+export function normalizeRoomCode(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().toUpperCase();
+  if (normalized.length !== roomCodeLength) return undefined;
+  return [...normalized].every((character) => roomCodeAlphabet.includes(character))
+    ? normalized
+    : undefined;
+}
+
+export function isPublicMatch(match: Pick<MatchRecord, "match_type">): boolean {
+  // Records created before match_type was introduced belong to the public queue.
+  return !match.match_type || match.match_type === "PUBLIC";
+}
+
+function parseBody(event: any): Record<string, unknown> {
+  if (!event.body) return {};
+  if (typeof event.body === "object") return event.body as Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(event.body);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    throw new RequestError(400, "Request body must be valid JSON.");
+  }
+}
+
+function requestRoute(event: any, body: Record<string, unknown>): StartRoute {
+  const route = String(event.requestContext?.routeKey || body.route || "");
+  if (route === "matchfinding-start" || route === "room-create" || route === "room-join") {
+    return route;
+  }
+  throw new RequestError(400, `Unsupported WebSocket route: ${route || "unknown"}.`);
+}
+
+function generateRoomCode(): string {
+  return Array.from(
+    { length: roomCodeLength },
+    () => roomCodeAlphabet[randomInt(roomCodeAlphabet.length)]
+  ).join("");
+}
 
 function positiveNumber(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
@@ -140,9 +195,10 @@ async function loadWaitingMatches(): Promise<MatchRecord[]> {
   do {
     const result = await dynamoDb.send(new ScanCommand({
       TableName: gameStateTable,
-      FilterExpression: "#status = :waiting",
+      FilterExpression:
+        "#status = :waiting AND (attribute_not_exists(match_type) OR match_type = :public)",
       ExpressionAttributeNames: { "#status": "status" },
-      ExpressionAttributeValues: { ":waiting": "WAITING" },
+      ExpressionAttributeValues: { ":waiting": "WAITING", ":public": "PUBLIC" },
       ExclusiveStartKey: exclusiveStartKey,
       ConsistentRead: true
     }));
@@ -214,7 +270,7 @@ async function deleteWaitingMatch(match: MatchRecord): Promise<void> {
   }
 }
 
-async function createWaitingMatch(input: {
+async function createPublicWaitingMatch(input: {
   connectionId: string;
   userId: string;
   username: string;
@@ -231,6 +287,7 @@ async function createWaitingMatch(input: {
 
   const match: MatchRecord = {
     match_id: matchId,
+    match_type: "PUBLIC",
     status: "WAITING",
     player_1: {
       user_id: input.userId,
@@ -257,17 +314,26 @@ async function createWaitingMatch(input: {
     ConditionExpression: "attribute_not_exists(match_id)"
   }));
 
-  await dynamoDb.send(new UpdateCommand({
-    TableName: connectionsTable,
-    Key: { connection_id: input.connectionId },
-    UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
-    ConditionExpression: "attribute_exists(connection_id) AND user_id = :userId",
-    ExpressionAttributeValues: {
-      ":matchId": matchId,
-      ":connectedAt": now,
-      ":userId": input.userId
+  try {
+    await dynamoDb.send(new UpdateCommand({
+      TableName: connectionsTable,
+      Key: { connection_id: input.connectionId },
+      UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
+      ConditionExpression:
+        "attribute_exists(connection_id) AND user_id = :userId AND attribute_not_exists(match_id)",
+      ExpressionAttributeValues: {
+        ":matchId": matchId,
+        ":connectedAt": now,
+        ":userId": input.userId
+      }
+    }));
+  } catch (error) {
+    await deleteWaitingMatch(match);
+    if ((error as any)?.name === "ConditionalCheckFailedException") {
+      throw new RequestError(409, "This connection is already assigned to another match.");
     }
-  }));
+    throw error;
+  }
 
   const delivered = await sendMessage(input.wsClient, input.connectionId, {
     event: "matchmaking:searching",
@@ -286,7 +352,8 @@ async function createWaitingMatch(input: {
 async function claimMatch(
   match: MatchRecord,
   player2: PlayerRecord,
-  player1Elo: number
+  player1Elo: number,
+  expectedType: MatchType
 ): Promise<GameState | undefined> {
   const updatedEngineState = applyAction(match.engine_state, {
     type: "START_GAME",
@@ -314,7 +381,10 @@ async function claimMatch(
       ConditionExpression:
         "#status = :waiting AND (attribute_not_exists(player_2) OR player_2 = :emptyPlayer) " +
         "AND (attribute_not_exists(state_version) OR state_version = :currentVersion) " +
-        "AND (attribute_not_exists(expire_at) OR expire_at > :now)",
+        "AND (attribute_not_exists(expire_at) OR expire_at > :now) AND " +
+        (expectedType === "PUBLIC"
+          ? "(attribute_not_exists(match_type) OR match_type = :expectedType)"
+          : "match_type = :expectedType"),
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
         ":active": "IN_PROGRESS",
@@ -328,13 +398,273 @@ async function claimMatch(
         ":round": updatedEngineState.round,
         ":nextPlayerId": updatedEngineState.priorityPlayerId,
         ":expireAt": Math.floor(Date.now() / 1000) + matchTtlSeconds,
-        ":now": Math.floor(Date.now() / 1000)
+        ":now": Math.floor(Date.now() / 1000),
+        ":expectedType": expectedType
       }
     }));
     return updatedEngineState;
   } catch (error: any) {
     if (error?.name === "ConditionalCheckFailedException") return undefined;
     throw error;
+  }
+}
+
+async function sendRoomCreated(
+  wsClient: ApiGatewayManagementApiClient,
+  match: MatchRecord
+): Promise<boolean> {
+  return sendMessage(wsClient, match.player_1.connection_id, {
+    event: "room:created",
+    roomCode: match.join_code || match.match_id,
+    playerId: "P1",
+    opponentConnected: false,
+    state: redactStateForPlayer(match.engine_state, "P1")
+  });
+}
+
+async function createPrivateRoom(input: {
+  connectionId: string;
+  userId: string;
+  username: string;
+  elo: number;
+  wsClient: ApiGatewayManagementApiClient;
+}): Promise<string> {
+  const now = Date.now();
+  const initialEngineState = createInitialGameState(
+    buildDefaultDeck("P1"),
+    buildDefaultDeck("P2"),
+    now
+  );
+
+  for (let attempt = 0; attempt < privateRoomCreateAttempts; attempt += 1) {
+    const roomCode = generateRoomCode();
+    const match: MatchRecord = {
+      match_id: roomCode,
+      match_type: "PRIVATE",
+      join_code: roomCode,
+      status: "WAITING",
+      player_1: {
+        user_id: input.userId,
+        connection_id: input.connectionId,
+        username: input.username,
+        player_id: "P1",
+        elo: input.elo,
+        connected: true
+      },
+      player_2: null,
+      state_version: 0,
+      engine_state: initialEngineState,
+      created_at: now,
+      expire_at: Math.floor(now / 1000) + waitingTtlSeconds
+    };
+
+    try {
+      await dynamoDb.send(new PutCommand({
+        TableName: gameStateTable,
+        Item: {
+          ...match,
+          current_round: initialEngineState.round,
+          turn_player_id: "P1"
+        },
+        ConditionExpression: "attribute_not_exists(match_id)"
+      }));
+    } catch (error: any) {
+      if (error?.name === "ConditionalCheckFailedException") continue;
+      throw error;
+    }
+
+    try {
+      await dynamoDb.send(new UpdateCommand({
+        TableName: connectionsTable,
+        Key: { connection_id: input.connectionId },
+        UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
+        ConditionExpression:
+          "attribute_exists(connection_id) AND user_id = :userId AND attribute_not_exists(match_id)",
+        ExpressionAttributeValues: {
+          ":matchId": roomCode,
+          ":connectedAt": now,
+          ":userId": input.userId
+        }
+      }));
+    } catch (error) {
+      await deleteWaitingMatch(match);
+      if ((error as any)?.name === "ConditionalCheckFailedException") {
+        throw new RequestError(409, "This connection is already assigned to another match.");
+      }
+      throw error;
+    }
+
+    if (!(await sendRoomCreated(input.wsClient, match))) {
+      await deleteWaitingMatch(match);
+      throw new RequestError(410, "WebSocket connection closed before the room was created.");
+    }
+    return roomCode;
+  }
+
+  throw new Error("Unable to allocate a unique room code. Please retry.");
+}
+
+async function joinPrivateRoom(input: {
+  roomCode: string;
+  connectionId: string;
+  userId: string;
+  username: string;
+  elo: number;
+  wsClient: ApiGatewayManagementApiClient;
+}): Promise<void> {
+  const result = await dynamoDb.send(new GetCommand({
+    TableName: gameStateTable,
+    Key: { match_id: input.roomCode },
+    ConsistentRead: true
+  }));
+  const match = result.Item as MatchRecord | undefined;
+
+  if (!match || match.match_type !== "PRIVATE") {
+    throw new RequestError(404, "Private room was not found.");
+  }
+  if (match.status !== "WAITING") {
+    throw new RequestError(409, "This room has already started.");
+  }
+  if (match.expire_at && match.expire_at <= Math.floor(Date.now() / 1000)) {
+    await deleteWaitingMatch(match);
+    throw new RequestError(410, "This room has expired.");
+  }
+  if (!match.player_1?.connection_id || !match.player_1?.user_id) {
+    await deleteWaitingMatch(match);
+    throw new RequestError(410, "This room is no longer available.");
+  }
+  if (match.player_1.user_id === input.userId) {
+    if (
+      match.player_1.connection_id !== input.connectionId &&
+      await connectionIsAlive(input.wsClient, match.player_1.connection_id)
+    ) {
+      throw new RequestError(409, "This room is already open from another connection.");
+    }
+
+    try {
+      await dynamoDb.send(new UpdateCommand({
+        TableName: connectionsTable,
+        Key: { connection_id: input.connectionId },
+        UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
+        ConditionExpression:
+          "attribute_exists(connection_id) AND user_id = :userId AND attribute_not_exists(match_id)",
+        ExpressionAttributeValues: {
+          ":matchId": match.match_id,
+          ":connectedAt": Date.now(),
+          ":userId": input.userId
+        }
+      }));
+    } catch (error) {
+      if ((error as any)?.name === "ConditionalCheckFailedException") {
+        throw new RequestError(409, "This connection is already assigned to another match.");
+      }
+      throw error;
+    }
+
+    try {
+      await dynamoDb.send(new UpdateCommand({
+        TableName: gameStateTable,
+        Key: { match_id: match.match_id },
+        UpdateExpression:
+          "SET player_1.connection_id = :newConnectionId, player_1.connected = :connected",
+        ConditionExpression:
+          "#status = :waiting AND match_type = :privateType " +
+          "AND player_1.user_id = :userId AND player_1.connection_id = :oldConnectionId " +
+          "AND (attribute_not_exists(expire_at) OR expire_at > :now)",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":waiting": "WAITING",
+          ":privateType": "PRIVATE",
+          ":userId": input.userId,
+          ":oldConnectionId": match.player_1.connection_id,
+          ":newConnectionId": input.connectionId,
+          ":connected": true,
+          ":now": Math.floor(Date.now() / 1000)
+        }
+      }));
+    } catch (error) {
+      await removeConnectionMatch(input.connectionId, match.match_id);
+      if ((error as any)?.name === "ConditionalCheckFailedException") {
+        throw new RequestError(409, "The room changed while it was being resumed. Please retry.");
+      }
+      throw error;
+    }
+
+    const resumedMatch: MatchRecord = {
+      ...match,
+      player_1: { ...match.player_1, connection_id: input.connectionId, connected: true }
+    };
+    if (!(await sendRoomCreated(input.wsClient, resumedMatch))) {
+      await deleteWaitingMatch(resumedMatch);
+      throw new RequestError(410, "WebSocket connection closed while resuming the room.");
+    }
+    return;
+  }
+  if (!(await connectionIsAlive(input.wsClient, match.player_1.connection_id))) {
+    await deleteWaitingMatch(match);
+    throw new RequestError(410, "The room owner is no longer connected.");
+  }
+
+  const player2: PlayerRecord = {
+    user_id: input.userId,
+    connection_id: input.connectionId,
+    username: input.username,
+    player_id: "P2",
+    elo: input.elo,
+    connected: true
+  };
+  const updatedEngineState = await claimMatch(match, player2, match.player_1.elo, "PRIVATE");
+  if (!updatedEngineState) {
+    throw new RequestError(409, "Another player joined this room first.");
+  }
+
+  try {
+    await dynamoDb.send(new UpdateCommand({
+      TableName: connectionsTable,
+      Key: { connection_id: input.connectionId },
+      UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
+      ConditionExpression:
+        "attribute_exists(connection_id) AND user_id = :userId AND attribute_not_exists(match_id)",
+      ExpressionAttributeValues: {
+        ":matchId": match.match_id,
+        ":connectedAt": Date.now(),
+        ":userId": input.userId
+      }
+    }));
+  } catch (error) {
+    await deleteClaimedMatch(match, player2);
+    if ((error as any)?.name === "ConditionalCheckFailedException") {
+      throw new RequestError(409, "This connection is already assigned to another match.");
+    }
+    throw error;
+  }
+
+  const player1Delivered = await sendMessage(input.wsClient, match.player_1.connection_id, {
+    event: "matchmaking:found",
+    roomCode: match.match_id,
+    playerId: "P1",
+    opponentElo: input.elo,
+    state: redactStateForPlayer(updatedEngineState, "P1")
+  });
+  if (!player1Delivered) {
+    await deleteClaimedMatch(match, player2);
+    throw new RequestError(410, "The room owner disconnected before the match started.");
+  }
+
+  const player2Delivered = await sendMessage(input.wsClient, input.connectionId, {
+    event: "matchmaking:found",
+    roomCode: match.match_id,
+    playerId: "P2",
+    opponentElo: match.player_1.elo,
+    state: redactStateForPlayer(updatedEngineState, "P2")
+  });
+  if (!player2Delivered) {
+    await deleteClaimedMatch(match, player2);
+    await sendMessage(input.wsClient, match.player_1.connection_id, {
+      event: "game:error",
+      message: "The joining player disconnected before the match started. Create a new room to retry."
+    });
+    throw new RequestError(410, "Joining connection closed before match notification.");
   }
 }
 
@@ -373,8 +703,11 @@ export const handler = async (event: any) => {
 
   let lockOwner: string | undefined;
   try {
+    const body = parseBody(event);
+    const route = requestRoute(event, body);
     console.info("Matchmaking request received", {
       connectionId,
+      route,
       region,
       connectionsTable,
       gameStateTable,
@@ -395,9 +728,8 @@ export const handler = async (event: any) => {
     const userId = String(connection.user_id);
     const username = String(connection.username || "Player");
 
-    // `matchfinding-start` also acts as the resume handshake. API Gateway has
-    // no Socket.IO acknowledgements, so reusing this existing configured route
-    // avoids a second, easy-to-forget WebSocket route just for reconnecting.
+    // Any start route may resume an active match. `matchfinding-start` also
+    // resumes an existing waiting room after a WebSocket reconnect.
     const existingMatchId = typeof connection.match_id === "string" ? connection.match_id : undefined;
     if (existingMatchId) {
       const existing = await dynamoDb.send(new GetCommand({
@@ -405,25 +737,83 @@ export const handler = async (event: any) => {
         Key: { match_id: existingMatchId },
         ConsistentRead: true
       }));
-      const activeMatch = existing.Item as MatchRecord | undefined;
-      if (activeMatch?.status === "IN_PROGRESS") {
+      const associatedMatch = existing.Item as MatchRecord | undefined;
+      if (associatedMatch?.status === "IN_PROGRESS") {
         const playerId: PlayerId | undefined =
-          activeMatch.player_1?.user_id === userId && activeMatch.player_1?.connection_id === connectionId ? "P1" :
-          activeMatch.player_2?.user_id === userId && activeMatch.player_2?.connection_id === connectionId ? "P2" : undefined;
+          associatedMatch.player_1?.user_id === userId && associatedMatch.player_1?.connection_id === connectionId ? "P1" :
+          associatedMatch.player_2?.user_id === userId && associatedMatch.player_2?.connection_id === connectionId ? "P2" : undefined;
         if (playerId) {
           await sendMessage(wsClient, connectionId, {
             event: "matchmaking:found",
-            roomCode: activeMatch.match_id,
+            roomCode: associatedMatch.match_id,
             playerId,
-            state: redactStateForPlayer(activeMatch.engine_state, playerId)
+            state: redactStateForPlayer(associatedMatch.engine_state, playerId)
           });
           return { statusCode: 200, body: "Active match resumed." };
         }
+        throw new RequestError(409, "This connection is associated with a different player session.");
+      }
+
+      if (associatedMatch?.status === "WAITING" && associatedMatch.match_type === "PRIVATE") {
+        if (associatedMatch.expire_at && associatedMatch.expire_at <= Math.floor(Date.now() / 1000)) {
+          await deleteWaitingMatch(associatedMatch);
+        } else if (
+          associatedMatch.player_1?.user_id === userId &&
+          associatedMatch.player_1?.connection_id === connectionId
+        ) {
+          if (route === "room-join") {
+            const requestedCode = normalizeRoomCode(body.roomCode ?? body.room_code);
+            if (requestedCode !== associatedMatch.match_id) {
+              throw new RequestError(409, "Cancel your current room before joining another one.");
+            }
+          }
+          if (!(await sendRoomCreated(wsClient, associatedMatch))) {
+            await deleteWaitingMatch(associatedMatch);
+            throw new RequestError(410, "WebSocket connection closed while resuming the room.");
+          }
+          return { statusCode: 200, body: "Private room resumed." };
+        } else {
+          throw new RequestError(409, "This connection is already assigned to another room.");
+        }
+      } else if (associatedMatch?.status === "WAITING" && route !== "matchfinding-start") {
+        throw new RequestError(409, "Cancel public matchmaking before creating or joining a room.");
+      } else if (!associatedMatch || associatedMatch.status !== "WAITING") {
+        await removeConnectionMatch(connectionId, existingMatchId);
       }
     }
 
     const playerElo = await loadElo(userId);
     console.info("Matchmaking player loaded", { connectionId, userId, playerElo });
+
+    if (route === "room-create") {
+      const roomCode = await createPrivateRoom({
+        connectionId,
+        userId,
+        username,
+        elo: playerElo,
+        wsClient
+      });
+      return { statusCode: 200, body: `Private room ${roomCode} created.` };
+    }
+
+    if (route === "room-join") {
+      const roomCode = normalizeRoomCode(body.roomCode ?? body.room_code);
+      if (!roomCode) {
+        throw new RequestError(
+          400,
+          `Room code must contain ${roomCodeLength} valid letters or digits.`
+        );
+      }
+      await joinPrivateRoom({
+        roomCode,
+        connectionId,
+        userId,
+        username,
+        elo: playerElo,
+        wsClient
+      });
+      return { statusCode: 200, body: `Joined private room ${roomCode}.` };
+    }
 
     const owner = String(event.requestContext?.requestId || randomUUID());
     lockOwner = owner;
@@ -434,6 +824,7 @@ export const handler = async (event: any) => {
     const candidates: Array<{ match: MatchRecord; opponentElo: number }> = [];
 
     for (const match of waitingMatches) {
+      if (!isPublicMatch(match)) continue;
       if (!match.player_1?.connection_id || !match.player_1?.user_id) {
         await deleteWaitingMatch(match);
         continue;
@@ -498,20 +889,32 @@ export const handler = async (event: any) => {
         elo: playerElo,
         connected: true
       };
-      const updatedEngineState = await claimMatch(pendingMatch, player2, candidate.opponentElo);
+      const updatedEngineState = await claimMatch(
+        pendingMatch,
+        player2,
+        candidate.opponentElo,
+        "PUBLIC"
+      );
       if (!updatedEngineState) continue;
 
-      await dynamoDb.send(new UpdateCommand({
-        TableName: connectionsTable,
-        Key: { connection_id: connectionId },
-        UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
-        ConditionExpression: "attribute_exists(connection_id) AND user_id = :userId",
-        ExpressionAttributeValues: {
-          ":matchId": pendingMatch.match_id,
-          ":connectedAt": Date.now(),
-          ":userId": userId
-        }
-      }));
+      try {
+        await dynamoDb.send(new UpdateCommand({
+          TableName: connectionsTable,
+          Key: { connection_id: connectionId },
+          UpdateExpression: "SET match_id = :matchId, connected_at = :connectedAt",
+          ConditionExpression:
+            "attribute_exists(connection_id) AND user_id = :userId AND attribute_not_exists(match_id)",
+          ExpressionAttributeValues: {
+            ":matchId": pendingMatch.match_id,
+            ":connectedAt": Date.now(),
+            ":userId": userId
+          }
+        }));
+      } catch (error) {
+        await deleteClaimedMatch(pendingMatch, player2);
+        if ((error as any)?.name === "ConditionalCheckFailedException") continue;
+        throw error;
+      }
 
       const player1Delivered = await sendMessage(
         wsClient,
@@ -550,7 +953,7 @@ export const handler = async (event: any) => {
       return { statusCode: 200, body: "Match started." };
     }
 
-    const matchId = await createWaitingMatch({
+    const matchId = await createPublicWaitingMatch({
       connectionId,
       userId,
       username,
@@ -566,14 +969,21 @@ export const handler = async (event: any) => {
       requestId: event.requestContext?.requestId,
       connectionId
     });
-    const statusCode = error?.message === "Matchmaking is busy. Please retry." ? 503 : 500;
-    if (statusCode === 503) {
-      await sendMessage(wsClient, connectionId, {
-        event: "game:error",
-        message: "Matchmaking is busy. Please try again."
-      }).catch(() => false);
-    }
-    return { statusCode, body: error?.message || "Unable to start matchmaking." };
+    const statusCode = error instanceof RequestError
+      ? error.statusCode
+      : error?.message === "Matchmaking is busy. Please retry."
+        ? 503
+        : 500;
+    const publicMessage = statusCode === 500
+      ? "Unable to start matchmaking."
+      : statusCode === 503
+        ? "Matchmaking is busy. Please try again."
+        : error.message;
+    await sendMessage(wsClient, connectionId, {
+      event: "game:error",
+      message: publicMessage
+    }).catch(() => false);
+    return { statusCode, body: publicMessage };
   } finally {
     if (lockOwner) await releaseMatchmakingLock(lockOwner);
   }
