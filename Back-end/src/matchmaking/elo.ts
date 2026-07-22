@@ -4,7 +4,7 @@ export function calculateElo(
 
     playerB: number,
 
-    winner: "A" | "B",
+    winner: "A" | "B" | "DRAW",
 
     k = 32
 
@@ -18,9 +18,9 @@ export function calculateElo(
         1 /
         (1 + Math.pow(10, (playerA - playerB) / 400));
 
-    const scoreA = winner === "A" ? 1 : 0;
+    const scoreA = winner === "DRAW" ? 0.5 : winner === "A" ? 1 : 0;
 
-    const scoreB = winner === "B" ? 1 : 0;
+    const scoreB = winner === "DRAW" ? 0.5 : winner === "B" ? 1 : 0;
 
     return {
 
