@@ -52,7 +52,9 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
       Item: { connection_id: connectionId, user_id: userId, username, connected_at: Date.now() }
     }));
 
-    // Rebind an active match to the ephemeral API Gateway connection ID.
+    // Rebind the ephemeral connection ID, but keep the player disconnected
+    // until they explicitly choose Continue. startMatch performs the actual
+    // resume handshake and publishes the authoritative state.
     let cursor: Record<string, unknown> | undefined;
     let reboundMatchId: string | undefined;
     do {
@@ -73,14 +75,13 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
           Key: { match_id: match.match_id },
           UpdateExpression:
             `SET ${playerPath}.connection_id = :connectionId, ` +
-            `${playerPath}.connected = :connected, ${playerPath}.reconnected_at = :now ` +
-            `REMOVE ${playerPath}.disconnected_at`,
+            `${playerPath}.connected = :connected, ${playerPath}.resume_connection_at = :now`,
           ConditionExpression: "#status = :active",
           ExpressionAttributeNames: { "#status": "status" },
           ExpressionAttributeValues: {
             ":active": "IN_PROGRESS",
             ":connectionId": connectionId,
-            ":connected": true,
+            ":connected": false,
             ":now": Date.now()
           }
         }));
@@ -94,8 +95,8 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
       await dynamoDb.send(new UpdateCommand({
         TableName: connectionsTable,
         Key: { connection_id: connectionId },
-        UpdateExpression: "SET match_id = :matchId",
-        ExpressionAttributeValues: { ":matchId": reboundMatchId }
+        UpdateExpression: "SET match_id = :matchId, resume_required = :resumeRequired",
+        ExpressionAttributeValues: { ":matchId": reboundMatchId, ":resumeRequired": true }
       }));
     }
     return { statusCode: 200, body: "Connected successfully." };

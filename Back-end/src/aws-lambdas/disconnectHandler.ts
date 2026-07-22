@@ -1,6 +1,7 @@
 import { DeleteCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from "@aws-sdk/client-apigatewaymanagementapi";
 import { dynamoDb } from "../config/dynamodb";
+import type { GameState, PlayerId } from "../game/types";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
@@ -9,6 +10,7 @@ const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
 type MatchRecord = {
   match_id: string;
   status: "WAITING" | "IN_PROGRESS";
+  engine_state: GameState;
   player_1?: { connection_id?: string; connected?: boolean };
   player_2?: { connection_id?: string; connected?: boolean } | null;
 };
@@ -69,6 +71,7 @@ export const handler = async (event: any) => {
       if (match.status !== "IN_PROGRESS" || (!isP1 && !isP2)) continue;
       const playerPath = isP1 ? "player_1" : "player_2";
       const opponentConnectionId = isP1 ? match.player_2?.connection_id : match.player_1?.connection_id;
+      const opponentPlayerId: PlayerId = isP1 ? "P2" : "P1";
 
       try {
         await dynamoDb.send(new UpdateCommand({
@@ -88,7 +91,13 @@ export const handler = async (event: any) => {
         try {
           await wsClient.send(new PostToConnectionCommand({
             ConnectionId: opponentConnectionId,
-            Data: Buffer.from(JSON.stringify({ event: "game:error", roomCode: match.match_id, message: "Opponent disconnected. The match is paused while they reconnect." }))
+            Data: Buffer.from(JSON.stringify({
+              event: "room:update",
+              roomCode: match.match_id,
+              playerId: opponentPlayerId,
+              opponentConnected: false,
+              state: redactStateForPlayer(match.engine_state, opponentPlayerId)
+            }))
           }));
         } catch (error) {
           if (!isGone(error)) console.error("Failed to notify opponent:", error);
@@ -103,3 +112,19 @@ export const handler = async (event: any) => {
     return { statusCode: 500, body: error?.message || "Unable to disconnect." };
   }
 };
+
+function redactStateForPlayer(state: GameState, viewerId: PlayerId): GameState {
+  const visible = structuredClone(state);
+  const opponentId: PlayerId = viewerId === "P1" ? "P2" : "P1";
+  visible.players[opponentId].hand = visible.players[opponentId].hand.map((_, index) => ({
+    instanceId: `hidden-hand-${opponentId}-${index}`,
+    cardId: "hidden-card",
+    ownerId: opponentId
+  }));
+  visible.players[opponentId].deck = visible.players[opponentId].deck.map((_, index) => ({
+    instanceId: `hidden-deck-${opponentId}-${index}`,
+    cardId: "hidden-card",
+    ownerId: opponentId
+  }));
+  return visible;
+}

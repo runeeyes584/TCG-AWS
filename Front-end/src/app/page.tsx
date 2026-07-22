@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
-import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
+import { PendingMatchDialog, PendingMatchLoadingGate } from "../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
 
@@ -45,6 +45,8 @@ export default function Home() {
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatchError, setPendingMatchError] = useState<string>();
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(true);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [customRoomCode, setCustomRoomCode] = useState("");
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
@@ -61,7 +63,10 @@ export default function Home() {
     const signedIn = Boolean(token);
     setIsSignedIn(signedIn);
 
-    if (!signedIn) return;
+    if (!signedIn) {
+      setPendingMatchChecked(true);
+      return;
+    }
 
     void me()
       .then(({ user }) => {
@@ -78,8 +83,14 @@ export default function Home() {
       .catch(() => undefined);
 
     void getPendingMatch()
-      .then((result) => setPendingMatch(result.match))
-      .catch(() => undefined);
+      .then((result) => {
+        setPendingMatch(result.match);
+        setPendingMatchError(undefined);
+      })
+      .catch((error) => setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to check your active match."
+      ))
+      .finally(() => setPendingMatchChecked(true));
   }, []);
 
   const startDuel = () => {
@@ -123,24 +134,27 @@ export default function Home() {
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
-      router.push(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}`);
+      router.push(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
     }
   };
 
   const abandonPendingMatch = async () => {
     setResolvingPendingMatch(true);
+    setPendingMatchError(undefined);
     try {
       await forfeitPendingMatch();
+      setPendingMatch(null);
       const { user } = await me();
       if (user) {
         setElo(user.elo);
         setWins(user.wins);
         setLosses(user.losses);
       }
-    } catch {
-      // The disconnect timer may have already resolved the match in parallel.
+    } catch (error) {
+      setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to leave the active match."
+      );
     } finally {
-      setPendingMatch(null);
       setResolvingPendingMatch(false);
     }
   };
@@ -308,6 +322,8 @@ export default function Home() {
         <span>Kaleidoscope TCG <b>v0.1.0</b></span>
       </footer>
 
+      {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
+      {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
       {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
     </main>
   );

@@ -117,6 +117,19 @@ class SocketManager {
     this.socket?.emit("matchmaking:start", selection);
   }
 
+  /** Resume is intentionally distinct from matchmaking: it represents the
+   * player's explicit choice in the unfinished-match dialog. */
+  public resumeMatch(): void {
+    if (this.socket instanceof ApiGatewaySocket) {
+      const route = process.env.NEXT_PUBLIC_MATCHMAKING_ROUTE || "matchfinding-start";
+      this.socket.send(route, { resume: true });
+      return;
+    }
+    // The local Socket.IO server owns room reattachment on connect. Keep this
+    // method a no-op there so the production-only safety protocol cannot alter
+    // the local transport contract.
+  }
+
   public cancelMatchmaking(): void {
     if (this.socket instanceof ApiGatewaySocket) {
       this.socket.send("matchfinding-cancel");
