@@ -4399,6 +4399,12 @@ button.card-view.game-card-v2 {
 .matchmaking-command:hover:not(:disabled) { border-color: #f1ffad; background: linear-gradient(180deg, #507d22, #284717); box-shadow: inset 0 1px rgba(255,255,255,0.32), 0 0 30px rgba(181, 255, 55, 0.35); color: #fff; }
 .matchmaking-command--cancel { border-color: #ff899b; background: linear-gradient(180deg, #6d2239, #391320); box-shadow: inset 0 1px rgba(255,255,255,0.16), 0 0 22px rgba(255, 91, 122, 0.18); color: #ffd6dd; }
 .matchmaking-command--cancel:hover:not(:disabled) { border-color: #ffc2cd; background: linear-gradient(180deg, #8d2d47, #491724); box-shadow: inset 0 1px rgba(255,255,255,0.24), 0 0 30px rgba(255, 91, 122, 0.32); }
+.private-room-connection { display: inline-flex; align-items: center; gap: 7px; color: #9edfff; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.private-room-console { max-width: 620px; }
+.private-room-code-panel { display: flex; min-height: 210px; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 28px 20px; text-align: center; }
+.private-room-code-panel small { color: #87a8d2; font-size: 10px; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase; }
+.private-room-code-panel strong { color: #d9ff72; font-family: var(--font-geist-mono), monospace; font-size: clamp(38px, 7vw, 68px); letter-spacing: 0.18em; line-height: 1; text-shadow: 0 0 24px rgba(190, 255, 78, 0.28); }
+.private-room-code-panel span { max-width: 430px; color: #b8cae2; font-size: 12px; line-height: 1.55; }
 .matchmaking-track { display: flex; align-items: center; gap: 8px; margin: 14px 0 0 4px; color: #849bbc; font-size: 9px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
 .matchmaking-track i { width: 44px; height: 1px; background: #607fa9; }
 .matchmaking-track.is-playing { color: #a8f5ff; }

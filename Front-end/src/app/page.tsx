@@ -86,7 +86,7 @@ export default function Home() {
   };
 
   const createCustomMatch = () => {
-    router.push(isSignedIn ? "/play?custom=create" : "/login");
+    router.push(isSignedIn ? "/room-create" : "/login");
   };
 
   const startTrial = () => {
@@ -104,7 +104,7 @@ export default function Home() {
       return;
     }
 
-    router.push(`/play?room=${encodeURIComponent(roomCode)}`);
+    router.push(`/room-join?room=${encodeURIComponent(roomCode)}`);
   };
 
   const signOut = () => {

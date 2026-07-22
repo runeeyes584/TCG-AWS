@@ -2,7 +2,7 @@
   "extends": "../tsconfig.json",
   "include": [
     "src"
-  ],
+, "dist/test-build/timeoutLogic.test.ts"  ],
   "exclude": [
     "../node_modules"
   ]

@@ -101,11 +101,21 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       refreshRetried = false;
       setStatus("Connected");
       setError(undefined);
-      // matchfinding-start doubles as the server-side resume handshake. This
-      // uses an already configured API Gateway route instead of a non-existent
-      // Socket.IO-style joinRoom acknowledgement.
-      if (roomCodeRef.current) {
-        socketManager.startMatchmaking();
+      // A room code from the URL is an explicit private-room join (or resume).
+      // Codes learned later from the server use the generic resume handshake.
+      if (resumeRoomCode) {
+        socketManager.joinRoom(resumeRoomCode.trim().toUpperCase(), (response) => {
+          if (!response.ok) setError(response.error);
+        });
+      } else if (roomCodeRef.current) {
+        const knownRoomCode = roomCodeRef.current;
+        if (/^[A-HJ-NP-Z2-9]{6}$/.test(knownRoomCode)) {
+          socketManager.joinRoom(knownRoomCode, (response) => {
+            if (!response.ok) setError(response.error);
+          });
+        } else {
+          socketManager.startMatchmaking();
+        }
       }
       });
 
@@ -163,6 +173,27 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
       });
 
+      socket.on("room:created", (message?: {
+        roomCode?: string;
+        playerId?: PlayerId;
+        state?: GameState;
+        opponentConnected?: boolean;
+      }) => {
+      if (!message?.roomCode) {
+        setError("The game server did not return a room code.");
+        return;
+      }
+      roomCodeRef.current = message.roomCode;
+      setRoomCode(message.roomCode);
+      setLocalPlayerId(message.playerId ?? "P1");
+      if (message.state) setGameState(message.state);
+      setOpponentConnected(message.opponentConnected ?? false);
+      setSearching(false);
+      setQueueTime(0);
+      setInGame(false);
+      setStatus(`Room ${message.roomCode} created. Waiting for opponent`);
+      });
+
       socket.on("matchmaking:searching", (message?: { roomCode?: string }) => {
       if (message?.roomCode) {
         roomCodeRef.current = message.roomCode;
@@ -209,6 +240,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       socket?.off("connect_error");
       socket?.off("game:error");
       socket?.off("room:update");
+      socket?.off("room:created");
       socket?.off("matchmaking:searching");
       socket?.off("matchmaking:cancelled");
       socket?.off("matchmaking:found");
@@ -231,18 +263,16 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
   function createRoom() {
     setError(undefined);
-    socketManager.createRoom((response: any) => {
+    if (!socketManager.getSocket()?.connected) {
+      setError("Connecting to the game server. Please try again in a moment.");
+      return;
+    }
+    setStatus("Creating private room...");
+    socketManager.createRoom((response) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
-        return;
       }
-
-      roomCodeRef.current = response.roomCode;
-      setRoomCode(response.roomCode);
-      setLocalPlayerId(response.playerId);
-      setOpponentConnected(false);
-      setStatus(`Room ${response.roomCode} created. Waiting for opponent`);
     });
   }
 
@@ -255,16 +285,17 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       return;
     }
 
-    socketManager.joinRoom(normalizedRoomCode, (response: any) => {
+    if (!socketManager.getSocket()?.connected) {
+      setError("Connecting to the game server. Please try again in a moment.");
+      return;
+    }
+
+    setStatus(`Joining room ${normalizedRoomCode}...`);
+    socketManager.joinRoom(normalizedRoomCode, (response) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
-        return;
       }
-
-      roomCodeRef.current = response.roomCode;
-      setRoomCode(response.roomCode);
-      setLocalPlayerId(response.playerId);
     });
   }
 

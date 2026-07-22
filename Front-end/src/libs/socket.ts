@@ -174,11 +174,11 @@ class SocketManager {
   }
 
   public createRoom(callback: Callback): void {
-    callback({ ok: false, error: "Custom rooms require API Gateway routes that are not configured yet." });
+    this.socket?.send("room-create", {}, callback);
   }
 
-  public joinRoom(_roomCode: string, callback: Callback): void {
-    callback({ ok: false, error: "Room rejoin requires an API Gateway route that is not configured yet." });
+  public joinRoom(roomCode: string, callback: Callback): void {
+    this.socket?.send("room-join", { roomCode }, callback);
   }
 
   public dispatchAction(matchId: string | undefined, action: GameAction, callback: Callback): void {
