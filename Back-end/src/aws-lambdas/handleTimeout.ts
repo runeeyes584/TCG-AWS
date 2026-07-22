@@ -200,13 +200,19 @@ async function processRecord(record: SQSRecord): Promise<void> {
   const currentVersion = match.state_version ?? 0;
   const nextVersion = currentVersion + 1;
 
-  // Register the next turn first. If another invocation wins the DynamoDB CAS,
-  // this message becomes stale and will be discarded by timeoutMessageMatches.
-  await enqueueTurnTimeout({
+  // Start scheduling and the conditional state write concurrently. SQS must
+  // never sit on the critical path before this due timeout is committed and
+  // broadcast. A losing CAS only creates a harmless stale timeout token.
+  const timeoutScheduling = enqueueTurnTimeout({
     matchId: match.match_id,
     state: nextState,
     stateVersion: nextVersion
-  });
+  }).then(
+    () => undefined,
+    (error) => {
+      console.error("Could not schedule the next turn timeout:", error);
+    }
+  );
 
   try {
     await dynamoDb.send(new UpdateCommand({
@@ -235,28 +241,40 @@ async function processRecord(record: SQSRecord): Promise<void> {
       }
     }));
   } catch (error: any) {
-    if (error?.name === "ConditionalCheckFailedException") return;
+    if (error?.name === "ConditionalCheckFailedException") {
+      await timeoutScheduling;
+      return;
+    }
     throw error;
   }
 
-  await writeTimeoutLog(match.match_id, playerId, nextState);
   await publishState(match, nextState);
+  await Promise.all([
+    writeTimeoutLog(match.match_id, playerId, nextState),
+    timeoutScheduling
+  ]);
 }
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
-  const batchItemFailures: SQSBatchResponse["batchItemFailures"] = [];
-
-  for (const record of event.Records ?? []) {
+  // Most records in an active match are intentionally stale because every
+  // accepted action creates a new timer token. Process a received batch in
+  // parallel so stale records from many matches cannot form a serial backlog.
+  const outcomes = await Promise.all((event.Records ?? []).map(async (record) => {
     try {
       await processRecord(record);
+      return undefined;
     } catch (error) {
       console.error("Turn-timeout message failed:", {
         messageId: record.messageId,
         error
       });
-      batchItemFailures.push({ itemIdentifier: record.messageId });
+      return { itemIdentifier: record.messageId };
     }
-  }
+  }));
 
-  return { batchItemFailures };
+  return {
+    batchItemFailures: outcomes.filter(
+      (failure): failure is { itemIdentifier: string } => Boolean(failure)
+    )
+  };
 };

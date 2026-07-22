@@ -4,7 +4,7 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
-import { applyAction } from "../game/core/engine";
+import { applyAuthoritativeAction } from "../game/core/authoritativeAction";
 import type { GameAction, GameState, PlayerId } from "../game/types";
 import { enqueueTurnTimeout } from "./turnTimeoutQueue";
 
@@ -81,9 +81,9 @@ export const handler = async (event: any) => {
       return { statusCode: 403, body: "Action player mismatch." };
     }
 
-    if (action.type === "TIME_OUT") {
-      await sendError(wsClient, connectionId, "Timeouts are processed by the server.");
-      return { statusCode: 400, body: "TIME_OUT is a server-only action." };
+    if (action.type === "TIME_OUT" || action.type === "RESOLVE_COMBAT") {
+      await sendError(wsClient, connectionId, "This action is processed by the server.");
+      return { statusCode: 400, body: `${action.type} is a server-only action.` };
     }
 
     // A late action must not overwrite the timeout transition. Surrender is
@@ -95,7 +95,7 @@ export const handler = async (event: any) => {
 
     let nextState: GameState;
     try {
-      nextState = applyAction(match.engine_state, action);
+      nextState = applyAuthoritativeAction(match.engine_state, action);
     } catch (error: any) {
       await sendError(wsClient, connectionId, error?.message || "Invalid game action.");
       return { statusCode: 400, body: error?.message || "Invalid game action." };
@@ -104,15 +104,16 @@ export const handler = async (event: any) => {
     const finished = Boolean(nextState.winnerId);
     const currentVersion = match.state_version ?? 0;
     const nextVersion = currentVersion + 1;
-
-    // Register the next deadline before committing the state. If this send
-    // succeeds but the conditional write loses a race, the message is harmless
-    // because its state token will not match the authoritative DynamoDB item.
-    await enqueueTurnTimeout({
+    const timeoutScheduling = enqueueTurnTimeout({
       matchId,
       state: nextState,
       stateVersion: nextVersion
-    });
+    }).then(
+      () => undefined,
+      (error) => {
+        console.error("Could not schedule the next turn timeout:", error);
+      }
+    );
 
     try {
       await dynamoDb.send(new UpdateCommand({
@@ -142,12 +143,23 @@ export const handler = async (event: any) => {
       }));
     } catch (error: any) {
       if (error?.name !== "ConditionalCheckFailedException") throw error;
+      await timeoutScheduling;
       await sendError(wsClient, connectionId, "Game state changed. Please use the latest state.");
       return { statusCode: 409, body: "Game state changed." };
     }
 
-    await writeActionLog(matchId, senderPlayerId, action);
+    // Publish the committed state before non-critical logging/timeout work so
+    // combat feedback never waits on an SQS network call. The Lambda still
+    // awaits scheduling before returning, preventing the runtime from freezing
+    // an unfinished send.
     await publishState(wsClient, match, nextState);
+    const [logResult] = await Promise.allSettled([
+      writeActionLog(matchId, senderPlayerId, action),
+      timeoutScheduling
+    ]);
+    if (logResult.status === "rejected") {
+      console.error("Could not write game action log:", logResult.reason);
+    }
     return { statusCode: 200, body: "Success." };
   } catch (error: any) {
     console.error("ProcessGameEngine Error:", error);

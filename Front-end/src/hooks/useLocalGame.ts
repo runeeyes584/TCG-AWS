@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
+import { buildDeckFromCardIds, buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { applyAction, createInitialGameState } from "@backend/game/core/engine";
 import {
   GameAction,
@@ -20,12 +20,13 @@ export type TrialCommand = "ADD_MANA" | "MAX_MANA" | "READY_ATTACK";
 
 interface LocalGameOptions {
   trialMode?: boolean;
+  playerDeckCardIds?: string[];
 }
 
-export function useLocalGame({ trialMode = false }: LocalGameOptions = {}) {
+export function useLocalGame({ trialMode = false, playerDeckCardIds }: LocalGameOptions = {}) {
   const initialState = useMemo(
-    () => createLocalState(trialMode),
-    [trialMode]
+    () => createLocalState(trialMode, playerDeckCardIds),
+    [playerDeckCardIds, trialMode]
   );
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [actionLog, setActionLog] = useState<LogEntry[]>([
@@ -74,7 +75,7 @@ export function useLocalGame({ trialMode = false }: LocalGameOptions = {}) {
   }
 
   function resetGame() {
-    setGameState(createLocalState(trialMode));
+    setGameState(createLocalState(trialMode, playerDeckCardIds));
     setActionLog([{ id: Date.now(), message: trialMode ? "Trial reset." : "New local battle created." }]);
   }
 
@@ -160,8 +161,11 @@ export function useLocalGame({ trialMode = false }: LocalGameOptions = {}) {
 
 const buildDeck = buildDefaultDeck;
 
-function createLocalState(trialMode: boolean) {
-  const state = createInitialGameState(buildDeck("P1"), buildDeck("P2"), Date.now());
+function createLocalState(trialMode: boolean, playerDeckCardIds?: string[]) {
+  const playerDeck = playerDeckCardIds?.length
+    ? buildDeckFromCardIds(playerDeckCardIds, "P1", "trial")
+    : buildDeck("P1");
+  const state = createInitialGameState(playerDeck, buildDeck("P2"), Date.now());
   return trialMode
     ? applyAction(state, { type: "START_GAME", firstPlayerId: "P1" })
     : state;

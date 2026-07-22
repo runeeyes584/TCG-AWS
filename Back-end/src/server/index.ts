@@ -1,7 +1,9 @@
 import { createServer } from "node:http";
 import { Server, Socket } from "socket.io";
-import { buildDefaultDeck } from "../game/entities/defaultDeck";
+import { buildDeckFromCardIds, buildDefaultDeck } from "../game/entities/defaultDeck";
 import { applyAction, createInitialGameState } from "../game/core/engine";
+import { applyAuthoritativeAction } from "../game/core/authoritativeAction";
+import { validateDeck } from "../game/rules/deckRules";
 import { MAX_MANA, MAX_SPELL_MANA } from "../game/rules/gameRules";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
 import { MatchmakingService } from "../matchmaking/matchmaking.service";
@@ -18,9 +20,10 @@ import authRoutes from "../auth/auth.routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { verifyToken } from "@backend/auth/verifyToken";
-import { getUserById, recordMatchResult } from "@backend/user/user.repository";
+import { getUserById, listUserDecks, recordMatchResult, saveUserDeck } from "@backend/user/user.repository";
 import { OnlinePlayerManager } from "@backend/matchmaking/onlinePlayers";
 import { authenticate } from "@backend/auth/auth.middleware";
+import { validateSaveDeckPayload } from "@backend/decks/deck.types";
 
 interface RoomPlayer {
   socketId: string;
@@ -28,6 +31,8 @@ interface RoomPlayer {
   playerId: PlayerId;
   connected: boolean;
   profile: MatchPlayerProfile;
+  selectedDeckId?: string;
+  selectedDeckCardIds?: string[];
 }
 
 interface Room {
@@ -83,6 +88,49 @@ expressApp.use(express.json());
 expressApp.use(cookieParser());
 
 expressApp.use("/auth", authRoutes);
+
+expressApp.post("/decks", authenticate, async (req, res) => {
+  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
+  if (typeof userId !== "string") {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  const validation = validateSaveDeckPayload(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({
+      success: false,
+      message: validation.message,
+      errors: validation.errors,
+    });
+  }
+
+  try {
+    const deck = await saveUserDeck(userId, validation.payload);
+    return res.json({ success: true, message: "Deck saved successfully.", deck });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Could not save deck.",
+    });
+  }
+});
+
+expressApp.get("/decks", authenticate, async (req, res) => {
+  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
+  if (typeof userId !== "string") {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+  try {
+    const decks = await listUserDecks(userId);
+    return res.json({ success: true, decks });
+  } catch (error) {
+    const notFound = error instanceof Error && error.message === "User not found";
+    return res.status(notFound ? 404 : 500).json({
+      success: false,
+      message: notFound ? "User profile not found." : "Could not load decks."
+    });
+  }
+});
 
 expressApp.get("/matches/pending", authenticate, (req, res) => {
   const userId = (req as { user?: { sub?: unknown } }).user?.sub;
@@ -188,17 +236,29 @@ io.use(async (socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  socket.on("room:create", (ack) => {
-    const room = createRoom();
-    attachPlayer(socket, room, "P1");
-    ack({ ok: true, roomCode: room.code, playerId: "P1" });
-    broadcastRoom(room);
+  socket.on("room:create", async (selection, ack) => {
+    try {
+      await setSocketDeckSelection(socket, selection);
+      const room = createRoom();
+      attachPlayer(socket, room, "P1");
+      ack({ ok: true, roomCode: room.code, playerId: "P1" });
+      broadcastRoom(room);
+    } catch (error) {
+      ack({ ok: false, error: error instanceof Error ? error.message : "Invalid deck selection." });
+    }
   });
 
-  socket.on("matchmaking:start", () => {
+  socket.on("matchmaking:start", async (selection) => {
     const pendingRoom = findPendingRoomForUser(getSocketUserId(socket));
     if (pendingRoom) {
       socket.emit("game:error", "Resume or forfeit your current match before finding a new one.");
+      return;
+    }
+
+    try {
+      await setSocketDeckSelection(socket, selection);
+    } catch (error) {
+      socket.emit("game:error", error instanceof Error ? error.message : "Invalid deck selection.");
       return;
     }
 
@@ -236,7 +296,7 @@ io.on("connection", (socket) => {
     MatchmakingService.remove(socket.id);
   });
 
-  socket.on("room:join", (roomCode, ack) => {
+  socket.on("room:join", async (roomCode, selection, ack) => {
     const normalizedCode = typeof roomCode === "string"
       ? roomCode.trim().toUpperCase()
       : "";
@@ -249,6 +309,13 @@ io.on("connection", (socket) => {
     const room = rooms.get(normalizedCode);
     if (!room) {
       ack({ ok: false, error: "Room not found." });
+      return;
+    }
+
+    try {
+      await setSocketDeckSelection(socket, selection);
+    } catch (error) {
+      ack({ ok: false, error: error instanceof Error ? error.message : "Invalid deck selection." });
       return;
     }
 
@@ -302,7 +369,7 @@ io.on("connection", (socket) => {
     }
 
     try {
-      room.state = applyAction(room.state, action);
+      room.state = applyAuthoritativeAction(room.state, action);
       appendActionLog(room, action);
       await settleRoomResult(room);
       ack?.({ ok: true });
@@ -431,6 +498,11 @@ function startRoomGame(room: Room, message: string): void {
     return;
   }
 
+  room.state = createInitialGameState(
+    buildRoomPlayerDeck(room, "P1"),
+    buildRoomPlayerDeck(room, "P2"),
+    Date.now()
+  );
   room.state = applyAction(room.state, { type: "START_GAME", firstPlayerId: "P1" });
   room.log.unshift({ id: Date.now(), message });
   refreshTimer(room);
@@ -452,10 +524,41 @@ function attachPlayer(socket: GameSocket, room: Room, playerId: PlayerId) {
     userId: getSocketUserId(socket),
     playerId,
     connected: true,
-    profile: profile ?? { username: "Unknown player", elo: 0 }
+    profile: profile ?? { username: "Unknown player", elo: 0 },
+    selectedDeckId: socket.data.selectedDeckId as string | undefined,
+    selectedDeckCardIds: socket.data.selectedDeckCardIds as string[] | undefined
   });
   socketRooms.set(socket.id, room.code);
   socket.join(room.code);
+}
+
+function buildRoomPlayerDeck(room: Room, playerId: PlayerId) {
+  const cardIds = room.players.find((player) => player.playerId === playerId)?.selectedDeckCardIds;
+  if (!cardIds || !validateDeck(cardIds).valid) {
+    return buildDefaultDeck(playerId);
+  }
+
+  return buildDeckFromCardIds(cardIds, playerId);
+}
+
+async function setSocketDeckSelection(
+  socket: GameSocket,
+  selection: { deckId?: string; cardIds?: string[] } | undefined
+): Promise<void> {
+  const deckId = typeof selection?.deckId === "string" ? selection.deckId.trim() : "";
+  if (!deckId || deckId === "kaleidoscope-starter") {
+    socket.data.selectedDeckId = undefined;
+    socket.data.selectedDeckCardIds = undefined;
+    return;
+  }
+
+  const user = await getUserById(getSocketUserId(socket));
+  const savedDeck = user?.decks?.[deckId];
+  if (!savedDeck) throw new Error("The selected deck is not saved to this account.");
+  const validation = validateDeck(savedDeck.cardIds);
+  if (!validation.valid) throw new Error("The selected saved deck is no longer valid.");
+  socket.data.selectedDeckId = deckId;
+  socket.data.selectedDeckCardIds = [...savedDeck.cardIds];
 }
 
 function getSocketUserId(socket: GameSocket): string {
@@ -645,6 +748,10 @@ function canSubmitAction(playerId: PlayerId, action: GameAction) {
 
   if (action.type === "START_GAME") {
     return playerId === "P1";
+  }
+
+  if (action.type === "TIME_OUT" || action.type === "RESOLVE_COMBAT") {
+    return false;
   }
 
   return true;

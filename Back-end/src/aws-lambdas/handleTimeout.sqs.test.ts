@@ -127,4 +127,61 @@ describe("handleTimeout SQS consumer", () => {
     expect(mocks.dynamoSend).toHaveBeenCalledTimes(1);
     expect(mocks.sqsSend).not.toHaveBeenCalled();
   });
+
+  it("resolves a stranded combat phase when the priority player times out", async () => {
+    const state = dueState();
+    state.phase = "COMBAT";
+    const match: MatchRecord = {
+      match_id: "match-combat",
+      status: "IN_PROGRESS",
+      state_version: 4,
+      engine_state: state
+    };
+    mocks.dynamoSend.mockImplementation(async (command: unknown) => {
+      if (command instanceof GetCommand) return { Item: match };
+      if (command instanceof UpdateCommand || command instanceof PutCommand) return {};
+      throw new Error("Unexpected DynamoDB command.");
+    });
+
+    const result = await handler(sqsEvent(match, 4));
+
+    expect(result.batchItemFailures).toEqual([]);
+    const update = mocks.dynamoSend.mock.calls
+      .map(([command]) => command)
+      .find((command) => command instanceof UpdateCommand) as UpdateCommand;
+    const nextState = update.input.ExpressionAttributeValues?.[":state"] as GameState;
+    expect(nextState.phase).toBe("ACTION");
+    expect(nextState.combat.attackers).toEqual([]);
+  });
+
+  it("commits and broadcasts a due timeout while the next SQS send is pending", async () => {
+    const match: MatchRecord = {
+      match_id: "match-slow-sqs",
+      status: "IN_PROGRESS",
+      state_version: 8,
+      engine_state: dueState(),
+      player_1: { connection_id: "connection-p1", connected: true },
+      player_2: { connection_id: "connection-p2", connected: true }
+    };
+    let releaseSqs!: () => void;
+    mocks.sqsSend.mockImplementation(() => new Promise<void>((resolve) => {
+      releaseSqs = resolve;
+    }));
+    mocks.dynamoSend.mockImplementation(async (command: unknown) => {
+      if (command instanceof GetCommand) return { Item: match };
+      if (command instanceof UpdateCommand || command instanceof PutCommand) return {};
+      throw new Error("Unexpected DynamoDB command.");
+    });
+
+    const invocation = handler(sqsEvent(match, 8));
+
+    await vi.waitFor(() => expect(mocks.websocketSend).toHaveBeenCalledTimes(2));
+    const update = mocks.dynamoSend.mock.calls
+      .map(([command]) => command)
+      .find((command) => command instanceof UpdateCommand);
+    expect(update).toBeDefined();
+
+    releaseSqs();
+    await expect(invocation).resolves.toEqual({ batchItemFailures: [] });
+  });
 });

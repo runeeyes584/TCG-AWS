@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle, Eye, EyeOff, KeyRound, LockKeyhole, MailCheck } from "lucide-react";
 import { resetPassword } from "../../libs/api";
+import { AuthShell } from "../../components/auth/AuthShell";
 
 export function ResetPasswordForm() {
     const router = useRouter();
@@ -10,92 +13,115 @@ export function ResetPasswordForm() {
     const email = searchParams.get("email") ?? "";
     const [code, setCode] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
 
-    const submit = async () => {
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError("");
         const normalizedCode = code.trim();
 
-        if (!normalizedCode || !password) {
-            alert("Vui lòng nhập đầy đủ thông tin.");
+        if (!email) {
+            setError("Không tìm thấy email cần đặt lại mật khẩu.");
+            return;
+        }
+
+        if (!normalizedCode || !password || !confirmPassword) {
+            setError("Vui lòng nhập đầy đủ thông tin.");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Mật khẩu xác nhận chưa trùng khớp.");
             return;
         }
 
         try {
             setLoading(true);
 
-            const result = await resetPassword(email, normalizedCode, password);
-
-            alert(result.message || "Password changed successfully.");
+            await resetPassword(email, normalizedCode, password);
 
             router.push("/login");
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 flex items-center justify-center px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800">
-                        Reset Password
-                    </h1>
-
-                    <p className="mt-2 text-gray-500 break-all">
-                        {email}
-                    </p>
+        <AuthShell
+            eyebrow="Secure recovery"
+            title={<>Restore your <em>Access</em></>}
+            description="Xác nhận mã bảo mật và thiết lập mật khẩu mới cho tài khoản."
+            footer={<>Không cần đặt lại nữa? <Link href="/login">Return to sign in</Link></>}
+        >
+            <form className="auth-form" onSubmit={submit} noValidate>
+                <div className="auth-destination">
+                    <MailCheck size={17} aria-hidden="true" />
+                    <span>Recovering account</span>
+                    <strong title={email}>{email || "No email supplied"}</strong>
                 </div>
 
-                <div className="space-y-5">
-                    <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700">
-                            Verification Code
-                        </label>
-
+                <label className="auth-field">
+                    <span>Verification code</span>
+                    <div className="auth-input auth-input--otp">
                         <input
                             type="text"
                             inputMode="numeric"
                             autoComplete="one-time-code"
                             maxLength={6}
+                            placeholder="000000"
                             value={code}
-                            onChange={(e) => setCode(e.target.value.trim())}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-center tracking-[0.3em] uppercase text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))}
+                            autoFocus
+                            required
                         />
                     </div>
+                </label>
 
-                    <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700">
-                            New Password
-                        </label>
-
+                <label className="auth-field">
+                    <span>New password</span>
+                    <div className="auth-input">
+                        <LockKeyhole size={17} aria-hidden="true" />
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Create a new password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            autoComplete="new-password"
+                            required
+                        />
+                        <button type="button" className="auth-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide passwords" : "Show passwords"}>
+                            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                        </button>
+                    </div>
+                </label>
+
+                <label className="auth-field">
+                    <span>Confirm new password</span>
+                    <div className="auth-input">
+                        <LockKeyhole size={17} aria-hidden="true" />
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Repeat your new password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            autoComplete="new-password"
+                            required
                         />
                     </div>
+                </label>
 
-                    <button
-                        onClick={submit}
-                        disabled={loading}
-                        className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300"
-                    >
-                        {loading ? "Resetting..." : "Reset Password"}
-                    </button>
-                </div>
+                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
 
-                <div className="mt-6 text-center">
-                    <button
-                        onClick={() => router.push("/login")}
-                        className="text-sm font-medium text-blue-600 hover:underline"
-                    >
-                        ← Quay lại đăng nhập
-                    </button>
-                </div>
-            </div>
-        </div>
+                <button type="submit" disabled={loading} className="auth-submit">
+                    <KeyRound size={18} />
+                    <span>{loading ? "Updating credentials..." : "Set new password"}</span>
+                </button>
+            </form>
+        </AuthShell>
     );
 }

@@ -38754,7 +38754,8 @@ var startMatch_exports = {};
 __export(startMatch_exports, {
   handler: () => handler,
   isPublicMatch: () => isPublicMatch,
-  normalizeRoomCode: () => normalizeRoomCode
+  normalizeRoomCode: () => normalizeRoomCode,
+  resolveDeckSelection: () => resolveDeckSelection
 });
 module.exports = __toCommonJS(startMatch_exports);
 var import_node_crypto6 = require("node:crypto");
@@ -45771,27 +45772,91 @@ var sampleAbilityCards = sampleDeckCards.filter(
 );
 
 // Back-end/src/game/entities/defaultDeck.ts
+var DEFAULT_DECK_SIZE = 30;
+var DEFAULT_CHAMPION_COUNT = 6;
+function getDefaultDeckCardIds() {
+  const playableCards = sampleDeckCards.filter((card) => card.collectible !== false && card.level !== 2).sort((a6, b6) => a6.cost - b6.cost || a6.name.localeCompare(b6.name));
+  const champions = playableCards.filter((card) => card.type === "champion").slice(0, DEFAULT_CHAMPION_COUNT);
+  const mainCards = playableCards.filter((card) => card.type !== "champion").slice(0, DEFAULT_DECK_SIZE - champions.length);
+  return [...mainCards, ...champions].slice(0, DEFAULT_DECK_SIZE).map((card) => card.id);
+}
 function buildDefaultDeck(playerId) {
-  return buildSampleLocalDeck().map(
-    (definition, index) => createCardInstance(definition, playerId, `${playerId}-${definition.id}-${index}`)
+  return buildDeckFromCardIds(getDefaultDeckCardIds(), playerId, "starter");
+}
+function buildDeckFromCardIds(cardIds, playerId, instancePrefix = "selected") {
+  return cardIds.map(
+    (cardId, index) => createCardInstance(cardId, playerId, `${playerId}-${instancePrefix}-${cardId}-${index}`)
   );
 }
-function buildSampleLocalDeck() {
-  const deck = [];
-  const allCards = sampleDeckCards.filter((card) => card.level !== 2);
-  for (const card of allCards) {
-    deck.push(card);
+
+// Back-end/src/game/rules/deckRules.ts
+var DEFAULT_DECK_RULES = {
+  deckSize: 30,
+  maxCopiesPerCard: 3,
+  maxChampionCards: 6,
+  allowLevel2ChampionsInDeck: false
+};
+function validateDeck(cardIds, rules = {}) {
+  const resolvedRules = { ...DEFAULT_DECK_RULES, ...rules };
+  const errors = [];
+  if (cardIds.length !== resolvedRules.deckSize) {
+    errors.push({
+      code: "DECK_SIZE_INVALID",
+      message: `Deck must contain exactly ${resolvedRules.deckSize} cards.`
+    });
   }
-  const targetDeckSize = 24;
-  while (deck.length < targetDeckSize) {
-    const randomCard = allCards[Math.floor(Math.random() * allCards.length)];
-    deck.push(randomCard);
+  const counts = /* @__PURE__ */ new Map();
+  for (const cardId of cardIds) {
+    counts.set(cardId, (counts.get(cardId) ?? 0) + 1);
   }
-  for (let i6 = deck.length - 1; i6 > 0; i6--) {
-    const j6 = Math.floor(Math.random() * (i6 + 1));
-    [deck[i6], deck[j6]] = [deck[j6], deck[i6]];
+  for (const [cardId, count] of counts) {
+    if (!hasCard(cardId)) {
+      errors.push({
+        code: "CARD_NOT_FOUND",
+        message: `Card not found: ${cardId}`,
+        cardId
+      });
+      continue;
+    }
+    if (count > resolvedRules.maxCopiesPerCard) {
+      errors.push({
+        code: "TOO_MANY_COPIES",
+        message: `Too many copies of ${cardId}: ${count}/${resolvedRules.maxCopiesPerCard}.`,
+        cardId
+      });
+    }
+    const definition = getCardDefinition(cardId);
+    if (definition.type !== "unit" && definition.type !== "spell" && definition.type !== "champion") {
+      errors.push({
+        code: "INVALID_CARD_TYPE",
+        message: `Invalid card type for ${cardId}: ${definition.type}`,
+        cardId
+      });
+    }
+    if (isChampionCard(definition) && definition.level === 2 && !resolvedRules.allowLevel2ChampionsInDeck) {
+      errors.push({
+        code: "LEVEL_2_CHAMPION_NOT_ALLOWED",
+        message: `Level 2 champion cards are not allowed in decks: ${cardId}.`,
+        cardId
+      });
+    }
   }
-  return deck.slice(0, targetDeckSize);
+  const championCount = cardIds.reduce((total, cardId) => {
+    if (!hasCard(cardId)) {
+      return total;
+    }
+    return total + (isChampionCard(getCardDefinition(cardId)) ? 1 : 0);
+  }, 0);
+  if (championCount > resolvedRules.maxChampionCards) {
+    errors.push({
+      code: "TOO_MANY_CHAMPIONS",
+      message: `Too many champion cards: ${championCount}/${resolvedRules.maxChampionCards}.`
+    });
+  }
+  return {
+    valid: errors.length === 0,
+    errors
+  };
 }
 
 // Back-end/src/aws-lambdas/turnTimeoutQueue.ts
@@ -46036,7 +46101,7 @@ async function createPublicWaitingMatch(input) {
   const now = Date.now();
   const matchId = `MATCH_${now}_${(0, import_node_crypto6.randomUUID)()}`;
   const initialEngineState = createInitialGameState(
-    buildDefaultDeck("P1"),
+    buildSelectedDeck(input.deckSelection, "P1"),
     buildDefaultDeck("P2"),
     now
   );
@@ -46050,7 +46115,9 @@ async function createPublicWaitingMatch(input) {
       username: input.username,
       player_id: "P1",
       elo: input.elo,
-      connected: true
+      connected: true,
+      selected_deck_id: input.deckSelection?.deckId,
+      selected_deck_card_ids: input.deckSelection?.cardIds
     },
     player_2: null,
     state_version: 0,
@@ -46099,7 +46166,18 @@ async function createPublicWaitingMatch(input) {
   return matchId;
 }
 async function claimMatch(match, player2, player1Elo, expectedType) {
-  const updatedEngineState = applyAction(match.engine_state, {
+  const baseEngineState = createInitialGameState(
+    buildSelectedDeck({
+      deckId: match.player_1.selected_deck_id,
+      cardIds: match.player_1.selected_deck_card_ids
+    }, "P1"),
+    buildSelectedDeck({
+      deckId: player2.selected_deck_id,
+      cardIds: player2.selected_deck_card_ids
+    }, "P2"),
+    Date.now()
+  );
+  const updatedEngineState = applyAction(baseEngineState, {
     type: "START_GAME",
     firstPlayerId: "P1"
   });
@@ -46151,7 +46229,7 @@ async function sendRoomCreated(wsClient, match) {
 async function createPrivateRoom(input) {
   const now = Date.now();
   const initialEngineState = createInitialGameState(
-    buildDefaultDeck("P1"),
+    buildSelectedDeck(input.deckSelection, "P1"),
     buildDefaultDeck("P2"),
     now
   );
@@ -46168,7 +46246,9 @@ async function createPrivateRoom(input) {
         username: input.username,
         player_id: "P1",
         elo: input.elo,
-        connected: true
+        connected: true,
+        selected_deck_id: input.deckSelection?.deckId,
+        selected_deck_card_ids: input.deckSelection?.cardIds
       },
       player_2: null,
       state_version: 0,
@@ -46304,7 +46384,9 @@ async function joinPrivateRoom(input) {
     username: input.username,
     player_id: "P2",
     elo: input.elo,
-    connected: true
+    connected: true,
+    selected_deck_id: input.deckSelection?.deckId,
+    selected_deck_card_ids: input.deckSelection?.cardIds
   };
   const updatedEngineState = await claimMatch(match, player2, match.player_1.elo, "PRIVATE");
   if (!updatedEngineState) {
@@ -46453,6 +46535,7 @@ var handler = async (event) => {
         await removeConnectionMatch(connectionId, existingMatchId);
       }
     }
+    const deckSelection = await resolveDeckSelection(userId, body.deckSelection);
     const playerElo = await loadElo(userId);
     console.info("Matchmaking player loaded", { connectionId, userId, playerElo });
     if (route === "room-create") {
@@ -46461,6 +46544,7 @@ var handler = async (event) => {
         userId,
         username,
         elo: playerElo,
+        deckSelection,
         wsClient
       });
       return { statusCode: 200, body: `Private room ${roomCode} created.` };
@@ -46479,6 +46563,7 @@ var handler = async (event) => {
         userId,
         username,
         elo: playerElo,
+        deckSelection,
         wsClient
       });
       return { statusCode: 200, body: `Joined private room ${roomCode}.` };
@@ -46544,7 +46629,9 @@ var handler = async (event) => {
         username,
         player_id: "P2",
         elo: playerElo,
-        connected: true
+        connected: true,
+        selected_deck_id: deckSelection?.deckId,
+        selected_deck_card_ids: deckSelection?.cardIds
       };
       const updatedEngineState = await claimMatch(
         pendingMatch,
@@ -46607,6 +46694,7 @@ var handler = async (event) => {
       userId,
       username,
       elo: playerElo,
+      deckSelection,
       wsClient
     });
     return { statusCode: 200, body: `Waiting for opponent in ${matchId}.` };
@@ -46645,9 +46733,41 @@ function redactStateForPlayer(state2, viewerId) {
   }));
   return visibleState;
 }
+async function resolveDeckSelection(userId, value) {
+  if (!value || typeof value !== "object") return void 0;
+  const requestedDeckId = value.deckId;
+  const deckId = typeof requestedDeckId === "string" ? requestedDeckId.trim() : "";
+  if (!deckId) return void 0;
+  if (!/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
+    throw new RequestError(400, "Selected deck ID is invalid.");
+  }
+  if (deckId === "kaleidoscope-starter") {
+    return { deckId, cardIds: getDefaultDeckCardIds() };
+  }
+  const profile = await dynamoDb.send(new import_lib_dynamodb2.GetCommand({
+    TableName: userProfileTable,
+    Key: { user_id: userId },
+    ProjectionExpression: "#decks.#deckId",
+    ExpressionAttributeNames: { "#decks": "decks", "#deckId": deckId },
+    ConsistentRead: true
+  }));
+  const savedDeck = profile.Item?.decks?.[deckId];
+  if (!savedDeck || !Array.isArray(savedDeck.cardIds)) {
+    throw new RequestError(400, "The selected deck is not saved to this account.");
+  }
+  const validation = validateDeck(savedDeck.cardIds);
+  if (!validation.valid) {
+    throw new RequestError(400, "The selected saved deck is no longer valid.");
+  }
+  return { deckId, cardIds: [...savedDeck.cardIds] };
+}
+function buildSelectedDeck(selection, playerId) {
+  return selection?.cardIds && validateDeck(selection.cardIds).valid ? buildDeckFromCardIds(selection.cardIds, playerId, selection.deckId || "selected") : buildDefaultDeck(playerId);
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   handler,
   isPublicMatch,
-  normalizeRoomCode
+  normalizeRoomCode,
+  resolveDeckSelection
 });
