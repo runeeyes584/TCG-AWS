@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle, BadgeCheck, MailCheck } from "lucide-react";
 import { verify } from "../../libs/api";
+import { AuthShell } from "../../components/auth/AuthShell";
 
 export function VerifyForm() {
     const searchParams = useSearchParams();
@@ -12,87 +15,76 @@ export function VerifyForm() {
 
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    const submit = async () => {
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError("");
         const normalizedCode = code.trim();
 
+        if (!email) {
+            setError("Không tìm thấy email cần xác thực. Vui lòng đăng ký lại.");
+            return;
+        }
+
         if (!normalizedCode) {
-            alert("Vui lòng nhập mã xác thực.");
+            setError("Vui lòng nhập mã xác thực.");
             return;
         }
 
         try {
             setLoading(true);
 
-            const result = await verify(email, normalizedCode);
-
-            alert(result.message || "Verified successfully!");
+            await verify(email, normalizedCode);
 
             router.push("/login");
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Không thể xác thực tài khoản. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-8">
-                <div className="text-center mb-8">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-                        <span className="text-3xl">📧</span>
-                    </div>
-
-                    <h1 className="text-3xl font-bold text-gray-800">
-                        Verify Account
-                    </h1>
-
-                    <p className="mt-2 text-black">
-                        Nhập mã xác thực đã được gửi tới
-                    </p>
-
-                    <p className="mt-1 break-all font-semibold text-blue-600">
-                        {email}
-                    </p>
+        <AuthShell
+            eyebrow="Identity verification"
+            title={<>Activate your <em>Profile</em></>}
+            description="Nhập mã OTP để hoàn tất kết nối tài khoản với Prism Network."
+            footer={<>Sai địa chỉ email? <Link href="/register">Register again</Link></>}
+        >
+            <form className="auth-form" onSubmit={submit} noValidate>
+                <div className="auth-destination">
+                    <MailCheck size={17} aria-hidden="true" />
+                    <span>Verification code sent to</span>
+                    <strong title={email}>{email || "No email supplied"}</strong>
                 </div>
 
-                <div className="space-y-5">
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                            Verification Code
-                        </label>
-
+                <label className="auth-field">
+                    <span>6-digit verification code</span>
+                    <div className="auth-input auth-input--otp">
                         <input
                             type="text"
                             inputMode="numeric"
                             autoComplete="one-time-code"
                             maxLength={6}
-                            placeholder=""
+                            placeholder="000000"
                             value={code}
-                            onChange={(e) => setCode(e.target.value.trim())}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-lg tracking-[0.3em] uppercase text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))}
+                            autoFocus
+                            required
                         />
                     </div>
+                </label>
 
-                    <button
-                        onClick={submit}
-                        disabled={loading}
-                        className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-blue-300"
-                    >
-                        {loading ? "Verifying..." : "Verify Account"}
-                    </button>
-                </div>
+                <p className="auth-form__hint">Check your inbox and spam folder if the message has not arrived.</p>
 
-                <div className="mt-6 border-t pt-6 text-center">
-                    <button
-                        onClick={() => router.push("/login")}
-                        className="text-sm font-semibold text-blue-600 hover:underline"
-                    >
-                        ← Quay lại đăng nhập
-                    </button>
-                </div>
-            </div>
-        </main>
+                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+
+                <button type="submit" disabled={loading} className="auth-submit">
+                    <BadgeCheck size={18} />
+                    <span>{loading ? "Verifying identity..." : "Verify account"}</span>
+                </button>
+            </form>
+        </AuthShell>
     );
 }

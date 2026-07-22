@@ -1352,6 +1352,16 @@ function handleTimeout(state: GameState, playerId: PlayerId): GameState {
     playerId,
     afkCount: player.consecutiveAfkCount
   });
+
+  // A defender timing out must not strand the match between block commit and
+  // damage resolution. Complete combat deterministically before the next
+  // player receives priority.
+  if (next.phase === "BLOCK") {
+    return resolveCombat(commitBlocks(next, playerId));
+  }
+  if (next.phase === "COMBAT") {
+    return resolveCombat(next);
+  }
   return endTurn(next, playerId);
 }
 

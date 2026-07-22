@@ -50,7 +50,7 @@ describe("API Gateway private-room socket routes", () => {
     const socket = FakeWebSocket.latest!;
     socket.open();
 
-    socketManager.createRoom(() => undefined);
+    socketManager.createRoom(undefined, () => undefined);
 
     expect(JSON.parse(socket.sent[0])).toEqual({ route: "room-create" });
   });
@@ -60,7 +60,7 @@ describe("API Gateway private-room socket routes", () => {
     const socket = FakeWebSocket.latest!;
     socket.open();
 
-    socketManager.joinRoom("ABC2D3", () => undefined);
+    socketManager.joinRoom("ABC2D3", undefined, () => undefined);
 
     expect(JSON.parse(socket.sent[0])).toEqual({ route: "room-join", roomCode: "ABC2D3" });
   });

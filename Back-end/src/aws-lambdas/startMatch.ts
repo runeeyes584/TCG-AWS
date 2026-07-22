@@ -13,8 +13,14 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { dynamoDb } from "../config/dynamodb";
 import { createInitialGameState, applyAction } from "../game/core/engine";
-import { buildDefaultDeck } from "../game/entities/defaultDeck";
+import {
+  buildDeckFromCardIds,
+  buildDefaultDeck,
+  getDefaultDeckCardIds
+} from "../game/entities/defaultDeck";
+import { validateDeck } from "../game/rules/deckRules";
 import type { GameState, PlayerId } from "../game/types";
+import type { MatchmakingDeckSelection } from "../shared/multiplayer";
 import { enqueueTurnTimeout } from "./turnTimeoutQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
@@ -40,6 +46,8 @@ type PlayerRecord = {
   player_id: PlayerId;
   elo: number;
   connected: boolean;
+  selected_deck_id?: string;
+  selected_deck_card_ids?: string[];
 };
 
 type MatchRecord = {
@@ -275,12 +283,13 @@ async function createPublicWaitingMatch(input: {
   userId: string;
   username: string;
   elo: number;
+  deckSelection?: MatchmakingDeckSelection;
   wsClient: ApiGatewayManagementApiClient;
 }): Promise<string> {
   const now = Date.now();
   const matchId = `MATCH_${now}_${randomUUID()}`;
   const initialEngineState = createInitialGameState(
-    buildDefaultDeck("P1"),
+    buildSelectedDeck(input.deckSelection, "P1"),
     buildDefaultDeck("P2"),
     now
   );
@@ -295,7 +304,9 @@ async function createPublicWaitingMatch(input: {
       username: input.username,
       player_id: "P1",
       elo: input.elo,
-      connected: true
+      connected: true,
+      selected_deck_id: input.deckSelection?.deckId,
+      selected_deck_card_ids: input.deckSelection?.cardIds
     },
     player_2: null,
     state_version: 0,
@@ -355,7 +366,18 @@ async function claimMatch(
   player1Elo: number,
   expectedType: MatchType
 ): Promise<GameState | undefined> {
-  const updatedEngineState = applyAction(match.engine_state, {
+  const baseEngineState = createInitialGameState(
+    buildSelectedDeck({
+      deckId: match.player_1.selected_deck_id,
+      cardIds: match.player_1.selected_deck_card_ids
+    }, "P1"),
+    buildSelectedDeck({
+      deckId: player2.selected_deck_id,
+      cardIds: player2.selected_deck_card_ids
+    }, "P2"),
+    Date.now()
+  );
+  const updatedEngineState = applyAction(baseEngineState, {
     type: "START_GAME",
     firstPlayerId: "P1"
   });
@@ -427,11 +449,12 @@ async function createPrivateRoom(input: {
   userId: string;
   username: string;
   elo: number;
+  deckSelection?: MatchmakingDeckSelection;
   wsClient: ApiGatewayManagementApiClient;
 }): Promise<string> {
   const now = Date.now();
   const initialEngineState = createInitialGameState(
-    buildDefaultDeck("P1"),
+    buildSelectedDeck(input.deckSelection, "P1"),
     buildDefaultDeck("P2"),
     now
   );
@@ -449,7 +472,9 @@ async function createPrivateRoom(input: {
         username: input.username,
         player_id: "P1",
         elo: input.elo,
-        connected: true
+        connected: true,
+        selected_deck_id: input.deckSelection?.deckId,
+        selected_deck_card_ids: input.deckSelection?.cardIds
       },
       player_2: null,
       state_version: 0,
@@ -510,6 +535,7 @@ async function joinPrivateRoom(input: {
   userId: string;
   username: string;
   elo: number;
+  deckSelection?: MatchmakingDeckSelection;
   wsClient: ApiGatewayManagementApiClient;
 }): Promise<void> {
   const result = await dynamoDb.send(new GetCommand({
@@ -611,7 +637,9 @@ async function joinPrivateRoom(input: {
     username: input.username,
     player_id: "P2",
     elo: input.elo,
-    connected: true
+    connected: true,
+    selected_deck_id: input.deckSelection?.deckId,
+    selected_deck_card_ids: input.deckSelection?.cardIds
   };
   const updatedEngineState = await claimMatch(match, player2, match.player_1.elo, "PRIVATE");
   if (!updatedEngineState) {
@@ -782,6 +810,7 @@ export const handler = async (event: any) => {
       }
     }
 
+    const deckSelection = await resolveDeckSelection(userId, body.deckSelection);
     const playerElo = await loadElo(userId);
     console.info("Matchmaking player loaded", { connectionId, userId, playerElo });
 
@@ -791,6 +820,7 @@ export const handler = async (event: any) => {
         userId,
         username,
         elo: playerElo,
+        deckSelection,
         wsClient
       });
       return { statusCode: 200, body: `Private room ${roomCode} created.` };
@@ -810,6 +840,7 @@ export const handler = async (event: any) => {
         userId,
         username,
         elo: playerElo,
+        deckSelection,
         wsClient
       });
       return { statusCode: 200, body: `Joined private room ${roomCode}.` };
@@ -887,7 +918,9 @@ export const handler = async (event: any) => {
         username,
         player_id: "P2",
         elo: playerElo,
-        connected: true
+        connected: true,
+        selected_deck_id: deckSelection?.deckId,
+        selected_deck_card_ids: deckSelection?.cardIds
       };
       const updatedEngineState = await claimMatch(
         pendingMatch,
@@ -958,6 +991,7 @@ export const handler = async (event: any) => {
       userId,
       username,
       elo: playerElo,
+      deckSelection,
       wsClient
     });
     return { statusCode: 200, body: `Waiting for opponent in ${matchId}.` };
@@ -1006,4 +1040,44 @@ function redactStateForPlayer(state: GameState, viewerId: PlayerId): GameState {
   }));
 
   return visibleState;
+}
+
+export async function resolveDeckSelection(
+  userId: string,
+  value: unknown
+): Promise<MatchmakingDeckSelection | undefined> {
+  if (!value || typeof value !== "object") return undefined;
+  const requestedDeckId = (value as MatchmakingDeckSelection).deckId;
+  const deckId = typeof requestedDeckId === "string" ? requestedDeckId.trim() : "";
+  if (!deckId) return undefined;
+  if (!/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
+    throw new RequestError(400, "Selected deck ID is invalid.");
+  }
+
+  if (deckId === "kaleidoscope-starter") {
+    return { deckId, cardIds: getDefaultDeckCardIds() };
+  }
+
+  const profile = await dynamoDb.send(new GetCommand({
+    TableName: userProfileTable,
+    Key: { user_id: userId },
+    ProjectionExpression: "#decks.#deckId",
+    ExpressionAttributeNames: { "#decks": "decks", "#deckId": deckId },
+    ConsistentRead: true
+  }));
+  const savedDeck = profile.Item?.decks?.[deckId];
+  if (!savedDeck || !Array.isArray(savedDeck.cardIds)) {
+    throw new RequestError(400, "The selected deck is not saved to this account.");
+  }
+  const validation = validateDeck(savedDeck.cardIds);
+  if (!validation.valid) {
+    throw new RequestError(400, "The selected saved deck is no longer valid.");
+  }
+  return { deckId, cardIds: [...savedDeck.cardIds] };
+}
+
+function buildSelectedDeck(selection: MatchmakingDeckSelection | undefined, playerId: "P1" | "P2") {
+  return selection?.cardIds && validateDeck(selection.cardIds).valid
+    ? buildDeckFromCardIds(selection.cardIds, playerId, selection.deckId || "selected")
+    : buildDefaultDeck(playerId);
 }

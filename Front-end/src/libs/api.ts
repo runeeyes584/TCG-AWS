@@ -1,4 +1,9 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import type { SaveDeckPayload, SavedDeck } from "@backend/decks/deck.types";
+
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = (
+    configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "")
+).replace(/\/$/, "");
 
 export interface LoginResponse {
     success: boolean;
@@ -35,6 +40,24 @@ export interface PendingMatch {
     status: "WAITING" | "IN_PROGRESS";
 }
 
+export async function saveDeck(payload: SaveDeckPayload): Promise<{
+    success: boolean;
+    message: string;
+    deck: SavedDeck;
+}> {
+    return request(process.env.NEXT_PUBLIC_SAVE_DECK_API_URL || "/decks", {
+        method: "POST",
+        body: JSON.stringify(payload)
+    });
+}
+
+export async function listDecks(): Promise<{
+    success: boolean;
+    decks: SavedDeck[];
+}> {
+    return request("/decks");
+}
+
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
@@ -43,7 +66,11 @@ async function request<T = any>(
         ? undefined
         : window.localStorage.getItem("accessToken");
 
-    const response = await fetch(`${API_URL}${url}`, {
+    const requestUrl = /^https?:\/\//.test(url) ? url : `${API_URL}${url}`;
+    if (!/^https?:\/\//.test(requestUrl)) {
+        throw new Error("NEXT_PUBLIC_API_URL is required outside local development.");
+    }
+    const response = await fetch(requestUrl, {
         credentials: "include",
         headers: {
             "Content-Type": "application/json",

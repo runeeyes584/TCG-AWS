@@ -4,7 +4,7 @@ import { validateDeck } from "./deckRules";
 
 function validThirtyCardDeck(): string[] {
   const legalCards = listCards()
-    .filter((card) => card.type !== "champion")
+    .filter((card) => card.type === "unit" || card.type === "spell")
     .slice(0, 10)
     .map((card) => card.id);
 
@@ -21,7 +21,7 @@ describe("deck validation rules", () => {
 
   it("deck with 29 or 31 cards fails DECK_SIZE_INVALID", () => {
     const twentyNine = validateDeck(validThirtyCardDeck().slice(0, 29));
-    const thirtyOne = validateDeck([...validThirtyCardDeck(), "sparksmith"]);
+    const thirtyOne = validateDeck([...validThirtyCardDeck(), validThirtyCardDeck()[0]]);
 
     expect(twentyNine.errors.map((error) => error.code)).toContain("DECK_SIZE_INVALID");
     expect(thirtyOne.errors.map((error) => error.code)).toContain("DECK_SIZE_INVALID");
@@ -37,17 +37,18 @@ describe("deck validation rules", () => {
   });
 
   it("more than max copies fails TOO_MANY_COPIES", () => {
-    const result = validateDeck(["sparksmith", "sparksmith", "sparksmith", "sparksmith"], {
+    const cardId = validThirtyCardDeck()[0];
+    const result = validateDeck([cardId, cardId, cardId, cardId], {
       deckSize: 4
     });
 
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "TOO_MANY_COPIES", cardId: "sparksmith" })
+      expect.objectContaining({ code: "TOO_MANY_COPIES", cardId })
     );
   });
 
   it("more than max champion cards fails TOO_MANY_CHAMPIONS", () => {
-    const champion = getCardDefinition("kalista-1");
+    const champion = listCards().find((card) => card.type === "champion" && card.level === 1)!;
     const result = validateDeck(Array.from({ length: 7 }, () => champion.id), {
       deckSize: 7,
       maxCopiesPerCard: 10
@@ -57,12 +58,13 @@ describe("deck validation rules", () => {
   });
 
   it("level 2 champion in deck fails LEVEL_2_CHAMPION_NOT_ALLOWED", () => {
-    const result = validateDeck(["kalista-2"], { deckSize: 1 });
+    const champion = listCards().find((card) => card.type === "champion" && card.level === 2)!;
+    const result = validateDeck([champion.id], { deckSize: 1 });
 
     expect(result.errors).toContainEqual(
       expect.objectContaining({
         code: "LEVEL_2_CHAMPION_NOT_ALLOWED",
-        cardId: "kalista-2"
+        cardId: champion.id
       })
     );
   });

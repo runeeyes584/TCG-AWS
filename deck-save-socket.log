@@ -1,0 +1,16 @@
+
+> kaleidoscope-tcg-engine@0.1.0 dev:socket
+> tsx Back-end/src/server/index.ts
+
+◇ injected env (9) from Back-end\.env // tip: ⌘ override existing { override: true }
+Kaleidoscope socket server ready at http://localhost:5000
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
+Player Dat Tran added to online players.
