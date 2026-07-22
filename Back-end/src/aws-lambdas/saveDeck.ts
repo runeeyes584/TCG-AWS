@@ -5,7 +5,7 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { dynamoDb } from "../config/dynamodb";
 import { validateSaveDeckPayload } from "../decks/deck.types";
-import { saveUserDeck } from "../user/user.repository";
+import { listUserDecks, saveUserDeck } from "../user/user.repository";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
@@ -23,11 +23,6 @@ export const handler = async (event: any) => {
     return respond(400, "Malformed JSON body.", wsClient, connectionId);
   }
 
-  const validation = validateSaveDeckPayload(body);
-  if (!validation.valid) {
-    return respond(400, validation.message, wsClient, connectionId, validation.errors);
-  }
-
   let userId: string | undefined;
   try {
     userId = await resolveAuthenticatedUserId(event, connectionId);
@@ -38,6 +33,18 @@ export const handler = async (event: any) => {
   if (!userId) return respond(401, "Unauthorized.", wsClient, connectionId);
 
   try {
+    if (isListRequest(event, body)) {
+      const decks = await listUserDecks(userId);
+      const payload = { success: true, event: "deck:list", decks };
+      if (wsClient && connectionId) await sendWsMessage(wsClient, connectionId, payload);
+      return { statusCode: 200, body: JSON.stringify(payload) };
+    }
+
+    const validation = validateSaveDeckPayload(body);
+    if (!validation.valid) {
+      return respond(400, validation.message, wsClient, connectionId, validation.errors);
+    }
+
     // saveUserDeck writes one deck key inside the authenticated user's real
     // UserProfile item; no client-provided user ID is ever accepted.
     const deck = await saveUserDeck(userId, validation.payload);
@@ -65,6 +72,12 @@ export const handler = async (event: any) => {
     );
   }
 };
+
+function isListRequest(event: any, body: unknown): boolean {
+  const method = String(event.requestContext?.http?.method || event.httpMethod || "").toUpperCase();
+  const action = body && typeof body === "object" ? (body as { action?: unknown }).action : undefined;
+  return method === "GET" || action === "list";
+}
 
 function parseRequestBody(event: any): unknown {
   if (!event.body) return {};

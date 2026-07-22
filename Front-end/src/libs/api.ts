@@ -38,6 +38,8 @@ export interface PlayerProfile {
 export interface PendingMatch {
     roomCode: string;
     status: "WAITING" | "IN_PROGRESS";
+    playerId?: "P1" | "P2";
+    opponentConnected?: boolean;
 }
 
 export async function saveDeck(payload: SaveDeckPayload): Promise<{
@@ -45,6 +47,7 @@ export async function saveDeck(payload: SaveDeckPayload): Promise<{
     message: string;
     deck: SavedDeck;
 }> {
+    await ensureFreshAccessToken();
     return request(process.env.NEXT_PUBLIC_SAVE_DECK_API_URL || "/decks", {
         method: "POST",
         body: JSON.stringify(payload)
@@ -55,6 +58,7 @@ export async function listDecks(): Promise<{
     success: boolean;
     decks: SavedDeck[];
 }> {
+    await ensureFreshAccessToken();
     return request("/decks");
 }
 
@@ -204,11 +208,28 @@ export async function me(): Promise<ApiResponse<PlayerProfile>> {
 }
 
 export async function getPendingMatch(): Promise<{ success: boolean; match: PendingMatch | null }> {
+    await ensureFreshAccessToken();
     return request("/matches/pending");
 }
 
 export async function forfeitPendingMatch(): Promise<{ success: boolean }> {
+    await ensureFreshAccessToken();
     return request("/matches/pending/forfeit", { method: "POST" });
+}
+
+export async function ensureFreshAccessToken(): Promise<string> {
+    const token = typeof window === "undefined"
+        ? undefined
+        : window.localStorage.getItem("accessToken");
+    if (!token) throw new Error("Please sign in again to check your active match.");
+    if (!accessTokenNeedsRefresh(token)) return token;
+
+    const refreshed = await refreshToken();
+    if (!refreshed.accessToken || refreshed.accessToken.split(".").length !== 3) {
+        throw new Error("Your session expired. Please sign in again.");
+    }
+    window.localStorage.setItem("accessToken", refreshed.accessToken);
+    return refreshed.accessToken;
 }
 
 export async function forgotPassword(email: string) {

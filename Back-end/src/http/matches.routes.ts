@@ -24,8 +24,8 @@ const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
 type MatchRecord = {
   match_id: string;
   status: "WAITING" | "IN_PROGRESS" | "FINISHED";
-  player_1?: { user_id?: string; connection_id?: string };
-  player_2?: { user_id?: string; connection_id?: string } | null;
+  player_1?: { user_id?: string; connection_id?: string; connected?: boolean };
+  player_2?: { user_id?: string; connection_id?: string; connected?: boolean } | null;
   engine_state: GameState;
 };
 
@@ -33,7 +33,7 @@ function authenticatedUserId(request: any): string | undefined {
   return typeof request.user?.sub === "string" ? request.user.sub : undefined;
 }
 
-async function findPendingMatch(userId: string): Promise<MatchRecord | undefined> {
+export async function findPendingMatch(userId: string): Promise<MatchRecord | undefined> {
   let exclusiveStartKey: Record<string, unknown> | undefined;
 
   do {
@@ -48,7 +48,8 @@ async function findPendingMatch(userId: string): Promise<MatchRecord | undefined
         ":active": "IN_PROGRESS",
         ":userId": userId
       },
-      ExclusiveStartKey: exclusiveStartKey
+      ExclusiveStartKey: exclusiveStartKey,
+      ConsistentRead: true
     }));
 
     if (result.Items?.[0]) return result.Items[0] as MatchRecord;
@@ -92,9 +93,18 @@ router.get("/pending", authenticate, async (req, res) => {
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized." });
 
     const match = await findPendingMatch(userId);
+    const playerId: PlayerId | undefined = match?.player_1?.user_id === userId
+      ? "P1"
+      : match?.player_2?.user_id === userId ? "P2" : undefined;
+    const opponent = playerId === "P1" ? match?.player_2 : match?.player_1;
     return res.json({
       success: true,
-      match: match ? { roomCode: match.match_id, status: match.status } : null
+      match: match && playerId ? {
+        roomCode: match.match_id,
+        status: match.status,
+        playerId,
+        opponentConnected: opponent?.connected !== false
+      } : null
     });
   } catch (error) {
     console.error("GET /matches/pending failed:", error);

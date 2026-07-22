@@ -64,4 +64,14 @@ describe("API Gateway private-room socket routes", () => {
 
     expect(JSON.parse(socket.sent[0])).toEqual({ route: "room-join", roomCode: "ABC2D3" });
   });
+
+  it("sends an explicit resume command rather than matchmaking", () => {
+    socketManager.connect("token", "player");
+    const socket = FakeWebSocket.latest!;
+    socket.open();
+
+    socketManager.resumeMatch();
+
+    expect(JSON.parse(socket.sent[0])).toEqual({ route: "matchfinding-start", resume: true });
+  });
 });

@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Clipboard, Hash, Radio, ShieldCheck, Users, X } from "lucide-react";
 import { GameBoardView } from "../game/GameBoard";
 import { PhaserSplash } from "./PhaserSplash";
+import { PendingMatchDialog, PendingMatchLoadingGate } from "./PendingMatchDialog";
 import { useGameMatch } from "../../hooks/useGameMatch";
+import { forfeitPendingMatch, getPendingMatch, listDecks, type PendingMatch } from "../../libs/api";
+import {
+  getDefaultLocalDeck,
+  getSelectedDeckId,
+  mergeCloudDecks,
+  type LocalDeck
+} from "../../libs/localDecks";
 
 type PrivateRoomMode = "create" | "join";
 
@@ -18,21 +26,93 @@ export function PrivateRoomScreen(props: {
   const validJoinCode = normalizedRoomCode && /^[A-HJ-NP-Z2-9]{6}$/.test(normalizedRoomCode)
     ? normalizedRoomCode
     : undefined;
-  const controller = useGameMatch(props.mode === "join" ? validJoinCode : undefined);
+  // A room code is a request to join a private room, never a resume token.
+  // Only /play?room=...&resume=1 may call the explicit resume handshake.
+  const controller = useGameMatch();
   const createRequestedRef = useRef(false);
+  const joinRequestedRef = useRef(false);
   const [copied, setCopied] = useState(false);
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatchError, setPendingMatchError] = useState<string>();
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(false);
+  const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
+  const [deckSelectionReady, setDeckSelectionReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void listDecks()
+      .then((result) => {
+        if (!mounted) return;
+        const decks = mergeCloudDecks(result.decks);
+        const selected = decks.find((deck) => deck.deckId === getSelectedDeckId()) ?? decks[0];
+        setSelectedDeck(selected);
+      })
+      .catch(() => {
+        if (mounted) setSelectedDeck(getDefaultLocalDeck());
+      })
+      .finally(() => {
+        if (mounted) setDeckSelectionReady(true);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    void getPendingMatch()
+      .then((result) => {
+        if (mounted) {
+          setPendingMatch(result.match);
+          setPendingMatchError(undefined);
+        }
+      })
+      .catch((error) => {
+        if (mounted) {
+          setPendingMatchError(error instanceof Error ? error.message : "Unable to check your active match.");
+        }
+      })
+      .finally(() => {
+        if (mounted) setPendingMatchChecked(true);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!controller.resumeRequired) return;
+    setPendingMatch(controller.resumeRequired);
+    setPendingMatchChecked(true);
+  }, [controller.resumeRequired]);
 
   useEffect(() => {
     if (
       props.mode !== "create" ||
       createRequestedRef.current ||
+      !pendingMatchChecked ||
+      Boolean(pendingMatch) ||
+      !deckSelectionReady ||
       controller.status !== "Connected"
     ) {
       return;
     }
     createRequestedRef.current = true;
-    controller.createRoom();
-  }, [controller, props.mode]);
+    controller.createRoom({ deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
+  }, [controller, deckSelectionReady, pendingMatch, pendingMatchChecked, props.mode, selectedDeck]);
+
+  useEffect(() => {
+    if (
+      props.mode !== "join" ||
+      joinRequestedRef.current ||
+      !pendingMatchChecked ||
+      Boolean(pendingMatch) ||
+      !deckSelectionReady ||
+      !validJoinCode ||
+      controller.status !== "Connected"
+    ) {
+      return;
+    }
+    joinRequestedRef.current = true;
+    controller.joinRoom(validJoinCode, { deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
+  }, [controller, deckSelectionReady, pendingMatch, pendingMatchChecked, props.mode, selectedDeck, validJoinCode]);
 
   if (controller.inGame && controller.roomCode && controller.localPlayerId) {
     return (
@@ -51,6 +131,25 @@ export function PrivateRoomScreen(props: {
   const leaveRoom = () => {
     if (controller.roomCode && !controller.inGame) controller.cancelMatchmaking();
     router.push("/");
+  };
+
+  const resumePendingMatch = () => {
+    if (pendingMatch) {
+      window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+    }
+  };
+
+  const abandonPendingMatch = async () => {
+    setResolvingPendingMatch(true);
+    setPendingMatchError(undefined);
+    try {
+      await forfeitPendingMatch();
+      setPendingMatch(null);
+    } catch (error) {
+      setPendingMatchError(error instanceof Error ? error.message : "Unable to leave the active match.");
+    } finally {
+      setResolvingPendingMatch(false);
+    }
   };
 
   const copyRoomCode = async () => {
@@ -108,6 +207,7 @@ export function PrivateRoomScreen(props: {
           </div>
 
           {controller.error ? <p className="matchmaking-error">{controller.error}</p> : null}
+          {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
 
           {props.mode === "create" && roomCode ? (
             <button className="matchmaking-command" onClick={copyRoomCode}>
@@ -120,6 +220,15 @@ export function PrivateRoomScreen(props: {
           </button>
         </section>
       </section>
+      {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
+      {pendingMatch ? (
+        <PendingMatchDialog
+          status={pendingMatch.status}
+          isResolving={resolvingPendingMatch}
+          onContinue={resumePendingMatch}
+          onForfeit={abandonPendingMatch}
+        />
+      ) : null}
     </main>
   );
 }

@@ -6,6 +6,7 @@ import { listCards } from "@backend/game/entities/cardRegistry";
 import { listDecks } from "../../libs/api";
 import {
   DEFAULT_DECK_ID,
+  getDefaultLocalDeck,
   getSelectedDeckId,
   loadLocalDecks,
   mergeCloudDecks,
@@ -26,6 +27,7 @@ export function DeckSelectionPanel({
 }: DeckSelectionPanelProps) {
   const [decks, setDecks] = useState<LocalDeck[]>([]);
   const [selectedId, setSelectedId] = useState(DEFAULT_DECK_ID);
+  const [loadError, setLoadError] = useState<string>();
   const artworkById = useMemo(
     () => new Map(listCards().map((card) => [card.id, card.imageUrl])),
     []
@@ -42,11 +44,18 @@ export function DeckSelectionPanel({
       onDeckChange?.(selected);
     };
 
-    applyDecks(loadLocalDecks());
     if (window.localStorage.getItem("accessToken")) {
+      applyDecks([getDefaultLocalDeck()]);
       void listDecks()
-        .then((result) => applyDecks(mergeCloudDecks(result.decks)))
-        .catch(() => undefined);
+        .then((result) => {
+          applyDecks(mergeCloudDecks(result.decks));
+          setLoadError(undefined);
+        })
+        .catch((error) => setLoadError(
+          error instanceof Error ? error.message : "Could not load account decks."
+        ));
+    } else {
+      applyDecks(loadLocalDecks());
     }
     return () => { active = false; };
   }, [onDeckChange]);
@@ -100,6 +109,7 @@ export function DeckSelectionPanel({
       >
         <Layers3 size={18} />
       </button>
+      {loadError ? <small className="deck-selection-panel__error" role="alert">{loadError}</small> : null}
     </section>
   );
 }

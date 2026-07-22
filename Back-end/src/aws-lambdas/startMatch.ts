@@ -756,8 +756,11 @@ export const handler = async (event: any) => {
     const userId = String(connection.user_id);
     const username = String(connection.username || "Player");
 
-    // Any start route may resume an active match. `matchfinding-start` also
-    // resumes an existing waiting room after a WebSocket reconnect.
+    // Resuming an active match is a separate, explicit user decision.  In
+    // particular, a normal "Find match" request must never silently re-open
+    // an unfinished game merely because $connect rebound its connection ID.
+    const resumeRequested = body.resume === true;
+    const resumeRequired = connection.resume_required === true;
     const existingMatchId = typeof connection.match_id === "string" ? connection.match_id : undefined;
     if (existingMatchId) {
       const existing = await dynamoDb.send(new GetCommand({
@@ -767,16 +770,74 @@ export const handler = async (event: any) => {
       }));
       const associatedMatch = existing.Item as MatchRecord | undefined;
       if (associatedMatch?.status === "IN_PROGRESS") {
+        if (!resumeRequested || !resumeRequired) {
+          const playerId: PlayerId | undefined = associatedMatch.player_1?.user_id === userId
+            ? "P1"
+            : associatedMatch.player_2?.user_id === userId ? "P2" : undefined;
+          const opponent = playerId === "P1" ? associatedMatch.player_2 : associatedMatch.player_1;
+          // The HTTP pending-match check is intentionally supplemented by a
+          // WebSocket event. This closes the race where a player clicks Find
+          // before the browser has rendered its recovery dialog.
+          await sendMessage(wsClient, connectionId, {
+            event: "match:resume_required",
+            roomCode: associatedMatch.match_id,
+            status: "IN_PROGRESS",
+            playerId,
+            opponentConnected: opponent?.connected !== false
+          });
+          throw new RequestError(
+            409,
+            "You have an unfinished match. Choose Continue or Leave before starting another match."
+          );
+        }
         const playerId: PlayerId | undefined =
           associatedMatch.player_1?.user_id === userId && associatedMatch.player_1?.connection_id === connectionId ? "P1" :
           associatedMatch.player_2?.user_id === userId && associatedMatch.player_2?.connection_id === connectionId ? "P2" : undefined;
         if (playerId) {
+          const playerPath = playerId === "P1" ? "player_1" : "player_2";
+          const opponentId: PlayerId = playerId === "P1" ? "P2" : "P1";
+          const opponent = opponentId === "P1"
+            ? associatedMatch.player_1
+            : associatedMatch.player_2;
+          await dynamoDb.send(new UpdateCommand({
+            TableName: gameStateTable,
+            Key: { match_id: associatedMatch.match_id },
+            ConditionExpression:
+              `#status = :active AND ${playerPath}.user_id = :userId ` +
+              `AND ${playerPath}.connection_id = :connectionId`,
+            UpdateExpression:
+              `SET ${playerPath}.connected = :connected, ${playerPath}.reconnected_at = :now ` +
+              `REMOVE ${playerPath}.disconnected_at, ${playerPath}.resume_connection_at`,
+            ExpressionAttributeNames: { "#status": "status" },
+            ExpressionAttributeValues: {
+              ":active": "IN_PROGRESS",
+              ":userId": userId,
+              ":connectionId": connectionId,
+              ":connected": true,
+              ":now": Date.now()
+            }
+          }));
+          await dynamoDb.send(new UpdateCommand({
+            TableName: connectionsTable,
+            Key: { connection_id: connectionId },
+            UpdateExpression: "REMOVE resume_required"
+          }));
           await sendMessage(wsClient, connectionId, {
             event: "matchmaking:found",
             roomCode: associatedMatch.match_id,
             playerId,
+            opponentConnected: opponent?.connected !== false,
             state: redactStateForPlayer(associatedMatch.engine_state, playerId)
           });
+          if (opponent?.connection_id && opponent.connected !== false) {
+            await sendMessage(wsClient, opponent.connection_id, {
+              event: "room:update",
+              roomCode: associatedMatch.match_id,
+              playerId: opponentId,
+              opponentConnected: true,
+              state: redactStateForPlayer(associatedMatch.engine_state, opponentId)
+            });
+          }
           return { statusCode: 200, body: "Active match resumed." };
         }
         throw new RequestError(409, "This connection is associated with a different player session.");

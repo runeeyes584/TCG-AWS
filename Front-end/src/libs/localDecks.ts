@@ -59,9 +59,6 @@ export function saveLocalDeck(deck: Omit<LocalDeck, "updatedAt" | "isDefault">):
 export function mergeCloudDecks(cloudDecks: LocalDeck[]): LocalDeck[] {
   if (typeof window === "undefined") return [getDefaultLocalDeck()];
   const merged = new Map<string, LocalDeck>();
-  for (const deck of loadLocalDecks()) {
-    if (!deck.isDefault) merged.set(deck.deckId, deck);
-  }
   for (const deck of cloudDecks) {
     if (isValidLocalDeck(deck)) merged.set(deck.deckId, { ...deck, isDefault: false });
   }

@@ -139,9 +139,16 @@ expressApp.get("/matches/pending", authenticate, (req, res) => {
   }
 
   const room = findPendingRoomForUser(userId);
+  const player = room?.players.find((candidate) => candidate.userId === userId);
+  const opponent = room?.players.find((candidate) => candidate.userId !== userId);
   return res.json({
     success: true,
-    match: room ? { roomCode: room.code } : null
+    match: room && player ? {
+      roomCode: room.code,
+      status: room.state.started ? "IN_PROGRESS" : "WAITING",
+      playerId: player.playerId,
+      opponentConnected: opponent?.connected !== false
+    } : null
   });
 });
 

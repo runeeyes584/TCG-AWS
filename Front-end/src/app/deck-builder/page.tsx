@@ -19,10 +19,11 @@ import { listCards } from "@backend/game/entities/cardRegistry";
 import {
   getSelectedDeckId,
   loadLocalDecks,
+  mergeCloudDecks,
   saveLocalDeck,
   setSelectedDeckId
 } from "../../libs/localDecks";
-import { saveDeck } from "../../libs/api";
+import { listDecks, saveDeck } from "../../libs/api";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
 
 type DeckCard = CardDefinition & {
@@ -74,10 +75,18 @@ export default function DeckBuilderPage() {
   const [notice, setNotice] = useState("Select a card to add it to the deck.");
 
   useEffect(() => {
-    try {
-      const selectedDeck = loadLocalDecks().find(
+    let mounted = true;
+    const hydrate = async () => {
+      try {
+      let availableDecks = loadLocalDecks();
+      if (window.localStorage.getItem("accessToken")) {
+        const result = await listDecks();
+        availableDecks = mergeCloudDecks(result.decks);
+      }
+      if (!mounted) return;
+      const selectedDeck = availableDecks.find(
         (deck) => !deck.isDefault && deck.deckId === getSelectedDeckId()
-      );
+      ) ?? availableDecks.find((deck) => !deck.isDefault);
       const savedDraft = window.localStorage.getItem(STORAGE_KEY);
       const draft = selectedDeck || (savedDraft ? JSON.parse(savedDraft) as {
         deckId?: string;
@@ -103,9 +112,14 @@ export default function DeckBuilderPage() {
       setDeckId(draft.deckId || "deck-local-1");
       setDeckName(draft.deckName || "New Kaleidoscope Deck");
       setDeckCardIds(validCardIds);
-    } catch {
+      } catch (error) {
+      if (!mounted) return;
       window.localStorage.removeItem(STORAGE_KEY);
-    }
+      setNotice(error instanceof Error ? `Could not load account decks: ${error.message}` : "Could not load account decks.");
+      }
+    };
+    void hydrate();
+    return () => { mounted = false; };
   }, [cardById]);
 
   const deckCards = useMemo(
