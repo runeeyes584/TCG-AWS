@@ -69,6 +69,7 @@ describe("processGameEngine", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.TURN_TIMEOUT_QUEUE_URL = "https://sqs.example/turn-timeouts";
+    process.env.SQS_MATCH_RESULTS_QUEUE_URL = "https://sqs.example/match-results";
     mocks.websocketSend.mockResolvedValue({});
   });
 
@@ -79,8 +80,8 @@ describe("processGameEngine", () => {
       status: "IN_PROGRESS",
       state_version: 7,
       engine_state: state,
-      player_1: { connection_id: "connection-p1", connected: true },
-      player_2: { connection_id: "connection-p2", connected: true }
+      player_1: { user_id: "user-p1", connection_id: "connection-p1", connected: true },
+      player_2: { user_id: "user-p2", connection_id: "connection-p2", connected: true }
     };
     let releaseSqs!: () => void;
     mocks.sqsSend.mockImplementation(() => new Promise<void>((resolve) => {
@@ -114,5 +115,46 @@ describe("processGameEngine", () => {
 
     releaseSqs();
     await expect(invocation).resolves.toMatchObject({ statusCode: 200 });
+  });
+
+  it("queues a natural lethal combat result for rank processing", async () => {
+    const state = blockingState();
+    state.players.P2.nexusHp = 4;
+    const match = {
+      match_id: "match-lethal",
+      status: "IN_PROGRESS",
+      state_version: 3,
+      engine_state: state,
+      player_1: { user_id: "user-p1", connection_id: "connection-p1", connected: true },
+      player_2: { user_id: "user-p2", connection_id: "connection-p2", connected: true }
+    };
+    mocks.sqsSend.mockResolvedValue({});
+    mocks.dynamoSend.mockImplementation(async (command: unknown) => {
+      if (command instanceof GetCommand) return { Item: match };
+      if (command instanceof UpdateCommand || command instanceof PutCommand) return {};
+      throw new Error("Unexpected DynamoDB command.");
+    });
+
+    const result = await handler({
+      requestContext: {
+        connectionId: "connection-p2",
+        domainName: "socket.example",
+        stage: "dev"
+      },
+      body: JSON.stringify({
+        matchId: match.match_id,
+        action: { type: "COMMIT_BLOCKS", playerId: "P2" }
+      })
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(mocks.sqsSend).toHaveBeenCalledTimes(1);
+    const queued = JSON.parse(mocks.sqsSend.mock.calls[0][0].input.MessageBody);
+    expect(queued).toMatchObject({
+      matchId: "match-lethal",
+      winnerId: "P1",
+      player1: { userId: "user-p1" },
+      player2: { userId: "user-p2" }
+    });
   });
 });

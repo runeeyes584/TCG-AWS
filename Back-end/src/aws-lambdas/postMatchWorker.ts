@@ -1,156 +1,198 @@
-import { SQSEvent, SQSRecord } from "aws-lambda";
-import { GetCommand, UpdateCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import type { SQSBatchResponse, SQSEvent, SQSRecord } from "aws-lambda";
+import { GetCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { calculateElo } from "../matchmaking/elo";
+import type { PlayerId } from "../game/types";
+
+const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
+const userProfileTable = process.env.USER_PROFILE_TABLE || "UserProfile";
+const matchHistoryTable = process.env.MATCH_HISTORY_TABLE || "MatchHistory";
 
 export interface PostMatchMessage {
   matchId: string;
-  winnerId?: "P1" | "P2" | "DRAW" | string;
-  player1: { userId: string };
-  player2: { userId: string };
+  winnerId?: PlayerId | "DRAW";
+  player1?: { userId?: string };
+  player2?: { userId?: string };
   reason?: string;
   endedAt?: number;
 }
 
-export const handler = async (event: SQSEvent) => {
-  console.log(`Processing ${event.Records?.length || 0} post-match SQS records...`);
+type Result = "WIN" | "LOSS" | "DRAW";
 
-  for (const record of event.Records) {
-    try {
-      await processSingleMatchRecord(record);
-    } catch (error) {
-      console.error(`Failed to process SQS Record ID ${record.messageId}:`, error);
-      // Retrying logic handled by SQS Redrive Policy (DLQ)
-      throw error;
-    }
-  }
-
-  return { statusCode: 200, body: "Post match processing complete." };
-};
-
-async function processSingleMatchRecord(record: SQSRecord): Promise<void> {
-  const data: PostMatchMessage = JSON.parse(record.body || "{}");
-  const { matchId, winnerId, player1, player2, reason } = data;
-
-  if (!matchId || !player1?.userId || !player2?.userId) {
-    console.warn("Invalid post-match payload:", data);
-    return;
-  }
-
-  const p1UserId = player1.userId;
-  const p2UserId = player2.userId;
-  const endedAt = data.endedAt || Date.now();
-
-  // 1. Tải UserProfile của cả 2 người chơi từ DynamoDB
-  const [p1ProfileRes, p2ProfileRes] = await Promise.all([
-    dynamoDb.send(new GetCommand({ TableName: "UserProfile", Key: { user_id: p1UserId } })),
-    dynamoDb.send(new GetCommand({ TableName: "UserProfile", Key: { user_id: p2UserId } }))
-  ]);
-
-  const p1Profile = p1ProfileRes.Item || createDefaultProfile(p1UserId);
-  const p2Profile = p2ProfileRes.Item || createDefaultProfile(p2UserId);
-
-  const p1CurrentRank = p1Profile.stats?.rank_points ?? 1000;
-  const p2CurrentRank = p2Profile.stats?.rank_points ?? 1000;
-
-  let p1Result: "WIN" | "LOSS" | "DRAW" = "DRAW";
-  let p2Result: "WIN" | "LOSS" | "DRAW" = "DRAW";
-  let eloWinner: "A" | "B" = "A";
-
-  if (winnerId === "P1") {
-    p1Result = "WIN";
-    p2Result = "LOSS";
-    eloWinner = "A";
-  } else if (winnerId === "P2") {
-    p1Result = "LOSS";
-    p2Result = "WIN";
-    eloWinner = "B";
-  }
-
-  // 2. Tính toán Rank Points (ELO) mới bằng thuật toán ELO
-  const newRatings = calculateElo(p1CurrentRank, p2CurrentRank, eloWinner);
-  const p1RankDelta = newRatings.playerA - p1CurrentRank;
-  const p2RankDelta = newRatings.playerB - p2CurrentRank;
-
-  // 3. Tính toán EXP thưởng (Thắng +100 EXP, Thua +35 EXP, Hòa +50 EXP)
-  const p1ExpEarned = p1Result === "WIN" ? 100 : (p1Result === "LOSS" ? 35 : 50);
-  const p2ExpEarned = p2Result === "WIN" ? 100 : (p2Result === "LOSS" ? 35 : 50);
-
-  // 4. Cập nhật UserProfile trong DynamoDB cho cả 2 người chơi bằng cách ghi đè profile hoàn chỉnh
-  p1Profile.stats = p1Profile.stats || { wins: 0, losses: 0, rank_points: 1000, elo_rating: 1000, exp: 0, level: 1 };
-  p1Profile.stats.rank_points = newRatings.playerA;
-  p1Profile.stats.elo_rating = newRatings.playerA;
-  p1Profile.stats.exp = (p1Profile.stats.exp ?? 0) + p1ExpEarned;
-  p1Profile.stats.level = Math.floor(p1Profile.stats.exp / 1000) + 1;
-  if (p1Result === "WIN") p1Profile.stats.wins = (p1Profile.stats.wins ?? 0) + 1;
-  if (p1Result === "LOSS") p1Profile.stats.losses = (p1Profile.stats.losses ?? 0) + 1;
-
-  p2Profile.stats = p2Profile.stats || { wins: 0, losses: 0, rank_points: 1000, elo_rating: 1000, exp: 0, level: 1 };
-  p2Profile.stats.rank_points = newRatings.playerB;
-  p2Profile.stats.elo_rating = newRatings.playerB;
-  p2Profile.stats.exp = (p2Profile.stats.exp ?? 0) + p2ExpEarned;
-  p2Profile.stats.level = Math.floor(p2Profile.stats.exp / 1000) + 1;
-  if (p2Result === "WIN") p2Profile.stats.wins = (p2Profile.stats.wins ?? 0) + 1;
-  if (p2Result === "LOSS") p2Profile.stats.losses = (p2Profile.stats.losses ?? 0) + 1;
-
-  await Promise.all([
-    savePlayerProfile(p1Profile),
-    savePlayerProfile(p2Profile)
-  ]);
-
-  // 5. Lưu lịch sử trận đấu vào bảng MatchHistory
-  await Promise.all([
-    saveMatchHistoryItem(p1UserId, endedAt, matchId, p2UserId, p1Result, p1RankDelta),
-    saveMatchHistoryItem(p2UserId, endedAt + 1, matchId, p1UserId, p2Result, p2RankDelta)
-  ]);
-
-  console.log(`Match ${matchId} post-processing finished successfully for players ${p1UserId} & ${p2UserId}.`);
+function ratingOf(profile: Record<string, any>): number {
+  const rating = Number(profile.stats?.elo_rating ?? profile.stats?.rank_points ?? 1000);
+  return Number.isFinite(rating) ? rating : 1000;
 }
 
-async function savePlayerProfile(profile: any) {
-  await dynamoDb.send(
-    new PutCommand({
-      TableName: "UserProfile",
-      Item: {
-        ...profile,
-        updated_at: Date.now()
+function nextStats(
+  profile: Record<string, any>,
+  rating: number,
+  result: Result
+): Record<string, any> {
+  const previous = profile.stats && typeof profile.stats === "object" ? profile.stats : {};
+  const earnedExp = result === "WIN" ? 100 : result === "LOSS" ? 35 : 50;
+  const exp = Number(previous.exp ?? 0) + earnedExp;
+  return {
+    ...previous,
+    wins: Number(previous.wins ?? 0) + (result === "WIN" ? 1 : 0),
+    losses: Number(previous.losses ?? 0) + (result === "LOSS" ? 1 : 0),
+    rank_points: rating,
+    elo_rating: rating,
+    exp,
+    level: Math.floor(exp / 1000) + 1
+  };
+}
+
+function resultsFor(winnerId: PlayerId | "DRAW"): {
+  p1: Result;
+  p2: Result;
+  eloWinner: "A" | "B" | "DRAW";
+} {
+  if (winnerId === "P1") return { p1: "WIN", p2: "LOSS", eloWinner: "A" };
+  if (winnerId === "P2") return { p1: "LOSS", p2: "WIN", eloWinner: "B" };
+  return { p1: "DRAW", p2: "DRAW", eloWinner: "DRAW" };
+}
+
+export async function processSingleMatchRecord(record: SQSRecord): Promise<void> {
+  const message = JSON.parse(record.body || "{}") as PostMatchMessage;
+  if (!message.matchId) throw new Error(`Invalid post-match message ${record.messageId}.`);
+
+  // GameState is the source of truth. Player IDs and winner supplied in SQS are
+  // informational only and cannot be forged to change another user's rating.
+  const matchResult = await dynamoDb.send(new GetCommand({
+    TableName: gameStateTable,
+    Key: { match_id: message.matchId },
+    ConsistentRead: true
+  }));
+  const match = matchResult.Item as Record<string, any> | undefined;
+  if (!match) throw new Error(`Match ${message.matchId} was not found.`);
+  if (match.post_match_processed_at) return;
+  if (match.status !== "FINISHED") {
+    throw new Error(`Match ${message.matchId} is not finished.`);
+  }
+
+  const player1UserId = match.player_1?.user_id;
+  const player2UserId = match.player_2?.user_id;
+  const winnerId = match.engine_state?.winnerId ?? match.winner_id ?? message.winnerId;
+  if (!player1UserId || !player2UserId || player1UserId === player2UserId) {
+    throw new Error(`Match ${message.matchId} does not contain two valid users.`);
+  }
+  if (winnerId !== "P1" && winnerId !== "P2" && winnerId !== "DRAW") {
+    throw new Error(`Match ${message.matchId} has no valid winner.`);
+  }
+
+  const [p1Result, p2Result] = await Promise.all([
+    dynamoDb.send(new GetCommand({
+      TableName: userProfileTable,
+      Key: { user_id: player1UserId },
+      ConsistentRead: true
+    })),
+    dynamoDb.send(new GetCommand({
+      TableName: userProfileTable,
+      Key: { user_id: player2UserId },
+      ConsistentRead: true
+    }))
+  ]);
+  const p1Profile = p1Result.Item as Record<string, any> | undefined;
+  const p2Profile = p2Result.Item as Record<string, any> | undefined;
+  if (!p1Profile || !p2Profile) {
+    throw new Error(`A UserProfile is missing for match ${message.matchId}.`);
+  }
+
+  const p1Rating = ratingOf(p1Profile);
+  const p2Rating = ratingOf(p2Profile);
+  const outcomes = resultsFor(winnerId);
+  const ratings = calculateElo(p1Rating, p2Rating, outcomes.eloWinner);
+  const p1Stats = nextStats(p1Profile, ratings.playerA, outcomes.p1);
+  const p2Stats = nextStats(p2Profile, ratings.playerB, outcomes.p2);
+  const processedAt = Date.now();
+  const playedAt = Number.isFinite(message.endedAt) ? Number(message.endedAt) : processedAt;
+
+  // One transaction updates both players, both histories and the idempotency
+  // marker. SQS redelivery can therefore never award a match twice or leave
+  // only one player's rating updated.
+  await dynamoDb.send(new TransactWriteCommand({
+    TransactItems: [
+      {
+        Update: {
+          TableName: gameStateTable,
+          Key: { match_id: message.matchId },
+          UpdateExpression: "SET post_match_processed_at = :processedAt",
+          ConditionExpression: "#status = :finished AND attribute_not_exists(post_match_processed_at)",
+          ExpressionAttributeNames: { "#status": "status" },
+          ExpressionAttributeValues: { ":finished": "FINISHED", ":processedAt": processedAt }
+        }
+      },
+      profileUpdate(player1UserId, p1Profile.stats, p1Stats, processedAt),
+      profileUpdate(player2UserId, p2Profile.stats, p2Stats, processedAt),
+      historyPut(player1UserId, playedAt, message.matchId, player2UserId, outcomes.p1, ratings.playerA - p1Rating),
+      historyPut(player2UserId, playedAt, message.matchId, player1UserId, outcomes.p2, ratings.playerB - p2Rating)
+    ]
+  }));
+}
+
+function profileUpdate(
+  userId: string,
+  oldStats: Record<string, any> | undefined,
+  stats: Record<string, any>,
+  updatedAt: number
+) {
+  return {
+    Update: {
+      TableName: userProfileTable,
+      Key: { user_id: userId },
+      UpdateExpression: "SET #stats = :stats, updated_at = :updatedAt",
+      ConditionExpression: oldStats
+        ? "attribute_exists(user_id) AND #stats = :oldStats"
+        : "attribute_exists(user_id) AND attribute_not_exists(#stats)",
+      ExpressionAttributeNames: { "#stats": "stats" },
+      ExpressionAttributeValues: {
+        ":stats": stats,
+        ":updatedAt": updatedAt,
+        ...(oldStats ? { ":oldStats": oldStats } : {})
       }
-    })
-  );
+    }
+  };
 }
 
-async function saveMatchHistoryItem(
+function historyPut(
   userId: string,
   playedAt: number,
   matchId: string,
   opponentId: string,
-  result: "WIN" | "LOSS" | "DRAW",
-  rankPointChange: number,
-  duration?: number
+  result: Result,
+  eloChange: number
 ) {
-  await dynamoDb.send(
-    new PutCommand({
-      TableName: "MatchHistory",
+  return {
+    Put: {
+      TableName: matchHistoryTable,
       Item: {
         user_id: userId,
         played_at: playedAt,
         match_id: matchId,
         opponent_id: opponentId,
-        result: result,
-        rank_point_change: rankPointChange,
-        elo_change: rankPointChange,
-        duration: duration || 0
-      }
-    })
-  );
-}
-
-function createDefaultProfile(userId: string) {
-  return {
-    user_id: userId,
-    username: `User_${userId.slice(0, 5)}`,
-    email: `${userId}@example.com`,
-    created_at: new Date().toISOString(),
-    stats: { wins: 0, losses: 0, rank_points: 1000, elo_rating: 1000, exp: 0, level: 1 }
+        result,
+        rank_point_change: eloChange,
+        elo_change: eloChange
+      },
+      ConditionExpression: "attribute_not_exists(user_id) AND attribute_not_exists(played_at)"
+    }
   };
 }
+
+export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
+  const outcomes = await Promise.all((event.Records ?? []).map(async (record) => {
+    try {
+      await processSingleMatchRecord(record);
+      return undefined;
+    } catch (error) {
+      console.error(`Failed to process match-result message ${record.messageId}:`, error);
+      return { itemIdentifier: record.messageId };
+    }
+  }));
+  return {
+    batchItemFailures: outcomes.filter(
+      (failure): failure is { itemIdentifier: string } => Boolean(failure)
+    )
+  };
+};

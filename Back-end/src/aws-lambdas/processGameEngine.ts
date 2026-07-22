@@ -7,6 +7,7 @@ import { dynamoDb } from "../config/dynamodb";
 import { applyAuthoritativeAction } from "../game/core/authoritativeAction";
 import type { GameAction, GameState, PlayerId } from "../game/types";
 import { enqueueTurnTimeout } from "./turnTimeoutQueue";
+import { enqueueMatchResult } from "./matchResultQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
@@ -17,8 +18,8 @@ type MatchRecord = {
   status: "IN_PROGRESS" | "FINISHED";
   state_version?: number;
   engine_state: GameState;
-  player_1?: { connection_id?: string; connected?: boolean };
-  player_2?: { connection_id?: string; connected?: boolean };
+  player_1?: { user_id?: string; connection_id?: string; connected?: boolean };
+  player_2?: { user_id?: string; connection_id?: string; connected?: boolean };
 };
 
 function isGone(error: any): boolean {
@@ -126,7 +127,8 @@ export const handler = async (event: any) => {
           "AND engine_state.priorityPlayerId = :priorityPlayerId",
         UpdateExpression:
           "SET engine_state = :state, #status = :status, current_round = :round, " +
-          "turn_player_id = :nextPlayerId, state_version = :nextVersion",
+          "turn_player_id = :nextPlayerId, state_version = :nextVersion" +
+          (finished ? ", winner_id = :winnerId, ended_at = :endedAt" : ""),
         ExpressionAttributeNames: { "#status": "status" },
         ExpressionAttributeValues: {
           ":active": "IN_PROGRESS",
@@ -138,7 +140,8 @@ export const handler = async (event: any) => {
           ":state": nextState,
           ":status": finished ? "FINISHED" : "IN_PROGRESS",
           ":round": nextState.round,
-          ":nextPlayerId": nextState.priorityPlayerId
+          ":nextPlayerId": nextState.priorityPlayerId,
+          ...(finished ? { ":winnerId": nextState.winnerId, ":endedAt": Date.now() } : {})
         }
       }));
     } catch (error: any) {
@@ -153,12 +156,23 @@ export const handler = async (event: any) => {
     // awaits scheduling before returning, preventing the runtime from freezing
     // an unfinished send.
     await publishState(wsClient, match, nextState);
-    const [logResult] = await Promise.allSettled([
+    const resultScheduling = finished && nextState.winnerId
+      ? enqueueMatchResult({
+          match,
+          winnerId: nextState.winnerId,
+          reason: action.type === "SURRENDER" ? "SURRENDER" : "GAME_COMPLETED"
+        })
+      : Promise.resolve(false);
+    const [logResult, , resultQueueResult] = await Promise.allSettled([
       writeActionLog(matchId, senderPlayerId, action),
-      timeoutScheduling
+      timeoutScheduling,
+      resultScheduling
     ]);
     if (logResult.status === "rejected") {
       console.error("Could not write game action log:", logResult.reason);
+    }
+    if (resultQueueResult.status === "rejected") {
+      console.error("Could not queue the completed match result:", resultQueueResult.reason);
     }
     return { statusCode: 200, body: "Success." };
   } catch (error: any) {

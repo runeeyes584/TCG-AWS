@@ -11,6 +11,7 @@ import {
   enqueueTurnTimeout,
   type TurnTimeoutMessage
 } from "./turnTimeoutQueue";
+import { enqueueMatchResult } from "./matchResultQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
@@ -21,8 +22,8 @@ export type MatchRecord = {
   status: "WAITING" | "IN_PROGRESS" | "FINISHED";
   state_version?: number;
   engine_state: GameState;
-  player_1?: { connection_id?: string; connected?: boolean };
-  player_2?: { connection_id?: string; connected?: boolean };
+  player_1?: { user_id?: string; connection_id?: string; connected?: boolean };
+  player_2?: { user_id?: string; connection_id?: string; connected?: boolean };
 };
 
 function managementEndpoint(): string | undefined {
@@ -197,6 +198,7 @@ async function processRecord(record: SQSRecord): Promise<void> {
   }
 
   const nextState = applyAction(originalState, { type: "TIME_OUT", playerId });
+  const finished = Boolean(nextState.winnerId);
   const currentVersion = match.state_version ?? 0;
   const nextVersion = currentVersion + 1;
 
@@ -225,7 +227,8 @@ async function processRecord(record: SQSRecord): Promise<void> {
         "AND engine_state.priorityPlayerId = :playerId",
       UpdateExpression:
         "SET engine_state = :state, #status = :status, current_round = :round, " +
-        "turn_player_id = :nextPlayerId, state_version = :nextVersion",
+        "turn_player_id = :nextPlayerId, state_version = :nextVersion" +
+        (finished ? ", winner_id = :winnerId, ended_at = :endedAt" : ""),
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
         ":active": "IN_PROGRESS",
@@ -235,9 +238,10 @@ async function processRecord(record: SQSRecord): Promise<void> {
         ":turnDuration": originalState.turnDuration,
         ":playerId": playerId,
         ":state": nextState,
-        ":status": nextState.winnerId ? "FINISHED" : "IN_PROGRESS",
+        ":status": finished ? "FINISHED" : "IN_PROGRESS",
         ":round": nextState.round,
-        ":nextPlayerId": nextState.priorityPlayerId
+        ":nextPlayerId": nextState.priorityPlayerId,
+        ...(finished ? { ":winnerId": nextState.winnerId, ":endedAt": Date.now() } : {})
       }
     }));
   } catch (error: any) {
@@ -249,10 +253,21 @@ async function processRecord(record: SQSRecord): Promise<void> {
   }
 
   await publishState(match, nextState);
-  await Promise.all([
+  const resultScheduling = nextState.winnerId
+    ? enqueueMatchResult({
+        match,
+        winnerId: nextState.winnerId,
+        reason: "AFK_TIMEOUT"
+      })
+    : Promise.resolve(false);
+  const results = await Promise.allSettled([
     writeTimeoutLog(match.match_id, playerId, nextState),
-    timeoutScheduling
+    timeoutScheduling,
+    resultScheduling
   ]);
+  if (results[2].status === "rejected") {
+    console.error("Could not queue the timed-out match result:", results[2].reason);
+  }
 }
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {

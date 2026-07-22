@@ -80,6 +80,7 @@ describe("handleTimeout SQS consumer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.TURN_TIMEOUT_QUEUE_URL = "https://sqs.example/turn-timeouts";
+    process.env.SQS_MATCH_RESULTS_QUEUE_URL = "https://sqs.example/match-results";
     process.env.WS_MANAGEMENT_ENDPOINT = "https://websocket.example/dev";
   });
 
@@ -183,5 +184,35 @@ describe("handleTimeout SQS consumer", () => {
 
     releaseSqs();
     await expect(invocation).resolves.toEqual({ batchItemFailures: [] });
+  });
+
+  it("queues the result when the third AFK timeout ends the match", async () => {
+    const state = dueState();
+    state.players.P1.consecutiveAfkCount = 2;
+    const match: MatchRecord = {
+      match_id: "match-afk-loss",
+      status: "IN_PROGRESS",
+      state_version: 9,
+      engine_state: state,
+      player_1: { user_id: "user-p1" },
+      player_2: { user_id: "user-p2" }
+    };
+    mocks.sqsSend.mockResolvedValue({});
+    mocks.dynamoSend.mockImplementation(async (command: unknown) => {
+      if (command instanceof GetCommand) return { Item: match };
+      if (command instanceof UpdateCommand || command instanceof PutCommand) return {};
+      throw new Error("Unexpected DynamoDB command.");
+    });
+
+    const result = await handler(sqsEvent(match, 9));
+
+    expect(result.batchItemFailures).toEqual([]);
+    expect(mocks.sqsSend).toHaveBeenCalledTimes(1);
+    const message = JSON.parse(mocks.sqsSend.mock.calls[0][0].input.MessageBody);
+    expect(message).toMatchObject({
+      matchId: "match-afk-loss",
+      winnerId: "P2",
+      reason: "AFK_TIMEOUT"
+    });
   });
 });
