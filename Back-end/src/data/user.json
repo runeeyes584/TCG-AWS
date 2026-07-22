@@ -4,17 +4,95 @@
     "email": "datteo192004@gmail.com",
     "username": "Victor Tran",
     "avatar": "https://ms.yugipedia.com//2/24/Dogmatika_Ecclesia%2C_the_Virtuous-Icon-Master_Duel.png",
-    "elo": 1134,
-    "wins": 10,
-    "losses": 15
+    "elo": 1160,
+    "wins": 13,
+    "losses": 16,
+    "decks": {
+      "deck-local-1": {
+        "deckId": "deck-local-1",
+        "deckName": "New Kaleidoscope Deck",
+        "cardIds": [
+          "null-circuit-unit-01",
+          "verdant-covenant-unit-02",
+          "verdant-covenant-spell-01",
+          "neutral-unit-01",
+          "null-circuit-unit-04",
+          "null-circuit-unit-05",
+          "null-circuit-unit-05",
+          "neutral-unit-01",
+          "verdant-covenant-unit-03",
+          "verdant-covenant-unit-03",
+          "verdant-covenant-unit-03",
+          "null-circuit-unit-04",
+          "neutral-spell-02",
+          "neutral-spell-02",
+          "verdant-covenant-unit-05",
+          "verdant-covenant-unit-05",
+          "silverkeep-unit-02",
+          "emberwing-retinue-unit-02",
+          "null-circuit-spell-01",
+          "verdant-covenant-spell-02",
+          "null-circuit-spell-03",
+          "null-circuit-spell-03",
+          "verdant-covenant-unit-06",
+          "silverkeep-spell-03",
+          "silverkeep-spell-03",
+          "verdant-covenant-spell-04",
+          "verdant-covenant-unit-07",
+          "verdant-covenant-unit-08",
+          "neutral-spell-03",
+          "verdant-covenant-unit-06"
+        ],
+        "updatedAt": 1784699143113
+      }
+    }
   },
   {
     "id": "997e7438-c061-70a7-a040-0bb741e9235c",
     "email": "trandat2280600642@gmail.com",
     "avatar": "https://ms.yugipedia.com//c/ce/House_Dragonmaid-Icon-Master_Duel.png",
     "username": "Dat Tran",
-    "elo": 1112,
-    "wins": 51,
-    "losses": 34
+    "elo": 1086,
+    "wins": 52,
+    "losses": 37,
+    "decks": {
+      "deck-local-1": {
+        "deckId": "deck-local-1",
+        "deckName": "Albaz Deck",
+        "cardIds": [
+          "verdant-covenant-unit-01",
+          "verdant-covenant-unit-01",
+          "verdant-covenant-unit-01",
+          "verdant-covenant-unit-02",
+          "verdant-covenant-unit-02",
+          "verdant-covenant-unit-02",
+          "verdant-covenant-spell-01",
+          "verdant-covenant-spell-01",
+          "verdant-covenant-unit-03",
+          "verdant-covenant-unit-03",
+          "verdant-covenant-unit-03",
+          "verdant-covenant-unit-04",
+          "verdant-covenant-unit-04",
+          "verdant-covenant-unit-04",
+          "verdant-covenant-unit-05",
+          "verdant-covenant-unit-05",
+          "verdant-covenant-unit-05",
+          "verdant-covenant-spell-02",
+          "verdant-covenant-spell-02",
+          "verdant-covenant-spell-02",
+          "verdant-covenant-champion-1",
+          "verdant-covenant-champion-1",
+          "verdant-covenant-champion-1",
+          "verdant-covenant-champion-2",
+          "verdant-covenant-champion-2",
+          "verdant-covenant-champion-2",
+          "verdant-covenant-spell-03",
+          "verdant-covenant-spell-03",
+          "verdant-covenant-spell-03",
+          "verdant-covenant-spell-01"
+        ],
+        "updatedAt": 1784698682902
+      }
+    }
   }
 ]

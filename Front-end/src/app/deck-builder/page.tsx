@@ -211,7 +211,7 @@ export default function DeckBuilderPage() {
       try {
         await saveDeck(payload);
         setSaveState("saved");
-        setNotice("Deck saved locally, synced to your account, and selected for matchmaking.");
+        setNotice("Deck saved, synced to your account, and selected for matchmaking.");
       } catch (cloudError) {
         setSaveState("local");
         setNotice(
