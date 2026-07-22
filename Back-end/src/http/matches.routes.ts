@@ -24,6 +24,8 @@ const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
 type MatchRecord = {
   match_id: string;
   status: "WAITING" | "IN_PROGRESS" | "FINISHED";
+  created_at?: number;
+  expire_at?: number;
   player_1?: { user_id?: string; connection_id?: string; connected?: boolean };
   player_2?: { user_id?: string; connection_id?: string; connected?: boolean } | null;
   engine_state: GameState;
@@ -35,6 +37,7 @@ function authenticatedUserId(request: any): string | undefined {
 
 export async function findPendingMatch(userId: string): Promise<MatchRecord | undefined> {
   let exclusiveStartKey: Record<string, unknown> | undefined;
+  const candidates: MatchRecord[] = [];
 
   do {
     const result = await dynamoDb.send(new ScanCommand({
@@ -52,11 +55,48 @@ export async function findPendingMatch(userId: string): Promise<MatchRecord | un
       ConsistentRead: true
     }));
 
-    if (result.Items?.[0]) return result.Items[0] as MatchRecord;
+    candidates.push(...((result.Items || []) as MatchRecord[]));
     exclusiveStartKey = result.LastEvaluatedKey;
   } while (exclusiveStartKey);
 
-  return undefined;
+  const nowSeconds = Math.floor(Date.now() / 1_000);
+  return candidates
+    .filter((match) => {
+      if (match.expire_at && match.expire_at <= nowSeconds) return false;
+      // An active match must have two authenticated players. This excludes a
+      // malformed/stale room record from being presented as resumable.
+      return match.status !== "IN_PROGRESS" || Boolean(
+        match.player_1?.user_id && match.player_2?.user_id
+      );
+    })
+    .sort((left, right) => {
+      const leftPriority = left.status === "IN_PROGRESS" ? 1 : 0;
+      const rightPriority = right.status === "IN_PROGRESS" ? 1 : 0;
+      if (leftPriority !== rightPriority) return rightPriority - leftPriority;
+      return Number(right.created_at ?? 0) - Number(left.created_at ?? 0);
+    })[0];
+}
+
+async function findWaitingMatchOwnedBy(userId: string): Promise<MatchRecord | undefined> {
+  let exclusiveStartKey: Record<string, unknown> | undefined;
+  const candidates: MatchRecord[] = [];
+  do {
+    const result = await dynamoDb.send(new ScanCommand({
+      TableName: gameStateTable,
+      FilterExpression: "#status = :waiting AND player_1.user_id = :userId",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: { ":waiting": "WAITING", ":userId": userId },
+      ExclusiveStartKey: exclusiveStartKey,
+      ConsistentRead: true
+    }));
+    candidates.push(...((result.Items || []) as MatchRecord[]));
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+
+  const nowSeconds = Math.floor(Date.now() / 1_000);
+  return candidates
+    .filter((match) => !match.expire_at || match.expire_at > nowSeconds)
+    .sort((left, right) => Number(right.created_at ?? 0) - Number(left.created_at ?? 0))[0];
 }
 
 function redactStateForPlayer(state: GameState, viewerId: PlayerId): GameState {
@@ -109,6 +149,34 @@ router.get("/pending", authenticate, async (req, res) => {
   } catch (error) {
     console.error("GET /matches/pending failed:", error);
     return res.status(500).json({ success: false, message: "Unable to load pending match." });
+  }
+});
+
+/** Removes only a WAITING room/queue entry. Active games must use surrender. */
+router.post("/pending/cancel", authenticate, async (req, res) => {
+  try {
+    const userId = authenticatedUserId(req);
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized." });
+
+    const match = await findWaitingMatchOwnedBy(userId);
+    if (!match) {
+      return res.status(404).json({ success: false, message: "No waiting room was found." });
+    }
+    await dynamoDb.send(new DeleteCommand({
+      TableName: gameStateTable,
+      Key: { match_id: match.match_id },
+      ConditionExpression: "#status = :waiting AND player_1.user_id = :userId",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: { ":waiting": "WAITING", ":userId": userId }
+    }));
+    await removeConnectionMatch(match.player_1?.connection_id);
+    return res.json({ success: true, message: "Waiting room cancelled." });
+  } catch (error: any) {
+    if (error?.name === "ConditionalCheckFailedException") {
+      return res.status(409).json({ success: false, message: "The room changed. Please retry." });
+    }
+    console.error("POST /matches/pending/cancel failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to cancel the waiting room." });
   }
 });
 

@@ -217,6 +217,12 @@ export async function forfeitPendingMatch(): Promise<{ success: boolean }> {
     return request("/matches/pending/forfeit", { method: "POST" });
 }
 
+/** Cancels a pre-game room/queue entry and never surrenders an active match. */
+export async function cancelPendingMatchmaking(): Promise<{ success: boolean }> {
+    await ensureFreshAccessToken();
+    return request("/matches/pending/cancel", { method: "POST" });
+}
+
 export async function ensureFreshAccessToken(): Promise<string> {
     const token = typeof window === "undefined"
         ? undefined

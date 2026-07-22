@@ -7,7 +7,13 @@ import { GameBoardView } from "../game/GameBoard";
 import { PhaserSplash } from "./PhaserSplash";
 import { PendingMatchDialog, PendingMatchLoadingGate } from "./PendingMatchDialog";
 import { useGameMatch } from "../../hooks/useGameMatch";
-import { forfeitPendingMatch, getPendingMatch, listDecks, type PendingMatch } from "../../libs/api";
+import {
+  cancelPendingMatchmaking,
+  forfeitPendingMatch,
+  getPendingMatch,
+  listDecks,
+  type PendingMatch
+} from "../../libs/api";
 import {
   getDefaultLocalDeck,
   getSelectedDeckId,
@@ -38,6 +44,7 @@ export function PrivateRoomScreen(props: {
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
   const [deckSelectionReady, setDeckSelectionReady] = useState(false);
+  const [leavingRoom, setLeavingRoom] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -128,10 +135,42 @@ export function PrivateRoomScreen(props: {
   const roomCode = controller.roomCode || validJoinCode;
   const invalidJoinCode = props.mode === "join" && !validJoinCode;
 
-  const leaveRoom = () => {
-    if (controller.roomCode && !controller.inGame) controller.cancelMatchmaking();
-    router.push("/");
+  const leaveRoom = async () => {
+    if (leavingRoom || controller.inGame) return;
+    setLeavingRoom(true);
+    setPendingMatchError(undefined);
+
+    // Keep the socket request for the normal fast path, but wait for the HTTP
+    // transaction before unmounting. WebSocket.send has no server ACK and the
+    // old implementation closed the socket before cancellation could reach AWS.
+    controller.cancelMatchmaking();
+    try {
+      await cancelWaitingRoomWithRetry();
+      router.replace("/");
+    } catch (error) {
+      setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to leave the waiting room. Please retry."
+      );
+      setLeavingRoom(false);
+    }
   };
+
+  async function cancelWaitingRoomWithRetry(): Promise<void> {
+    let lastError: unknown;
+    for (const delay of [0, 200, 500]) {
+      if (delay) await new Promise<void>((resolve) => window.setTimeout(resolve, delay));
+      try {
+        await cancelPendingMatchmaking();
+        return;
+      } catch (error) {
+        lastError = error;
+        // room-create can still be completing its DynamoDB write on the first
+        // cancellation attempt; retry only the explicit "not found" result.
+        if (!(error instanceof Error) || !/No waiting room was found/i.test(error.message)) throw error;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("No waiting room was found.");
+  }
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
@@ -215,8 +254,8 @@ export function PrivateRoomScreen(props: {
               {copied ? "Code copied" : "Copy room code"}
             </button>
           ) : null}
-          <button className="matchmaking-command matchmaking-command--cancel" onClick={leaveRoom}>
-            <X size={19} /> Leave room
+          <button className="matchmaking-command matchmaking-command--cancel" onClick={leaveRoom} disabled={leavingRoom}>
+            <X size={19} /> {leavingRoom ? "Leaving..." : "Leave room"}
           </button>
         </section>
       </section>
