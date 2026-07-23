@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getDefaultDeckCardIds } from "../game/entities/defaultDeck";
+import { getDefaultDeckCardIds } from "../../src/game/entities/defaultDeck";
 
 const { send } = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock("../config/dynamodb", () => ({ dynamoDb: { send } }));
 
-import { resolveDeckSelection } from "./startMatch";
+import { resolveDeckSelection } from "../../src/aws-lambdas/startMatch";
 
 describe("server-authoritative matchmaking deck selection", () => {
   beforeEach(() => send.mockReset());

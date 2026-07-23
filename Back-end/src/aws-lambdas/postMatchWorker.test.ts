@@ -2,16 +2,20 @@ import { GetCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import type { SQSRecord } from "aws-lambda";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ dynamoSend: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  dynamoSend: vi.fn(),
+  notifyConnections: vi.fn()
+}));
 vi.mock("../config/dynamodb", () => ({ dynamoDb: { send: mocks.dynamoSend } }));
+vi.mock("../leaderboard/realtime", () => ({ notifyConnections: mocks.notifyConnections }));
 
 import { processSingleMatchRecord } from "./postMatchWorker";
 
-function record(matchId = "match-ranked"): SQSRecord {
+function record(): SQSRecord {
   return {
     messageId: "message-1",
     receiptHandle: "receipt",
-    body: JSON.stringify({ matchId, winnerId: "P2", endedAt: 123_456 }),
+    body: JSON.stringify({ matchId: "match-ranked", winnerId: "P2", endedAt: 123_456 }),
     attributes: {
       ApproximateReceiveCount: "1",
       SentTimestamp: "1",
@@ -26,29 +30,28 @@ function record(matchId = "match-ranked"): SQSRecord {
   };
 }
 
-describe("postMatchWorker", () => {
+describe("postMatchWorker leaderboard projection", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("atomically updates real profiles, EXP, ELO and history from GameState", async () => {
+  it("commits ELO, history and both GSI projections in one transaction", async () => {
     mocks.dynamoSend.mockImplementation(async (command: unknown) => {
       if (command instanceof GetCommand) {
-        const input = command.input;
-        if (input.TableName === "GameState") {
+        if (command.input.TableName === "GameState") {
           return {
             Item: {
               match_id: "match-ranked",
               status: "FINISHED",
               engine_state: { winnerId: "P1" },
-              player_1: { user_id: "user-p1" },
-              player_2: { user_id: "user-p2" }
+              player_1: { user_id: "user-p1", connection_id: "connection-p1" },
+              player_2: { user_id: "user-p2", connection_id: "connection-p2" }
             }
           };
         }
-        const userId = input.Key?.user_id;
+        const userId = command.input.Key?.user_id;
         return {
           Item: {
             user_id: userId,
-            decks: { preserved: { deckId: "preserved" } },
+            rank: userId === "user-p1" ? 10 : 11,
             stats: {
               wins: userId === "user-p1" ? 2 : 4,
               losses: 1,
@@ -69,25 +72,20 @@ describe("postMatchWorker", () => {
     const transaction = mocks.dynamoSend.mock.calls
       .map(([command]) => command)
       .find((command) => command instanceof TransactWriteCommand) as TransactWriteCommand;
-    expect(transaction).toBeDefined();
     const items = transaction.input.TransactItems!;
     expect(items).toHaveLength(5);
-    expect(items[0].Update?.UpdateExpression).toContain("post_match_processed_at");
-    expect(items[1].Update?.ExpressionAttributeValues?.[":stats"]).toMatchObject({
-      wins: 3,
-      losses: 1,
-      rank_points: 1016,
-      elo_rating: 1016,
-      exp: 1000,
-      level: 2
+    expect(items[1].Update?.ExpressionAttributeValues).toMatchObject({
+      ":scope": "GLOBAL",
+      ":elo": 1016,
+      ":winRate": 0.75,
+      ":wins": 3,
+      ":losses": 1
     });
-    expect(items[2].Update?.ExpressionAttributeValues?.[":stats"]).toMatchObject({
-      wins: 4,
-      losses: 2,
-      rank_points: 984,
-      elo_rating: 984,
-      exp: 935,
-      level: 1
+    expect(items[2].Update?.ExpressionAttributeValues).toMatchObject({
+      ":scope": "GLOBAL",
+      ":elo": 984,
+      ":wins": 4,
+      ":losses": 2
     });
     expect(items[3].Put?.Item).toMatchObject({
       user_id: "user-p1",
@@ -95,9 +93,20 @@ describe("postMatchWorker", () => {
       result: "WIN",
       elo_change: 16
     });
+    expect(mocks.notifyConnections).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.objectContaining({
+        connectionId: "connection-p1",
+        payload: expect.objectContaining({
+          event: "profile:updated",
+          elo: 1016,
+          rank: 10,
+          rankPending: true
+        })
+      })
+    ]));
   });
 
-  it("treats an already processed SQS redelivery as a successful no-op", async () => {
+  it("keeps SQS redelivery idempotent", async () => {
     mocks.dynamoSend.mockResolvedValue({
       Item: {
         match_id: "match-ranked",
@@ -107,8 +116,7 @@ describe("postMatchWorker", () => {
     });
 
     await processSingleMatchRecord(record());
-
     expect(mocks.dynamoSend).toHaveBeenCalledTimes(1);
-    expect(mocks.dynamoSend.mock.calls[0][0]).toBeInstanceOf(GetCommand);
+    expect(mocks.notifyConnections).not.toHaveBeenCalled();
   });
 });

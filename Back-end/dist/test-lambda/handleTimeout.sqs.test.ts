@@ -1,8 +1,8 @@
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import type { SQSEvent } from "aws-lambda";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { applyAction, createInitialGameState } from "../game/core/engine";
-import type { GameState } from "../game/types";
+import { applyAction, createInitialGameState } from "../../src/game/core/engine";
+import type { GameState } from "../../src/game/types";
 
 const mocks = vi.hoisted(() => ({
   dynamoSend: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock("@aws-sdk/client-apigatewaymanagementapi", () => ({
   }
 }));
 
-import { handler, type MatchRecord } from "./handleTimeout";
+import { handler, type MatchRecord } from "../../src/aws-lambdas/handleTimeout";
 
 function dueState(): GameState {
   const state = applyAction(createInitialGameState([], [], 1), {

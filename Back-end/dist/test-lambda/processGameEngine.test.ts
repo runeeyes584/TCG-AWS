@@ -1,8 +1,8 @@
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createCardInstance, createUnitInstance } from "../game/entities/cards";
-import type { CardDefinition, GameState, PlayerId } from "../game/types";
-import { applyAction, createInitialGameState } from "../game/core/engine";
+import { createCardInstance, createUnitInstance } from "../../src/game/entities/cards";
+import type { CardDefinition, GameState, PlayerId } from "../../src/game/types";
+import { applyAction, createInitialGameState } from "../../src/game/core/engine";
 
 const mocks = vi.hoisted(() => ({
   dynamoSend: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock("@aws-sdk/client-apigatewaymanagementapi", () => ({
   }
 }));
 
-import { handler } from "./processGameEngine";
+import { handler } from "../../src/aws-lambdas/processGameEngine";
 
 const fighter: CardDefinition = {
   id: "lambda-combat-fighter",

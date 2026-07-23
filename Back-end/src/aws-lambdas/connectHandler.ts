@@ -76,10 +76,11 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
           UpdateExpression:
             `SET ${playerPath}.connection_id = :connectionId, ` +
             `${playerPath}.connected = :connected, ${playerPath}.resume_connection_at = :now`,
-          ConditionExpression: "#status = :active",
+          ConditionExpression: `#status = :active AND ${playerPath}.user_id = :userId`,
           ExpressionAttributeNames: { "#status": "status" },
           ExpressionAttributeValues: {
             ":active": "IN_PROGRESS",
+            ":userId": userId,
             ":connectionId": connectionId,
             ":connected": false,
             ":now": Date.now()

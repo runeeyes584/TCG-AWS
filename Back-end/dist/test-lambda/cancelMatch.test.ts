@@ -11,7 +11,7 @@ vi.mock("@aws-sdk/client-apigatewaymanagementapi", () => ({
   PostToConnectionCommand: class { constructor(public input: unknown) {} }
 }));
 
-import { handler } from "./cancelMatch";
+import { handler } from "../../src/aws-lambdas/cancelMatch";
 
 const event = {
   requestContext: {

@@ -760,8 +760,10 @@ export const handler = async (event: any) => {
     // particular, a normal "Find match" request must never silently re-open
     // an unfinished game merely because $connect rebound its connection ID.
     const resumeRequested = body.resume === true;
-    const resumeRequired = connection.resume_required === true;
     const existingMatchId = typeof connection.match_id === "string" ? connection.match_id : undefined;
+    const requestedResumeMatchId = typeof body.matchId === "string"
+      ? body.matchId.trim()
+      : undefined;
     // `$connect` writes the Connections record before it finishes rebinding an
     // unfinished match.  A resume request that arrives in that small window
     // must never fall through to public matchmaking.
@@ -776,7 +778,18 @@ export const handler = async (event: any) => {
       }));
       const associatedMatch = existing.Item as MatchRecord | undefined;
       if (associatedMatch?.status === "IN_PROGRESS") {
-        if (!resumeRequested || !resumeRequired) {
+        if (
+          resumeRequested &&
+          requestedResumeMatchId &&
+          requestedResumeMatchId !== associatedMatch.match_id
+        ) {
+          throw new RequestError(409, "The selected match is no longer associated with this connection.");
+        }
+        // `resume_required` is only a UI flag. API Gateway may deliver this
+        // route while $connect is still finishing that final Connections-table
+        // write, so the explicit request and identity checks below are the
+        // authority for resuming.
+        if (!resumeRequested) {
           const playerId: PlayerId | undefined = associatedMatch.player_1?.user_id === userId
             ? "P1"
             : associatedMatch.player_2?.user_id === userId ? "P2" : undefined;
@@ -828,13 +841,16 @@ export const handler = async (event: any) => {
             Key: { connection_id: connectionId },
             UpdateExpression: "REMOVE resume_required"
           }));
-          await sendMessage(wsClient, connectionId, {
+          const delivered = await sendMessage(wsClient, connectionId, {
             event: "matchmaking:found",
             roomCode: associatedMatch.match_id,
             playerId,
             opponentConnected: opponent?.connected !== false,
             state: redactStateForPlayer(associatedMatch.engine_state, playerId)
           });
+          if (!delivered) {
+            throw new RequestError(410, "WebSocket connection closed while restoring the match.");
+          }
           if (opponent?.connection_id && opponent.connected !== false) {
             await sendMessage(wsClient, opponent.connection_id, {
               event: "room:update",
@@ -846,7 +862,8 @@ export const handler = async (event: any) => {
           }
           return { statusCode: 200, body: "Active match resumed." };
         }
-        throw new RequestError(409, "This connection is associated with a different player session.");
+        // `$connect` may still be rebinding the ephemeral connection ID.
+        throw new RequestError(409, "Match recovery is still initializing. Please retry.");
       }
 
       if (associatedMatch?.status === "WAITING" && associatedMatch.match_type === "PRIVATE") {
