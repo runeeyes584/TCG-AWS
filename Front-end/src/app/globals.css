@@ -422,6 +422,18 @@ button svg { vertical-align: -2px; }
 .pending-match-dialog button:last-child { background: #147fca; }
 .pending-match-dialog button:disabled { cursor: wait; opacity: 0.65; }
 
+.match-recovery-loader {
+  width: 168px;
+  height: 60px;
+  margin: 18px auto 12px;
+}
+
+.match-recovery-loader canvas {
+  display: block;
+  width: 168px !important;
+  height: 60px !important;
+}
+
 .pending-match-check-error {
   position: fixed;
   z-index: 1200;

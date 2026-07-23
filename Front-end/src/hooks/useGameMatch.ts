@@ -59,6 +59,8 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     let active = true;
     let socket: ReturnType<typeof socketManager.connect> | undefined;
     let refreshRetried = false;
+    let resumeTimer: number | undefined;
+    const maxResumeAttempts = 7;
     const email = localStorage.getItem("email") || "";
 
     const clearAuthentication = (message: string) => {
@@ -108,8 +110,22 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
       const requestResume = () => {
         if (!active || !resumeRoomCode || !socketManager.getSocket()?.connected) return;
+        if (resumeAttemptsRef.current >= maxResumeAttempts) {
+          setStatus("Recovery failed");
+          setError("Unable to restore the match. Please retry Continue or choose Leave Match.");
+          return;
+        }
         resumeAttemptsRef.current += 1;
-        socketManager.resumeMatch();
+        setStatus("Restoring match...");
+        setError(undefined);
+        socketManager.resumeMatch(resumeRoomCode);
+      };
+
+      const retryResume = () => {
+        if (!active || !resumeRoomCode) return;
+        if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
+        const delay = Math.min(350 * Math.max(1, resumeAttemptsRef.current), 1400);
+        resumeTimer = window.setTimeout(requestResume, delay);
       };
 
       socket.on("connect", () => {
@@ -123,7 +139,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         // API Gateway reports the transport open before its $connect Lambda
         // has finished persisting/rebinding the connection. Let that write
         // settle; transient recovery errors below are retried explicitly.
-        window.setTimeout(requestResume, 250);
+        resumeTimer = window.setTimeout(requestResume, 350);
       } else if (roomCodeRef.current) {
         const knownRoomCode = roomCodeRef.current;
         if (/^[A-HJ-NP-Z2-9]{6}$/.test(knownRoomCode)) {
@@ -177,17 +193,32 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       if (
         resumeRoomCode &&
         /Match recovery is still initializing/i.test(message) &&
-        resumeAttemptsRef.current < 3
+        resumeAttemptsRef.current < maxResumeAttempts
       ) {
-        window.setTimeout(requestResume, 250 * resumeAttemptsRef.current);
+        retryResume();
+        return;
+      }
+      if (
+        resumeRoomCode &&
+        /unfinished match|Choose Continue or Leave/i.test(message) &&
+        resumeAttemptsRef.current < maxResumeAttempts
+      ) {
+        retryResume();
         return;
       }
       setError(message);
+      if (resumeRoomCode) setStatus("Recovery failed");
       addClientLog(message);
       });
 
       socket.on("match:resume_required", (message?: SocketGameController["resumeRequired"]) => {
       if (!message?.roomCode) return;
+      // During an explicit Continue flow this event can race with the final
+      // $connect write. Keep the recovery gate mounted and retry silently.
+      if (resumeRoomCode) {
+        retryResume();
+        return;
+      }
       setSearching(false);
       setQueueTime(0);
       setResumeRequired(message);
@@ -243,6 +274,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       });
 
       socket.on("matchmaking:found", (message?: { roomCode?: string; playerId?: PlayerId; state?: GameState }) => {
+      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
       if (message?.roomCode) {
         roomCodeRef.current = message.roomCode;
         setRoomCode(message.roomCode);
@@ -253,6 +285,8 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setSearching(false);
       setQueueTime(0);
       setStatus("Match Found!");
+      setError(undefined);
+      setResumeRequired(undefined);
       setInGame(true);
       });
 
@@ -268,6 +302,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
     return () => {
       active = false;
+      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
       socket?.off("connect");
       socket?.off("disconnect");
       socket?.off("connect_error");

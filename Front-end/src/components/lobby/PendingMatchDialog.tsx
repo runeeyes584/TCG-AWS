@@ -2,15 +2,18 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { MatchRecoveryPhaserLoader } from "./MatchRecoveryPhaserLoader";
 
 interface PendingMatchDialogProps {
   status: "WAITING" | "IN_PROGRESS";
   isResolving?: boolean;
+  isContinuing?: boolean;
   onContinue: () => void;
   onForfeit: () => void;
 }
 
-export function PendingMatchDialog({ status, isResolving = false, onContinue, onForfeit }: PendingMatchDialogProps) {
+export function PendingMatchDialog({ status, isResolving = false, isContinuing = false, onContinue, onForfeit }: PendingMatchDialogProps) {
+  if (isContinuing) return <PendingMatchLoadingGate message="Restoring your match..." />;
   const isQueue = status === "WAITING";
   return <ModalPortal>{(
     <div className="pending-match-overlay" role="dialog" aria-modal="true" aria-labelledby="pending-match-title">
@@ -37,12 +40,13 @@ export function PendingMatchDialog({ status, isResolving = false, onContinue, on
 }
 
 /** Blocks the page while the authoritative pending-match request is running. */
-export function PendingMatchLoadingGate() {
+export function PendingMatchLoadingGate({ message = "Checking your active match…" }: { message?: string }) {
   return <ModalPortal>{(
     <div className="pending-match-overlay pending-match-overlay--loading" role="status" aria-live="polite">
       <section className="pending-match-dialog">
         <p>Match recovery</p>
-        <h2>Checking your active match…</h2>
+        <MatchRecoveryPhaserLoader />
+        <h2>{message}</h2>
         <span>Please wait before starting another activity.</span>
       </section>
     </div>
