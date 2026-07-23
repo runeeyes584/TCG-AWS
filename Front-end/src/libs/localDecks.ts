@@ -56,6 +56,17 @@ export function saveLocalDeck(deck: Omit<LocalDeck, "updatedAt" | "isDefault">):
   return savedDeck;
 }
 
+export function mergeCloudDecks(cloudDecks: LocalDeck[]): LocalDeck[] {
+  if (typeof window === "undefined") return [getDefaultLocalDeck()];
+  const merged = new Map<string, LocalDeck>();
+  for (const deck of cloudDecks) {
+    if (isValidLocalDeck(deck)) merged.set(deck.deckId, { ...deck, isDefault: false });
+  }
+  const savedDecks = [...merged.values()].sort((left, right) => right.updatedAt - left.updatedAt);
+  window.localStorage.setItem(SAVED_DECKS_KEY, JSON.stringify(savedDecks));
+  return [getDefaultLocalDeck(), ...savedDecks];
+}
+
 export function getSelectedDeckId(): string {
   if (typeof window === "undefined") return DEFAULT_DECK_ID;
   return window.localStorage.getItem(SELECTED_DECK_KEY) || DEFAULT_DECK_ID;

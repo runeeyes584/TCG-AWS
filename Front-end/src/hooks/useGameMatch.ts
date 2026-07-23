@@ -16,8 +16,14 @@ export interface SocketGameController extends GameController {
   opponentConnected: boolean;
   status: string;
   error?: string;
-  createRoom: () => void;
-  joinRoom: (roomCode: string) => void;
+  resumeRequired?: {
+    roomCode: string;
+    status: "IN_PROGRESS";
+    playerId?: PlayerId;
+    opponentConnected?: boolean;
+  };
+  createRoom: (selection?: MatchmakingDeckSelection) => void;
+  joinRoom: (roomCode: string, selection?: MatchmakingDeckSelection) => void;
   startMatchmaking(selection?: MatchmakingDeckSelection): void;
   cancelMatchmaking(): void;
   searching: boolean;
@@ -42,7 +48,9 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   const [opponentConnected, setOpponentConnected] = useState(false);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string>();
+  const [resumeRequired, setResumeRequired] = useState<SocketGameController["resumeRequired"]>();
   const roomCodeRef = useRef<string | undefined>(resumeRoomCode);
+  const resumeAttemptsRef = useRef(0);
   const [actionLog, setActionLog] = useState<Array<{ id: number; message: string }>>([
     { id: 1, message: "Game match hook loaded." }
   ]);
@@ -51,6 +59,8 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     let active = true;
     let socket: ReturnType<typeof socketManager.connect> | undefined;
     let refreshRetried = false;
+    let resumeTimer: number | undefined;
+    const maxResumeAttempts = 7;
     const email = localStorage.getItem("email") || "";
 
     const clearAuthentication = (message: string) => {
@@ -98,17 +108,47 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
       socket = socketManager.connect(token, email);
 
+      const requestResume = () => {
+        if (!active || !resumeRoomCode || !socketManager.getSocket()?.connected) return;
+        if (resumeAttemptsRef.current >= maxResumeAttempts) {
+          setStatus("Recovery failed");
+          setError("Unable to restore the match. Please retry Continue or choose Leave Match.");
+          return;
+        }
+        resumeAttemptsRef.current += 1;
+        setStatus("Restoring match...");
+        setError(undefined);
+        socketManager.resumeMatch(resumeRoomCode);
+      };
+
+      const retryResume = () => {
+        if (!active || !resumeRoomCode) return;
+        if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
+        const delay = Math.min(350 * Math.max(1, resumeAttemptsRef.current), 1400);
+        resumeTimer = window.setTimeout(requestResume, delay);
+      };
+
       socket.on("connect", () => {
+      refreshRetried = false;
       setStatus("Connected");
       setError(undefined);
-      // Auto-rejoin if room code exists
-      if (roomCodeRef.current) {
-        socketManager.joinRoom(roomCodeRef.current, getLocalDeckSelection(), (response: any) => {
-          if (!response.ok) {
-            setError(response.error);
-            addClientLog(response.error);
-          }
-        });
+      // A room code from the URL is an explicit private-room join (or resume).
+      // Codes learned later from the server use the generic resume handshake.
+      if (resumeRoomCode) {
+        roomCodeRef.current = resumeRoomCode.trim().toUpperCase();
+        // API Gateway reports the transport open before its $connect Lambda
+        // has finished persisting/rebinding the connection. Let that write
+        // settle; transient recovery errors below are retried explicitly.
+        resumeTimer = window.setTimeout(requestResume, 350);
+      } else if (roomCodeRef.current) {
+        const knownRoomCode = roomCodeRef.current;
+        if (/^[A-HJ-NP-Z2-9]{6}$/.test(knownRoomCode)) {
+          socketManager.joinRoom(knownRoomCode, getLocalDeckSelection(), (response) => {
+            if (!response.ok) setError(response.error);
+          });
+        } else {
+          socketManager.startMatchmaking(getLocalDeckSelection());
+        }
       }
       });
 
@@ -120,7 +160,9 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
       socket.on("connect_error", (connectError: { message?: string }) => {
         const message = connectError.message || "Unable to connect to the game server.";
-        if (isRefreshableAuthError(message) && !refreshRetried) {
+        const storedToken = localStorage.getItem("accessToken");
+        const tokenNeedsRefresh = !storedToken || accessTokenNeedsRefresh(storedToken);
+        if ((isRefreshableAuthError(message) || tokenNeedsRefresh) && !refreshRetried) {
           refreshRetried = true;
           setStatus("Refreshing session");
           void refreshAccessToken()
@@ -148,22 +190,79 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       });
 
       socket.on("game:error", (message: string) => {
+      if (
+        resumeRoomCode &&
+        /Match recovery is still initializing/i.test(message) &&
+        resumeAttemptsRef.current < maxResumeAttempts
+      ) {
+        retryResume();
+        return;
+      }
+      if (
+        resumeRoomCode &&
+        /unfinished match|Choose Continue or Leave/i.test(message) &&
+        resumeAttemptsRef.current < maxResumeAttempts
+      ) {
+        retryResume();
+        return;
+      }
       setError(message);
+      if (resumeRoomCode) setStatus("Recovery failed");
       addClientLog(message);
       });
 
-      socket.on("room:update", (update: RoomUpdate) => {
-      roomCodeRef.current = update.roomCode;
-      setRoomCode(update.roomCode);
-      setLocalPlayerId(update.playerId);
-      setOpponentConnected(update.opponentConnected);
-      setPlayerProfiles(update.players);
-      setGameState(update.state);
-      setActionLog(update.log);
-      setStatus(update.opponentConnected ? "Opponent connected" : "Waiting for opponent");
+      socket.on("match:resume_required", (message?: SocketGameController["resumeRequired"]) => {
+      if (!message?.roomCode) return;
+      // During an explicit Continue flow this event can race with the final
+      // $connect write. Keep the recovery gate mounted and retry silently.
+      if (resumeRoomCode) {
+        retryResume();
+        return;
+      }
+      setSearching(false);
+      setQueueTime(0);
+      setResumeRequired(message);
+      setStatus("Match recovery required");
       });
 
-      socket.on("matchmaking:searching", () => {
+      socket.on("room:update", (update: Partial<RoomUpdate> & Pick<RoomUpdate, "playerId" | "state">) => {
+      const nextRoomCode = update.roomCode ?? roomCodeRef.current;
+      roomCodeRef.current = nextRoomCode;
+      setRoomCode(nextRoomCode);
+      setLocalPlayerId(update.playerId);
+      setOpponentConnected(update.opponentConnected ?? true);
+      if (update.players) setPlayerProfiles(update.players);
+      setGameState(update.state);
+      if (update.log) setActionLog(update.log);
+      setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
+      });
+
+      socket.on("room:created", (message?: {
+        roomCode?: string;
+        playerId?: PlayerId;
+        state?: GameState;
+        opponentConnected?: boolean;
+      }) => {
+      if (!message?.roomCode) {
+        setError("The game server did not return a room code.");
+        return;
+      }
+      roomCodeRef.current = message.roomCode;
+      setRoomCode(message.roomCode);
+      setLocalPlayerId(message.playerId ?? "P1");
+      if (message.state) setGameState(message.state);
+      setOpponentConnected(message.opponentConnected ?? false);
+      setSearching(false);
+      setQueueTime(0);
+      setInGame(false);
+      setStatus(`Room ${message.roomCode} created. Waiting for opponent`);
+      });
+
+      socket.on("matchmaking:searching", (message?: { roomCode?: string }) => {
+      if (message?.roomCode) {
+        roomCodeRef.current = message.roomCode;
+        setRoomCode(message.roomCode);
+      }
       setSearching(true);
       setStatus("Searching for opponent...");
       });
@@ -174,11 +273,28 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setStatus("Matchmaking cancelled");
       });
 
-      socket.on("matchmaking:found", () => {
+      socket.on("matchmaking:found", (message?: { roomCode?: string; playerId?: PlayerId; state?: GameState }) => {
+      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
+      if (message?.roomCode) {
+        roomCodeRef.current = message.roomCode;
+        setRoomCode(message.roomCode);
+      }
+      if (message?.playerId) setLocalPlayerId(message.playerId);
+      if (message?.state) setGameState(message.state);
+      setOpponentConnected(true);
       setSearching(false);
       setQueueTime(0);
       setStatus("Match Found!");
+      setError(undefined);
+      setResumeRequired(undefined);
       setInGame(true);
+      });
+
+      socket.on("match:ended", (message?: { state?: GameState }) => {
+      if (message?.state) setGameState(message.state);
+      setSearching(false);
+      setInGame(false);
+      setStatus("Match ended");
       });
     };
 
@@ -186,14 +302,18 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
     return () => {
       active = false;
+      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
       socket?.off("connect");
       socket?.off("disconnect");
       socket?.off("connect_error");
       socket?.off("game:error");
+      socket?.off("match:resume_required");
       socket?.off("room:update");
+      socket?.off("room:created");
       socket?.off("matchmaking:searching");
       socket?.off("matchmaking:cancelled");
       socket?.off("matchmaking:found");
+      socket?.off("match:ended");
       socketManager.disconnect();
     };
   }, []);
@@ -210,24 +330,22 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     setActionLog((current) => [{ id: Date.now() + Math.random(), message }, ...current]);
   }
 
-  function createRoom() {
+  function createRoom(selection?: MatchmakingDeckSelection) {
     setError(undefined);
-    socketManager.createRoom(getLocalDeckSelection(), (response: any) => {
+    if (!socketManager.getSocket()?.connected) {
+      setError("Connecting to the game server. Please try again in a moment.");
+      return;
+    }
+    setStatus("Creating private room...");
+    socketManager.createRoom(selection ?? getLocalDeckSelection(), (response) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
-        return;
       }
-
-      roomCodeRef.current = response.roomCode;
-      setRoomCode(response.roomCode);
-      setLocalPlayerId(response.playerId);
-      setOpponentConnected(false);
-      setStatus(`Room ${response.roomCode} created. Waiting for opponent`);
     });
   }
 
-  function joinRoom(inputRoomCode: string) {
+  function joinRoom(inputRoomCode: string, selection?: MatchmakingDeckSelection) {
     setError(undefined);
     const normalizedRoomCode = inputRoomCode.trim().toUpperCase();
 
@@ -236,21 +354,22 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       return;
     }
 
-    socketManager.joinRoom(normalizedRoomCode, getLocalDeckSelection(), (response: any) => {
+    if (!socketManager.getSocket()?.connected) {
+      setError("Connecting to the game server. Please try again in a moment.");
+      return;
+    }
+
+    setStatus(`Joining room ${normalizedRoomCode}...`);
+    socketManager.joinRoom(normalizedRoomCode, selection ?? getLocalDeckSelection(), (response) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
-        return;
       }
-
-      roomCodeRef.current = response.roomCode;
-      setRoomCode(response.roomCode);
-      setLocalPlayerId(response.playerId);
     });
   }
 
   function dispatch(action: GameAction): boolean {
-    socketManager.dispatchAction(action, (response: any) => {
+    socketManager.dispatchAction(roomCodeRef.current, action, (response: any) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
@@ -315,6 +434,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       opponentConnected,
       status,
       error,
+      resumeRequired,
       createRoom,
       joinRoom,
       searching,
@@ -323,7 +443,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       cancelMatchmaking,
       inGame
     }),
-    [actionLog, error, gameState, localPlayerId, playerProfiles, opponentConnected, roomCode, status, searching, queueTime, inGame]
+    [actionLog, error, gameState, localPlayerId, playerProfiles, opponentConnected, roomCode, status, searching, queueTime, inGame, resumeRequired]
   );
 
   return controller;

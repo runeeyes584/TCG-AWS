@@ -55,6 +55,15 @@ export interface UserProfile {
   stats: UserStats;
   created_at: string; // ISO 8601
   decks?: Record<string, SavedDeck>;
+  rank?: number;
+  rank_updated_at?: number;
+  leaderboard_scope?: "GLOBAL";
+  leaderboard_sort?: string;
+  leaderboard_elo?: number;
+  leaderboard_win_rate?: number;
+  leaderboard_wins?: number;
+  leaderboard_losses?: number;
+  leaderboard_projected_at?: number;
 }
 
 export interface UserStats {

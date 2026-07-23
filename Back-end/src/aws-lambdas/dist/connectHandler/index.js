@@ -3958,14 +3958,14 @@ var init_readFile = __esm({
     import_promises2 = require("node:fs/promises");
     filePromises = {};
     fileIntercept = {};
-    readFile2 = (path2, options) => {
-      if (fileIntercept[path2] !== void 0) {
-        return fileIntercept[path2];
+    readFile2 = (path3, options) => {
+      if (fileIntercept[path3] !== void 0) {
+        return fileIntercept[path3];
       }
-      if (!filePromises[path2] || options?.ignoreCache) {
-        filePromises[path2] = (0, import_promises2.readFile)(path2, "utf8");
+      if (!filePromises[path3] || options?.ignoreCache) {
+        filePromises[path3] = (0, import_promises2.readFile)(path3, "utf8");
       }
-      return filePromises[path2];
+      return filePromises[path3];
     };
   }
 });
@@ -4077,8 +4077,8 @@ var init_externalDataInterceptor = __esm({
       getFileRecord() {
         return fileIntercept;
       },
-      interceptFile(path2, contents) {
-        fileIntercept[path2] = Promise.resolve(contents);
+      interceptFile(path3, contents) {
+        fileIntercept[path3] = Promise.resolve(contents);
       },
       getTokenRecord() {
         return tokenIntercept;
@@ -4192,12 +4192,12 @@ var init_NodeUseDualstackEndpointConfigOptions = __esm({
     CONFIG_USE_DUALSTACK_ENDPOINT = "use_dualstack_endpoint";
     DEFAULT_USE_DUALSTACK_ENDPOINT = false;
     NODE_USE_DUALSTACK_ENDPOINT_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => booleanSelector(env2, ENV_USE_DUALSTACK_ENDPOINT, SelectorType.ENV),
+      environmentVariableSelector: (env3) => booleanSelector(env3, ENV_USE_DUALSTACK_ENDPOINT, SelectorType.ENV),
       configFileSelector: (profile) => booleanSelector(profile, CONFIG_USE_DUALSTACK_ENDPOINT, SelectorType.CONFIG),
       default: false
     };
     nodeDualstackConfigSelectors = {
-      environmentVariableSelector: (env2) => booleanSelector(env2, ENV_USE_DUALSTACK_ENDPOINT, SelectorType.ENV),
+      environmentVariableSelector: (env3) => booleanSelector(env3, ENV_USE_DUALSTACK_ENDPOINT, SelectorType.ENV),
       configFileSelector: (profile) => booleanSelector(profile, CONFIG_USE_DUALSTACK_ENDPOINT, SelectorType.CONFIG),
       default: void 0
     };
@@ -4214,12 +4214,12 @@ var init_NodeUseFipsEndpointConfigOptions = __esm({
     CONFIG_USE_FIPS_ENDPOINT = "use_fips_endpoint";
     DEFAULT_USE_FIPS_ENDPOINT = false;
     NODE_USE_FIPS_ENDPOINT_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => booleanSelector(env2, ENV_USE_FIPS_ENDPOINT, SelectorType.ENV),
+      environmentVariableSelector: (env3) => booleanSelector(env3, ENV_USE_FIPS_ENDPOINT, SelectorType.ENV),
       configFileSelector: (profile) => booleanSelector(profile, CONFIG_USE_FIPS_ENDPOINT, SelectorType.CONFIG),
       default: false
     };
     nodeFipsConfigSelectors = {
-      environmentVariableSelector: (env2) => booleanSelector(env2, ENV_USE_FIPS_ENDPOINT, SelectorType.ENV),
+      environmentVariableSelector: (env3) => booleanSelector(env3, ENV_USE_FIPS_ENDPOINT, SelectorType.ENV),
       configFileSelector: (profile) => booleanSelector(profile, CONFIG_USE_FIPS_ENDPOINT, SelectorType.CONFIG),
       default: void 0
     };
@@ -4249,14 +4249,14 @@ var init_getEndpointFromRegion = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/config/config-resolver/endpointsConfig/utils/getEndpointFromRegion.js"() {
     getEndpointFromRegion = async (input) => {
       const { tls = true } = input;
-      const region2 = await input.region();
+      const region = await input.region();
       const dnsHostRegex = new RegExp(/^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$/);
-      if (!dnsHostRegex.test(region2)) {
+      if (!dnsHostRegex.test(region)) {
         throw new Error("Invalid region in client config");
       }
       const useDualstackEndpoint = await input.useDualstackEndpoint();
       const useFipsEndpoint = await input.useFipsEndpoint();
-      const { hostname } = await input.regionInfoProvider(region2, { useDualstackEndpoint, useFipsEndpoint }) ?? {};
+      const { hostname } = await input.regionInfoProvider(region, { useDualstackEndpoint, useFipsEndpoint }) ?? {};
       if (!hostname) {
         throw new Error("Cannot resolve hostname from client config");
       }
@@ -4325,7 +4325,7 @@ var init_getInstanceMetadataRegion = __esm({
             [X_AWS_EC2_METADATA_TOKEN_TTL]: "21600"
           }
         })).toString();
-        const region2 = (await imdsRequest({
+        const region = (await imdsRequest({
           ...endpoint,
           path: IMDS_REGION_PATH,
           method: "GET",
@@ -4333,7 +4333,7 @@ var init_getInstanceMetadataRegion = __esm({
             [X_AWS_EC2_METADATA_TOKEN]: token
           }
         })).toString().trim();
-        return region2 || cacheNegativeAndReturnUndefined();
+        return region || cacheNegativeAndReturnUndefined();
       } catch {
         return cacheNegativeAndReturnUndefined();
       }
@@ -4404,12 +4404,12 @@ var init_config = __esm({
     REGION_ENV_NAME = "AWS_REGION";
     REGION_INI_NAME = "region";
     NODE_REGION_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => env2[REGION_ENV_NAME],
+      environmentVariableSelector: (env3) => env3[REGION_ENV_NAME],
       configFileSelector: (profile) => profile[REGION_INI_NAME],
       default: async () => {
-        const region2 = await getInstanceMetadataRegion();
-        if (region2) {
-          return region2;
+        const region = await getInstanceMetadataRegion();
+        if (region) {
+          return region;
         }
         throw new Error("Region is missing");
       }
@@ -4426,15 +4426,15 @@ var init_checkRegion = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/config/config-resolver/regionConfig/checkRegion.js"() {
     init_transport();
     validRegions = /* @__PURE__ */ new Set();
-    checkRegion = (region2, check = isValidHostLabel) => {
-      if (!validRegions.has(region2) && !check(region2)) {
-        if (region2 === "*") {
+    checkRegion = (region, check = isValidHostLabel) => {
+      if (!validRegions.has(region) && !check(region)) {
+        if (region === "*") {
           console.warn(`@smithy/config-resolver WARN - Please use the caller region instead of "*". See "sigv4a" in https://github.com/aws/aws-sdk-js-v3/blob/main/supplemental-docs/CLIENTS.md.`);
         } else {
-          throw new Error(`Region not accepted: region="${region2}" is not a valid hostname component.`);
+          throw new Error(`Region not accepted: region="${region}" is not a valid hostname component.`);
         }
       } else {
-        validRegions.add(region2);
+        validRegions.add(region);
       }
     };
   }
@@ -4444,7 +4444,7 @@ var init_checkRegion = __esm({
 var isFipsRegion;
 var init_isFipsRegion = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/config/config-resolver/regionConfig/isFipsRegion.js"() {
-    isFipsRegion = (region2) => typeof region2 === "string" && (region2.startsWith("fips-") || region2.endsWith("-fips"));
+    isFipsRegion = (region) => typeof region === "string" && (region.startsWith("fips-") || region.endsWith("-fips"));
   }
 });
 
@@ -4453,7 +4453,7 @@ var getRealRegion;
 var init_getRealRegion = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/config/config-resolver/regionConfig/getRealRegion.js"() {
     init_isFipsRegion();
-    getRealRegion = (region2) => isFipsRegion(region2) ? ["fips-aws-global", "aws-fips"].includes(region2) ? "us-east-1" : region2.replace(/fips-(dkr-|prod-)?|-fips/, "") : region2;
+    getRealRegion = (region) => isFipsRegion(region) ? ["fips-aws-global", "aws-fips"].includes(region) ? "us-east-1" : region.replace(/fips-(dkr-|prod-)?|-fips/, "") : region;
   }
 });
 
@@ -4465,19 +4465,19 @@ var init_resolveRegionConfig = __esm({
     init_getRealRegion();
     init_isFipsRegion();
     resolveRegionConfig = (input) => {
-      const { region: region2, useFipsEndpoint } = input;
-      if (!region2) {
+      const { region, useFipsEndpoint } = input;
+      if (!region) {
         throw new Error("Region is missing");
       }
       return Object.assign(input, {
         region: async () => {
-          const providedRegion = typeof region2 === "function" ? await region2() : region2;
+          const providedRegion = typeof region === "function" ? await region() : region;
           const realRegion = getRealRegion(providedRegion);
           checkRegion(realRegion);
           return realRegion;
         },
         useFipsEndpoint: async () => {
-          const providedRegion = typeof region2 === "string" ? region2 : await region2();
+          const providedRegion = typeof region === "string" ? region : await region();
           if (isFipsRegion(providedRegion)) {
             return true;
           }
@@ -4508,7 +4508,7 @@ var init_getResolvedHostname = __esm({
 var getResolvedPartition;
 var init_getResolvedPartition = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/config/config-resolver/regionInfo/getResolvedPartition.js"() {
-    getResolvedPartition = (region2, { partitionHash }) => Object.keys(partitionHash || {}).find((key) => partitionHash[key].regions.includes(region2)) ?? "aws";
+    getResolvedPartition = (region, { partitionHash }) => Object.keys(partitionHash || {}).find((key) => partitionHash[key].regions.includes(region)) ?? "aws";
   }
 });
 
@@ -4538,9 +4538,9 @@ var init_getRegionInfo = __esm({
     init_getResolvedHostname();
     init_getResolvedPartition();
     init_getResolvedSigningRegion();
-    getRegionInfo = (region2, { useFipsEndpoint = false, useDualstackEndpoint = false, signingService, regionHash, partitionHash }) => {
-      const partition2 = getResolvedPartition(region2, { partitionHash });
-      const resolvedRegion = region2 in regionHash ? region2 : partitionHash[partition2]?.endpoint ?? region2;
+    getRegionInfo = (region, { useFipsEndpoint = false, useDualstackEndpoint = false, signingService, regionHash, partitionHash }) => {
+      const partition2 = getResolvedPartition(region, { partitionHash });
+      const resolvedRegion = region in regionHash ? region : partitionHash[partition2]?.endpoint ?? region;
       const hostnameOptions = { useFipsEndpoint, useDualstackEndpoint };
       const regionHostname = getHostnameFromVariants(regionHash[resolvedRegion]?.variants, hostnameOptions);
       const partitionHostname = getHostnameFromVariants(partitionHash[partition2]?.variants, hostnameOptions);
@@ -4573,8 +4573,8 @@ var init_defaultsModeConfig = __esm({
     AWS_DEFAULTS_MODE_ENV = "AWS_DEFAULTS_MODE";
     AWS_DEFAULTS_MODE_CONFIG = "defaults_mode";
     NODE_DEFAULTS_MODE_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => {
-        return env2[AWS_DEFAULTS_MODE_ENV];
+      environmentVariableSelector: (env3) => {
+        return env3[AWS_DEFAULTS_MODE_ENV];
       },
       configFileSelector: (profile) => {
         return profile[AWS_DEFAULTS_MODE_CONFIG];
@@ -4594,11 +4594,11 @@ var init_resolveDefaultsModeConfig = __esm({
     init_memoize();
     init_constants3();
     init_defaultsModeConfig();
-    resolveDefaultsModeConfig = ({ region: region2 = loadConfig(NODE_REGION_CONFIG_OPTIONS), defaultsMode = loadConfig(NODE_DEFAULTS_MODE_CONFIG_OPTIONS) } = {}) => memoize(async () => {
+    resolveDefaultsModeConfig = ({ region = loadConfig(NODE_REGION_CONFIG_OPTIONS), defaultsMode = loadConfig(NODE_DEFAULTS_MODE_CONFIG_OPTIONS) } = {}) => memoize(async () => {
       const mode = typeof defaultsMode === "function" ? await defaultsMode() : defaultsMode;
       switch (mode?.toLowerCase()) {
         case "auto":
-          return resolveNodeDefaultsModeAuto(region2);
+          return resolveNodeDefaultsModeAuto(region);
         case "in-region":
         case "cross-region":
         case "mobile":
@@ -4723,12 +4723,12 @@ var init_getEndpointUrlConfig = __esm({
     ENV_ENDPOINT_URL = "AWS_ENDPOINT_URL";
     CONFIG_ENDPOINT_URL = "endpoint_url";
     getEndpointUrlConfig = (serviceId) => ({
-      environmentVariableSelector: (env2) => {
+      environmentVariableSelector: (env3) => {
         const serviceSuffixParts = serviceId.split(" ").map((w) => w.toUpperCase());
-        const serviceEndpointUrl = env2[[ENV_ENDPOINT_URL, ...serviceSuffixParts].join("_")];
+        const serviceEndpointUrl = env3[[ENV_ENDPOINT_URL, ...serviceSuffixParts].join("_")];
         if (serviceEndpointUrl)
           return serviceEndpointUrl;
-        const endpointUrl = env2[ENV_ENDPOINT_URL];
+        const endpointUrl = env3[ENV_ENDPOINT_URL];
         if (endpointUrl)
           return endpointUrl;
         return void 0;
@@ -4852,8 +4852,8 @@ var init_createConfigValueProvider = __esm({
               return endpoint.url.href;
             }
             if ("hostname" in endpoint) {
-              const { protocol, hostname, port, path: path2 } = endpoint;
-              return `${protocol}//${hostname}${port ? ":" + port : ""}${path2}`;
+              const { protocol, hostname, port, path: path3 } = endpoint;
+              return `${protocol}//${hostname}${port ? ":" + port : ""}${path3}`;
             }
           }
           return endpoint;
@@ -5226,18 +5226,18 @@ var getAttrPathList;
 var init_getAttrPathList = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/endpoints/util-endpoints/lib/getAttrPathList.js"() {
     init_types2();
-    getAttrPathList = (path2) => {
-      const parts = path2.split(".");
+    getAttrPathList = (path3) => {
+      const parts = path3.split(".");
       const pathList = [];
       for (const part of parts) {
         const squareBracketIndex = part.indexOf("[");
         if (squareBracketIndex !== -1) {
           if (part.indexOf("]") !== part.length - 1) {
-            throw new EndpointError(`Path: '${path2}' does not end with ']'`);
+            throw new EndpointError(`Path: '${path3}' does not end with ']'`);
           }
           const arrayIndex = part.slice(squareBracketIndex + 1, -1);
           if (Number.isNaN(parseInt(arrayIndex))) {
-            throw new EndpointError(`Invalid array index: '${arrayIndex}' in path: '${path2}'`);
+            throw new EndpointError(`Invalid array index: '${arrayIndex}' in path: '${path3}'`);
           }
           if (squareBracketIndex !== 0) {
             pathList.push(part.slice(0, squareBracketIndex));
@@ -5258,9 +5258,9 @@ var init_getAttr = __esm({
   "../../../node_modules/@smithy/core/dist-es/submodules/endpoints/util-endpoints/lib/getAttr.js"() {
     init_types2();
     init_getAttrPathList();
-    getAttr = (value, path2) => getAttrPathList(path2).reduce((acc, index) => {
+    getAttr = (value, path3) => getAttrPathList(path3).reduce((acc, index) => {
       if (typeof acc !== "object") {
-        throw new EndpointError(`Index '${index}' in '${path2}' not found in '${JSON.stringify(value)}'`);
+        throw new EndpointError(`Index '${index}' in '${path3}' not found in '${JSON.stringify(value)}'`);
       } else if (Array.isArray(acc)) {
         const i6 = parseInt(index);
         return acc[i6 < 0 ? acc.length + i6 : i6];
@@ -5321,8 +5321,8 @@ var init_parseURL = __esm({
             return value;
           }
           if (typeof value === "object" && "hostname" in value) {
-            const { hostname: hostname2, port, protocol: protocol2 = "", path: path2 = "", query = {} } = value;
-            const url = new URL(`${protocol2}//${hostname2}${port ? `:${port}` : ""}${path2}`);
+            const { hostname: hostname2, port, protocol: protocol2 = "", path: path3 = "", query = {} } = value;
+            const url = new URL(`${protocol2}//${hostname2}${port ? `:${port}` : ""}${path3}`);
             url.search = Object.entries(query).map(([k6, v]) => `${k6}=${v}`).join("&");
             return url;
           }
@@ -8925,11 +8925,11 @@ var init_HttpBindingProtocol = __esm({
           const opTraits = translateTraits(operationSchema.traits);
           if (opTraits.http) {
             request.method = opTraits.http[0];
-            const [path2, search] = opTraits.http[1].split("?");
+            const [path3, search] = opTraits.http[1].split("?");
             if (request.path == "/") {
-              request.path = path2;
+              request.path = path3;
             } else {
-              request.path += path2;
+              request.path += path3;
             }
             const traitSearchParams = new URLSearchParams(search ?? "");
             for (const [key, value] of traitSearchParams) {
@@ -9330,8 +9330,8 @@ var init_requestBuilder = __esm({
         return this;
       }
       p(memberName, labelValueProvider, uriLabel, isGreedyLabel) {
-        this.resolvePathStack.push((path2) => {
-          this.path = resolvedPath(path2, this.input, memberName, labelValueProvider, uriLabel, isGreedyLabel);
+        this.resolvePathStack.push((path3) => {
+          this.path = resolvedPath(path3, this.input, memberName, labelValueProvider, uriLabel, isGreedyLabel);
         });
         return this;
       }
@@ -10704,8 +10704,8 @@ var init_configurations = __esm({
     ENV_MAX_ATTEMPTS = "AWS_MAX_ATTEMPTS";
     CONFIG_MAX_ATTEMPTS = "max_attempts";
     NODE_MAX_ATTEMPT_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => {
-        const value = env2[ENV_MAX_ATTEMPTS];
+      environmentVariableSelector: (env3) => {
+        const value = env3[ENV_MAX_ATTEMPTS];
         if (!value)
           return void 0;
         const maxAttempt = parseInt(value);
@@ -10753,7 +10753,7 @@ var init_configurations = __esm({
     ENV_RETRY_MODE = "AWS_RETRY_MODE";
     CONFIG_RETRY_MODE = "retry_mode";
     NODE_RETRY_MODE_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => env2[ENV_RETRY_MODE],
+      environmentVariableSelector: (env3) => env3[ENV_RETRY_MODE],
       configFileSelector: (profile) => profile[CONFIG_RETRY_MODE],
       default: DEFAULT_RETRY_MODE
     };
@@ -11439,9 +11439,9 @@ var init_createPaginator = __esm({
       command6 = withCommand(command6) ?? command6;
       return await client2.send(command6, ...args);
     };
-    get = (fromObject, path2) => {
+    get = (fromObject, path3) => {
       let cursor2 = fromObject;
-      const pathComponents = path2.split(".");
+      const pathComponents = path3.split(".");
       for (const step of pathComponents) {
         if (!cursor2 || typeof cursor2 !== "object") {
           return void 0;
@@ -12000,8 +12000,8 @@ var init_partition = __esm({
       const { partitions } = selectedPartitionsInfo;
       for (const partition2 of partitions) {
         const { regions, outputs } = partition2;
-        for (const [region2, regionData] of Object.entries(regions)) {
-          if (region2 === value) {
+        for (const [region, regionData] of Object.entries(regions)) {
+          if (region === value) {
             return {
               ...outputs,
               ...regionData
@@ -12297,7 +12297,7 @@ var init_nodeAppIdConfigOptions = __esm({
     UA_APP_ID_INI_NAME = "sdk_ua_app_id";
     UA_APP_ID_INI_NAME_DEPRECATED = "sdk-ua-app-id";
     NODE_APP_ID_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => env2[UA_APP_ID_ENV_NAME],
+      environmentVariableSelector: (env3) => env3[UA_APP_ID_ENV_NAME],
       configFileSelector: (profile) => profile[UA_APP_ID_INI_NAME] ?? profile[UA_APP_ID_INI_NAME_DEPRECATED],
       default: DEFAULT_UA_APP_ID
     };
@@ -13229,14 +13229,14 @@ var init_parseArn = __esm({
       const segments = value.split(ARN_DELIMITER);
       if (segments.length < 6)
         return null;
-      const [arn, partition2, service, region2, accountId, ...resourcePath] = segments;
+      const [arn, partition2, service, region, accountId, ...resourcePath] = segments;
       if (arn !== "arn" || partition2 === "" || service === "" || resourcePath.join(ARN_DELIMITER) === "")
         return null;
       const resourceId = resourcePath.map((resource) => resource.split(RESOURCE_DELIMITER)).flat();
       return {
         partition: partition2,
         service,
-        region: region2,
+        region,
         accountId,
         resourceId
       };
@@ -13337,8 +13337,8 @@ var init_extensions = __esm({
   "../../../node_modules/@aws-sdk/core/dist-es/submodules/client/region-config-resolver/extensions.js"() {
     getAwsRegionExtensionConfiguration = (runtimeConfig) => {
       return {
-        setRegion(region2) {
-          runtimeConfig.region = region2;
+        setRegion(region) {
+          runtimeConfig.region = region;
         },
         region() {
           return runtimeConfig.region;
@@ -13754,8 +13754,8 @@ var init_NodeAccountIdEndpointModeConfigOptions = __esm({
     ENV_ACCOUNT_ID_ENDPOINT_MODE = "AWS_ACCOUNT_ID_ENDPOINT_MODE";
     CONFIG_ACCOUNT_ID_ENDPOINT_MODE = "account_id_endpoint_mode";
     NODE_ACCOUNT_ID_ENDPOINT_MODE_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => {
-        const value = env2[ENV_ACCOUNT_ID_ENDPOINT_MODE];
+      environmentVariableSelector: (env3) => {
+        const value = env3[ENV_ACCOUNT_ID_ENDPOINT_MODE];
         if (value && !validateAccountIdEndpointMode(value)) {
           _throw(err);
         }
@@ -14336,11 +14336,11 @@ var require_dist_cjs4 = __commonJS({
     var CONFIG_ENDPOINT_DISCOVERY = "endpoint_discovery_enabled";
     var isFalsy = (value) => ["false", "0"].indexOf(value) >= 0;
     var NODE_ENDPOINT_DISCOVERY_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => {
+      environmentVariableSelector: (env3) => {
         for (let i6 = 0; i6 < ENV_ENDPOINT_DISCOVERY.length; i6++) {
           const envKey = ENV_ENDPOINT_DISCOVERY[i6];
-          if (envKey in env2) {
-            const value = env2[envKey];
+          if (envKey in env3) {
+            const value = env3[envKey];
             if (value === "") {
               throw Error(`Environment variable ${envKey} can't be empty of undefined, got "${value}"`);
             }
@@ -14685,15 +14685,15 @@ var init_NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = __esm({
     NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY = "AWS_AUTH_SCHEME_PREFERENCE";
     NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY = "auth_scheme_preference";
     NODE_AUTH_SCHEME_PREFERENCE_OPTIONS = {
-      environmentVariableSelector: (env2, options) => {
+      environmentVariableSelector: (env3, options) => {
         if (options?.signingName) {
           const bearerTokenKey = getBearerTokenEnvKey(options.signingName);
-          if (bearerTokenKey in env2)
+          if (bearerTokenKey in env3)
             return ["httpBearerAuth"];
         }
-        if (!(NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY in env2))
+        if (!(NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY in env3))
           return void 0;
-        return getArrayForCommaSeparatedString(env2[NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY]);
+        return getArrayForCommaSeparatedString(env3[NODE_AUTH_SCHEME_PREFERENCE_ENV_KEY]);
       },
       configFileSelector: (profile) => {
         if (!(NODE_AUTH_SCHEME_PREFERENCE_CONFIG_KEY in profile))
@@ -14716,9 +14716,9 @@ var init_resolveAwsSdkSigV4AConfig = __esm({
       return config;
     };
     NODE_SIGV4A_CONFIG_OPTIONS = {
-      environmentVariableSelector(env2) {
-        if (env2.AWS_SIGV4A_SIGNING_REGION_SET) {
-          return env2.AWS_SIGV4A_SIGNING_REGION_SET.split(",").map((_) => _.trim());
+      environmentVariableSelector(env3) {
+        if (env3.AWS_SIGV4A_SIGNING_REGION_SET) {
+          return env3.AWS_SIGV4A_SIGNING_REGION_SET.split(",").map((_) => _.trim());
         }
         throw new ProviderError("AWS_SIGV4A_SIGNING_REGION_SET not set in env.", {
           tryNextLink: true
@@ -14948,12 +14948,12 @@ var require_dist_cjs5 = __commonJS({
       sha256;
       uriEscapePath;
       applyChecksum;
-      constructor({ applyChecksum, credentials, region: region2, service, sha256, uriEscapePath = true }) {
+      constructor({ applyChecksum, credentials, region, service, sha256, uriEscapePath = true }) {
         this.service = service;
         this.sha256 = sha256;
         this.uriEscapePath = uriEscapePath;
         this.applyChecksum = typeof applyChecksum === "boolean" ? applyChecksum : true;
-        this.regionProvider = normalizeProvider3(region2);
+        this.regionProvider = normalizeProvider3(region);
         this.credentialProvider = normalizeProvider3(credentials);
       }
       createCanonicalRequest(request, canonicalHeaders, payloadHash) {
@@ -14975,10 +14975,10 @@ ${longDate}
 ${credentialScope}
 ${toHex2(hashedRequest)}`;
       }
-      getCanonicalPath({ path: path2 }) {
+      getCanonicalPath({ path: path3 }) {
         if (this.uriEscapePath) {
           const normalizedPathSegments = [];
-          for (const pathSegment of path2.split("/")) {
+          for (const pathSegment of path3.split("/")) {
             if (pathSegment?.length === 0)
               continue;
             if (pathSegment === ".")
@@ -14989,11 +14989,11 @@ ${toHex2(hashedRequest)}`;
               normalizedPathSegments.push(pathSegment);
             }
           }
-          const normalizedPath = `${path2?.startsWith("/") ? "/" : ""}${normalizedPathSegments.join("/")}${normalizedPathSegments.length > 0 && path2?.endsWith("/") ? "/" : ""}`;
+          const normalizedPath = `${path3?.startsWith("/") ? "/" : ""}${normalizedPathSegments.join("/")}${normalizedPathSegments.length > 0 && path3?.endsWith("/") ? "/" : ""}`;
           const doubleEncoded = escapeUri2(normalizedPath);
           return doubleEncoded.replace(/%2F/g, "/");
         }
-        return path2;
+        return path3;
       }
       validateResolvedCredentials(credentials) {
         if (typeof credentials !== "object" || typeof credentials.accessKeyId !== "string" || typeof credentials.secretAccessKey !== "string") {
@@ -15013,10 +15013,10 @@ ${toHex2(hashedRequest)}`;
     };
     var signingKeyCache = {};
     var cacheQueue = [];
-    var createScope = (shortDate, region2, service) => `${shortDate}/${region2}/${service}/${KEY_TYPE_IDENTIFIER}`;
-    var getSigningKey = async (sha256Constructor, credentials, shortDate, region2, service) => {
+    var createScope = (shortDate, region, service) => `${shortDate}/${region}/${service}/${KEY_TYPE_IDENTIFIER}`;
+    var getSigningKey = async (sha256Constructor, credentials, shortDate, region, service) => {
       const credsHash = await hmac(sha256Constructor, credentials.secretAccessKey, credentials.accessKeyId);
-      const cacheKey = `${shortDate}:${region2}:${service}:${toHex2(credsHash)}:${credentials.sessionToken}`;
+      const cacheKey = `${shortDate}:${region}:${service}:${toHex2(credsHash)}:${credentials.sessionToken}`;
       if (cacheKey in signingKeyCache) {
         return signingKeyCache[cacheKey];
       }
@@ -15025,7 +15025,7 @@ ${toHex2(hashedRequest)}`;
         delete signingKeyCache[cacheQueue.shift()];
       }
       let key = `AWS4${credentials.secretAccessKey}`;
-      for (const signable of [shortDate, region2, service, KEY_TYPE_IDENTIFIER]) {
+      for (const signable of [shortDate, region, service, KEY_TYPE_IDENTIFIER]) {
         key = await hmac(sha256Constructor, key, signable);
       }
       return signingKeyCache[cacheKey] = key;
@@ -15107,11 +15107,11 @@ ${toHex2(hashedRequest)}`;
     };
     var SignatureV42 = class extends SignatureV4Base {
       headerFormatter = new HeaderFormatter();
-      constructor({ applyChecksum, credentials, region: region2, service, sha256, uriEscapePath = true }) {
+      constructor({ applyChecksum, credentials, region, service, sha256, uriEscapePath = true }) {
         super({
           applyChecksum,
           credentials,
-          region: region2,
+          region,
           service,
           sha256,
           uriEscapePath
@@ -15121,12 +15121,12 @@ ${toHex2(hashedRequest)}`;
         const { signingDate = /* @__PURE__ */ new Date(), expiresIn = 3600, unsignableHeaders, unhoistableHeaders, signableHeaders, hoistableHeaders, signingRegion, signingService } = options;
         const credentials = await this.credentialProvider();
         this.validateResolvedCredentials(credentials);
-        const region2 = signingRegion ?? await this.regionProvider();
+        const region = signingRegion ?? await this.regionProvider();
         const { longDate, shortDate } = this.formatDate(signingDate);
         if (expiresIn > MAX_PRESIGNED_TTL) {
           return Promise.reject("Signature version 4 presigned URLs must have an expiration date less than one week in the future");
         }
-        const scope = createScope(shortDate, region2, signingService ?? this.service);
+        const scope = createScope(shortDate, region, signingService ?? this.service);
         const request = moveHeadersToQuery(prepareRequest(originalRequest), { unhoistableHeaders, hoistableHeaders });
         if (credentials.sessionToken) {
           request.query[TOKEN_QUERY_PARAM] = credentials.sessionToken;
@@ -15137,7 +15137,7 @@ ${toHex2(hashedRequest)}`;
         request.query[EXPIRES_QUERY_PARAM] = expiresIn.toString(10);
         const canonicalHeaders = getCanonicalHeaders(request, unsignableHeaders, signableHeaders);
         request.query[SIGNED_HEADERS_QUERY_PARAM] = this.getCanonicalHeaderList(canonicalHeaders);
-        request.query[SIGNATURE_QUERY_PARAM] = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region2, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, await getPayloadHash(originalRequest, this.sha256)));
+        request.query[SIGNATURE_QUERY_PARAM] = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, await getPayloadHash(originalRequest, this.sha256)));
         return request;
       }
       async sign(toSign, options) {
@@ -15152,9 +15152,9 @@ ${toHex2(hashedRequest)}`;
         }
       }
       async signEvent({ headers, payload: payload2 }, { signingDate = /* @__PURE__ */ new Date(), priorSignature, signingRegion, signingService, eventStreamCredentials }) {
-        const region2 = signingRegion ?? await this.regionProvider();
+        const region = signingRegion ?? await this.regionProvider();
         const { shortDate, longDate } = this.formatDate(signingDate);
-        const scope = createScope(shortDate, region2, signingService ?? this.service);
+        const scope = createScope(shortDate, region, signingService ?? this.service);
         const hashedPayload = await getPayloadHash({ headers: {}, body: payload2 }, this.sha256);
         const hash = new this.sha256();
         hash.update(headers);
@@ -15169,7 +15169,7 @@ ${toHex2(hashedRequest)}`;
         ].join("\n");
         return this.signString(stringToSign, {
           signingDate,
-          signingRegion: region2,
+          signingRegion: region,
           signingService,
           eventStreamCredentials
         });
@@ -15192,19 +15192,19 @@ ${toHex2(hashedRequest)}`;
       async signString(stringToSign, { signingDate = /* @__PURE__ */ new Date(), signingRegion, signingService, eventStreamCredentials } = {}) {
         const credentials = eventStreamCredentials ?? await this.credentialProvider();
         this.validateResolvedCredentials(credentials);
-        const region2 = signingRegion ?? await this.regionProvider();
+        const region = signingRegion ?? await this.regionProvider();
         const { shortDate } = this.formatDate(signingDate);
-        const hash = new this.sha256(await this.getSigningKey(credentials, region2, shortDate, signingService));
+        const hash = new this.sha256(await this.getSigningKey(credentials, region, shortDate, signingService));
         hash.update(toUint8Array3(stringToSign));
         return toHex2(await hash.digest());
       }
       async signRequest(requestToSign, { signingDate = /* @__PURE__ */ new Date(), signableHeaders, unsignableHeaders, signingRegion, signingService } = {}) {
         const credentials = await this.credentialProvider();
         this.validateResolvedCredentials(credentials);
-        const region2 = signingRegion ?? await this.regionProvider();
+        const region = signingRegion ?? await this.regionProvider();
         const request = prepareRequest(requestToSign);
         const { longDate, shortDate } = this.formatDate(signingDate);
-        const scope = createScope(shortDate, region2, signingService ?? this.service);
+        const scope = createScope(shortDate, region, signingService ?? this.service);
         request.headers[AMZ_DATE_HEADER] = longDate;
         if (credentials.sessionToken) {
           request.headers[TOKEN_HEADER] = credentials.sessionToken;
@@ -15214,7 +15214,7 @@ ${toHex2(hashedRequest)}`;
           request.headers[SHA256_HEADER] = payloadHash;
         }
         const canonicalHeaders = getCanonicalHeaders(request, unsignableHeaders, signableHeaders);
-        const signature = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region2, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, payloadHash));
+        const signature = await this.getSignature(longDate, scope, this.getSigningKey(credentials, region, shortDate, signingService), this.createCanonicalRequest(request, canonicalHeaders, payloadHash));
         request.headers[AUTH_HEADER] = `${ALGORITHM_IDENTIFIER} Credential=${credentials.accessKeyId}/${scope}, SignedHeaders=${this.getCanonicalHeaderList(canonicalHeaders)}, Signature=${signature}`;
         return request;
       }
@@ -15224,8 +15224,8 @@ ${toHex2(hashedRequest)}`;
         hash.update(toUint8Array3(stringToSign));
         return toHex2(await hash.digest());
       }
-      getSigningKey(credentials, region2, shortDate, service) {
-        return getSigningKey(this.sha256, credentials, shortDate, region2, service || this.service);
+      getSigningKey(credentials, region, shortDate, service) {
+        return getSigningKey(this.sha256, credentials, shortDate, region, service || this.service);
       }
     };
     var signatureV4aContainer = {
@@ -15355,15 +15355,15 @@ var init_resolveAwsSdkSigV4Config = __esm({
       if (config.signer) {
         signer = normalizeProvider2(config.signer);
       } else if (config.regionInfoProvider) {
-        signer = () => normalizeProvider2(config.region)().then(async (region2) => [
-          await config.regionInfoProvider(region2, {
+        signer = () => normalizeProvider2(config.region)().then(async (region) => [
+          await config.regionInfoProvider(region, {
             useFipsEndpoint: await config.useFipsEndpoint(),
             useDualstackEndpoint: await config.useDualstackEndpoint()
           }) || {},
-          region2
-        ]).then(([regionInfo, region2]) => {
+          region
+        ]).then(([regionInfo, region]) => {
           const { signingRegion, signingService } = regionInfo;
-          config.signingRegion = config.signingRegion || signingRegion || region2;
+          config.signingRegion = config.signingRegion || signingRegion || region;
           config.signingName = config.signingName || signingService || config.serviceId;
           const params = {
             ...config,
@@ -15630,7 +15630,7 @@ var require_dist_cjs7 = __commonJS({
     var ENV_ENDPOINT_NAME = "AWS_EC2_METADATA_SERVICE_ENDPOINT";
     var CONFIG_ENDPOINT_NAME = "ec2_metadata_service_endpoint";
     var ENDPOINT_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => env2[ENV_ENDPOINT_NAME],
+      environmentVariableSelector: (env3) => env3[ENV_ENDPOINT_NAME],
       configFileSelector: (profile) => profile[CONFIG_ENDPOINT_NAME],
       default: void 0
     };
@@ -15642,7 +15642,7 @@ var require_dist_cjs7 = __commonJS({
     var ENV_ENDPOINT_MODE_NAME = "AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE";
     var CONFIG_ENDPOINT_MODE_NAME = "ec2_metadata_service_endpoint_mode";
     var ENDPOINT_MODE_CONFIG_OPTIONS = {
-      environmentVariableSelector: (env2) => env2[ENV_ENDPOINT_MODE_NAME],
+      environmentVariableSelector: (env3) => env3[ENV_ENDPOINT_MODE_NAME],
       configFileSelector: (profile) => profile[CONFIG_ENDPOINT_MODE_NAME],
       default: EndpointMode.IPv4
     };
@@ -15712,8 +15712,8 @@ For more information, please visit: ` + STATIC_STABILITY_DOC_URL);
           let fallbackBlockedFromProfile = false;
           let fallbackBlockedFromProcessEnv = false;
           const configValue = await loadConfig2({
-            environmentVariableSelector: (env2) => {
-              const envValue = env2[AWS_EC2_METADATA_V1_DISABLED];
+            environmentVariableSelector: (env3) => {
+              const envValue = env3[AWS_EC2_METADATA_V1_DISABLED];
               fallbackBlockedFromProcessEnv = !!envValue && envValue !== "false";
               if (envValue === void 0) {
                 throw new CredentialsProviderError2(`${AWS_EC2_METADATA_V1_DISABLED} not set in env, checking config file next.`, { logger: init.logger });
@@ -16129,12 +16129,12 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
             const password = request.password ?? "";
             auth = `${username}:${password}`;
           }
-          let path2 = request.path;
+          let path3 = request.path;
           if (queryString) {
-            path2 += `?${queryString}`;
+            path3 += `?${queryString}`;
           }
           if (request.fragment) {
-            path2 += `#${request.fragment}`;
+            path3 += `#${request.fragment}`;
           }
           let hostname = request.hostname ?? "";
           if (hostname[0] === "[" && hostname.endsWith("]")) {
@@ -16146,7 +16146,7 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
             headers: request.headers,
             host: hostname,
             method: request.method,
-            path: path2,
+            path: path3,
             port: request.port,
             agent,
             auth
@@ -16549,16 +16549,16 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
             reject(err2);
           };
           const queryString = query ? buildQueryString2(query) : "";
-          let path2 = request.path;
+          let path3 = request.path;
           if (queryString) {
-            path2 += `?${queryString}`;
+            path3 += `?${queryString}`;
           }
           if (request.fragment) {
-            path2 += `#${request.fragment}`;
+            path3 += `#${request.fragment}`;
           }
           const clientHttp2Stream = session.request({
             ...request.headers,
-            [constants.HTTP2_HEADER_PATH]: path2,
+            [constants.HTTP2_HEADER_PATH]: path3,
             [constants.HTTP2_HEADER_METHOD]: method
           });
           if (effectiveRequestTimeout) {
@@ -18118,11 +18118,11 @@ var init_SmithyRpcV2CborProtocol = __esm({
           }
         }
         const { service, operation: operation2 } = getSmithyContext(context);
-        const path2 = `/service/${service}/operation/${operation2}`;
+        const path3 = `/service/${service}/operation/${operation2}`;
         if (request.path.endsWith("/")) {
-          request.path += path2.slice(1);
+          request.path += path3.slice(1);
         } else {
-          request.path += path2;
+          request.path += path3;
         }
         return request;
       }
@@ -23656,11 +23656,11 @@ var init_defaultStsRoleAssumers = __esm({
       return void 0;
     };
     resolveRegion = async (_region, _parentRegion, credentialProviderLogger, loaderConfig = {}) => {
-      const region2 = typeof _region === "function" ? await _region() : _region;
+      const region = typeof _region === "function" ? await _region() : _region;
       const parentRegion = typeof _parentRegion === "function" ? await _parentRegion() : _parentRegion;
       let stsDefaultRegion = "";
-      const resolvedRegion = region2 ?? parentRegion ?? (stsDefaultRegion = await stsRegionDefaultResolver(loaderConfig)());
-      credentialProviderLogger?.debug?.("@aws-sdk/client-sts::resolveRegion", "accepting first of:", `${region2} (credential provider clientConfig)`, `${parentRegion} (contextual client)`, `${stsDefaultRegion} (STS default: AWS_REGION, profile region, or us-east-1)`);
+      const resolvedRegion = region ?? parentRegion ?? (stsDefaultRegion = await stsRegionDefaultResolver(loaderConfig)());
+      credentialProviderLogger?.debug?.("@aws-sdk/client-sts::resolveRegion", "accepting first of:", `${region} (credential provider clientConfig)`, `${parentRegion} (contextual client)`, `${stsDefaultRegion} (STS default: AWS_REGION, profile region, or us-east-1)`);
       return resolvedRegion;
     };
     getDefaultRoleAssumer = (stsOptions, STSClient2) => {
@@ -23669,8 +23669,8 @@ var init_defaultStsRoleAssumers = __esm({
       return async (sourceCreds, params) => {
         closureSourceCreds = sourceCreds;
         if (!stsClient) {
-          const { logger: logger2 = stsOptions?.parentClientConfig?.logger, profile = stsOptions?.parentClientConfig?.profile, region: region2, requestHandler = stsOptions?.parentClientConfig?.requestHandler, credentialProviderLogger, userAgentAppId = stsOptions?.parentClientConfig?.userAgentAppId } = stsOptions;
-          const resolvedRegion = await resolveRegion(region2, stsOptions?.parentClientConfig?.region, credentialProviderLogger, {
+          const { logger: logger2 = stsOptions?.parentClientConfig?.logger, profile = stsOptions?.parentClientConfig?.profile, region, requestHandler = stsOptions?.parentClientConfig?.requestHandler, credentialProviderLogger, userAgentAppId = stsOptions?.parentClientConfig?.userAgentAppId } = stsOptions;
+          const resolvedRegion = await resolveRegion(region, stsOptions?.parentClientConfig?.region, credentialProviderLogger, {
             logger: logger2,
             profile
           });
@@ -23706,8 +23706,8 @@ var init_defaultStsRoleAssumers = __esm({
       let stsClient;
       return async (params) => {
         if (!stsClient) {
-          const { logger: logger2 = stsOptions?.parentClientConfig?.logger, profile = stsOptions?.parentClientConfig?.profile, region: region2, requestHandler = stsOptions?.parentClientConfig?.requestHandler, credentialProviderLogger, userAgentAppId = stsOptions?.parentClientConfig?.userAgentAppId } = stsOptions;
-          const resolvedRegion = await resolveRegion(region2, stsOptions?.parentClientConfig?.region, credentialProviderLogger, {
+          const { logger: logger2 = stsOptions?.parentClientConfig?.logger, profile = stsOptions?.parentClientConfig?.profile, region, requestHandler = stsOptions?.parentClientConfig?.requestHandler, credentialProviderLogger, userAgentAppId = stsOptions?.parentClientConfig?.userAgentAppId } = stsOptions;
+          const resolvedRegion = await resolveRegion(region, stsOptions?.parentClientConfig?.region, credentialProviderLogger, {
             logger: logger2,
             profile
           });
@@ -24795,13 +24795,13 @@ var require_dist_cjs14 = __commonJS({
           return requestHandler2?.metadata?.handlerProtocol === "h2";
         };
         const requestHandler = isH22(this.callerClientConfig?.requestHandler) ? void 0 : this.callerClientConfig?.requestHandler;
-        const region2 = this.profileData.region ?? await this.callerClientConfig?.region?.() ?? process.env.AWS_REGION;
+        const region = this.profileData.region ?? await this.callerClientConfig?.region?.() ?? process.env.AWS_REGION;
         const client2 = new SigninClient2({
           credentials: {
             accessKeyId: "",
             secretAccessKey: ""
           },
-          region: region2,
+          region,
           requestHandler,
           logger: logger2,
           userAgentAppId,
@@ -25204,7 +25204,7 @@ var require_dist_cjs17 = __commonJS({
     var resolveAssumeRoleCredentials = async (profileName, profiles, options, callerClientConfig, visitedProfiles = {}, resolveProfileData2) => {
       options.logger?.debug("@aws-sdk/credential-provider-ini - resolveAssumeRoleCredentials (STS)");
       const profileData = profiles[profileName];
-      const { source_profile, region: region2 } = profileData;
+      const { source_profile, region } = profileData;
       if (!options.roleAssumer) {
         const { getDefaultRoleAssumer: getDefaultRoleAssumer3 } = (init_sts(), __toCommonJS(sts_exports));
         options.roleAssumer = getDefaultRoleAssumer3({
@@ -25213,7 +25213,7 @@ var require_dist_cjs17 = __commonJS({
           parentClientConfig: {
             ...callerClientConfig,
             ...options?.parentClientConfig,
-            region: region2 ?? options?.parentClientConfig?.region ?? callerClientConfig?.region
+            region: region ?? options?.parentClientConfig?.region ?? callerClientConfig?.region
           }
         }, options.clientPlugins);
       }
@@ -30558,7 +30558,7 @@ var require_dist_cjs20 = __commonJS({
     };
     var RestoreTableToPointInTimeCommand = class extends command6(_ep10, _mw06, "RestoreTableToPointInTime", RestoreTableToPointInTime$) {
     };
-    var ScanCommand = class extends command6(_ep2, _mw06, "Scan", Scan$) {
+    var ScanCommand2 = class extends command6(_ep2, _mw06, "Scan", Scan$) {
     };
     var TagResourceCommand = class extends command6(_ep5, _mw06, "TagResource", TagResource$) {
     };
@@ -30591,7 +30591,7 @@ var require_dist_cjs20 = __commonJS({
     var paginateListImports = createPaginator2(DynamoDBClient2, ListImportsCommand, "NextToken", "NextToken", "PageSize");
     var paginateListTables = createPaginator2(DynamoDBClient2, ListTablesCommand, "ExclusiveStartTableName", "LastEvaluatedTableName", "Limit");
     var paginateQuery = createPaginator2(DynamoDBClient2, QueryCommand, "ExclusiveStartKey", "LastEvaluatedKey", "Limit");
-    var paginateScan = createPaginator2(DynamoDBClient2, ScanCommand, "ExclusiveStartKey", "LastEvaluatedKey", "Limit");
+    var paginateScan = createPaginator2(DynamoDBClient2, ScanCommand2, "ExclusiveStartKey", "LastEvaluatedKey", "Limit");
     var checkState$5 = async (client2, input) => {
       let reason;
       try {
@@ -30855,7 +30855,7 @@ var require_dist_cjs20 = __commonJS({
       QueryCommand,
       RestoreTableFromBackupCommand,
       RestoreTableToPointInTimeCommand,
-      ScanCommand,
+      ScanCommand: ScanCommand2,
       TagResourceCommand,
       TransactGetItemsCommand,
       TransactWriteItemsCommand,
@@ -31496,7 +31496,7 @@ var require_dist_cjs20 = __commonJS({
     exports2.SSEType = SSEType;
     exports2.ScalarAttributeType = ScalarAttributeType;
     exports2.Scan$ = Scan$;
-    exports2.ScanCommand = ScanCommand;
+    exports2.ScanCommand = ScanCommand2;
     exports2.ScanInput$ = ScanInput$;
     exports2.ScanOutput$ = ScanOutput$;
     exports2.Select = Select;
@@ -32036,7 +32036,7 @@ var require_dist_cjs21 = __commonJS({
         return async () => handler2(this.clientCommand);
       }
     };
-    var ScanCommand = class extends DynamoDBDocumentClientCommand {
+    var ScanCommand2 = class extends DynamoDBDocumentClientCommand {
       input;
       inputKeyNodes = {
         ScanFilter: {
@@ -32149,7 +32149,7 @@ var require_dist_cjs21 = __commonJS({
         return async () => handler2(this.clientCommand);
       }
     };
-    var UpdateCommand = class extends DynamoDBDocumentClientCommand {
+    var UpdateCommand2 = class extends DynamoDBDocumentClientCommand {
       input;
       inputKeyNodes = {
         Key: ALL_VALUES,
@@ -32205,7 +32205,7 @@ var require_dist_cjs21 = __commonJS({
       }
     };
     var paginateQuery = createPaginator2(DynamoDBDocumentClient2, QueryCommand, "ExclusiveStartKey", "LastEvaluatedKey", "Limit");
-    var paginateScan = createPaginator2(DynamoDBDocumentClient2, ScanCommand, "ExclusiveStartKey", "LastEvaluatedKey", "Limit");
+    var paginateScan = createPaginator2(DynamoDBDocumentClient2, ScanCommand2, "ExclusiveStartKey", "LastEvaluatedKey", "Limit");
     var DynamoDBDocument = class _DynamoDBDocument extends DynamoDBDocumentClient2 {
       static from(client2, translateConfig) {
         return new _DynamoDBDocument(client2, translateConfig);
@@ -32328,7 +32328,7 @@ var require_dist_cjs21 = __commonJS({
         }
       }
       scan(args, optionsOrCb, cb) {
-        const command6 = new ScanCommand(args);
+        const command6 = new ScanCommand2(args);
         if (typeof optionsOrCb === "function") {
           this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
@@ -32367,7 +32367,7 @@ var require_dist_cjs21 = __commonJS({
         }
       }
       update(args, optionsOrCb, cb) {
-        const command6 = new UpdateCommand(args);
+        const command6 = new UpdateCommand2(args);
         if (typeof optionsOrCb === "function") {
           this.send(command6, optionsOrCb);
         } else if (typeof cb === "function") {
@@ -32392,10 +32392,10 @@ var require_dist_cjs21 = __commonJS({
     exports2.GetCommand = GetCommand;
     exports2.PutCommand = PutCommand2;
     exports2.QueryCommand = QueryCommand;
-    exports2.ScanCommand = ScanCommand;
+    exports2.ScanCommand = ScanCommand2;
     exports2.TransactGetCommand = TransactGetCommand;
     exports2.TransactWriteCommand = TransactWriteCommand;
-    exports2.UpdateCommand = UpdateCommand;
+    exports2.UpdateCommand = UpdateCommand2;
     exports2.paginateQuery = paginateQuery;
     exports2.paginateScan = paginateScan;
   }
@@ -32405,7 +32405,7 @@ var require_dist_cjs21 = __commonJS({
 var require_main = __commonJS({
   "../../../node_modules/dotenv/lib/main.js"(exports2, module2) {
     var fs = require("fs");
-    var path2 = require("path");
+    var path3 = require("path");
     var os = require("os");
     var crypto2 = require("crypto");
     var TIPS = [
@@ -32544,7 +32544,7 @@ var require_main = __commonJS({
           possibleVaultPath = options.path.endsWith(".vault") ? options.path : `${options.path}.vault`;
         }
       } else {
-        possibleVaultPath = path2.resolve(process.cwd(), ".env.vault");
+        possibleVaultPath = path3.resolve(process.cwd(), ".env.vault");
       }
       if (fs.existsSync(possibleVaultPath)) {
         return possibleVaultPath;
@@ -32552,7 +32552,7 @@ var require_main = __commonJS({
       return null;
     }
     function _resolveHome(envPath) {
-      return envPath[0] === "~" ? path2.join(os.homedir(), envPath.slice(1)) : envPath;
+      return envPath[0] === "~" ? path3.join(os.homedir(), envPath.slice(1)) : envPath;
     }
     function _configVault(options) {
       const debug = parseBoolean2(process.env.DOTENV_CONFIG_DEBUG || options && options.debug);
@@ -32569,7 +32569,7 @@ var require_main = __commonJS({
       return { parsed };
     }
     function configDotenv(options) {
-      const dotenvPath = path2.resolve(process.cwd(), ".env");
+      const dotenvPath = path3.resolve(process.cwd(), ".env");
       let encoding = "utf8";
       let processEnv = process.env;
       if (options && options.processEnv != null) {
@@ -32597,13 +32597,13 @@ var require_main = __commonJS({
       }
       let lastError;
       const parsedAll = {};
-      for (const path3 of optionPaths) {
+      for (const path4 of optionPaths) {
         try {
-          const parsed = DotenvModule.parse(fs.readFileSync(path3, { encoding }));
+          const parsed = DotenvModule.parse(fs.readFileSync(path4, { encoding }));
           DotenvModule.populate(parsedAll, parsed, options);
         } catch (e6) {
           if (debug) {
-            _debug(`failed to load ${path3} ${e6.message}`);
+            _debug(`failed to load ${path4} ${e6.message}`);
           }
           lastError = e6;
         }
@@ -32616,7 +32616,7 @@ var require_main = __commonJS({
         const shortPaths = [];
         for (const filePath of optionPaths) {
           try {
-            const relative = path2.relative(process.cwd(), filePath);
+            const relative = path3.relative(process.cwd(), filePath);
             shortPaths.push(relative);
           } catch (e6) {
             if (debug) {
@@ -34049,7 +34049,7 @@ var require_dist_cjs23 = __commonJS({
     };
     var fromTemporaryCredentials2 = (options) => {
       return fromTemporaryCredentials$1(options, fromNodeProviderChain, async ({ profile = process.env.AWS_PROFILE }) => loadConfig2({
-        environmentVariableSelector: (env2) => env2.AWS_REGION,
+        environmentVariableSelector: (env3) => env3.AWS_REGION,
         configFileSelector: (profileData) => {
           return profileData.region;
         },
@@ -37278,27 +37278,80 @@ function createRemoteJWKSet(url, options) {
   return remoteJWKSet;
 }
 
+// ../config/env.ts
+var import_dotenv = __toESM(require_main(), 1);
+var import_path = __toESM(require("path"), 1);
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  import_dotenv.default.config({
+    path: import_path.default.resolve(process.cwd(), "Back-end/.env")
+  });
+}
+function required(name, value) {
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
+}
+var env2 = {
+  region: required(
+    "COGNITO_REGION",
+    process.env.COGNITO_REGION || process.env.AWS_REGION
+  ),
+  userPoolId: required("COGNITO_USER_POOL_ID", process.env.COGNITO_USER_POOL_ID),
+  clientId: required("COGNITO_CLIENT_ID", process.env.COGNITO_CLIENT_ID),
+  // Required only when the selected Cognito app client was created with a secret.
+  clientSecret: process.env.COGNITO_CLIENT_SECRET,
+  JWT_SECRET: process.env.JWT_SECRET
+};
+
+// ../auth/verifyToken.ts
+var JWKS = createRemoteJWKSet(
+  new URL(
+    `https://cognito-idp.${env2.region}.amazonaws.com/${env2.userPoolId}/.well-known/jwks.json`
+  )
+);
+async function verifyToken(token) {
+  const { payload: payload2 } = await jwtVerify(token, JWKS, {
+    issuer: `https://cognito-idp.${env2.region}.amazonaws.com/${env2.userPoolId}`
+  });
+  if (payload2.token_use !== "access") {
+    throw new Error("Invalid token type.");
+  }
+  if (payload2.client_id !== env2.clientId) {
+    throw new Error("Invalid client.");
+  }
+  return payload2;
+}
+
 // ../config/dynamodb.ts
 var import_client_dynamodb = __toESM(require_dist_cjs20(), 1);
 var import_lib_dynamodb = __toESM(require_dist_cjs21(), 1);
-var import_dotenv = __toESM(require_main(), 1);
-var import_path = __toESM(require("path"), 1);
+var import_dotenv2 = __toESM(require_main(), 1);
+var import_path2 = __toESM(require("path"), 1);
 var import_url = require("url");
 var import_credential_providers = __toESM(require_dist_cjs23(), 1);
 var import_meta = {};
 var envDirname = process.cwd();
 try {
   if (typeof import_meta !== "undefined" && import_meta.url) {
-    envDirname = import_path.default.dirname((0, import_url.fileURLToPath)(import_meta.url));
+    envDirname = import_path2.default.dirname((0, import_url.fileURLToPath)(import_meta.url));
   }
 } catch {
 }
 if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
-  import_dotenv.default.config({
-    path: import_path.default.resolve(envDirname, "../../.env")
+  import_dotenv2.default.config({
+    path: import_path2.default.resolve(envDirname, "../../.env")
   });
 }
 var cachedCredentials = null;
+var isLambdaRuntime = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+var hasLegacyCustomCredentialSettings = Boolean(
+  process.env.DB_SECRET_NAME || process.env.DB_SECRET_KEY || process.env.CROSS_ACCOUNT_ROLE_ARN || process.env.DB_ACCESS_KEY_ID
+);
+var usesCustomCredentials = process.env.DYNAMODB_CREDENTIAL_MODE === "custom" || !isLambdaRuntime && hasLegacyCustomCredentialSettings;
+if (isLambdaRuntime && hasLegacyCustomCredentialSettings && !usesCustomCredentials) {
+  console.info(
+    "DynamoDB is using the Lambda execution role. Set DYNAMODB_CREDENTIAL_MODE=custom only for an intentional cross-account credential source."
+  );
+}
 var getCredentials = async () => {
   if (cachedCredentials) {
     return cachedCredentials;
@@ -37315,9 +37368,16 @@ var getCredentials = async () => {
       );
       if (response.SecretString) {
         const secretObj = JSON.parse(response.SecretString);
+        const accessKeyId = secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID;
+        const secretAccessKey = secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY;
+        if (!accessKeyId || !secretAccessKey) {
+          throw new Error(
+            "The configured DynamoDB credential secret does not contain AWS accessKeyId and secretAccessKey."
+          );
+        }
         cachedCredentials = {
-          accessKeyId: secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID || "",
-          secretAccessKey: secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY || "",
+          accessKeyId,
+          secretAccessKey,
           ...secretObj.sessionToken && { sessionToken: secretObj.sessionToken }
         };
         console.log("[SecretsManager] T\u1EA3i credentials th\xE0nh c\xF4ng!");
@@ -37353,17 +37413,12 @@ var getCredentials = async () => {
     };
     return cachedCredentials;
   }
-  return {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-    ...process.env.AWS_SESSION_TOKEN && {
-      sessionToken: process.env.AWS_SESSION_TOKEN
-    }
-  };
+  throw new Error("Custom DynamoDB credentials were requested but could not be resolved.");
 };
 var client = new import_client_dynamodb.DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
-  credentials: getCredentials
+  // Omit credentials in Lambda so the AWS SDK uses the function execution role.
+  ...usesCustomCredentials ? { credentials: getCredentials } : {}
 });
 var dynamoDb = import_lib_dynamodb.DynamoDBDocumentClient.from(client, {
   marshallOptions: {
@@ -37373,47 +37428,87 @@ var dynamoDb = import_lib_dynamodb.DynamoDBDocumentClient.from(client, {
 });
 
 // connectHandler.ts
-var region = process.env.AWS_REGION || "ap-southeast-1";
-var userPoolId = process.env.COGNITO_USER_POOL_ID || "";
-var clientId = process.env.COGNITO_CLIENT_ID || "";
-var docClient = dynamoDb;
-var JWKS = userPoolId ? createRemoteJWKSet(new URL(`https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`)) : null;
+var connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
+var gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
+function getAccessToken(event) {
+  const queryToken = event.queryStringParameters?.token?.trim();
+  if (queryToken) return queryToken;
+  const authorization = event.headers?.authorization ?? event.headers?.Authorization;
+  return authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || void 0;
+}
+function hasValidCognitoRegion() {
+  const userPoolRegion = env2.userPoolId.split("_", 1)[0];
+  return Boolean(userPoolRegion) && userPoolRegion === env2.region;
+}
 var handler = async (event) => {
   const connectionId = event.requestContext.connectionId;
-  const queryParams = event.queryStringParameters || {};
-  const token = queryParams.token || event.headers?.Authorization?.replace("Bearer ", "");
-  let userId = connectionId;
-  let username = queryParams.username || "Player";
-  if (token && JWKS) {
-    try {
-      const { payload: payload2 } = await jwtVerify(token, JWKS, {
-        issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`
-      });
-      if (payload2.token_use === "access" && payload2.client_id === clientId) {
-        userId = payload2.sub;
-        username = payload2.username || username;
-      }
-    } catch (err2) {
-      console.error("Token verification failed:", err2);
-      return { statusCode: 401, body: "Unauthorized: Invalid token." };
-    }
+  const token = getAccessToken(event);
+  if (!hasValidCognitoRegion()) {
+    console.error("COGNITO_REGION does not match COGNITO_USER_POOL_ID.");
+    return { statusCode: 500, body: "Authentication is not configured." };
+  }
+  if (!token) return { statusCode: 401, body: "Unauthorized: Missing token." };
+  let userId;
+  let username = event.queryStringParameters?.username || "Player";
+  try {
+    const payload2 = await verifyToken(token);
+    if (!payload2.sub) return { statusCode: 401, body: "Unauthorized: Invalid token claims." };
+    userId = payload2.sub;
+    username = payload2.username || username;
+  } catch (error2) {
+    console.error("Token verification failed:", error2);
+    return { statusCode: 401, body: "Unauthorized: Invalid token." };
   }
   try {
-    await docClient.send(
-      new import_lib_dynamodb2.PutCommand({
-        TableName: "Connections",
-        Item: {
-          connection_id: connectionId,
-          user_id: userId,
-          username,
-          connected_at: Date.now()
-        }
-      })
-    );
+    await dynamoDb.send(new import_lib_dynamodb2.PutCommand({
+      TableName: connectionsTable,
+      Item: { connection_id: connectionId, user_id: userId, username, connected_at: Date.now() }
+    }));
+    let cursor2;
+    let reboundMatchId;
+    do {
+      const matches = await dynamoDb.send(new import_lib_dynamodb2.ScanCommand({
+        TableName: gameStateTable,
+        FilterExpression: "#status = :active AND (player_1.user_id = :userId OR player_2.user_id = :userId)",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: { ":active": "IN_PROGRESS", ":userId": userId },
+        ExclusiveStartKey: cursor2,
+        ConsistentRead: true
+      }));
+      const match = matches.Items?.[0];
+      if (match) {
+        const playerPath = match.player_1?.user_id === userId ? "player_1" : "player_2";
+        await dynamoDb.send(new import_lib_dynamodb2.UpdateCommand({
+          TableName: gameStateTable,
+          Key: { match_id: match.match_id },
+          UpdateExpression: `SET ${playerPath}.connection_id = :connectionId, ${playerPath}.connected = :connected, ${playerPath}.resume_connection_at = :now`,
+          ConditionExpression: `#status = :active AND ${playerPath}.user_id = :userId`,
+          ExpressionAttributeNames: { "#status": "status" },
+          ExpressionAttributeValues: {
+            ":active": "IN_PROGRESS",
+            ":userId": userId,
+            ":connectionId": connectionId,
+            ":connected": false,
+            ":now": Date.now()
+          }
+        }));
+        reboundMatchId = String(match.match_id);
+        break;
+      }
+      cursor2 = matches.LastEvaluatedKey;
+    } while (cursor2);
+    if (reboundMatchId) {
+      await dynamoDb.send(new import_lib_dynamodb2.UpdateCommand({
+        TableName: connectionsTable,
+        Key: { connection_id: connectionId },
+        UpdateExpression: "SET match_id = :matchId, resume_required = :resumeRequired",
+        ExpressionAttributeValues: { ":matchId": reboundMatchId, ":resumeRequired": true }
+      }));
+    }
     return { statusCode: 200, body: "Connected successfully." };
   } catch (error2) {
     console.error("Connect Lambda Error:", error2);
-    return { statusCode: 500, body: error2.message };
+    return { statusCode: 500, body: "Unable to register WebSocket connection." };
   }
 };
 // Annotate the CommonJS export names for ESM import in node:

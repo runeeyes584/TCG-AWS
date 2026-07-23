@@ -13,16 +13,19 @@ type Callback = (response: { ok: true } | { ok: false; error: string }) => void;
 
 class SocketManager {
   private socket: GameSocket | ApiGatewaySocket | null = null;
-  private readonly useApiGateway = Boolean(process.env.NEXT_PUBLIC_WS_URL);
-  private readonly socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+  private readonly socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
+    || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "");
 
   public connect(token: string, username: string): RealtimeSocket {
-    if (this.useApiGateway) {
+    if (process.env.NEXT_PUBLIC_WS_URL) {
       if (!(this.socket instanceof ApiGatewaySocket)) this.socket = new ApiGatewaySocket();
       return this.socket.connect(token, username);
     }
 
     if (!this.socket) {
+      if (!this.socketUrl) {
+        throw new Error("NEXT_PUBLIC_WS_URL or NEXT_PUBLIC_SOCKET_URL is required outside local development.");
+      }
       this.socket = io(this.socketUrl, {
         autoConnect: false,
         transports: ["websocket", "polling"],
@@ -46,31 +49,43 @@ class SocketManager {
 
   public createRoom(selection: MatchmakingDeckSelection | undefined, callback: Callback): void {
     if (this.socket instanceof ApiGatewaySocket) {
-      callback({ ok: false, error: "Custom rooms are not deployed to API Gateway yet." });
+      this.socket.send("room-create", selection ? { deckSelection: selection } : {}, callback);
       return;
     }
     this.socket?.emit("room:create", selection, callback);
   }
 
-  public joinRoom(roomCode: string, selection: MatchmakingDeckSelection | undefined, callback: Callback): void {
+  public joinRoom(
+    roomCode: string,
+    selection: MatchmakingDeckSelection | undefined,
+    callback: Callback
+  ): void {
     if (this.socket instanceof ApiGatewaySocket) {
-      callback({ ok: false, error: "Custom room rejoin is not deployed to API Gateway yet." });
+      this.socket.send(
+        "room-join",
+        { roomCode, ...(selection ? { deckSelection: selection } : {}) },
+        callback
+      );
       return;
     }
     this.socket?.emit("room:join", roomCode, selection, callback);
   }
 
-  public dispatchAction(action: GameAction, callback: Callback): void {
+  public dispatchAction(
+    matchId: string | undefined,
+    action: GameAction,
+    callback: Callback
+  ): void {
     if (this.socket instanceof ApiGatewaySocket) {
-      const matchId = this.socket.getRoomCode();
-      if (!matchId) {
+      const resolvedMatchId = matchId || this.socket.getRoomCode();
+      if (!resolvedMatchId) {
         callback({ ok: false, error: "No active match was found." });
         return;
       }
       const route = action.type === "SURRENDER" ? "game-surrender" : "game-action";
       const payload = action.type === "SURRENDER"
-        ? { matchId, reason: "SURRENDER" }
-        : { matchId, action };
+        ? { matchId: resolvedMatchId, reason: "SURRENDER" }
+        : { matchId: resolvedMatchId, action };
       this.socket.send(route, payload, callback);
       return;
     }
@@ -100,6 +115,19 @@ class SocketManager {
       return;
     }
     this.socket?.emit("matchmaking:start", selection);
+  }
+
+  /** Resume is intentionally distinct from matchmaking: it represents the
+   * player's explicit choice in the unfinished-match dialog. */
+  public resumeMatch(matchId: string): void {
+    if (this.socket instanceof ApiGatewaySocket) {
+      const route = process.env.NEXT_PUBLIC_MATCHMAKING_ROUTE || "matchfinding-start";
+      this.socket.send(route, { resume: true, matchId });
+      return;
+    }
+    // The local Socket.IO server owns room reattachment on connect. Keep this
+    // method a no-op there so the production-only safety protocol cannot alter
+    // the local transport contract.
   }
 
   public cancelMatchmaking(): void {

@@ -1,7 +1,9 @@
 {
   "extends": "../tsconfig.json",
   "include": [
-    "src"
+    "src",
+    "dist/test-build/**/*.test.ts",
+    "dist/test-lambda/**/*.test.ts"
   ],
   "exclude": [
     "../node_modules"

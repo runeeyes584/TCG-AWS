@@ -26,6 +26,9 @@ export function validateSaveDeckPayload(value: unknown): SaveDeckValidation {
   if (!deckId || deckId.length > 80 || !/^[a-zA-Z0-9_-]+$/.test(deckId)) {
     return { valid: false, message: "Deck ID is invalid." };
   }
+  if (deckId === "kaleidoscope-starter") {
+    return { valid: false, message: "The default deck ID is reserved." };
+  }
 
   if (!deckName || deckName.length > 42) {
     return { valid: false, message: "Deck name must contain between 1 and 42 characters." };

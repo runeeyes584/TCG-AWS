@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { Server, Socket } from "socket.io";
 import { buildDeckFromCardIds, buildDefaultDeck } from "../game/entities/defaultDeck";
 import { applyAction, createInitialGameState } from "../game/core/engine";
+import { applyAuthoritativeAction } from "../game/core/authoritativeAction";
 import { validateDeck } from "../game/rules/deckRules";
 import { MAX_MANA, MAX_SPELL_MANA } from "../game/rules/gameRules";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
@@ -19,7 +20,7 @@ import authRoutes from "../auth/auth.routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { verifyToken } from "@backend/auth/verifyToken";
-import { getUserById, recordMatchResult, saveUserDeck } from "@backend/user/user.repository";
+import { getUserById, listUserDecks, recordMatchResult, saveUserDeck } from "@backend/user/user.repository";
 import { OnlinePlayerManager } from "@backend/matchmaking/onlinePlayers";
 import { authenticate } from "@backend/auth/auth.middleware";
 import { validateSaveDeckPayload } from "@backend/decks/deck.types";
@@ -48,8 +49,12 @@ type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 // const dev = process.env.NODE_ENV !== "production";
 // const hostname = process.env.HOSTNAME ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 5000);
-const hostname = "localhost";
+const hostname = process.env.SERVER_HOST ?? "0.0.0.0";
 const developerToolsEnabled = process.env.ENABLE_DEVTOOLS === "true";
+const allowedOrigins = (process.env.FRONTEND_ORIGINS ?? "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 // const app = next({ dev, hostname, port, dir: resolve(process.cwd(), "Front-end") });
 // const app = next({
 //     dev,
@@ -67,9 +72,13 @@ const disconnectGracePeriodMs = 45_000;
 
 const expressApp = express();
 
+if (process.env.NODE_ENV === "production") {
+    expressApp.set("trust proxy", 1);
+}
+
 expressApp.use(
     cors({
-        origin: "http://localhost:3000",
+        origin: allowedOrigins,
         credentials: true
     })
 );
@@ -106,6 +115,23 @@ expressApp.post("/decks", authenticate, async (req, res) => {
   }
 });
 
+expressApp.get("/decks", authenticate, async (req, res) => {
+  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
+  if (typeof userId !== "string") {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+  try {
+    const decks = await listUserDecks(userId);
+    return res.json({ success: true, decks });
+  } catch (error) {
+    const notFound = error instanceof Error && error.message === "User not found";
+    return res.status(notFound ? 404 : 500).json({
+      success: false,
+      message: notFound ? "User profile not found." : "Could not load decks."
+    });
+  }
+});
+
 expressApp.get("/matches/pending", authenticate, (req, res) => {
   const userId = (req as { user?: { sub?: unknown } }).user?.sub;
   if (typeof userId !== "string") {
@@ -113,9 +139,16 @@ expressApp.get("/matches/pending", authenticate, (req, res) => {
   }
 
   const room = findPendingRoomForUser(userId);
+  const player = room?.players.find((candidate) => candidate.userId === userId);
+  const opponent = room?.players.find((candidate) => candidate.userId !== userId);
   return res.json({
     success: true,
-    match: room ? { roomCode: room.code } : null
+    match: room && player ? {
+      roomCode: room.code,
+      status: room.state.started ? "IN_PROGRESS" : "WAITING",
+      playerId: player.playerId,
+      opponentConnected: opponent?.connected !== false
+    } : null
   });
 });
 
@@ -133,6 +166,25 @@ expressApp.post("/matches/pending/forfeit", authenticate, async (req, res) => {
 
   await forfeitPlayer(room, player.playerId, "left the match from the lobby.");
   return res.json({ success: true });
+});
+
+// Mirrors the production HTTP endpoint used by /room-create.  A room that has
+// not started is not a match and must be removed without awarding a win/loss.
+expressApp.post("/matches/pending/cancel", authenticate, (req, res) => {
+  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
+  if (typeof userId !== "string") {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  const room = findWaitingRoomOwnedBy(userId);
+  if (!room) {
+    return res.status(404).json({ success: false, message: "No waiting room was found." });
+  }
+
+  clearRoomTimer(room.code);
+  clearDisconnectGraceTimer(room.code);
+  rooms.delete(room.code);
+  return res.json({ success: true, message: "Waiting room cancelled." });
 });
 
 const httpServer = createServer(expressApp);
@@ -210,22 +262,31 @@ io.use(async (socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  socket.on("room:create", (selection, ack) => {
-    setSocketDeckSelection(socket, selection);
-    const room = createRoom();
-    attachPlayer(socket, room, "P1");
-    ack({ ok: true, roomCode: room.code, playerId: "P1" });
-    broadcastRoom(room);
+  socket.on("room:create", async (selection, ack) => {
+    try {
+      await setSocketDeckSelection(socket, selection);
+      const room = createRoom();
+      attachPlayer(socket, room, "P1");
+      ack({ ok: true, roomCode: room.code, playerId: "P1" });
+      broadcastRoom(room);
+    } catch (error) {
+      ack({ ok: false, error: error instanceof Error ? error.message : "Invalid deck selection." });
+    }
   });
 
-  socket.on("matchmaking:start", (selection) => {
+  socket.on("matchmaking:start", async (selection) => {
     const pendingRoom = findPendingRoomForUser(getSocketUserId(socket));
     if (pendingRoom) {
       socket.emit("game:error", "Resume or forfeit your current match before finding a new one.");
       return;
     }
 
-    setSocketDeckSelection(socket, selection);
+    try {
+      await setSocketDeckSelection(socket, selection);
+    } catch (error) {
+      socket.emit("game:error", error instanceof Error ? error.message : "Invalid deck selection.");
+      return;
+    }
 
     const match = MatchmakingService.enqueue(socket.id);
 
@@ -261,7 +322,7 @@ io.on("connection", (socket) => {
     MatchmakingService.remove(socket.id);
   });
 
-  socket.on("room:join", (roomCode, selection, ack) => {
+  socket.on("room:join", async (roomCode, selection, ack) => {
     const normalizedCode = typeof roomCode === "string"
       ? roomCode.trim().toUpperCase()
       : "";
@@ -271,11 +332,16 @@ io.on("connection", (socket) => {
       return;
     }
 
-    setSocketDeckSelection(socket, selection);
-
     const room = rooms.get(normalizedCode);
     if (!room) {
       ack({ ok: false, error: "Room not found." });
+      return;
+    }
+
+    try {
+      await setSocketDeckSelection(socket, selection);
+    } catch (error) {
+      ack({ ok: false, error: error instanceof Error ? error.message : "Invalid deck selection." });
       return;
     }
 
@@ -329,7 +395,7 @@ io.on("connection", (socket) => {
     }
 
     try {
-      room.state = applyAction(room.state, action);
+      room.state = applyAuthoritativeAction(room.state, action);
       appendActionLog(room, action);
       await settleRoomResult(room);
       ack?.({ ok: true });
@@ -501,14 +567,24 @@ function buildRoomPlayerDeck(room: Room, playerId: PlayerId) {
   return buildDeckFromCardIds(cardIds, playerId);
 }
 
-function setSocketDeckSelection(
+async function setSocketDeckSelection(
   socket: GameSocket,
   selection: { deckId?: string; cardIds?: string[] } | undefined
-) {
-  const cardIds = selection?.cardIds;
-  const isValid = Array.isArray(cardIds) && validateDeck(cardIds).valid;
-  socket.data.selectedDeckId = isValid ? selection?.deckId : undefined;
-  socket.data.selectedDeckCardIds = isValid ? [...cardIds] : undefined;
+): Promise<void> {
+  const deckId = typeof selection?.deckId === "string" ? selection.deckId.trim() : "";
+  if (!deckId || deckId === "kaleidoscope-starter") {
+    socket.data.selectedDeckId = undefined;
+    socket.data.selectedDeckCardIds = undefined;
+    return;
+  }
+
+  const user = await getUserById(getSocketUserId(socket));
+  const savedDeck = user?.decks?.[deckId];
+  if (!savedDeck) throw new Error("The selected deck is not saved to this account.");
+  const validation = validateDeck(savedDeck.cardIds);
+  if (!validation.valid) throw new Error("The selected saved deck is no longer valid.");
+  socket.data.selectedDeckId = deckId;
+  socket.data.selectedDeckCardIds = [...savedDeck.cardIds];
 }
 
 function getSocketUserId(socket: GameSocket): string {
@@ -653,6 +729,15 @@ function findPendingRoomForUser(userId: string): Room | undefined {
   );
 }
 
+function findWaitingRoomOwnedBy(userId: string): Room | undefined {
+  return [...rooms.values()].find(
+    (room) =>
+      !room.state.started &&
+      !room.state.winnerId &&
+      room.players.some((player) => player.playerId === "P1" && player.userId === userId)
+  );
+}
+
 function clearRoomTimer(roomCode: string): void {
   const timer = roomTimers.get(roomCode);
   if (timer) {
@@ -698,6 +783,10 @@ function canSubmitAction(playerId: PlayerId, action: GameAction) {
 
   if (action.type === "START_GAME") {
     return playerId === "P1";
+  }
+
+  if (action.type === "TIME_OUT" || action.type === "RESOLVE_COMBAT") {
+    return false;
   }
 
   return true;

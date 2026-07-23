@@ -1,7 +1,14 @@
 import { Request, Response } from "express";
 import * as authService from "./auth.service";
 import { LoginRequest, RegisterRequest, VerifyRequest, ResetPasswordRequest, ForgotPasswordRequest } from "./types";
-import { getUserByEmail } from "../user/user.repository";
+import { ensureUserProfile, getUserById } from "../user/user.repository";
+
+const productionCookies = process.env.NODE_ENV === "production";
+const authCookieOptions = {
+    httpOnly: true,
+    secure: productionCookies,
+    sameSite: productionCookies ? "none" as const : "lax" as const
+};
 
 export async function register(
     req: Request<{}, {}, RegisterRequest>,
@@ -66,26 +73,20 @@ export async function login(
             "access_token",
             result.accessToken,
             {
-                httpOnly: true,
-                secure: false,      // localhost
-                sameSite: "lax",
+                ...authCookieOptions,
                 maxAge: 60 * 60 * 1000
             }
         );
 
         res.cookie("email", req.body.email, {
-            httpOnly: true,
-            sameSite: "lax",
-            secure: false
+            ...authCookieOptions
         });
 
         res.cookie(
             "refresh_token",
             result.refreshToken,
             {
-                httpOnly: true,
-                secure: false,
-                sameSite: "lax",
+                ...authCookieOptions,
                 maxAge: 30 * 24 * 60 * 60 * 1000
             }
         );
@@ -119,7 +120,10 @@ export async function logout(
 
     try {
 
-        const accessToken = req.cookies.access_token;
+        const authorization = req.header("authorization");
+        const accessToken = req.cookies.access_token || (
+            authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length).trim() : undefined
+        );
 
         if (accessToken) {
 
@@ -132,9 +136,9 @@ export async function logout(
         // Nếu token đã hết hạn thì vẫn tiếp tục xóa cookie
     }
 
-    res.clearCookie("access_token");
-    res.clearCookie("refresh_token");
-    res.clearCookie("email");
+    res.clearCookie("access_token", authCookieOptions);
+    res.clearCookie("refresh_token", authCookieOptions);
+    res.clearCookie("email", authCookieOptions);
 
     return res.json({
 
@@ -151,8 +155,19 @@ export async function me(
     res: Response
 ) {
 
-    const email = req.cookies.email ?? (req as any).user?.username;
-    const user = email ? await getUserByEmail(email) : undefined;
+    const payload = (req as any).user || {};
+    const userId = typeof payload.sub === "string" ? payload.sub : undefined;
+    const email = req.cookies.email ?? (typeof payload.username === "string" ? payload.username : "");
+    let user = userId ? await getUserById(userId) : undefined;
+    if (!user && userId) {
+        user = await ensureUserProfile({
+            id: userId,
+            email,
+            username: typeof payload.preferred_username === "string"
+                ? payload.preferred_username
+                : `User_${userId.slice(0, 5)}`
+        });
+    }
 
     return res.json({
 
@@ -169,8 +184,8 @@ export async function refresh(
     res: Response
 ) {
 
-    const refreshToken = req.cookies.refresh_token;
-    const email = req.cookies.email;
+    const refreshToken = req.cookies.refresh_token || req.body?.refreshToken;
+    const email = req.cookies.email || req.body?.email;
 
     if (!refreshToken || !email) {
 
@@ -199,9 +214,7 @@ export async function refresh(
             "access_token",
             result.accessToken,
             {
-                httpOnly: true,
-                secure: false,
-                sameSite: "lax",
+                ...authCookieOptions,
                 maxAge: 60 * 60 * 1000
             }
         );

@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Layers3 } from "lucide-react";
 import { listCards } from "@backend/game/entities/cardRegistry";
+import { listDecks } from "../../libs/api";
 import {
   DEFAULT_DECK_ID,
+  getDefaultLocalDeck,
   getSelectedDeckId,
   loadLocalDecks,
+  mergeCloudDecks,
   setSelectedDeckId,
   type LocalDeck,
 } from "../../libs/localDecks";
@@ -24,19 +27,37 @@ export function DeckSelectionPanel({
 }: DeckSelectionPanelProps) {
   const [decks, setDecks] = useState<LocalDeck[]>([]);
   const [selectedId, setSelectedId] = useState(DEFAULT_DECK_ID);
+  const [loadError, setLoadError] = useState<string>();
   const artworkById = useMemo(
     () => new Map(listCards().map((card) => [card.id, card.imageUrl])),
     []
   );
 
   useEffect(() => {
-    const localDecks = loadLocalDecks();
-    const storedId = getSelectedDeckId();
-    const selected =
-      localDecks.find((deck) => deck.deckId === storedId) ?? localDecks[0];
-    setDecks(localDecks);
-    setSelectedId(selected.deckId);
-    onDeckChange?.(selected);
+    let active = true;
+    const applyDecks = (availableDecks: LocalDeck[]) => {
+      if (!active) return;
+      const storedId = getSelectedDeckId();
+      const selected = availableDecks.find((deck) => deck.deckId === storedId) ?? availableDecks[0];
+      setDecks(availableDecks);
+      setSelectedId(selected.deckId);
+      onDeckChange?.(selected);
+    };
+
+    if (window.localStorage.getItem("accessToken")) {
+      applyDecks([getDefaultLocalDeck()]);
+      void listDecks()
+        .then((result) => {
+          applyDecks(mergeCloudDecks(result.decks));
+          setLoadError(undefined);
+        })
+        .catch((error) => setLoadError(
+          error instanceof Error ? error.message : "Could not load account decks."
+        ));
+    } else {
+      applyDecks(loadLocalDecks());
+    }
+    return () => { active = false; };
   }, [onDeckChange]);
 
   const selectedDeck = decks.find((deck) => deck.deckId === selectedId) ?? decks[0];
@@ -88,6 +109,7 @@ export function DeckSelectionPanel({
       >
         <Layers3 size={18} />
       </button>
+      {loadError ? <small className="deck-selection-panel__error" role="alert">{loadError}</small> : null}
     </section>
   );
 }

@@ -638,25 +638,6 @@ export function GameBoardView({
     );
   }
 
-  function commitBlocks() {
-    if (!canControl(defenderId)) {
-      return;
-    }
-
-    setSelectedBlockerId(undefined);
-    clearSelectedCard();
-    dispatch(
-      { type: "COMMIT_BLOCKS", playerId: defenderId },
-      `${defenderId} committed blocks. Combat is ready.`
-    );
-  }
-
-  function resolveCombat() {
-    setSelectedBlockerId(undefined);
-    clearSelectedCard();
-    dispatch({ type: "RESOLVE_COMBAT" }, "Combat resolved.");
-  }
-
   // --- Smart Action Orb logic ---
   type SmartAction = {
     label: string;
@@ -711,14 +692,15 @@ export function GameBoardView({
           : "No blocks",
         mode: "defend",
         enabled: canControl(defenderId),
-        // Commit blocks then auto-resolve in one atomic step
+        // The server commits blocks and resolves combat atomically. Two client
+        // messages can race when API Gateway invokes separate Lambdas.
         onClick: () => {
           setSelectedBlockerId(undefined);
           clearSelectedCard();
-          dispatchChain([
-            { action: { type: "COMMIT_BLOCKS", playerId: defenderId }, label: `${defenderId} committed blocks.` },
-            { action: { type: "RESOLVE_COMBAT" }, label: "Combat resolved." }
-          ]);
+          dispatch(
+            { type: "COMMIT_BLOCKS", playerId: defenderId },
+            `${defenderId} committed blocks. Combat resolved.`
+          );
         }
       };
     }

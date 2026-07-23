@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
-import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
+import { PendingMatchDialog, PendingMatchLoadingGate } from "../../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../../components/deck/DeckSelectionPanel";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import { useLocalGame } from "../../hooks/useLocalGame";
@@ -32,16 +32,46 @@ function formatTime(seconds: number) {
 function OnlinePlayPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const resumeRoomCode = searchParams.get("room") ?? undefined;
-  const createCustomMatch = searchParams.get("custom") === "create";
+  const requestedRoomCode = searchParams.get("room") ?? undefined;
+  const resumeConfirmed = searchParams.get("resume") === "1";
+  const resumeRoomCode = resumeConfirmed ? requestedRoomCode : undefined;
   const controller = useGameMatch(resumeRoomCode);
   const musicRef = useRef<HTMLAudioElement | null>(null);
-  const customCreateRequestedRef = useRef(false);
   const [muted, setMuted] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile>();
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatchError, setPendingMatchError] = useState<string>();
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(resumeConfirmed);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(resumeConfirmed);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
+
+  useEffect(() => {
+    if (!controller.resumeRequired) return;
+    setPendingMatch(controller.resumeRequired);
+    setPendingMatchChecked(true);
+  }, [controller.resumeRequired]);
+
+  useEffect(() => {
+    if (!resumeConfirmed || controller.status !== "Recovery failed") return;
+    setContinuingPendingMatch(false);
+    void getPendingMatch()
+      .then((result) => {
+        setPendingMatch(result.match);
+        setPendingMatchError(controller.error);
+      })
+      .catch((error) => setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to check your active match."
+      ));
+  }, [controller.error, controller.status, resumeConfirmed]);
+
+  useEffect(() => {
+    if (!resumeConfirmed || !controller.roomCode || !controller.localPlayerId) return;
+    // Consume the confirmation only after the authoritative game state arrives.
+    // Removing it earlier can make Next render the pending-match flow again
+    // while the WebSocket resume handshake is still in flight.
+    window.history.replaceState(null, "", "/play");
+  }, [controller.localPlayerId, controller.roomCode, resumeConfirmed]);
 
   useEffect(() => {
     const audio = new Audio("/audio/findmatch.mp3");
@@ -60,43 +90,41 @@ function OnlinePlayPageContent() {
   }, []);
 
   useEffect(() => {
-    if (resumeRoomCode || createCustomMatch) {
+    if (resumeConfirmed) {
       return;
     }
 
     void getPendingMatch()
-      .then((result) => setPendingMatch(result.match))
-      .catch(() => undefined);
-  }, [createCustomMatch, resumeRoomCode]);
-
-  useEffect(() => {
-    if (
-      !createCustomMatch ||
-      resumeRoomCode ||
-      customCreateRequestedRef.current ||
-      controller.status !== "Connected"
-    ) {
-      return;
-    }
-
-    customCreateRequestedRef.current = true;
-    controller.createRoom();
-  }, [controller, createCustomMatch, resumeRoomCode]);
+      .then((result) => {
+        setPendingMatch(result.match);
+        setPendingMatchError(undefined);
+      })
+      .catch((error) => setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to check your active match."
+      ))
+      .finally(() => setPendingMatchChecked(true));
+  }, [resumeConfirmed]);
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
-      window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}`);
+      setContinuingPendingMatch(true);
+      window.requestAnimationFrame(() => {
+        window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      });
     }
   };
 
   const abandonPendingMatch = async () => {
     setResolvingPendingMatch(true);
+    setPendingMatchError(undefined);
     try {
       await forfeitPendingMatch();
-    } catch {
-      // The disconnect timer may have resolved the match while this dialog was open.
-    } finally {
       setPendingMatch(null);
+    } catch (error) {
+      setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to leave the active match."
+      );
+    } finally {
       setResolvingPendingMatch(false);
     }
   };
@@ -113,6 +141,8 @@ function OnlinePlayPageContent() {
   }, [controller.searching, muted]);
 
   const startSearch = () => {
+    // Do not let a click win the race against the active-match check.
+    if (!pendingMatchChecked || pendingMatch) return;
     const audio = musicRef.current;
     if (audio && !muted) {
       audio.currentTime = 0;
@@ -244,7 +274,7 @@ function OnlinePlayPageContent() {
               <X size={19} /> Cancel search
             </button>
           ) : (
-            <button className="matchmaking-command" onClick={startSearch}>
+            <button className="matchmaking-command" onClick={startSearch} disabled={!pendingMatchChecked || Boolean(pendingMatch)}>
               <Search size={19} /> Find match
             </button>
           )}
@@ -256,7 +286,12 @@ function OnlinePlayPageContent() {
           onDeckChange={setSelectedDeck}
         />
 
-        {pendingMatch ? <PendingMatchDialog isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+        {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
+        {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
+        {resumeConfirmed && !controller.roomCode && controller.status !== "Recovery failed"
+          ? <PendingMatchLoadingGate message="Restoring your match..." />
+          : null}
+        {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
 
         <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
           <Headphones size={15} />
@@ -270,12 +305,55 @@ function OnlinePlayPageContent() {
 
 function TrialPlayPageContent() {
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>();
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(false);
+  const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
+
+  useEffect(() => {
+    void getPendingMatch()
+      .then((result) => setPendingMatch(result.match))
+      .catch(() => undefined)
+      .finally(() => setPendingMatchChecked(true));
+  }, []);
 
   useEffect(() => {
     const decks = loadLocalDecks();
     const selectedId = getSelectedDeckId();
     setSelectedDeck(decks.find((deck) => deck.deckId === selectedId) ?? decks[0]);
   }, []);
+
+  const resumePendingMatch = () => {
+    if (pendingMatch) {
+      setContinuingPendingMatch(true);
+      window.requestAnimationFrame(() => {
+        window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      });
+    }
+  };
+
+  const abandonPendingMatch = async () => {
+    setResolvingPendingMatch(true);
+    try {
+      await forfeitPendingMatch();
+      setPendingMatch(null);
+    } finally {
+      setResolvingPendingMatch(false);
+    }
+  };
+
+  if (!pendingMatchChecked) return <PendingMatchLoadingGate />;
+  if (pendingMatch) {
+    return (
+      <PendingMatchDialog
+        status={pendingMatch.status}
+        isResolving={resolvingPendingMatch}
+        isContinuing={continuingPendingMatch}
+        onContinue={resumePendingMatch}
+        onForfeit={abandonPendingMatch}
+      />
+    );
+  }
 
   if (!selectedDeck) {
     return <div className="trial-loading">Preparing trial deck...</div>;
@@ -296,11 +374,23 @@ function TrialGame({ deck }: { deck: LocalDeck }) {
   );
 }
 
+function RouteRedirect({ href }: { href: string }) {
+  const router = useRouter();
+  useEffect(() => router.replace(href), [href, router]);
+  return null;
+}
+
 function PlayPageContent() {
   const searchParams = useSearchParams();
-  return searchParams.get("trial") === "1"
-    ? <TrialPlayPageContent />
-    : <OnlinePlayPageContent />;
+  if (searchParams.get("trial") === "1") return <TrialPlayPageContent />;
+  if (searchParams.get("custom") === "create") return <RouteRedirect href="/room-create" />;
+
+  const isResume = searchParams.get("resume") === "1";
+  const legacyRoomCode = searchParams.get("room")?.trim().toUpperCase();
+  if (!isResume && legacyRoomCode && /^[A-HJ-NP-Z2-9]{6}$/.test(legacyRoomCode)) {
+    return <RouteRedirect href={`/room-join?room=${encodeURIComponent(legacyRoomCode)}`} />;
+  }
+  return <OnlinePlayPageContent />;
 }
 
 export default function PlayPage() {
