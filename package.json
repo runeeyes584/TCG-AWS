@@ -27,6 +27,9 @@
     "db:setup": "tsx Back-end/src/database/setupTables.ts",
     "db:seed": "tsx Back-end/src/database/seedData.ts",
     "build:lambda:http": "node scripts/build-http-lambda.mjs",
+    "build:lambda:post-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/postMatchWorker.ts postMatchWorker",
+    "build:lambda:rebuild-leaderboard": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/rebuildLeaderboardRanks.ts rebuildLeaderboardRanks",
+    "build:lambda:leaderboard": "npm run build:lambda:http && npm run build:lambda:post-match && npm run build:lambda:rebuild-leaderboard",
     "skills:add:taste": "npx skills add Leonxlnx/taste-skill",
     "test": "vitest run",
     "test:watch": "vitest"

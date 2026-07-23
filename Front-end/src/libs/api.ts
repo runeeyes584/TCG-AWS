@@ -42,6 +42,58 @@ export interface PendingMatch {
     opponentConnected?: boolean;
 }
 
+export interface LeaderboardPlayer {
+    userId: string;
+    username: string;
+    avatar?: string;
+    elo: number;
+    wins: number;
+    losses: number;
+    winRate: number;
+    rank?: number;
+    rankUpdatedAt?: number;
+    projectedAt?: number;
+    isCurrentPlayer: boolean;
+    rankPending: boolean;
+}
+
+export interface LeaderboardResponse {
+    success: boolean;
+    scope: "GLOBAL";
+    entries: LeaderboardPlayer[];
+    currentPlayer: LeaderboardPlayer | null;
+    nextCursor: string | null;
+}
+
+function parseLeaderboardPlayer(value: unknown): LeaderboardPlayer | null {
+    if (!value || typeof value !== "object") return null;
+    const player = value as Record<string, unknown>;
+    if (typeof player.userId !== "string" || typeof player.username !== "string") return null;
+
+    const number = (field: string) => {
+        const parsed = Number(player[field]);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const rank = Number(player.rank);
+    const rankUpdatedAt = Number(player.rankUpdatedAt);
+    const projectedAt = Number(player.projectedAt);
+
+    return {
+        userId: player.userId,
+        username: player.username || `Player_${player.userId.slice(0, 5)}`,
+        ...(typeof player.avatar === "string" && player.avatar ? { avatar: player.avatar } : {}),
+        elo: Math.max(0, number("elo")),
+        wins: Math.max(0, Math.trunc(number("wins"))),
+        losses: Math.max(0, Math.trunc(number("losses"))),
+        winRate: Math.min(1, Math.max(0, number("winRate"))),
+        ...(Number.isInteger(rank) && rank > 0 ? { rank } : {}),
+        ...(Number.isFinite(rankUpdatedAt) && rankUpdatedAt > 0 ? { rankUpdatedAt } : {}),
+        ...(Number.isFinite(projectedAt) && projectedAt > 0 ? { projectedAt } : {}),
+        isCurrentPlayer: player.isCurrentPlayer === true,
+        rankPending: player.rankPending === true
+    };
+}
+
 export async function saveDeck(payload: SaveDeckPayload): Promise<{
     success: boolean;
     message: string;
@@ -62,6 +114,72 @@ export async function listDecks(): Promise<{
     return request("/decks");
 }
 
+export async function getLeaderboard(
+    limit = 50,
+    cursor?: string
+): Promise<LeaderboardResponse> {
+    await ensureFreshAccessToken();
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (cursor) query.set("cursor", cursor);
+    const data = await request<unknown>(`/leaderboard?${query.toString()}`);
+    if (!data || typeof data !== "object") throw new Error("Leaderboard returned an invalid response.");
+
+    const response = data as Record<string, unknown>;
+    if (
+        response.success !== true ||
+        response.scope !== "GLOBAL" ||
+        !Array.isArray(response.entries) ||
+        !(response.nextCursor === null || typeof response.nextCursor === "string")
+    ) {
+        throw new Error("Leaderboard returned an invalid response.");
+    }
+
+    const parsedEntries = response.entries.map(parseLeaderboardPlayer);
+    if (parsedEntries.some((player) => !player)) {
+        throw new Error("Leaderboard returned invalid player data.");
+    }
+    const entries = parsedEntries as LeaderboardPlayer[];
+    if (response.currentPlayer !== null && response.currentPlayer === undefined) {
+        throw new Error("Leaderboard returned an invalid current player.");
+    }
+    const currentPlayer = response.currentPlayer === null
+        ? null
+        : parseLeaderboardPlayer(response.currentPlayer);
+    if (response.currentPlayer !== null && !currentPlayer) {
+        throw new Error("Leaderboard returned an invalid current player.");
+    }
+
+    return {
+        success: true,
+        scope: "GLOBAL",
+        entries,
+        currentPlayer,
+        nextCursor: typeof response.nextCursor === "string" ? response.nextCursor : null
+    };
+}
+
+export async function getMyRank(): Promise<{
+    success: boolean;
+    player: LeaderboardPlayer | null;
+}> {
+    await ensureFreshAccessToken();
+    const data = await request<unknown>("/leaderboard/me");
+    if (!data || typeof data !== "object") throw new Error("Rank service returned an invalid response.");
+    const response = data as Record<string, unknown>;
+    if (response.success !== true) throw new Error("Rank service returned an invalid response.");
+    if (response.player !== null && response.player === undefined) {
+        throw new Error("Rank service returned an invalid player.");
+    }
+    const player = response.player === null ? null : parseLeaderboardPlayer(response.player);
+    if (response.player !== null && !player) {
+        throw new Error("Rank service returned invalid player data.");
+    }
+    return {
+        success: true,
+        player
+    };
+}
+
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
@@ -74,23 +192,41 @@ async function request<T = any>(
     if (!/^https?:\/\//.test(requestUrl)) {
         throw new Error("NEXT_PUBLIC_API_URL is required outside local development.");
     }
+    const { headers: optionHeaders, ...requestOptions } = options;
     const response = await fetch(requestUrl, {
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(options.headers || {})
+            ...(optionHeaders || {})
         },
-        ...options
+        ...requestOptions
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.message || "Request failed.");
+    const rawBody = await response.text();
+    let data: any;
+    if (rawBody) {
+        try {
+            data = JSON.parse(rawBody);
+        } catch {
+            const isHtml = /^\s*(?:<!doctype|<html)/i.test(rawBody);
+            throw new Error(
+                isHtml
+                    ? "The API returned an HTML page instead of JSON. Check that NEXT_PUBLIC_API_URL points to the HTTP API Gateway invoke URL and includes the correct stage."
+                    : `The API returned invalid JSON (HTTP ${response.status}).`
+            );
+        }
     }
 
-    return data;
+    if (!response.ok) {
+        throw new Error(
+            data && typeof data.message === "string"
+                ? data.message
+                : `Request failed (HTTP ${response.status}).`
+        );
+    }
+
+    return data as T;
 }
 
 export async function register(

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, BadgeCheck, MailCheck } from "lucide-react";
-import { verify } from "../../libs/api";
+import { login, verify } from "../../libs/api";
 import { AuthShell } from "../../components/auth/AuthShell";
 
 export function VerifyForm() {
@@ -37,7 +37,27 @@ export function VerifyForm() {
 
             await verify(email, normalizedCode);
 
-            router.push("/login");
+            const pendingEmail = window.sessionStorage.getItem("pendingRegistrationEmail");
+            const pendingPassword = window.sessionStorage.getItem("pendingRegistrationPassword");
+            window.sessionStorage.removeItem("pendingRegistrationEmail");
+            window.sessionStorage.removeItem("pendingRegistrationPassword");
+
+            if (pendingEmail === email && pendingPassword) {
+                try {
+                    const result = await login(email, pendingPassword);
+                    window.localStorage.setItem("accessToken", result.accessToken);
+                    window.localStorage.setItem("refreshToken", result.refreshToken);
+                    window.localStorage.setItem("email", email);
+                    window.location.replace("/");
+                    return;
+                } catch {
+                    // Verification succeeded. If automatic sign-in is rejected,
+                    // send the user to the normal login form rather than asking
+                    // them to submit the now-consumed OTP again.
+                }
+            }
+
+            router.replace("/login?verified=1");
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Không thể xác thực tài khoản. Vui lòng thử lại.");
         } finally {
