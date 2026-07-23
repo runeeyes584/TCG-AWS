@@ -48,6 +48,7 @@ export default function Home() {
   const [pendingMatchError, setPendingMatchError] = useState<string>();
   const [pendingMatchChecked, setPendingMatchChecked] = useState(true);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
   const [customRoomCode, setCustomRoomCode] = useState("");
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
 
@@ -134,7 +135,10 @@ export default function Home() {
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
-      router.push(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      setContinuingPendingMatch(true);
+      window.requestAnimationFrame(() => {
+        router.push(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      });
     }
   };
 
@@ -324,7 +328,7 @@ export default function Home() {
 
       {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
       {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
-      {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+      {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
     </main>
   );
 }

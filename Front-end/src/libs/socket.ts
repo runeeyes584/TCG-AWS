@@ -119,10 +119,10 @@ class SocketManager {
 
   /** Resume is intentionally distinct from matchmaking: it represents the
    * player's explicit choice in the unfinished-match dialog. */
-  public resumeMatch(): void {
+  public resumeMatch(matchId: string): void {
     if (this.socket instanceof ApiGatewaySocket) {
       const route = process.env.NEXT_PUBLIC_MATCHMAKING_ROUTE || "matchfinding-start";
-      this.socket.send(route, { resume: true });
+      this.socket.send(route, { resume: true, matchId });
       return;
     }
     // The local Socket.IO server owns room reattachment on connect. Keep this

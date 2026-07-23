@@ -42,6 +42,7 @@ export function PrivateRoomScreen(props: {
   const [pendingMatchError, setPendingMatchError] = useState<string>();
   const [pendingMatchChecked, setPendingMatchChecked] = useState(false);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
   const [deckSelectionReady, setDeckSelectionReady] = useState(false);
   const [leavingRoom, setLeavingRoom] = useState(false);
@@ -178,7 +179,10 @@ export function PrivateRoomScreen(props: {
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
-      window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      setContinuingPendingMatch(true);
+      window.requestAnimationFrame(() => {
+        window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      });
     }
   };
 
@@ -268,6 +272,7 @@ export function PrivateRoomScreen(props: {
         <PendingMatchDialog
           status={pendingMatch.status}
           isResolving={resolvingPendingMatch}
+          isContinuing={continuingPendingMatch}
           onContinue={resumePendingMatch}
           onForfeit={abandonPendingMatch}
         />

@@ -70,8 +70,12 @@ describe("API Gateway private-room socket routes", () => {
     const socket = FakeWebSocket.latest!;
     socket.open();
 
-    socketManager.resumeMatch();
+    socketManager.resumeMatch("MATCH-123");
 
-    expect(JSON.parse(socket.sent[0])).toEqual({ route: "matchfinding-start", resume: true });
+    expect(JSON.parse(socket.sent[0])).toEqual({
+      route: "matchfinding-start",
+      resume: true,
+      matchId: "MATCH-123"
+    });
   });
 });

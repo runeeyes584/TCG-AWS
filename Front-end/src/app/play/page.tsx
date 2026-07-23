@@ -43,6 +43,7 @@ function OnlinePlayPageContent() {
   const [pendingMatchError, setPendingMatchError] = useState<string>();
   const [pendingMatchChecked, setPendingMatchChecked] = useState(resumeConfirmed);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(resumeConfirmed);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
 
   useEffect(() => {
@@ -52,12 +53,25 @@ function OnlinePlayPageContent() {
   }, [controller.resumeRequired]);
 
   useEffect(() => {
-    if (resumeConfirmed) {
-      // Consume the confirmation once. Reloading or restoring this browser tab
-      // must ask again instead of silently resuming the match.
-      window.history.replaceState(null, "", "/play");
-    }
-  }, [resumeConfirmed]);
+    if (!resumeConfirmed || controller.status !== "Recovery failed") return;
+    setContinuingPendingMatch(false);
+    void getPendingMatch()
+      .then((result) => {
+        setPendingMatch(result.match);
+        setPendingMatchError(controller.error);
+      })
+      .catch((error) => setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to check your active match."
+      ));
+  }, [controller.error, controller.status, resumeConfirmed]);
+
+  useEffect(() => {
+    if (!resumeConfirmed || !controller.roomCode || !controller.localPlayerId) return;
+    // Consume the confirmation only after the authoritative game state arrives.
+    // Removing it earlier can make Next render the pending-match flow again
+    // while the WebSocket resume handshake is still in flight.
+    window.history.replaceState(null, "", "/play");
+  }, [controller.localPlayerId, controller.roomCode, resumeConfirmed]);
 
   useEffect(() => {
     const audio = new Audio("/audio/findmatch.mp3");
@@ -93,7 +107,10 @@ function OnlinePlayPageContent() {
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
-      window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      setContinuingPendingMatch(true);
+      window.requestAnimationFrame(() => {
+        window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      });
     }
   };
 
@@ -271,7 +288,10 @@ function OnlinePlayPageContent() {
 
         {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
         {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
-        {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+        {resumeConfirmed && !controller.roomCode && controller.status !== "Recovery failed"
+          ? <PendingMatchLoadingGate message="Restoring your match..." />
+          : null}
+        {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
 
         <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
           <Headphones size={15} />
@@ -288,6 +308,7 @@ function TrialPlayPageContent() {
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
   const [pendingMatchChecked, setPendingMatchChecked] = useState(false);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
 
   useEffect(() => {
     void getPendingMatch()
@@ -304,7 +325,10 @@ function TrialPlayPageContent() {
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
-      window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      setContinuingPendingMatch(true);
+      window.requestAnimationFrame(() => {
+        window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      });
     }
   };
 
@@ -324,6 +348,7 @@ function TrialPlayPageContent() {
       <PendingMatchDialog
         status={pendingMatch.status}
         isResolving={resolvingPendingMatch}
+        isContinuing={continuingPendingMatch}
         onContinue={resumePendingMatch}
         onForfeit={abandonPendingMatch}
       />
@@ -360,8 +385,9 @@ function PlayPageContent() {
   if (searchParams.get("trial") === "1") return <TrialPlayPageContent />;
   if (searchParams.get("custom") === "create") return <RouteRedirect href="/room-create" />;
 
+  const isResume = searchParams.get("resume") === "1";
   const legacyRoomCode = searchParams.get("room")?.trim().toUpperCase();
-  if (legacyRoomCode && /^[A-HJ-NP-Z2-9]{6}$/.test(legacyRoomCode)) {
+  if (!isResume && legacyRoomCode && /^[A-HJ-NP-Z2-9]{6}$/.test(legacyRoomCode)) {
     return <RouteRedirect href={`/room-join?room=${encodeURIComponent(legacyRoomCode)}`} />;
   }
   return <OnlinePlayPageContent />;
