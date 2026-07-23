@@ -2,14 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AlertCircle, Eye, EyeOff, LockKeyhole, LogIn, Mail } from "lucide-react";
 import { login } from "../../libs/api";
 import { AuthShell } from "../../components/auth/AuthShell";
 
 export default function LoginPage() {
-    const router = useRouter();
-
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -21,7 +18,7 @@ export default function LoginPage() {
         setError("");
 
         if (!email || !password) {
-            setError("Vui lòng nhập đầy đủ email và mật khẩu.");
+            setError("Please fill in both email and password fields.");
             return;
         }
 
@@ -32,10 +29,10 @@ export default function LoginPage() {
             localStorage.setItem("accessToken", result.accessToken);
             localStorage.setItem("refreshToken", result.refreshToken);
             localStorage.setItem("email", email);
-            router.push("/play");
+            window.location.replace("/");
 
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Không thể đăng nhập. Vui lòng thử lại.");
+            setError(err instanceof Error ? err.message : "Could not log in. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -45,8 +42,8 @@ export default function LoginPage() {
         <AuthShell
             eyebrow="Operative access"
             title={<>Return to the <em>Arena</em></>}
-            description="Đăng nhập để tiếp tục hành trình trong Prism Arena."
-            footer={<>Chưa có tài khoản? <Link href="/register">Create operative</Link></>}
+            description="Log in to continue your journey in the Prism Arena."
+            footer={<>Don't have an account? <Link href="/register">Create operative</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
                 <label className="auth-field">
@@ -85,7 +82,7 @@ export default function LoginPage() {
 
                 <div className="auth-form__meta">
                     <span>Encrypted session</span>
-                    <Link href="/forgot-password">Quên mật khẩu?</Link>
+                    <Link href="/forgot-password">Forgot password?</Link>
                 </div>
 
                 {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}

@@ -18,13 +18,20 @@ import {
   VolumeX,
   Zap,
 } from "lucide-react";
-import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../libs/api";
+import {
+  forfeitPendingMatch,
+  getPendingMatch,
+  me,
+  type PendingMatch,
+  type PlayerProfile
+} from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { PendingMatchDialog, PendingMatchLoadingGate } from "../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
+import { useRealtimeRank } from "../hooks/useRealtimeRank";
 
-type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial";
+type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial" | "rank global";
 
 const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "duel", label: "Duel", icon: Swords },
@@ -32,6 +39,7 @@ const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "collection", label: "Collection", icon: BookOpen },
   { id: "custom", label: "Custom Match", icon: Hash },
   { id: "trial", label: "Trial", icon: FlaskConical },
+  {id: "rank global", label: "Rank Global", icon: Trophy}
 ];
 
 export default function Home() {
@@ -51,6 +59,7 @@ export default function Home() {
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
   const [customRoomCode, setCustomRoomCode] = useState("");
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
+  const currentRank = useRealtimeRank(isSignedIn);
 
   useEffect(() => {
     const email = window.localStorage.getItem("email");
@@ -172,8 +181,8 @@ export default function Home() {
         <button className="lobby-brand" onClick={() => setActiveTab("duel")} aria-label="Kaleidoscope home">
           <span className="lobby-brand__mark"><Sparkles size={20} strokeWidth={2.4} /></span>
           <span>
-            <strong>KALEIDOSCOPE</strong>
-            <small>TACTICAL CARD GAME</small>
+            <strong>CHRONO GENESIS WEB GAME</strong>
+            <small>LACRIMOSA'S LAST DANCE</small>
           </span>
         </button>
 
@@ -203,9 +212,10 @@ export default function Home() {
           <span title={email}><Shield size={13} /> {email}</span>
         </div>
         <div className="lobby-profile__stats" aria-label="Player statistics">
-          <span><b>{elo.toLocaleString()}</b><small>ELO</small></span>
-          <span><b>{wins}</b><small>WINS</small></span>
-          <span><b>{losses}</b><small>LOSSES</small></span>
+          <span className="lobby-stat"><b>{elo.toLocaleString()}</b><small>ELO</small></span>
+          <span className="lobby-stat lobby-stat--rank"><b>{currentRank ? `#${currentRank}` : "—"}</b><small>RANK</small></span>
+          <span className="lobby-stat"><b>{wins}</b><small>WINS</small></span>
+          <span className="lobby-stat"><b>{losses}</b><small>LOSSES</small></span>
         </div>
       </section>
 
@@ -221,6 +231,10 @@ export default function Home() {
               }
               if (id === "collection") {
                 router.push("/gallery");
+                return;
+              }
+              if (id === "rank global") {
+                router.push("/rank");
                 return;
               }
               setActiveTab(id);
