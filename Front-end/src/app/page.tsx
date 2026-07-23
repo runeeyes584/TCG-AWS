@@ -18,13 +18,20 @@ import {
   VolumeX,
   Zap,
 } from "lucide-react";
-import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../libs/api";
+import {
+  forfeitPendingMatch,
+  getPendingMatch,
+  me,
+  type PendingMatch,
+  type PlayerProfile
+} from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
-import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
+import { PendingMatchDialog, PendingMatchLoadingGate } from "../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
+import { useRealtimeRank } from "../hooks/useRealtimeRank";
 
-type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial";
+type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial" | "rank global";
 
 const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "duel", label: "Duel", icon: Swords },
@@ -32,6 +39,7 @@ const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "collection", label: "Collection", icon: BookOpen },
   { id: "custom", label: "Custom Match", icon: Hash },
   { id: "trial", label: "Trial", icon: FlaskConical },
+  {id: "rank global", label: "Rank Global", icon: Trophy}
 ];
 
 export default function Home() {
@@ -45,9 +53,13 @@ export default function Home() {
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatchError, setPendingMatchError] = useState<string>();
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(true);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
   const [customRoomCode, setCustomRoomCode] = useState("");
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
+  const currentRank = useRealtimeRank(isSignedIn);
 
   useEffect(() => {
     const email = window.localStorage.getItem("email");
@@ -61,7 +73,10 @@ export default function Home() {
     const signedIn = Boolean(token);
     setIsSignedIn(signedIn);
 
-    if (!signedIn) return;
+    if (!signedIn) {
+      setPendingMatchChecked(true);
+      return;
+    }
 
     void me()
       .then(({ user }) => {
@@ -78,8 +93,14 @@ export default function Home() {
       .catch(() => undefined);
 
     void getPendingMatch()
-      .then((result) => setPendingMatch(result.match))
-      .catch(() => undefined);
+      .then((result) => {
+        setPendingMatch(result.match);
+        setPendingMatchError(undefined);
+      })
+      .catch((error) => setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to check your active match."
+      ))
+      .finally(() => setPendingMatchChecked(true));
   }, []);
 
   const startDuel = () => {
@@ -87,7 +108,7 @@ export default function Home() {
   };
 
   const createCustomMatch = () => {
-    router.push(isSignedIn ? "/play?custom=create" : "/login");
+    router.push(isSignedIn ? "/room-create" : "/login");
   };
 
   const startTrial = () => {
@@ -105,7 +126,7 @@ export default function Home() {
       return;
     }
 
-    router.push(`/play?room=${encodeURIComponent(roomCode)}`);
+    router.push(`/room-join?room=${encodeURIComponent(roomCode)}`);
   };
 
   const signOut = () => {
@@ -123,24 +144,30 @@ export default function Home() {
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
-      router.push(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}`);
+      setContinuingPendingMatch(true);
+      window.requestAnimationFrame(() => {
+        router.push(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+      });
     }
   };
 
   const abandonPendingMatch = async () => {
     setResolvingPendingMatch(true);
+    setPendingMatchError(undefined);
     try {
       await forfeitPendingMatch();
+      setPendingMatch(null);
       const { user } = await me();
       if (user) {
         setElo(user.elo);
         setWins(user.wins);
         setLosses(user.losses);
       }
-    } catch {
-      // The disconnect timer may have already resolved the match in parallel.
+    } catch (error) {
+      setPendingMatchError(
+        error instanceof Error ? error.message : "Unable to leave the active match."
+      );
     } finally {
-      setPendingMatch(null);
       setResolvingPendingMatch(false);
     }
   };
@@ -154,8 +181,8 @@ export default function Home() {
         <button className="lobby-brand" onClick={() => setActiveTab("duel")} aria-label="Kaleidoscope home">
           <span className="lobby-brand__mark"><Sparkles size={20} strokeWidth={2.4} /></span>
           <span>
-            <strong>KALEIDOSCOPE</strong>
-            <small>TACTICAL CARD GAME</small>
+            <strong>CHRONO GENESIS WEB GAME</strong>
+            <small>LACRIMOSA'S LAST DANCE</small>
           </span>
         </button>
 
@@ -185,9 +212,10 @@ export default function Home() {
           <span title={email}><Shield size={13} /> {email}</span>
         </div>
         <div className="lobby-profile__stats" aria-label="Player statistics">
-          <span><b>{elo.toLocaleString()}</b><small>ELO</small></span>
-          <span><b>{wins}</b><small>WINS</small></span>
-          <span><b>{losses}</b><small>LOSSES</small></span>
+          <span className="lobby-stat"><b>{elo.toLocaleString()}</b><small>ELO</small></span>
+          <span className="lobby-stat lobby-stat--rank"><b>{currentRank ? `#${currentRank}` : "—"}</b><small>RANK</small></span>
+          <span className="lobby-stat"><b>{wins}</b><small>WINS</small></span>
+          <span className="lobby-stat"><b>{losses}</b><small>LOSSES</small></span>
         </div>
       </section>
 
@@ -203,6 +231,10 @@ export default function Home() {
               }
               if (id === "collection") {
                 router.push("/gallery");
+                return;
+              }
+              if (id === "rank global") {
+                router.push("/rank");
                 return;
               }
               setActiveTab(id);
@@ -308,7 +340,9 @@ export default function Home() {
         <span>Kaleidoscope TCG <b>v0.1.0</b></span>
       </footer>
 
-      {pendingMatch ? <PendingMatchDialog isResolving={resolvingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+      {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
+      {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
+      {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
     </main>
   );
 }

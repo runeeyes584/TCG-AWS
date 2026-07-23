@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Check,
   Crown,
+  FilePlus2,
   Layers3,
   Save,
   Search,
@@ -15,8 +16,14 @@ import {
 } from "lucide-react";
 import type { CardDefinition, CardType } from "@backend/game/types";
 import { listCards } from "@backend/game/entities/cardRegistry";
-import { saveLocalDeck, setSelectedDeckId } from "../../libs/localDecks";
-import { saveDeck } from "../../libs/api";
+import {
+  getSelectedDeckId,
+  loadLocalDecks,
+  mergeCloudDecks,
+  saveLocalDeck,
+  setSelectedDeckId
+} from "../../libs/localDecks";
+import { listDecks, saveDeck } from "../../libs/api";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
 
 type DeckCard = CardDefinition & {
@@ -68,15 +75,28 @@ export default function DeckBuilderPage() {
   const [notice, setNotice] = useState("Select a card to add it to the deck.");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-
-    try {
-      const draft = JSON.parse(saved) as {
+    let mounted = true;
+    const hydrate = async () => {
+      try {
+      let availableDecks = loadLocalDecks();
+      if (window.localStorage.getItem("accessToken")) {
+        const result = await listDecks();
+        availableDecks = mergeCloudDecks(result.decks);
+      }
+      if (!mounted) return;
+      const selectedDeck = availableDecks.find(
+        (deck) => !deck.isDefault && deck.deckId === getSelectedDeckId()
+      ) ?? availableDecks.find((deck) => !deck.isDefault);
+      const savedDraft = window.localStorage.getItem(STORAGE_KEY);
+      const draft = selectedDeck || (savedDraft ? JSON.parse(savedDraft) as {
         deckId?: string;
         deckName?: string;
         cardIds?: string[];
-      };
+      } : undefined);
+      if (!draft) {
+        setDeckId(createDeckId());
+        return;
+      }
       const copyCounts = new Map<string, number>();
       const validCardIds = Array.isArray(draft.cardIds)
         ? draft.cardIds
@@ -92,9 +112,14 @@ export default function DeckBuilderPage() {
       setDeckId(draft.deckId || "deck-local-1");
       setDeckName(draft.deckName || "New Kaleidoscope Deck");
       setDeckCardIds(validCardIds);
-    } catch {
+      } catch (error) {
+      if (!mounted) return;
       window.localStorage.removeItem(STORAGE_KEY);
-    }
+      setNotice(error instanceof Error ? `Could not load account decks: ${error.message}` : "Could not load account decks.");
+      }
+    };
+    void hydrate();
+    return () => { mounted = false; };
   }, [cardById]);
 
   const deckCards = useMemo(
@@ -183,6 +208,14 @@ export default function DeckBuilderPage() {
     setNotice("Deck cleared.");
   }
 
+  function createNewDeck() {
+    setDeckId(createDeckId());
+    setDeckName("New Kaleidoscope Deck");
+    setDeckCardIds([]);
+    setSaveState("idle");
+    setNotice("New deck created. Add up to 30 cards.");
+  }
+
   async function handleSave() {
     if (deckCardIds.length !== MAX_DECK_SIZE) {
       setSaveState("error");
@@ -200,9 +233,9 @@ export default function DeckBuilderPage() {
 
     try {
       saveLocalDeck(payload);
-      setSelectedDeckId(deckId);
       const signedIn = Boolean(window.localStorage.getItem("accessToken"));
       if (!signedIn) {
+        setSelectedDeckId(deckId);
         setSaveState("local");
         setNotice("Deck saved on this device and selected for matchmaking.");
         return;
@@ -210,14 +243,15 @@ export default function DeckBuilderPage() {
 
       try {
         await saveDeck(payload);
+        setSelectedDeckId(deckId);
         setSaveState("saved");
         setNotice("Deck saved locally, synced to your account, and selected for matchmaking.");
       } catch (cloudError) {
         setSaveState("local");
         setNotice(
           cloudError instanceof Error
-            ? `Saved locally. Cloud sync failed: ${cloudError.message}`
-            : "Saved locally. Cloud sync failed."
+            ? `Saved locally but not selected for online play. Cloud sync failed: ${cloudError.message}`
+            : "Saved locally but not selected for online play. Cloud sync failed."
         );
       }
     } catch (error) {
@@ -309,6 +343,9 @@ export default function DeckBuilderPage() {
             </div>
             <button className="deck-clear-button" type="button" onClick={clearDeck} disabled={deckCardIds.length === 0} title="Clear deck">
               <Trash2 size={17} />
+            </button>
+            <button className="deck-clear-button" type="button" onClick={createNewDeck} title="Create another deck">
+              <FilePlus2 size={17} />
             </button>
           </div>
 
@@ -408,6 +445,13 @@ export default function DeckBuilderPage() {
       </section>
     </main>
   );
+}
+
+function createDeckId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `deck-${crypto.randomUUID()}`;
+  }
+  return `deck-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function DeckTile({

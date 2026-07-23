@@ -16,7 +16,7 @@
   "type": "module",
   "main": "index.js",
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=24.0.0",
     "npm": ">=9.0.0"
   },
   "scripts": {
@@ -26,6 +26,10 @@
     "start": "next start Front-end",
     "db:setup": "tsx Back-end/src/database/setupTables.ts",
     "db:seed": "tsx Back-end/src/database/seedData.ts",
+    "build:lambda:http": "node scripts/build-http-lambda.mjs",
+    "build:lambda:post-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/postMatchWorker.ts postMatchWorker",
+    "build:lambda:rebuild-leaderboard": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/rebuildLeaderboardRanks.ts rebuildLeaderboardRanks",
+    "build:lambda:leaderboard": "npm run build:lambda:http && npm run build:lambda:post-match && npm run build:lambda:rebuild-leaderboard",
     "skills:add:taste": "npx skills add Leonxlnx/taste-skill",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -39,6 +43,7 @@
     "@aws-sdk/credential-providers": "^3.1091.0",
     "@aws-sdk/lib-dynamodb": "^3.1090.0",
     "@base-ui/react": "^1.6.0",
+    "@codegenie/serverless-express": "5.0.0",
     "@emnapi/runtime": "^1.11.2",
     "@tailwindcss/postcss": "^4.3.2",
     "@tsparticles/engine": "^4.3.2",
@@ -56,7 +61,7 @@
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.22.0",
-    "next": "^16.2.9",
+    "next": "15.5.20",
     "openid-client": "^5.7.0",
     "phaser": "^4.2.1",
     "postcss": "^8.5.17",
@@ -78,6 +83,7 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "esbuild": "0.28.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.0",
     "typescript": "^5.9.3",

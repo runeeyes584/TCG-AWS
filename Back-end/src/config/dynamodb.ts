@@ -24,6 +24,27 @@ if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
 
 // Cache biến lưu credentials để tối ưu hoá cold start (không gọi Secrets Manager lặp lại vô ích)
 let cachedCredentials: any = null;
+const isLambdaRuntime = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+const hasLegacyCustomCredentialSettings = Boolean(
+  process.env.DB_SECRET_NAME ||
+  process.env.DB_SECRET_KEY ||
+  process.env.CROSS_ACCOUNT_ROLE_ARN ||
+  process.env.DB_ACCESS_KEY_ID
+);
+
+// A Lambda should normally use only its execution role. A DB secret often
+// contains database login credentials, not AWS access keys, and must not
+// silently replace the execution role. Cross-account/static credentials remain
+// available, but require an explicit opt-in.
+const usesCustomCredentials = process.env.DYNAMODB_CREDENTIAL_MODE === "custom" ||
+  (!isLambdaRuntime && hasLegacyCustomCredentialSettings);
+
+if (isLambdaRuntime && hasLegacyCustomCredentialSettings && !usesCustomCredentials) {
+  console.info(
+    "DynamoDB is using the Lambda execution role. " +
+    "Set DYNAMODB_CREDENTIAL_MODE=custom only for an intentional cross-account credential source."
+  );
+}
 
 const getCredentials = async (): Promise<any> => {
   if (cachedCredentials) {
@@ -45,9 +66,16 @@ const getCredentials = async (): Promise<any> => {
 
       if (response.SecretString) {
         const secretObj = JSON.parse(response.SecretString);
+        const accessKeyId = secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID;
+        const secretAccessKey = secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY;
+        if (!accessKeyId || !secretAccessKey) {
+          throw new Error(
+            "The configured DynamoDB credential secret does not contain AWS accessKeyId and secretAccessKey."
+          );
+        }
         cachedCredentials = {
-          accessKeyId: secretObj.accessKeyId || secretObj.AWS_ACCESS_KEY_ID || "",
-          secretAccessKey: secretObj.secretAccessKey || secretObj.AWS_SECRET_ACCESS_KEY || "",
+          accessKeyId,
+          secretAccessKey,
           ...(secretObj.sessionToken && { sessionToken: secretObj.sessionToken })
         };
         console.log("[SecretsManager] Tải credentials thành công!");
@@ -89,18 +117,13 @@ const getCredentials = async (): Promise<any> => {
   }
 
   // PHƯƠNG ÁN 4: Sử dụng credentials mặc định của Lambda Role hiện tại
-  return {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-    ...(process.env.AWS_SESSION_TOKEN && {
-      sessionToken: process.env.AWS_SESSION_TOKEN,
-    }),
-  };
+  throw new Error("Custom DynamoDB credentials were requested but could not be resolved.");
 };
 
 const client = new DynamoDBClient({
   region: process.env.DB_REGION || process.env.AWS_REGION || "ap-southeast-1",
-  credentials: getCredentials
+  // Omit credentials in Lambda so the AWS SDK uses the function execution role.
+  ...(usesCustomCredentials ? { credentials: getCredentials } : {})
 });
 
 export const dynamoDb = DynamoDBDocumentClient.from(client, {

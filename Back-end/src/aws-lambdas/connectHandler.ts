@@ -1,63 +1,108 @@
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import type { APIGatewayProxyResult, APIGatewayProxyWebsocketEventV2 } from "aws-lambda";
+import { verifyToken } from "../auth/verifyToken";
 import { dynamoDb } from "../config/dynamodb";
+import { env } from "../config/env";
 
-const region = process.env.AWS_REGION || "ap-southeast-1";
-const userPoolId = process.env.COGNITO_USER_POOL_ID || "";
-const clientId = process.env.COGNITO_CLIENT_ID || "";
+const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
+const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
 
-const docClient = dynamoDb;
+type ConnectEvent = APIGatewayProxyWebsocketEventV2 & {
+  headers?: Record<string, string | undefined>;
+};
 
-// Khởi tạo Cognito JWKS verifier (nếu có cấu hình Cognito)
-const JWKS = userPoolId
-  ? createRemoteJWKSet(new URL(`https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`))
-  : null;
+function getAccessToken(event: ConnectEvent): string | undefined {
+  const queryToken = event.queryStringParameters?.token?.trim();
+  if (queryToken) return queryToken;
+  const authorization = event.headers?.authorization ?? event.headers?.Authorization;
+  return authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || undefined;
+}
 
-export const handler = async (event: any) => {
+function hasValidCognitoRegion(): boolean {
+  const userPoolRegion = env.userPoolId.split("_", 1)[0];
+  return Boolean(userPoolRegion) && userPoolRegion === env.region;
+}
+
+export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResult> => {
   const connectionId = event.requestContext.connectionId;
-  const queryParams = event.queryStringParameters || {};
-  const token = queryParams.token || event.headers?.Authorization?.replace("Bearer ", "");
+  const token = getAccessToken(event);
 
-  if (!token || !JWKS) {
-    return { statusCode: 401, body: "Unauthorized: Cognito access token is required." };
+  if (!hasValidCognitoRegion()) {
+    console.error("COGNITO_REGION does not match COGNITO_USER_POOL_ID.");
+    return { statusCode: 500, body: "Authentication is not configured." };
   }
+  if (!token) return { statusCode: 401, body: "Unauthorized: Missing token." };
 
   let userId: string;
-  let username = queryParams.username || "Player";
-
-  // 1. Xác thực Cognito access token trước khi mở WebSocket.
+  let username = event.queryStringParameters?.username || "Player";
   try {
-    const { payload } = await jwtVerify(token, JWKS, {
-      issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`
-    });
-
-    if (payload.token_use !== "access" || payload.client_id !== clientId || typeof payload.sub !== "string") {
-      return { statusCode: 401, body: "Unauthorized: Invalid access token." };
-    }
+    // The shared verifier checks issuer, client ID and token_use=access.
+    const payload = await verifyToken(token);
+    if (!payload.sub) return { statusCode: 401, body: "Unauthorized: Invalid token claims." };
     userId = payload.sub;
     username = (payload.username as string) || username;
-  } catch (err) {
-    console.error("Token verification failed:", err);
+  } catch (error) {
+    console.error("Token verification failed:", error);
     return { statusCode: 401, body: "Unauthorized: Invalid token." };
   }
 
-  // 2. Lưu thông tin kết nối vào bảng Connections trong DynamoDB
   try {
-    await docClient.send(
-      new PutCommand({
-        TableName: "Connections",
-        Item: {
-          connection_id: connectionId,
-          user_id: userId,
-          username: username,
-          connected_at: Date.now()
-        }
-      })
-    );
+    await dynamoDb.send(new PutCommand({
+      TableName: connectionsTable,
+      Item: { connection_id: connectionId, user_id: userId, username, connected_at: Date.now() }
+    }));
 
+    // Rebind the ephemeral connection ID, but keep the player disconnected
+    // until they explicitly choose Continue. startMatch performs the actual
+    // resume handshake and publishes the authoritative state.
+    let cursor: Record<string, unknown> | undefined;
+    let reboundMatchId: string | undefined;
+    do {
+      const matches = await dynamoDb.send(new ScanCommand({
+        TableName: gameStateTable,
+        FilterExpression:
+          "#status = :active AND (player_1.user_id = :userId OR player_2.user_id = :userId)",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: { ":active": "IN_PROGRESS", ":userId": userId },
+        ExclusiveStartKey: cursor,
+        ConsistentRead: true
+      }));
+      const match = matches.Items?.[0] as any;
+      if (match) {
+        const playerPath = match.player_1?.user_id === userId ? "player_1" : "player_2";
+        await dynamoDb.send(new UpdateCommand({
+          TableName: gameStateTable,
+          Key: { match_id: match.match_id },
+          UpdateExpression:
+            `SET ${playerPath}.connection_id = :connectionId, ` +
+            `${playerPath}.connected = :connected, ${playerPath}.resume_connection_at = :now`,
+          ConditionExpression: `#status = :active AND ${playerPath}.user_id = :userId`,
+          ExpressionAttributeNames: { "#status": "status" },
+          ExpressionAttributeValues: {
+            ":active": "IN_PROGRESS",
+            ":userId": userId,
+            ":connectionId": connectionId,
+            ":connected": false,
+            ":now": Date.now()
+          }
+        }));
+        reboundMatchId = String(match.match_id);
+        break;
+      }
+      cursor = matches.LastEvaluatedKey;
+    } while (cursor);
+
+    if (reboundMatchId) {
+      await dynamoDb.send(new UpdateCommand({
+        TableName: connectionsTable,
+        Key: { connection_id: connectionId },
+        UpdateExpression: "SET match_id = :matchId, resume_required = :resumeRequired",
+        ExpressionAttributeValues: { ":matchId": reboundMatchId, ":resumeRequired": true }
+      }));
+    }
     return { statusCode: 200, body: "Connected successfully." };
   } catch (error: any) {
     console.error("Connect Lambda Error:", error);
-    return { statusCode: 500, body: error.message };
+    return { statusCode: 500, body: "Unable to register WebSocket connection." };
   }
 };

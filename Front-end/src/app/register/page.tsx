@@ -23,7 +23,7 @@ export default function RegisterPage() {
         setError("");
 
         if (!username || !email || !password) {
-            setError("Vui lòng nhập đầy đủ thông tin.");
+            setError("Please fill in all fields: operative name, email, and password.");
             return;
         }
 
@@ -32,9 +32,14 @@ export default function RegisterPage() {
 
             await register(username, email, password);
 
-            router.push(`/verify?email=${encodeURIComponent(email)}`);
+            // Keep the credential only for the short OTP flow so verification
+            // can finish registration with an authenticated redirect to "/".
+            // It is removed immediately after confirmation or a failed login.
+            window.sessionStorage.setItem("pendingRegistrationEmail", email);
+            window.sessionStorage.setItem("pendingRegistrationPassword", password);
+            router.replace(`/verify?email=${encodeURIComponent(email)}`);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Không thể tạo tài khoản. Vui lòng thử lại.");
+            setError(err instanceof Error ? err.message : "Could not create account. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -44,8 +49,8 @@ export default function RegisterPage() {
         <AuthShell
             eyebrow="New operative"
             title={<>Forge your <em>Identity</em></>}
-            description="Tạo hồ sơ, xây dựng bộ bài và bước vào Prism Arena."
-            footer={<>Đã có tài khoản? <Link href="/login">Sign in</Link></>}
+            description="Create a profile, build your deck, and step into the Prism Arena."
+            footer={<>Already have an account? <Link href="/login">Sign in</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
                 <label className="auth-field">

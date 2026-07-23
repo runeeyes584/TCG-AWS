@@ -34,7 +34,7 @@ export function MultiplayerDuel() {
         </p>
 
         <div className="socket-actions">
-          <button type="button" onClick={controller.createRoom}>
+          <button type="button" onClick={() => controller.createRoom()}>
             <Plus size={18} aria-hidden="true" />
             Create Room
           </button>
