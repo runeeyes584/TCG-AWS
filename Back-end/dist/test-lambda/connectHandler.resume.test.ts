@@ -16,7 +16,7 @@ vi.mock("../config/env", () => ({
   }
 }));
 
-import { handler } from "./connectHandler";
+import { handler } from "../../src/aws-lambdas/connectHandler";
 
 describe("connectHandler resume discovery", () => {
   beforeEach(() => {
@@ -55,8 +55,10 @@ describe("connectHandler resume discovery", () => {
     expect(updates).toHaveLength(2);
     expect(updates[0].input.ExpressionAttributeValues).toMatchObject({
       ":connectionId": "new-connection",
-      ":connected": false
+      ":connected": false,
+      ":userId": "user-p1"
     });
+    expect(updates[0].input.ConditionExpression).toContain("player_1.user_id = :userId");
     expect(updates[1].input.UpdateExpression).toContain("resume_required");
     expect(updates[1].input.ExpressionAttributeValues).toMatchObject({
       ":matchId": "match-active",

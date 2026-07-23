@@ -3,6 +3,8 @@ import { GetCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { calculateElo } from "../matchmaking/elo";
 import type { PlayerId } from "../game/types";
+import { buildLeaderboardProjection } from "../leaderboard/leaderboard";
+import { notifyConnections } from "../leaderboard/realtime";
 
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
 const userProfileTable = process.env.USER_PROFILE_TABLE || "UserProfile";
@@ -129,6 +131,38 @@ export async function processSingleMatchRecord(record: SQSRecord): Promise<void>
       historyPut(player2UserId, playedAt, message.matchId, player1UserId, outcomes.p2, ratings.playerB - p2Rating)
     ]
   }));
+
+  // Rating/history persistence is authoritative. WebSocket delivery is a
+  // best-effort UX signal, so a disconnected client never causes SQS to replay
+  // an already committed match result.
+  await notifyConnections([
+    {
+      connectionId: match.player_1?.connection_id,
+      payload: {
+        event: "profile:updated",
+        userId: player1UserId,
+        elo: ratings.playerA,
+        wins: p1Stats.wins,
+        losses: p1Stats.losses,
+        rank: Number.isInteger(Number(p1Profile.rank)) ? Number(p1Profile.rank) : null,
+        rankPending: true,
+        updatedAt: processedAt
+      }
+    },
+    {
+      connectionId: match.player_2?.connection_id,
+      payload: {
+        event: "profile:updated",
+        userId: player2UserId,
+        elo: ratings.playerB,
+        wins: p2Stats.wins,
+        losses: p2Stats.losses,
+        rank: Number.isInteger(Number(p2Profile.rank)) ? Number(p2Profile.rank) : null,
+        rankPending: true,
+        updatedAt: processedAt
+      }
+    }
+  ]);
 }
 
 function profileUpdate(
@@ -137,11 +171,17 @@ function profileUpdate(
   stats: Record<string, any>,
   updatedAt: number
 ) {
+  const projection = buildLeaderboardProjection({ user_id: userId, stats }, updatedAt);
   return {
     Update: {
       TableName: userProfileTable,
       Key: { user_id: userId },
-      UpdateExpression: "SET #stats = :stats, updated_at = :updatedAt",
+      UpdateExpression:
+        "SET #stats = :stats, updated_at = :updatedAt, " +
+        "leaderboard_scope = :scope, leaderboard_sort = :sort, " +
+        "leaderboard_elo = :elo, leaderboard_win_rate = :winRate, " +
+        "leaderboard_wins = :wins, leaderboard_losses = :losses, " +
+        "leaderboard_projected_at = :projectedAt",
       ConditionExpression: oldStats
         ? "attribute_exists(user_id) AND #stats = :oldStats"
         : "attribute_exists(user_id) AND attribute_not_exists(#stats)",
@@ -149,6 +189,13 @@ function profileUpdate(
       ExpressionAttributeValues: {
         ":stats": stats,
         ":updatedAt": updatedAt,
+        ":scope": projection.leaderboard_scope,
+        ":sort": projection.leaderboard_sort,
+        ":elo": projection.leaderboard_elo,
+        ":winRate": projection.leaderboard_win_rate,
+        ":wins": projection.leaderboard_wins,
+        ":losses": projection.leaderboard_losses,
+        ":projectedAt": projection.leaderboard_projected_at,
         ...(oldStats ? { ":oldStats": oldStats } : {})
       }
     }

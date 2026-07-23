@@ -1,6 +1,6 @@
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getDefaultDeckCardIds } from "../game/entities/defaultDeck";
+import { getDefaultDeckCardIds } from "../../src/game/entities/defaultDeck";
 
 const mocks = vi.hoisted(() => ({
   dynamoSend: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock("@aws-sdk/client-apigatewaymanagementapi", () => ({
   PostToConnectionCommand: class { constructor(public input: any) {} }
 }));
 
-import { handler } from "./saveDeck";
+import { handler } from "../../src/aws-lambdas/saveDeck";
 
 describe("saveDeck Lambda", () => {
   beforeEach(() => {

@@ -1,8 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "include": [
-    "src"
-, "dist/test-build/timeoutLogic.test.ts"  ],
+    "src",
+    "dist/test-build/**/*.test.ts",
+    "dist/test-lambda/**/*.test.ts"
+  ],
   "exclude": [
     "../node_modules"
   ]

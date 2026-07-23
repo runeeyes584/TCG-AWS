@@ -4,6 +4,7 @@ import cors from "cors";
 import authRoutes from "../auth/auth.routes";
 import matchesRoutes from "./matches.routes";
 import decksRoutes from "./decks.routes";
+import leaderboardRoutes from "./leaderboard.routes";
 
 export const app = express();
 
@@ -36,6 +37,7 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRoutes);
 app.use("/matches", matchesRoutes);
 app.use("/decks", decksRoutes);
+app.use("/leaderboard", leaderboardRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: "Route not found." });

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { applyAction, createInitialGameState } from "../game/core/engine";
-import type { GameState } from "../game/types";
-import { timeoutMessageMatches, type MatchRecord } from "./handleTimeout";
-import { buildTurnTimeoutMessage } from "./turnTimeoutQueue";
+import { applyAction, createInitialGameState } from "../../src/game/core/engine";
+import type { GameState } from "../../src/game/types";
+import { timeoutMessageMatches, type MatchRecord } from "../../src/aws-lambdas/handleTimeout";
+import { buildTurnTimeoutMessage } from "../../src/aws-lambdas/turnTimeoutQueue";
 
 function startedState(turnStartTime = 1_000): GameState {
   const state = applyAction(createInitialGameState([], [], 1), {

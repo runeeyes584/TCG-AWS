@@ -3,6 +3,7 @@ import { dynamoDb } from "../config/dynamodb";
 import type { SaveDeckPayload, SavedDeck } from "../decks/deck.types";
 import { calculateElo } from "../matchmaking/elo";
 import type { User } from "./user.types";
+import { buildLeaderboardProjection } from "../leaderboard/leaderboard";
 
 const tableName = process.env.USER_PROFILE_TABLE || "UserProfile";
 
@@ -20,7 +21,8 @@ function fromProfile(item: Record<string, any>): User {
 }
 
 function toProfile(user: User, existing: Record<string, any> = {}) {
-  return {
+  const updatedAt = Date.now();
+  const profile = {
     ...existing,
     user_id: user.id,
     email: user.email,
@@ -37,7 +39,11 @@ function toProfile(user: User, existing: Record<string, any> = {}) {
       level: Number(existing.stats?.level ?? 1)
     },
     created_at: existing.created_at || new Date().toISOString(),
-    updated_at: Date.now()
+    updated_at: updatedAt
+  };
+  return {
+    ...profile,
+    ...buildLeaderboardProjection(profile, updatedAt)
   };
 }
 
@@ -119,7 +125,11 @@ export async function updateUser(user: User): Promise<void> {
     Key: { user_id: user.id },
     UpdateExpression:
       "SET email = :email, username = :username, #stats = :stats, " +
-      "updated_at = :updatedAt" + (user.avatar ? ", avatar_url = :avatar" : ""),
+      "updated_at = :updatedAt, leaderboard_scope = :scope, " +
+      "leaderboard_sort = :sort, leaderboard_elo = :elo, " +
+      "leaderboard_win_rate = :winRate, leaderboard_wins = :wins, " +
+      "leaderboard_losses = :losses, leaderboard_projected_at = :projectedAt" +
+      (user.avatar ? ", avatar_url = :avatar" : ""),
     ConditionExpression: "attribute_exists(user_id)",
     ExpressionAttributeNames: { "#stats": "stats" },
     ExpressionAttributeValues: {
@@ -127,6 +137,13 @@ export async function updateUser(user: User): Promise<void> {
       ":username": profile.username,
       ":stats": profile.stats,
       ":updatedAt": profile.updated_at,
+      ":scope": profile.leaderboard_scope,
+      ":sort": profile.leaderboard_sort,
+      ":elo": profile.leaderboard_elo,
+      ":winRate": profile.leaderboard_win_rate,
+      ":wins": profile.leaderboard_wins,
+      ":losses": profile.leaderboard_losses,
+      ":projectedAt": profile.leaderboard_projected_at,
       ...(user.avatar ? { ":avatar": user.avatar } : {})
     }
   }));
