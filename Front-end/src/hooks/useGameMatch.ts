@@ -128,29 +128,34 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         resumeTimer = window.setTimeout(requestResume, delay);
       };
 
-      socket.on("connect", () => {
-      refreshRetried = false;
-      setStatus("Connected");
-      setError(undefined);
-      // A room code from the URL is an explicit private-room join (or resume).
-      // Codes learned later from the server use the generic resume handshake.
-      if (resumeRoomCode) {
-        roomCodeRef.current = resumeRoomCode.trim().toUpperCase();
-        // API Gateway reports the transport open before its $connect Lambda
-        // has finished persisting/rebinding the connection. Let that write
-        // settle; transient recovery errors below are retried explicitly.
-        resumeTimer = window.setTimeout(requestResume, 350);
-      } else if (roomCodeRef.current) {
-        const knownRoomCode = roomCodeRef.current;
-        if (/^[A-HJ-NP-Z2-9]{6}$/.test(knownRoomCode)) {
-          socketManager.joinRoom(knownRoomCode, getLocalDeckSelection(), (response) => {
-            if (!response.ok) setError(response.error);
-          });
-        } else {
-          socketManager.startMatchmaking(getLocalDeckSelection());
+      const onConnect = () => {
+        refreshRetried = false;
+        setStatus("Connected");
+        setError(undefined);
+        // A room code from the URL is an explicit private-room join (or resume).
+        // Codes learned later from the server use the generic resume handshake.
+        if (resumeRoomCode) {
+          roomCodeRef.current = resumeRoomCode.trim().toUpperCase();
+          // API Gateway reports the transport open before its $connect Lambda
+          // has finished persisting/rebinding the connection. Let that write
+          // settle; transient recovery errors below are retried explicitly.
+          resumeTimer = window.setTimeout(requestResume, 350);
+        } else if (roomCodeRef.current) {
+          const knownRoomCode = roomCodeRef.current;
+          if (/^[A-HJ-NP-Z2-9]{6}$/.test(knownRoomCode)) {
+            socketManager.joinRoom(knownRoomCode, getLocalDeckSelection(), (response) => {
+              if (!response.ok) setError(response.error);
+            });
+          } else {
+            socketManager.startMatchmaking(getLocalDeckSelection());
+          }
         }
+      };
+
+      socket.on("connect", onConnect);
+      if (socket.connected) {
+        onConnect();
       }
-      });
 
       socket.on("disconnect", () => {
       setStatus("Disconnected");

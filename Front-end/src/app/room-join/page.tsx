@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PrivateRoomScreen } from "../../components/lobby/PrivateRoomScreen";
+import { AuthGuard } from "../../components/lobby/AuthGuard";
 
 function JoinRoomContent() {
   const searchParams = useSearchParams();
@@ -12,7 +13,10 @@ function JoinRoomContent() {
 export default function JoinRoomPage() {
   return (
     <Suspense fallback={null}>
-      <JoinRoomContent />
+      <AuthGuard>
+        <JoinRoomContent />
+      </AuthGuard>
     </Suspense>
   );
 }
+

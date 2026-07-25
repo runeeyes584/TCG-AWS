@@ -42,6 +42,8 @@ export class ApiGatewaySocket implements RealtimeSocket {
     this.manuallyClosed = false;
     if (this.socket?.readyState !== WebSocket.OPEN && this.socket?.readyState !== WebSocket.CONNECTING) {
       this.open();
+    } else if (this.socket?.readyState === WebSocket.OPEN) {
+      queueMicrotask(() => this.emit("connect"));
     }
     return this;
   }

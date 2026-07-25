@@ -8,7 +8,9 @@ import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBac
 import { LeaderboardPanel } from "../../components/rank/LeaderboardPanel";
 import { useLeaderboard } from "../../hooks/useLeaderboard";
 
-export default function RankPage() {
+import { AuthGuard } from "../../components/lobby/AuthGuard";
+
+function RankPageContent() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -101,5 +103,13 @@ export default function RankPage() {
         <span>Ranks rebuild every 10 minutes</span>
       </footer>
     </main>
+  );
+}
+
+export default function RankPage() {
+  return (
+    <AuthGuard>
+      <RankPageContent />
+    </AuthGuard>
   );
 }

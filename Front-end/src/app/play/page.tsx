@@ -393,6 +393,8 @@ function PlayPageContent() {
   return <OnlinePlayPageContent />;
 }
 
+import { AuthGuard } from "../../components/lobby/AuthGuard";
+
 export default function PlayPage() {
   return (
     <Suspense fallback={
@@ -400,7 +402,9 @@ export default function PlayPage() {
         <span>Loading Ranked Circuit...</span>
       </div>
     }>
-      <PlayPageContent />
+      <AuthGuard>
+        <PlayPageContent />
+      </AuthGuard>
     </Suspense>
   );
 }
