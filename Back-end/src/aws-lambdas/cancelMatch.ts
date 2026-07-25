@@ -7,8 +7,10 @@ const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
 
 function endpoint(event: any): string {
-  return process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") ||
-    `https://${event.requestContext?.domainName}/${event.requestContext?.stage}`;
+  if (event?.requestContext?.domainName && event?.requestContext?.stage) {
+    return `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
+  }
+  return process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") || "";
 }
 
 function isGone(error: any): boolean {

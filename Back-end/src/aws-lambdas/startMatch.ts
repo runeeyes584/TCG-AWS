@@ -129,9 +129,10 @@ function isGone(error: any): boolean {
 }
 
 function managementEndpoint(event: any): string {
-  const configuredEndpoint = process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "");
-  if (configuredEndpoint) return configuredEndpoint;
-  return `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
+  if (event?.requestContext?.domainName && event?.requestContext?.stage) {
+    return `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
+  }
+  return process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") || "";
 }
 
 async function sleep(milliseconds: number): Promise<void> {

@@ -20,8 +20,10 @@ function isGone(error: any): boolean {
 }
 
 function managementEndpoint(event: any): string {
-  return process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") ||
-    `https://${event.requestContext?.domainName}/${event.requestContext?.stage}`;
+  if (event?.requestContext?.domainName && event?.requestContext?.stage) {
+    return `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
+  }
+  return process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") || "";
 }
 
 async function findMatches(connectionId: string): Promise<MatchRecord[]> {

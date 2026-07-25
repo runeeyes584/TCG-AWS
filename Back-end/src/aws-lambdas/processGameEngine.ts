@@ -44,8 +44,9 @@ export const handler = async (event: any) => {
       return { statusCode: 400, body: "Missing WebSocket request context." };
     }
 
-    const callbackUrl = process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") ||
-      `https://${domainName}/${stage}`;
+    const callbackUrl = (domainName && stage)
+      ? `https://${domainName}/${stage}`
+      : (process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") || "");
     const wsClient = new ApiGatewayManagementApiClient({ endpoint: callbackUrl, region });
     const body = typeof event.body === "string"
       ? JSON.parse(event.body || "{}")
