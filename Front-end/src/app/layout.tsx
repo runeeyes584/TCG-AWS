@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kaleidoscope TCG",
+  title: "Chrono Genesis TCG",
   description: "Local 1v1 battle prototype"
 };
 
