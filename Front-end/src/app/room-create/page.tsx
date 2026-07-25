@@ -1,5 +1,11 @@
 import { PrivateRoomScreen } from "../../components/lobby/PrivateRoomScreen";
+import { AuthGuard } from "../../components/lobby/AuthGuard";
 
 export default function CreateRoomPage() {
-  return <PrivateRoomScreen mode="create" />;
+  return (
+    <AuthGuard>
+      <PrivateRoomScreen mode="create" />
+    </AuthGuard>
+  );
 }
+
