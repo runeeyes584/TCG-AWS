@@ -99,6 +99,42 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
         UpdateExpression: "SET match_id = :matchId, resume_required = :resumeRequired",
         ExpressionAttributeValues: { ":matchId": reboundMatchId, ":resumeRequired": true }
       }));
+    } else {
+      // Rebind connection ID for any WAITING private match created by this user
+      try {
+        const waitingMatches = await dynamoDb.send(new ScanCommand({
+          TableName: gameStateTable,
+          FilterExpression:
+            "#status = :waiting AND match_type = :privateType AND player_1.user_id = :userId",
+          ExpressionAttributeNames: { "#status": "status" },
+          ExpressionAttributeValues: { ":waiting": "WAITING", ":privateType": "PRIVATE", ":userId": userId },
+          ConsistentRead: true
+        }));
+        const waitingMatch = waitingMatches.Items?.[0] as any;
+        if (waitingMatch) {
+          await dynamoDb.send(new UpdateCommand({
+            TableName: gameStateTable,
+            Key: { match_id: waitingMatch.match_id },
+            UpdateExpression: "SET player_1.connection_id = :connectionId, player_1.connected = :connected",
+            ConditionExpression: "#status = :waiting AND player_1.user_id = :userId",
+            ExpressionAttributeNames: { "#status": "status" },
+            ExpressionAttributeValues: {
+              ":waiting": "WAITING",
+              ":userId": userId,
+              ":connectionId": connectionId,
+              ":connected": true
+            }
+          }));
+          await dynamoDb.send(new UpdateCommand({
+            TableName: connectionsTable,
+            Key: { connection_id: connectionId },
+            UpdateExpression: "SET match_id = :matchId",
+            ExpressionAttributeValues: { ":matchId": String(waitingMatch.match_id) }
+          }));
+        }
+      } catch (err) {
+        console.warn("Failed to rebind waiting private match connection:", err);
+      }
     }
     return { statusCode: 200, body: "Connected successfully." };
   } catch (error: any) {

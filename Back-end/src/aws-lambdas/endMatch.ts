@@ -24,10 +24,9 @@ export const handler = async (event: any) => {
   const reason = body.reason || "SURRENDER";
   if (!matchId) return response(400, { error: "Missing matchId parameter." });
 
-  const endpoint = process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "") ||
-    (event.requestContext?.domainName && event.requestContext?.stage
-      ? `https://${event.requestContext.domainName}/${event.requestContext.stage}`
-      : undefined);
+  const endpoint = (event.requestContext?.domainName && event.requestContext?.stage)
+    ? `https://${event.requestContext.domainName}/${event.requestContext.stage}`
+    : process.env.WS_MANAGEMENT_ENDPOINT?.replace(/\/$/, "");
   const wsClient = endpoint
     ? new ApiGatewayManagementApiClient({ endpoint, region })
     : undefined;
