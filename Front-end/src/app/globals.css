@@ -7569,3 +7569,117 @@ button.card-view.game-card-v2 {
     height: 162px;
   }
 }
+
+.history-shell{
+    min-height:100vh;
+    padding:40px;
+    background:linear-gradient(180deg,#081321,#060910);
+    color:#fff;
+}
+
+.history-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:30px;
+}
+
+.history-back{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 18px;
+    border:none;
+    border-radius:12px;
+    background:#1f2937;
+    color:#fff;
+    cursor:pointer;
+}
+
+.history-list{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.history-card{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 28px;
+    border-radius:18px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(12px);
+    transition:.25s;
+}
+
+.history-card:hover{
+    transform:translateY(-2px);
+    border-color:#7c3aed;
+}
+
+.history-result{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:180px;
+    font-weight:700;
+}
+
+.history-result.WIN{
+    color:#4ade80;
+}
+
+.history-result.LOSS{
+    color:#f87171;
+}
+
+.history-result.DRAW{
+    color:#facc15;
+}
+
+.history-info{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    flex:1;
+}
+
+.history-info span{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:#cbd5e1;
+}
+
+.history-elo{
+    font-size:22px;
+    font-weight:700;
+}
+
+.history-elo.up{
+    color:#4ade80;
+}
+
+.history-elo.down{
+    color:#ef4444;
+}
+
+.history-empty{
+    height:300px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:#94a3b8;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;
+}
+
+.history-avatar{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    object-fit:cover;
+    border:1px solid rgba(255,255,255,.15);
+}

@@ -17,6 +17,7 @@ import {
   Volume2,
   VolumeX,
   Zap,
+  History
 } from "lucide-react";
 import {
   forfeitPendingMatch,
@@ -31,7 +32,7 @@ import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
 import { useRealtimeRank } from "../hooks/useRealtimeRank";
 
-type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial" | "rank global";
+type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial" | "rank global" | "history";
 
 const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "duel", label: "Duel", icon: Swords },
@@ -39,7 +40,8 @@ const tabs: Array<{ id: LobbyTab; label: string; icon: typeof Swords }> = [
   { id: "collection", label: "Collection", icon: BookOpen },
   { id: "custom", label: "Custom Match", icon: Hash },
   { id: "trial", label: "Trial", icon: FlaskConical },
-  {id: "rank global", label: "Rank Global", icon: Trophy}
+  { id: "rank global", label: "Rank Global", icon: Trophy },
+  { id: "history", label: "Match History", icon: History }
 ];
 
 export default function Home() {
@@ -235,6 +237,10 @@ export default function Home() {
               }
               if (id === "rank global") {
                 router.push("/rank");
+                return;
+              }
+              if (id === "history") {
+                router.push("/history");
                 return;
               }
               setActiveTab(id);
