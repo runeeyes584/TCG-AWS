@@ -78,6 +78,32 @@ export default function Home() {
       return;
     }
 
+    const handleAuthError = (error: unknown) => {
+      const msg = error instanceof Error ? error.message : String(error);
+      const isAuthErr = 
+        msg.includes("expired") || 
+        msg.includes("hash") || 
+        msg.includes("Unauthorized") || 
+        msg.includes("token") || 
+        msg.includes("sign in");
+
+      if (isAuthErr) {
+        window.localStorage.removeItem("accessToken");
+        window.localStorage.removeItem("refreshToken");
+        window.localStorage.removeItem("email");
+        setIsSignedIn(false);
+        setPlayerName("Guest Operative");
+        setElo(1200);
+        setAvatar(undefined);
+        setEmail("guest@kaleidoscope.local");
+        setWins(0);
+        setLosses(0);
+        setPendingMatchError("Your session has expired. Please sign in again.");
+      } else {
+        setPendingMatchError(msg || "Unable to check your active match.");
+      }
+    };
+
     void me()
       .then(({ user }) => {
         if (!user) return;
@@ -90,16 +116,18 @@ export default function Home() {
         setWins(profile.wins ?? 0);
         setLosses(profile.losses ?? 0);
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        handleAuthError(error);
+      });
 
     void getPendingMatch()
       .then((result) => {
         setPendingMatch(result.match);
         setPendingMatchError(undefined);
       })
-      .catch((error) => setPendingMatchError(
-        error instanceof Error ? error.message : "Unable to check your active match."
-      ))
+      .catch((error) => {
+        handleAuthError(error);
+      })
       .finally(() => setPendingMatchChecked(true));
   }, []);
 
@@ -337,7 +365,7 @@ export default function Home() {
 
       <footer className="lobby-footer">
         <span><i /> Online services operational</span>
-        <span>Kaleidoscope TCG <b>v0.1.0</b></span>
+        <span>Chrono Genesis TCG <b>v0.1.0</b></span>
       </footer>
 
       {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}

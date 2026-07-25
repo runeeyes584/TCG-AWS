@@ -46,7 +46,9 @@ const typeFilters: Array<{ value: TypeFilter; label: string; icon: typeof Swords
   { value: "champion", label: "Champions", icon: Crown },
 ];
 
-export default function DeckBuilderPage() {
+import { AuthGuard } from "../../components/lobby/AuthGuard";
+
+function DeckBuilderPageContent() {
   const cards = useMemo(
     () =>
       (listCards() as DeckCard[]).filter(
@@ -444,6 +446,14 @@ export default function DeckBuilderPage() {
         </aside>
       </section>
     </main>
+  );
+}
+
+export default function DeckBuilderPage() {
+  return (
+    <AuthGuard>
+      <DeckBuilderPageContent />
+    </AuthGuard>
   );
 }
 
