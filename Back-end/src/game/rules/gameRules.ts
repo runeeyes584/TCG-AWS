@@ -457,18 +457,26 @@ function assertSpellTarget(
       }
       findUnit(state, target.playerId, target.unitId);
       return;
-    case "ENEMY_UNIT":
+    case "ENEMY_UNIT": {
       if (target.type !== "UNIT" || target.playerId !== opponentOf(casterId)) {
         throw new GameValidationError("Spell requires an enemy unit target.");
       }
-      findUnit(state, target.playerId, target.unitId);
+      const enemyUnit = findUnit(state, target.playerId, target.unitId);
+      if (getCardDefinitionForInstance(enemyUnit).type !== "unit") {
+        throw new GameValidationError("Spell requires an enemy unit target.");
+      }
       return;
-    case "ALLY_UNIT":
+    }
+    case "ALLY_UNIT": {
       if (target.type !== "UNIT" || target.playerId !== casterId) {
         throw new GameValidationError("Spell requires an ally unit target.");
       }
-      findUnit(state, target.playerId, target.unitId);
+      const allyUnit = findUnit(state, target.playerId, target.unitId);
+      if (getCardDefinitionForInstance(allyUnit).type !== "unit") {
+        throw new GameValidationError("Spell requires an ally unit target.");
+      }
       return;
+    }
     case "NEXUS":
       if (target.type !== "NEXUS") {
         throw new GameValidationError("Spell requires a nexus target.");

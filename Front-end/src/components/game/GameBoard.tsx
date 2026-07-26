@@ -563,9 +563,11 @@ export function GameBoardView({
       }
 
       const targetKind = getPrimarySpellTarget(selectedSpell);
+      const isTargetUnit = unitDef(unit).type === "unit";
       const isValidUnitTarget =
-        (targetKind === "ALLY_UNIT" && playerId === casterId) ||
-        (targetKind === "ENEMY_UNIT" && playerId !== casterId);
+        isTargetUnit &&
+        ((targetKind === "ALLY_UNIT" && playerId === casterId) ||
+          (targetKind === "ENEMY_UNIT" && playerId !== casterId));
 
       if (!isValidUnitTarget) {
         showTargetError("Wrong target! Read the description of card and choose again");
