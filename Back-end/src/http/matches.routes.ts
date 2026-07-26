@@ -3,7 +3,9 @@ import {
   DeleteCommand,
   PutCommand,
   ScanCommand,
-  UpdateCommand
+  UpdateCommand,
+  QueryCommand,
+  GetCommand 
 } from "@aws-sdk/lib-dynamodb";
 import {
   ApiGatewayManagementApiClient,
@@ -14,12 +16,15 @@ import { authenticate } from "../auth/auth.middleware";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAction } from "../game/core/engine";
 import type { GameState, PlayerId } from "../game/types";
+import type { MatchHistory, UserProfile } from "../database/database.types";
 
 const router = Router();
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
 const gameLogsTable = process.env.GAME_LOGS_TABLE || "GameLogs";
 const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
+const matchHistoryTable = process.env.MATCH_HISTORY_TABLE || "MatchHistory";
+const userTable = process.env.USER_TABLE || "UserProfile";
 
 type MatchRecord = {
   match_id: string;
@@ -290,6 +295,71 @@ router.post("/pending/forfeit", authenticate, async (req, res) => {
     }
     console.error("POST /matches/pending/forfeit failed:", error);
     return res.status(500).json({ success: false, message: "Unable to forfeit match." });
+  }
+});
+
+async function findMatchHistory(userId: string, limit = 20): Promise<MatchHistory[]> {
+  const result = await dynamoDb.send(new QueryCommand({
+    TableName: matchHistoryTable,
+    KeyConditionExpression: "user_id = :userId",
+    ExpressionAttributeValues: {
+      ":userId": userId
+    },
+    ScanIndexForward: false,
+    Limit: limit
+  }));
+
+  return (result.Items ?? []) as MatchHistory[];
+}
+
+async function findUser(userId: string): Promise<UserProfile | undefined> {
+  const result = await dynamoDb.send(new GetCommand({
+    TableName: userTable,
+    Key: {
+      user_id: userId
+    }
+  }));
+
+  return result.Item as UserProfile | undefined;
+}
+
+router.get("/history", authenticate, async (req, res) => {
+  console.log("history endpoint");
+
+  try {
+    const userId = authenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized."
+      });
+    }
+
+    const limit = Number(req.query.limit) || 20;
+    const history = await findMatchHistory(userId, limit);
+
+    const response = await Promise.all(
+      history.map(async (match) => {
+        const opponent = await findUser(match.opponent_id);
+
+        return {
+          ...match,
+          opponent_name: opponent?.username ?? match.opponent_id,
+          opponent_avatar: opponent?.avatar_url
+        };
+      })
+    );
+
+    return res.json({
+      success: true,
+      history: response
+    });
+  } catch (error) {
+    console.error("GET /history failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load match history."
+    });
   }
 });
 

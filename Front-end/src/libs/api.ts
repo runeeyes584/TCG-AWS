@@ -5,6 +5,8 @@ const API_URL = (
     configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "")
 ).replace(/\/$/, "");
 
+console.log("matches.routes loaded");
+
 export interface LoginResponse {
     success: boolean;
     accessToken: string;
@@ -63,6 +65,19 @@ export interface LeaderboardResponse {
     entries: LeaderboardPlayer[];
     currentPlayer: LeaderboardPlayer | null;
     nextCursor: string | null;
+}
+
+export interface MatchHistory {
+  user_id: string;
+  played_at: number;
+  match_id: string;
+  opponent_id: string;
+  opponent_name?: string;
+  opponent_avatar?: string;
+  result: "WIN" | "LOSS" | "DRAW";
+  rank_point_change: number;
+  elo_change?: number;
+  duration?: number;
 }
 
 function parseLeaderboardPlayer(value: unknown): LeaderboardPlayer | null {
@@ -394,4 +409,12 @@ export async function resetPassword(
             password
         })
     });
+}
+
+export async function getMatchHistory(limit = 20): Promise<{
+  success: boolean;
+  history: MatchHistory[];
+}> {
+  await ensureFreshAccessToken();
+  return request(`/matches/history?limit=${limit}`);
 }
