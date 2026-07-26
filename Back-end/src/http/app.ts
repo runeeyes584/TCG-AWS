@@ -21,7 +21,11 @@ app.use(cors({
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],
   origin(origin, callback) {
-    if (!origin || configuredOrigins.includes(origin.replace(/\/$/, ""))) {
+    if (
+      !origin ||
+      configuredOrigins.includes(origin.replace(/\/$/, "")) ||
+      origin.endsWith("amplifyapp.com")
+    ) {
       callback(null, true);
       return;
     }
