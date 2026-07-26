@@ -416,5 +416,5 @@ export async function getMatchHistory(limit = 20): Promise<{
   history: MatchHistory[];
 }> {
   await ensureFreshAccessToken();
-  return request("/matches/history");
+  return request(`/matches/history?limit=${limit}`);
 }
