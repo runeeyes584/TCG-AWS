@@ -82,11 +82,11 @@ export default function Home() {
 
     const handleAuthError = (error: unknown) => {
       const msg = error instanceof Error ? error.message : String(error);
-      const isAuthErr = 
-        msg.includes("expired") || 
-        msg.includes("hash") || 
-        msg.includes("Unauthorized") || 
-        msg.includes("token") || 
+      const isAuthErr =
+        msg.includes("expired") ||
+        msg.includes("hash") ||
+        msg.includes("Unauthorized") ||
+        msg.includes("token") ||
         msg.includes("sign in");
 
       if (isAuthErr) {
@@ -232,7 +232,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="lobby-profile" aria-label="Player profile">
+      <section className="lobby-profile" aria-label="Player profile" onClick={() => router.push("/user")}>
         <div className="lobby-profile__avatar">
           <span>{playerName.slice(0, 1).toUpperCase()}</span>
           {avatar ? <img src={avatar} alt="" onError={(event) => event.currentTarget.remove()} /> : null}
