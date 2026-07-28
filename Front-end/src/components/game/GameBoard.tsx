@@ -1156,10 +1156,10 @@ export function GameBoardView({
               : player.hand.map((card) => (
                 <div className="pending-choice-card" key={card.instanceId}>
                   <span className="pending-choice-zone-label">Discard</span>
-                <GameCard
-                  card={card}
-                  compact
-                  onClick={() => playCard(pendingDiscard.playerId, card)}
+                  <GameCard
+                    card={card}
+                    compact
+                    onClick={() => playCard(pendingDiscard.playerId, card)}
                     visualEvents={[]}
                   />
                 </div>
@@ -1530,7 +1530,7 @@ export function GameBoardView({
               onClick={() => setShowSurrenderDialog(true)}
               disabled={!gameState.started || Boolean(gameState.winnerId)}
             >
-              Đầu hàng
+              Surrender
             </button>
           ) : null}
         </div>
@@ -1605,7 +1605,7 @@ export function GameBoardView({
               <div className="trial-exit-dialog__copy">
                 <span>Match command</span>
                 <h2 id="surrender-title">Surrender duel?</h2>
-                <p>Đối thủ sẽ được xử thắng và kết quả trận đấu sẽ được ghi nhận ngay lập tức.</p>
+                <p>The opponent will be declared the winner, and the match result will be recorded immediately.</p>
               </div>
               <div className="trial-exit-dialog__actions">
                 <button type="button" onClick={() => setShowSurrenderDialog(false)} autoFocus>
@@ -1822,9 +1822,9 @@ export function GameBoardView({
                 hasPriority={gameState.priorityPlayerId === opponentPlayerId}
                 isEmptySlotEnabled={
                   opponentPlayerId === defenderId &&
-                  gameState.phase === "BLOCK" &&
-                  gameState.priorityPlayerId === defenderId &&
-                  Boolean(selectedBlockerId)
+                    gameState.phase === "BLOCK" &&
+                    gameState.priorityPlayerId === defenderId &&
+                    Boolean(selectedBlockerId)
                     ? (index) => {
                       const lane = gameState.combat.attackers[index];
                       return Boolean(lane && !lane.blockerId);
@@ -1833,9 +1833,9 @@ export function GameBoardView({
                 }
                 onEmptySlotClick={
                   opponentPlayerId === defenderId &&
-                  gameState.phase === "BLOCK" &&
-                  gameState.priorityPlayerId === defenderId &&
-                  Boolean(selectedBlockerId)
+                    gameState.phase === "BLOCK" &&
+                    gameState.priorityPlayerId === defenderId &&
+                    Boolean(selectedBlockerId)
                     ? (index) => {
                       const lane = gameState.combat.attackers[index];
                       if (!lane || lane.blockerId || !selectedBlockerId) {
@@ -1890,9 +1890,9 @@ export function GameBoardView({
                 hasPriority={gameState.priorityPlayerId === viewerPlayerId}
                 isEmptySlotEnabled={
                   viewerPlayerId === defenderId &&
-                  gameState.phase === "BLOCK" &&
-                  gameState.priorityPlayerId === defenderId &&
-                  Boolean(selectedBlockerId)
+                    gameState.phase === "BLOCK" &&
+                    gameState.priorityPlayerId === defenderId &&
+                    Boolean(selectedBlockerId)
                     ? (index) => {
                       const lane = gameState.combat.attackers[index];
                       return Boolean(lane && !lane.blockerId);
@@ -1901,9 +1901,9 @@ export function GameBoardView({
                 }
                 onEmptySlotClick={
                   viewerPlayerId === defenderId &&
-                  gameState.phase === "BLOCK" &&
-                  gameState.priorityPlayerId === defenderId &&
-                  Boolean(selectedBlockerId)
+                    gameState.phase === "BLOCK" &&
+                    gameState.priorityPlayerId === defenderId &&
+                    Boolean(selectedBlockerId)
                     ? (index) => {
                       const lane = gameState.combat.attackers[index];
                       if (!lane || lane.blockerId || !selectedBlockerId) {
