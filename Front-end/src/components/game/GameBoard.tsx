@@ -17,6 +17,7 @@ import { useLocalGame } from "../../hooks/useLocalGame";
 import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { GameCard } from "./cards/game-card";
+import { CardBack } from "./cards/card-back";
 import { BoardRow } from "./zones/board-row";
 import { CenterInfo } from "./zones/center-info";
 import { Hand } from "./zones/hand";
@@ -1145,12 +1146,8 @@ export function GameBoardView({
           <div className="pending-choice-grid hand-limit-grid">
             {hidden
               ? player.hand.map((card, index) => (
-                <div
-                  aria-label={`Hidden discard card ${index + 1}`}
-                  className="hidden-card-back"
-                  key={card.instanceId}
-                >
-                  <span>K</span>
+                <div className="pending-choice-card" key={card.instanceId}>
+                  <CardBack className="w-[112px] h-[168px]" />
                 </div>
               ))
               : player.hand.map((card) => (
