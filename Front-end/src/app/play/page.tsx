@@ -157,6 +157,13 @@ function OnlinePlayPageContent() {
     if (musicRef.current) musicRef.current.currentTime = 0;
   };
 
+  const handleBackToLobby = () => {
+    if (controller.searching) {
+      cancelSearch();
+    }
+    router.push("/");
+  };
+
   const toggleMusic = () => {
     const nextMuted = !muted;
     setMuted(nextMuted);
@@ -191,7 +198,7 @@ function OnlinePlayPageContent() {
       <div className="matchmaking-shade" aria-hidden="true" />
 
       <header className="matchmaking-header">
-        <button className="matchmaking-back" onClick={() => router.push("/")} aria-label="Return to lobby" title="Return to lobby">
+        <button className="matchmaking-back" onClick={handleBackToLobby} aria-label="Return to lobby" title="Return to lobby">
           <ArrowLeft size={18} />
           <span>Lobby</span>
         </button>
