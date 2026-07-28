@@ -3,11 +3,14 @@
 import { useEffect, useRef } from "react";
 import type Phaser from "phaser";
 
+type CircuitPoint = [number, number];
+
 export function UserProfilePhaserEffects() {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!hostRef.current) return;
+    const host = hostRef.current;
+    if (!host) return;
 
     let game: Phaser.Game | undefined;
     let disposed = false;
@@ -16,83 +19,98 @@ export function UserProfilePhaserEffects() {
       if (disposed || !hostRef.current) return;
 
       class UserProfileScene extends PhaserRuntime.Scene {
+        private staticLayer!: Phaser.GameObjects.Graphics;
+        private energyLayer!: Phaser.GameObjects.Graphics;
         private nodes: Phaser.GameObjects.Arc[] = [];
-        private electricGraphics?: Phaser.GameObjects.Graphics;
-        private nodePositions: { x: number; y: number }[] = [];
+        private pulses: Phaser.GameObjects.Arc[] = [];
+        private shards: Phaser.GameObjects.Rectangle[] = [];
+        private paths: Phaser.Curves.Path[] = [];
+        private reducedMotion = false;
+        private dischargeEvent?: Phaser.Time.TimerEvent;
 
         constructor() {
-          super("user-profile-effects");
+          super("user-profile-power-grid");
         }
 
         create() {
-          const { width, height } = this.scale;
-          this.electricGraphics = this.add.graphics();
+          this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          this.staticLayer = this.add.graphics();
+          this.energyLayer = this.add.graphics().setBlendMode(PhaserRuntime.BlendModes.ADD);
+          this.rebuild();
+          this.scale.on("resize", this.rebuild, this);
 
-          this.createCyberGrid();
-          this.createEnergyNodes(width, height);
-          this.createFloatingPowerParticles(width, height);
-          this.createCentralPowerAura(width, height);
+          if (!this.reducedMotion) {
+            this.dischargeEvent = this.time.addEvent({
+              delay: 2600,
+              callback: this.flashDischarge,
+              callbackScope: this,
+              loop: true,
+            });
+          }
+        }
 
-          // Electric arc flickering timer
-          this.time.addEvent({
-            delay: 180,
-            loop: true,
-            callback: this.drawElectricArcs,
-            callbackScope: this,
+        private rebuild() {
+          this.nodes.forEach((node) => {
+            this.tweens.killTweensOf(node);
+            node.destroy();
           });
+          this.pulses.forEach((pulse) => {
+            this.tweens.killTweensOf(pulse);
+            pulse.destroy();
+          });
+          this.shards.forEach((shard) => {
+            this.tweens.killTweensOf(shard);
+            shard.destroy();
+          });
+          this.nodes = [];
+          this.pulses = [];
+          this.shards = [];
+          this.paths = [];
+          this.staticLayer.clear();
+          this.energyLayer.clear();
 
-          this.scale.on("resize", this.handleResize, this);
-        }
-
-        private createCyberGrid() {
-          const graphics = this.add.graphics().setAlpha(0.25);
-          graphics.lineStyle(1, 0xffd700, 0.18);
-
-          const stepX = 90;
-          const stepY = 80;
           const { width, height } = this.scale;
+          if (width <= 0 || height <= 0) return;
 
-          for (let x = 0; x < width; x += stepX) {
-            graphics.beginPath();
-            graphics.moveTo(x, 0);
-            graphics.lineTo(x + 30, height);
-            graphics.strokePath();
-          }
-
-          for (let y = 0; y < height; y += stepY) {
-            graphics.beginPath();
-            graphics.moveTo(0, y);
-            graphics.lineTo(width, y + 20);
-            graphics.strokePath();
-          }
+          this.drawAtmosphere(width, height);
+          this.drawCircuits(width, height);
+          this.createDataShards(width, height);
         }
 
-        private createEnergyNodes(width: number, height: number) {
-          const count = 12;
-          this.nodePositions = [];
+        private drawAtmosphere(width: number, height: number) {
+          const focusX = width < 760 ? width * 0.5 : width * 0.28;
+          const focusY = height * 0.54;
+          const radius = Math.min(width, height) * 0.25;
 
-          for (let i = 0; i < count; i += 1) {
-            const x = PhaserRuntime.Math.Between(Math.floor(width * 0.1), Math.floor(width * 0.9));
-            const y = PhaserRuntime.Math.Between(Math.floor(height * 0.15), Math.floor(height * 0.85));
-            this.nodePositions.push({ x, y });
+          this.staticLayer.fillStyle(0x132c4c, 0.08);
+          this.staticLayer.fillCircle(focusX, focusY, radius * 1.55);
+          this.staticLayer.lineStyle(1, 0x49e6ff, 0.12);
+          this.staticLayer.strokeCircle(focusX, focusY, radius);
+          this.staticLayer.lineStyle(1, 0x8d6bff, 0.1);
+          this.staticLayer.strokeCircle(focusX, focusY, radius * 1.34);
 
-            const isGold = i % 2 === 0;
-            const color = isGold ? 0xffd700 : 0x00e1ff;
+          for (let index = 0; index < 16; index += 1) {
+            const angle = (Math.PI * 2 * index) / 16;
+            const inner = radius * (index % 2 === 0 ? 0.98 : 1.28);
+            const outer = inner + (index % 2 === 0 ? 12 : 7);
+            this.staticLayer.lineStyle(1, index % 3 === 0 ? 0xffcf5a : 0x49e6ff, 0.2);
+            this.staticLayer.beginPath();
+            this.staticLayer.moveTo(focusX + Math.cos(angle) * inner, focusY + Math.sin(angle) * inner);
+            this.staticLayer.lineTo(focusX + Math.cos(angle) * outer, focusY + Math.sin(angle) * outer);
+            this.staticLayer.strokePath();
+          }
 
-            const node = this.add.circle(x, y, PhaserRuntime.Math.Between(3, 6), color, 0.6)
+          if (!this.reducedMotion) {
+            const orbit = this.add.circle(focusX, focusY, radius * 0.72, 0x49e6ff, 0)
+              .setStrokeStyle(1, 0x49e6ff, 0.16)
               .setBlendMode(PhaserRuntime.BlendModes.ADD);
-
-            const glow = this.add.circle(x, y, PhaserRuntime.Math.Between(10, 20), color, 0.15)
-              .setBlendMode(PhaserRuntime.BlendModes.ADD);
-
-            this.nodes.push(node);
-
+            this.nodes.push(orbit);
             this.tweens.add({
-              targets: [node, glow],
-              scale: 1.6,
-              alpha: 0.8,
-              duration: PhaserRuntime.Math.Between(1500, 3000),
-              delay: PhaserRuntime.Math.Between(0, 1000),
+              targets: orbit,
+              angle: 360,
+              scale: 1.08,
+              alpha: { from: 0.34, to: 0.8 },
+              duration: 9000,
               repeat: -1,
               yoyo: true,
               ease: "Sine.inOut",
@@ -100,113 +118,141 @@ export function UserProfilePhaserEffects() {
           }
         }
 
-        private createFloatingPowerParticles(width: number, height: number) {
-          const particleCount = 35;
+        private drawCircuits(width: number, height: number) {
+          const mobile = width < 760;
+          const circuits: CircuitPoint[][] = mobile
+            ? [
+                [[0, height * 0.18], [width * 0.2, height * 0.18], [width * 0.3, height * 0.28], [width * 0.3, height * 0.48]],
+                [[width, height * 0.32], [width * 0.78, height * 0.32], [width * 0.68, height * 0.43], [width * 0.68, height * 0.7]],
+                [[0, height * 0.82], [width * 0.24, height * 0.82], [width * 0.34, height * 0.72], [width * 0.58, height * 0.72]],
+              ]
+            : [
+                [[0, height * 0.17], [width * 0.14, height * 0.17], [width * 0.2, height * 0.25], [width * 0.34, height * 0.25]],
+                [[0, height * 0.72], [width * 0.13, height * 0.72], [width * 0.2, height * 0.63], [width * 0.37, height * 0.63]],
+                [[width, height * 0.2], [width * 0.82, height * 0.2], [width * 0.76, height * 0.29], [width * 0.62, height * 0.29]],
+                [[width, height * 0.76], [width * 0.86, height * 0.76], [width * 0.79, height * 0.66], [width * 0.61, height * 0.66]],
+                [[width * 0.45, 0], [width * 0.45, height * 0.1], [width * 0.5, height * 0.16], [width * 0.5, height * 0.29]],
+                [[width * 0.38, height], [width * 0.38, height * 0.9], [width * 0.44, height * 0.83], [width * 0.58, height * 0.83]],
+              ];
 
-          for (let i = 0; i < particleCount; i += 1) {
-            const isGold = i % 3 === 0;
-            const color = isGold ? 0xffd700 : 0x00e1ff;
+          circuits.forEach((points, pathIndex) => {
+            const color = pathIndex % 3 === 1 ? 0x8d6bff : 0x49e6ff;
+            const path = new PhaserRuntime.Curves.Path(points[0][0], points[0][1]);
+            this.staticLayer.lineStyle(1, color, 0.17);
+            this.staticLayer.beginPath();
+            this.staticLayer.moveTo(points[0][0], points[0][1]);
 
-            const particle = this.add.rectangle(
+            points.slice(1).forEach(([x, y], pointIndex) => {
+              path.lineTo(x, y);
+              this.staticLayer.lineTo(x, y);
+              const isTerminal = pointIndex === points.length - 2;
+              const node = this.add.circle(x, y, isTerminal ? 3.5 : 2.2, color, isTerminal ? 0.7 : 0.35)
+                .setStrokeStyle(1, color, 0.6)
+                .setBlendMode(PhaserRuntime.BlendModes.ADD);
+              this.nodes.push(node);
+
+              if (!this.reducedMotion) {
+                this.tweens.add({
+                  targets: node,
+                  alpha: { from: 0.28, to: 0.9 },
+                  scale: { from: 0.85, to: 1.45 },
+                  duration: 1200 + pathIndex * 170 + pointIndex * 110,
+                  yoyo: true,
+                  repeat: -1,
+                  ease: "Sine.inOut",
+                });
+              }
+            });
+            this.staticLayer.strokePath();
+            this.paths.push(path);
+
+            const pulse = this.add.circle(points[0][0], points[0][1], pathIndex % 2 === 0 ? 2.6 : 2, color, 0.95)
+              .setBlendMode(PhaserRuntime.BlendModes.ADD);
+            this.pulses.push(pulse);
+
+            if (!this.reducedMotion) {
+              const follower = { progress: 0 };
+              this.tweens.add({
+                targets: follower,
+                progress: 1,
+                delay: pathIndex * 460,
+                duration: 4200 + pathIndex * 540,
+                repeat: -1,
+                ease: "Linear",
+                onUpdate: () => {
+                  const point = path.getPoint(follower.progress);
+                  if (point) pulse.setPosition(point.x, point.y);
+                },
+              });
+            }
+          });
+        }
+
+        private createDataShards(width: number, height: number) {
+          const count = width < 760 ? 12 : 26;
+          for (let index = 0; index < count; index += 1) {
+            const color = index % 5 === 0 ? 0xffcf5a : index % 3 === 0 ? 0x8d6bff : 0x49e6ff;
+            const shard = this.add.rectangle(
               PhaserRuntime.Math.Between(0, width),
               PhaserRuntime.Math.Between(0, height),
-              PhaserRuntime.Math.Between(2, 4),
-              PhaserRuntime.Math.Between(6, 16),
+              PhaserRuntime.Math.Between(1, 2),
+              PhaserRuntime.Math.Between(4, 12),
               color,
-              PhaserRuntime.Math.FloatBetween(0.2, 0.65)
+              PhaserRuntime.Math.FloatBetween(0.12, 0.42),
             ).setBlendMode(PhaserRuntime.BlendModes.ADD);
+            this.shards.push(shard);
 
-            particle.setRotation(PhaserRuntime.Math.DegToRad(PhaserRuntime.Math.Between(-30, 30)));
-
-            this.tweens.add({
-              targets: particle,
-              y: particle.y - PhaserRuntime.Math.Between(40, 120),
-              alpha: 0.05,
-              scaleX: 0.5,
-              duration: PhaserRuntime.Math.Between(2500, 5000),
-              delay: PhaserRuntime.Math.Between(0, 2000),
-              repeat: -1,
-              yoyo: true,
-              ease: "Sine.inOut",
-            });
+            if (!this.reducedMotion) {
+              this.tweens.add({
+                targets: shard,
+                y: shard.y - PhaserRuntime.Math.Between(35, 100),
+                x: shard.x + PhaserRuntime.Math.Between(-14, 14),
+                alpha: { from: shard.alpha, to: 0.03 },
+                duration: PhaserRuntime.Math.Between(3600, 7200),
+                delay: PhaserRuntime.Math.Between(0, 2400),
+                repeat: -1,
+                yoyo: true,
+                ease: "Sine.inOut",
+              });
+            }
           }
         }
 
-        private createCentralPowerAura(width: number, height: number) {
-          const cx = width * 0.5;
-          const cy = height * 0.45;
+        private flashDischarge() {
+          if (this.paths.length === 0) return;
+          const path = PhaserRuntime.Utils.Array.GetRandom(this.paths);
+          let flashes = 0;
 
-          const outerRing = this.add.circle(cx, cy, Math.min(width, height) * 0.35, 0xffd700, 0.015)
-            .setStrokeStyle(1, 0xffd700, 0.25)
-            .setBlendMode(PhaserRuntime.BlendModes.ADD);
+          this.time.addEvent({
+            delay: 55,
+            repeat: 4,
+            callback: () => {
+              this.energyLayer.clear();
+              flashes += 1;
+              if (flashes % 2 === 0) return;
 
-          const innerRing = this.add.circle(cx, cy, Math.min(width, height) * 0.25, 0x00e1ff, 0.02)
-            .setStrokeStyle(1, 0x00e1ff, 0.3)
-            .setBlendMode(PhaserRuntime.BlendModes.ADD);
-
-          this.tweens.add({
-            targets: outerRing,
-            scale: 1.12,
-            alpha: 0.35,
-            duration: 3200,
-            repeat: -1,
-            yoyo: true,
-            ease: "Sine.inOut",
+              const sampleCount = 13;
+              this.energyLayer.lineStyle(flashes === 3 ? 2 : 1, 0xdffcff, 0.72);
+              this.energyLayer.beginPath();
+              for (let index = 0; index < sampleCount; index += 1) {
+                const point = path.getPoint(index / (sampleCount - 1));
+                if (!point) continue;
+                const x = point.x + (index === 0 || index === sampleCount - 1 ? 0 : PhaserRuntime.Math.Between(-3, 3));
+                const y = point.y + (index === 0 || index === sampleCount - 1 ? 0 : PhaserRuntime.Math.Between(-3, 3));
+                if (index === 0) this.energyLayer.moveTo(x, y);
+                else this.energyLayer.lineTo(x, y);
+              }
+              this.energyLayer.strokePath();
+              if (flashes === 5) {
+                this.time.delayedCall(70, () => this.energyLayer.clear());
+              }
+            },
           });
-
-          this.tweens.add({
-            targets: innerRing,
-            scale: 0.9,
-            alpha: 0.45,
-            duration: 2400,
-            repeat: -1,
-            yoyo: true,
-            ease: "Sine.inOut",
-          });
         }
 
-        private drawElectricArcs() {
-          if (!this.electricGraphics || this.nodePositions.length < 2) return;
-
-          this.electricGraphics.clear();
-
-          // Randomly draw 2-4 electrical arcs between adjacent node pairs
-          const arcCount = PhaserRuntime.Math.Between(2, 4);
-
-          for (let i = 0; i < arcCount; i += 1) {
-            const idxA = PhaserRuntime.Math.Between(0, this.nodePositions.length - 1);
-            let idxB = PhaserRuntime.Math.Between(0, this.nodePositions.length - 1);
-            if (idxA === idxB) idxB = (idxA + 1) % this.nodePositions.length;
-
-            const pA = this.nodePositions[idxA];
-            const pB = this.nodePositions[idxB];
-
-            // Only draw arc if nodes are reasonably close
-            const dist = PhaserRuntime.Math.Distance.Between(pA.x, pA.y, pB.x, pB.y);
-            if (dist > 350) continue;
-
-            const isGold = i % 2 === 0;
-            const strokeColor = isGold ? 0xffd700 : 0x00e1ff;
-            const alpha = PhaserRuntime.Math.FloatBetween(0.35, 0.85);
-
-            this.electricGraphics.lineStyle(1.5, strokeColor, alpha);
-            this.electricGraphics.beginPath();
-            this.electricGraphics.moveTo(pA.x, pA.y);
-
-            // Jitter midpoint for electric arc effect
-            const midX = (pA.x + pB.x) / 2 + PhaserRuntime.Math.Between(-15, 15);
-            const midY = (pA.y + pB.y) / 2 + PhaserRuntime.Math.Between(-15, 15);
-
-            this.electricGraphics.lineTo(midX, midY);
-            this.electricGraphics.lineTo(pB.x, pB.y);
-            this.electricGraphics.strokePath();
-          }
-        }
-
-        private handleResize() {
-          if (this.electricGraphics) {
-            this.electricGraphics.clear();
-          }
+        shutdown() {
+          this.dischargeEvent?.destroy();
+          this.scale.off("resize", this.rebuild, this);
         }
       }
 
@@ -224,7 +270,7 @@ export function UserProfilePhaserEffects() {
         render: { antialias: true, pixelArt: false },
         audio: { noAudio: true },
       });
-    });
+    }).catch(() => undefined);
 
     return () => {
       disposed = true;
@@ -232,5 +278,5 @@ export function UserProfilePhaserEffects() {
     };
   }, []);
 
-  return <div className="user-profile-phaser-effects" ref={hostRef} aria-hidden="true" />;
+  return <div className="user-page-phaser-canvas" ref={hostRef} aria-hidden="true" />;
 }

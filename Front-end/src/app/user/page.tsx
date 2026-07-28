@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, Check, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap } from "lucide-react";
+import { Activity, ArrowLeft, Camera, Check, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
@@ -126,7 +126,7 @@ function UserPageContent() {
         <div className="user-page-vignette" aria-hidden="true" />
         <div className="user-page-loading">
           <div className="user-page-spinner" />
-          <p>Accessing Cyber Dossier...</p>
+          <p>Accessing Player Dossier...</p>
         </div>
       </main>
     );
@@ -155,18 +155,22 @@ function UserPageContent() {
 
   const getTier = (points: number) => {
     if (points >= 2000) return { title: "CHRONO GRANDMASTER", color: "#ffd700", icon: "👑" };
-    if (points >= 1600) return { title: "DIAMOND CIRCUIT", color: "#00e1ff", icon: "💎" };
+    if (points >= 1600) return { title: "DIAMOND CIRCUIT", color: "#b870ff", icon: "💎" };
     if (points >= 1300) return { title: "GOLD COMBATANT", color: "#ffb700", icon: "🥇" };
     if (points >= 1100) return { title: "SILVER DUELIST", color: "#a8c0d8", icon: "🥈" };
     return { title: "BRONZE ROOKIE", color: "#cd7f32", icon: "🥉" };
   };
   const tier = getTier(elo);
+  const eloProgress = Math.min(100, Math.max(8, Math.round((elo / 2200) * 100)));
 
   return (
     <main className="user-page-shell">
-      <div className="user-page-art" aria-hidden="true"><UserProfilePhaserEffects /></div>
+      <div className="user-page-art" aria-hidden="true">
+        <UserProfilePhaserEffects />
+      </div>
       <div className="user-page-grid" aria-hidden="true" />
       <div className="user-page-vignette" aria-hidden="true" />
+      <div className="user-page-scanline" aria-hidden="true" />
 
       <motion.header
         className="user-page-header"
@@ -180,10 +184,11 @@ function UserPageContent() {
           <span><UserCheck size={18} /></span>
           <div>
             <strong>Chrono Genesis</strong>
-            <small>Cyber identity & Dossier</small>
+            <small>Player dossier & Identity</small>
           </div>
         </div>
         <div className="user-page-status">
+          <span className="user-live-status"><i /> System online</span>
           <span className="tier-badge" style={{ borderColor: tier.color, color: tier.color }}>
             {tier.icon} {tier.title}
           </span>
@@ -196,12 +201,12 @@ function UserPageContent() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.08 }}
       >
-        <p><Shield size={14} /> Power Matrix <i /> Season 01</p>
+        <p><Shield size={14} /> Identity Record <i /> Season 01 <i /> ID {user.user_id.slice(0, 8)}</p>
         <div className="user-page-heading-row">
           <div>
-            <h1>Cyber <em>Dossier</em></h1>
+            <h1>Player <em>Profile</em></h1>
             <span>
-              Manage your identity profile, customize avatar portrait and monitor combat power metrics
+              Manage your personal credentials, customize avatar portrait and analyze performance metrics
             </span>
           </div>
         </div>
@@ -213,9 +218,10 @@ function UserPageContent() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.14, duration: 0.45 }}
       >
-        {/* Main Identity Card */}
         <div className="user-identity-card">
+          <div className="identity-card-index" aria-hidden="true">CG // 01</div>
           <div className="user-avatar-wrapper">
+            <div className="avatar-energy-ring" aria-hidden="true" />
             <div className="user-avatar-frame">
               {user.avatar_url ? (
                 <img src={user.avatar_url} alt={user.username} />
@@ -236,6 +242,7 @@ function UserPageContent() {
           </div>
 
           <div className="user-identity-info">
+            <span className="identity-eyebrow">Authenticated player identity</span>
             {editingName ? (
               <div className="username-edit-box">
                 <input
@@ -282,51 +289,72 @@ function UserPageContent() {
                 <span>Global Rank: {user.rank ? `#${user.rank}` : "Unranked"}</span>
               </div>
             </div>
+            <div className="user-power-track">
+              <div className="power-track-copy">
+                <span><Activity size={13} /> Combat power sync</span>
+                <strong>{eloProgress}%</strong>
+              </div>
+              <div className="power-track-rail">
+                <motion.i
+                  initial={{ width: 0 }}
+                  animate={{ width: `${eloProgress}%` }}
+                  transition={{ delay: 0.5, duration: 0.9, ease: "easeOut" }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Combat Performance Stats Grid */}
         <div className="user-stats-grid">
-          <div className="user-stat-card elo-card">
+          <motion.div className="user-stat-card elo-card" whileHover={{ y: -4 }}>
             <div className="stat-card-header">
               <Shield size={18} />
               <span>Combat Rating</span>
             </div>
             <strong className="stat-card-value">{elo.toLocaleString()}</strong>
             <small className="stat-card-sub">ELO Points</small>
-          </div>
+            <span className="stat-card-code">CR-01</span>
+          </motion.div>
 
-          <div className="user-stat-card win-card">
+          <motion.div className="user-stat-card win-card" whileHover={{ y: -4 }}>
             <div className="stat-card-header">
               <Swords size={18} />
               <span>Victories</span>
             </div>
             <strong className="stat-card-value text-win">{wins}</strong>
             <small className="stat-card-sub">Matches Won</small>
-          </div>
+            <span className="stat-card-code">VX-02</span>
+          </motion.div>
 
-          <div className="user-stat-card loss-card">
+          <motion.div className="user-stat-card loss-card" whileHover={{ y: -4 }}>
             <div className="stat-card-header">
               <Swords size={18} />
               <span>Defeats</span>
             </div>
             <strong className="stat-card-value text-loss">{losses}</strong>
             <small className="stat-card-sub">Matches Lost</small>
-          </div>
+            <span className="stat-card-code">DX-03</span>
+          </motion.div>
 
-          <div className="user-stat-card rate-card">
+          <motion.div className="user-stat-card rate-card" whileHover={{ y: -4 }}>
             <div className="stat-card-header">
               <Zap size={18} />
               <span>Win Ratio</span>
             </div>
             <strong className="stat-card-value">{winRate}%</strong>
             <small className="stat-card-sub">{games} Total Duels</small>
-          </div>
+            <span className="stat-card-code">WR-04</span>
+          </motion.div>
         </div>
 
-        {/* Account Meta Section */}
         <div className="user-details-panel">
-          <h3>Account Dossier</h3>
+          <div className="details-panel-heading">
+            <div>
+              <span>Secure archive</span>
+              <h3>Account Dossier</h3>
+            </div>
+            <Shield size={20} />
+          </div>
           <div className="details-grid">
             <div className="detail-row">
               <span className="detail-label">Email Address</span>
