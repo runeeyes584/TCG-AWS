@@ -15,6 +15,33 @@ export interface LoginResponse {
     expiresIn: number;
 }
 
+export interface UserProfile {
+    user_id: string;
+    username: string;
+    email: string;
+    avatar_url?: string;
+
+    stats: {
+        elo: number;
+        wins: number;
+        losses: number;
+        gamesPlayed?: number;
+        winRate?: number;
+    };
+
+    created_at: string;
+
+    rank?: number;
+    rank_updated_at?: number;
+
+    leaderboard_scope?: "GLOBAL";
+    leaderboard_sort?: string;
+    leaderboard_elo?: number;
+    leaderboard_win_rate?: number;
+    leaderboard_wins?: number;
+    leaderboard_losses?: number;
+}
+
 export interface RefreshTokenResponse {
     success: boolean;
     accessToken: string;
@@ -407,6 +434,30 @@ export async function resetPassword(
             email,
             code: code.trim(),
             password
+        })
+    });
+}
+
+export async function getCurrentUser() {
+    return request("/user", {
+        method: "GET"
+    });
+}
+
+export async function updateAvatar(avatar: string) {
+    return request("/user/avatar", {
+        method: "PATCH",
+        body: JSON.stringify({
+            avatar
+        })
+    });
+}
+
+export async function updateUsername(username: string) {
+    return request("/user/username", {
+        method: "PATCH",
+        body: JSON.stringify({
+            username
         })
     });
 }

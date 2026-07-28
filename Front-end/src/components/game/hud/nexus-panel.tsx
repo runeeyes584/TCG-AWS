@@ -38,6 +38,7 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
   const roleLabel = isAttacker ? (attackTokenAvailable ? "Attack" : "Spent") : "Defense";
   const accessibleMana = `${playerName} mana ${player.mana}/${player.maxMana}, spell mana ${player.spellMana}/${MAX_SPELL_MANA}`;
   const initial = playerName.trim().slice(0, 1).toUpperCase() || "?";
+  console.log("PlayerID and Name: " + playerId + playerName)
 
   return (
     <section
