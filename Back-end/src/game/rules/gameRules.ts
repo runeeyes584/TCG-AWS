@@ -449,6 +449,7 @@ function assertSpellTarget(
     case "ALLY_NEXUS":
     case "ENEMY_NEXUS":
     case "RANDOM_ENEMY_UNIT":
+    case "RANDOM_ATTACKING_ALLY":
     case undefined:
       return;
     case "RECALL_UNIT":

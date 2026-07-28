@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createCardInstance,
   createUnitInstance,
+  getUnitAttack,
+  getUnitHealth,
   isChampionCard,
   isUnitCard
 } from "../entities/cards";
@@ -388,6 +390,74 @@ describe("data-driven card registry and operations", () => {
     expect(serialized).not.toContain("definition");
     expect(serialized).not.toContain("Data Test Unit");
     expect(serialized).toContain("data-test-unit");
+  });
+
+  it("resolves Relliona's leveled attack aura once when the attack is committed", () => {
+    const relliona = getCardDefinition("emberwing-retinue-champion-1-lv2");
+    let state = startedGame();
+    state.players.P1.board = [
+      createUnitInstance(card(relliona, "P1", "relliona")),
+      createUnitInstance(card(unit, "P1", "ally"))
+    ];
+
+    state = applyAction(state, {
+      type: "DECLARE_ATTACKER",
+      playerId: "P1",
+      unitInstanceId: "relliona"
+    });
+    state = applyAction(state, {
+      type: "REMOVE_ATTACKER",
+      playerId: "P1",
+      unitInstanceId: "relliona"
+    });
+    state = applyAction(state, {
+      type: "DECLARE_ATTACKER",
+      playerId: "P1",
+      unitInstanceId: "relliona"
+    });
+    state = applyAction(state, {
+      type: "DECLARE_ATTACKER",
+      playerId: "P1",
+      unitInstanceId: "ally"
+    });
+
+    expect(state.players.P1.board.every((boardUnit) => boardUnit.modifiers.length === 0)).toBe(true);
+    expect(state.players.P2.nexusHp).toBe(20);
+
+    state = applyAction(state, { type: "COMMIT_ATTACK", playerId: "P1" });
+
+    const leveledRelliona = state.players.P1.board.find(
+      (boardUnit) => boardUnit.instanceId === "relliona"
+    )!;
+    const ally = state.players.P1.board.find(
+      (boardUnit) => boardUnit.instanceId === "ally"
+    )!;
+    expect(getUnitAttack(leveledRelliona)).toBe(7);
+    expect(getUnitHealth(leveledRelliona)).toBe(7);
+    expect(getUnitAttack(ally)).toBe(4);
+    expect(getUnitHealth(ally)).toBe(3);
+    expect(leveledRelliona.modifiers).toHaveLength(1);
+    expect(ally.modifiers).toHaveLength(1);
+    expect(state.players.P2.nexusHp).toBe(19);
+  });
+
+  it("does not trigger Relliona's attack aura while she remains in the waiting row", () => {
+    const relliona = getCardDefinition("emberwing-retinue-champion-1-lv2");
+    let state = startedGame();
+    state.players.P1.board = [
+      createUnitInstance(card(relliona, "P1", "relliona")),
+      createUnitInstance(card(unit, "P1", "ally"))
+    ];
+
+    state = applyAction(state, {
+      type: "DECLARE_ATTACKER",
+      playerId: "P1",
+      unitInstanceId: "ally"
+    });
+    state = applyAction(state, { type: "COMMIT_ATTACK", playerId: "P1" });
+
+    expect(state.players.P1.board.every((boardUnit) => boardUnit.modifiers.length === 0)).toBe(true);
+    expect(state.players.P2.nexusHp).toBe(20);
   });
 
   it("DRAW effect resolves through drawCards operation behavior", () => {

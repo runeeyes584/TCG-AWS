@@ -20,7 +20,8 @@ export type TriggerTargetKind =
   | "SOURCE"
   | "ALLY_NEXUS"
   | "ENEMY_NEXUS"
-  | "RANDOM_ENEMY_UNIT";
+  | "RANDOM_ENEMY_UNIT"
+  | "RANDOM_ATTACKING_ALLY";
 
 export type AbilityTargetKind =
   | "SELF"
@@ -182,7 +183,8 @@ export type ConditionDefinition =
   | { type: "UNIT_DIED_THIS_GAME_AT_LEAST"; count: number }
   | { type: "NEXUS_HEALTH_BELOW"; player: "SELF" | "ENEMY"; amount: number }
   | { type: "UNIT_HAS_KEYWORD"; target: string; keyword: Keyword }
-  | { type: "EVENT_PLAYER_IS"; player: "SELF" | "ENEMY" };
+  | { type: "EVENT_PLAYER_IS"; player: "SELF" | "ENEMY" }
+  | { type: "SOURCE_IS_ATTACKING" };
 
 export interface TargetDefinition {
   id: string;

@@ -1080,8 +1080,6 @@ function declareAttacker(
   unit.exhausted = true;
   next.combat.attackers.push({ attackerId: unit.instanceId });
   next.consecutivePasses = 0;
-
-  emitEvent(next, { type: "ATTACK_DECLARED", playerId, unitInstanceId });
   return next;
 }
 
@@ -1103,6 +1101,10 @@ function removeAttacker(
 function commitAttack(state: GameState, playerId: PlayerId): GameState {
   const next = cloneState(state);
   const defenderId = opponentOf(playerId);
+  emitEvent(next, {
+    type: "ATTACK_COMMITTED",
+    playerId
+  });
   next.phase = "BLOCK";
   next.consecutivePasses = 0;
   next.priorityPlayerId = defenderId;

@@ -12,7 +12,7 @@ export type GameEventType =
   | "CARD_BANISHED"
   | "SPELL_CAST"
   | "UNIT_SUMMONED"
-  | "ATTACK_DECLARED"
+  | "ATTACK_COMMITTED"
   | "BLOCK_DECLARED"
   | "UNIT_STRUCK"
   | "UNIT_DAMAGED"
