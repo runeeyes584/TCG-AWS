@@ -1,10 +1,10 @@
 import express, { type ErrorRequestHandler } from "express";
 import cookieParser from "cookie-parser";
-import cors from "cors";
 import authRoutes from "../auth/auth.routes";
 import matchesRoutes from "./matches.routes";
 import decksRoutes from "./decks.routes";
 import leaderboardRoutes from "./leaderboard.routes";
+import userRoutes from "./user.route";
 
 export const app = express();
 
@@ -16,22 +16,19 @@ const configuredOrigins = (process.env.FRONTEND_ORIGINS || "http://localhost:300
   .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
-app.use(cors({
-  credentials: true,
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type"],
-  origin(origin, callback) {
-    if (
-      !origin ||
-      configuredOrigins.includes(origin.replace(/\/$/, "")) ||
-      origin.endsWith("amplifyapp.com")
-    ) {
-      callback(null, true);
-      return;
-    }
-    callback(new Error("Origin is not allowed by CORS."));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (
+    !origin ||
+    configuredOrigins.includes(origin.replace(/\/$/, "")) ||
+    origin.endsWith("amplifyapp.com")
+  ) {
+    next();
+    return;
   }
-}));
+  res.status(403).json({ success: false, message: "Origin is not allowed." });
+});
+
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
@@ -42,6 +39,7 @@ app.use("/auth", authRoutes);
 app.use("/matches", matchesRoutes);
 app.use("/decks", decksRoutes);
 app.use("/leaderboard", leaderboardRoutes);
+app.use("/user", userRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: "Route not found." });
