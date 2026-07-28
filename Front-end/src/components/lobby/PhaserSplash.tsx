@@ -8,27 +8,17 @@ import gaia from "../../assets/heros/gaia.png";
 import laevan from "../../assets/heros/laevan.png";
 import raye from "../../assets/heros/raye.png";
 import varesa from "../../assets/heros/varesa.png";
-import catHitle from "../../assets/catMeme/cat-Hitle.png";
 import catMeimei from "../../assets/catMeme/cat-Meimei.png";
 import catUIA from "../../assets/catMeme/cat-UIA.png";
-import catAss from "../../assets/catMeme/cat-ass.png";
-import catGoat from "../../assets/catMeme/cat-goat.png";
-import catSaddle from "../../assets/catMeme/cat-saddle.png";
-import catSerious from "../../assets/catMeme/cat-serious.png";
 import catSigma from "../../assets/catMeme/cat-sigma.jpeg";
 
 const splashes = [
-  { key: "cat-hitle", src: catHitle.src },
+  { key: "gaia", src: gaia.src },
   { key: "cat-meimei", src: catMeimei.src },
   { key: "cat-uia", src: catUIA.src },
-  { key: "cat-ass", src: catAss.src },
-  { key: "cat-goat", src: catGoat.src },
-  { key: "cat-saddle", src: catSaddle.src },
-  { key: "cat-serious", src: catSerious.src },
   { key: "cat-sigma", src: catSigma.src },
   { key: "aoi", src: aoi.src },
   { key: "eldlich", src: eldlich.src },
-  { key: "gaia", src: gaia.src },
   { key: "laevan", src: laevan.src },
   { key: "raye", src: raye.src },
   { key: "varesa", src: varesa.src },
