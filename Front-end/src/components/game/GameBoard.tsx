@@ -99,6 +99,28 @@ export function GameBoardView({
     level: "warning" | "danger";
     message: string;
   }>();
+  const [targetError, setTargetError] = useState<string>();
+  const targetErrorTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const showTargetError = (message: string) => {
+    if (targetErrorTimeoutRef.current) {
+      clearTimeout(targetErrorTimeoutRef.current);
+    }
+    setTargetError(message);
+    targetErrorTimeoutRef.current = setTimeout(() => {
+      setTargetError(undefined);
+      targetErrorTimeoutRef.current = undefined;
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (targetErrorTimeoutRef.current) {
+        clearTimeout(targetErrorTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const previousChampionIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -541,11 +563,14 @@ export function GameBoardView({
       }
 
       const targetKind = getPrimarySpellTarget(selectedSpell);
+      const isTargetUnit = unitDef(unit).type === "unit";
       const isValidUnitTarget =
-        (targetKind === "ALLY_UNIT" && playerId === casterId) ||
-        (targetKind === "ENEMY_UNIT" && playerId !== casterId);
+        isTargetUnit &&
+        ((targetKind === "ALLY_UNIT" && playerId === casterId) ||
+          (targetKind === "ENEMY_UNIT" && playerId !== casterId));
 
       if (!isValidUnitTarget) {
+        showTargetError("Wrong target! Read the description of card and choose again");
         return;
       }
 
@@ -1744,6 +1769,12 @@ export function GameBoardView({
             <button type="button" onClick={() => setAfkNotice(undefined)} aria-label="Đóng cảnh báo AFK">
               <X size={16} aria-hidden="true" />
             </button>
+          </div>
+        ) : null}
+
+        {targetError ? (
+          <div className="afk-notice afk-notice--danger" style={{ borderColor: "#ffaa00", background: "rgba(90, 45, 0, 0.95)" }} role="alert">
+            <span>{targetError}</span>
           </div>
         ) : null}
 
