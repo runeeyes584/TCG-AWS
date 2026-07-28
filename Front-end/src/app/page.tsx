@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   BookOpen,
   ChevronRight,
   FlaskConical,
@@ -27,6 +28,7 @@ import {
   type PlayerProfile
 } from "../libs/api";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
+import { UserProfilePhaserEffects } from "../components/user/UserProfilePhaserEffects";
 import { PendingMatchDialog, PendingMatchLoadingGate } from "../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
@@ -62,6 +64,9 @@ export default function Home() {
   const [customRoomCode, setCustomRoomCode] = useState("");
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
   const currentRank = useRealtimeRank(isSignedIn);
+  const totalMatches = wins + losses;
+  const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+  const powerLevel = Math.min(100, Math.max(10, Math.round((elo / 2200) * 100)));
 
   useEffect(() => {
     const email = window.localStorage.getItem("email");
@@ -232,20 +237,57 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="lobby-profile" aria-label="Player profile" onClick={() => router.push("/user")}>
-        <div className="lobby-profile__avatar">
-          <span>{playerName.slice(0, 1).toUpperCase()}</span>
-          {avatar ? <img src={avatar} alt="" onError={(event) => event.currentTarget.remove()} /> : null}
+      <section
+        className="lobby-profile"
+        aria-label={`View ${playerName}'s player profile`}
+        role="link"
+        tabIndex={0}
+        onClick={() => router.push("/user")}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            router.push("/user");
+          }
+        }}
+      >
+        <div className="lobby-profile__fx" aria-hidden="true">
+          <UserProfilePhaserEffects />
         </div>
-        <div className="lobby-profile__identity">
-          <strong>{playerName}</strong>
-          <span title={email}><Shield size={13} /> {email}</span>
+        <div className="lobby-profile__topline">
+          <span><i /> Player uplink</span>
+          <b>CG // PROFILE</b>
         </div>
+
+        <div className="lobby-profile__main">
+          <div className="lobby-profile__avatar-wrap">
+            <div className="lobby-profile__avatar-ring" aria-hidden="true" />
+            <div className="lobby-profile__avatar">
+              <span>{playerName.slice(0, 1).toUpperCase()}</span>
+              {avatar ? <img src={avatar} alt="" onError={(event) => event.currentTarget.remove()} /> : null}
+            </div>
+            <span className="lobby-profile__level">PWR {powerLevel}</span>
+          </div>
+
+          <div className="lobby-profile__identity">
+            <small>Authenticated duelist</small>
+            <strong>{playerName}</strong>
+            <span title={email}><Shield size={12} /> {email}</span>
+          </div>
+
+          <ChevronRight className="lobby-profile__open-icon" size={18} aria-hidden="true" />
+        </div>
+
         <div className="lobby-profile__stats" aria-label="Player statistics">
           <span className="lobby-stat"><b>{elo.toLocaleString()}</b><small>ELO</small></span>
           <span className="lobby-stat lobby-stat--rank"><b>{currentRank ? `#${currentRank}` : "—"}</b><small>RANK</small></span>
           <span className="lobby-stat"><b>{wins}</b><small>WINS</small></span>
           <span className="lobby-stat"><b>{losses}</b><small>LOSSES</small></span>
+        </div>
+
+        <div className="lobby-profile__power">
+          <span><Activity size={11} /> Power sync <b>{powerLevel}%</b></span>
+          <i><b style={{ width: `${powerLevel}%` }} /></i>
+          <small>{totalMatches ? `${winRate}% win rate` : "No combat data"} · View dossier</small>
         </div>
       </section>
 
