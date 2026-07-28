@@ -122,7 +122,6 @@ function UserPageContent() {
   if (loading) {
     return (
       <main className="user-page-shell">
-        <UserProfilePhaserEffects />
         <div className="user-page-grid" aria-hidden="true" />
         <div className="user-page-vignette" aria-hidden="true" />
         <div className="user-page-loading">
@@ -136,7 +135,6 @@ function UserPageContent() {
   if (!user) {
     return (
       <main className="user-page-shell">
-        <UserProfilePhaserEffects />
         <div className="user-page-grid" aria-hidden="true" />
         <div className="user-page-vignette" aria-hidden="true" />
         <div className="user-page-loading">
@@ -157,7 +155,7 @@ function UserPageContent() {
 
   const getTier = (points: number) => {
     if (points >= 2000) return { title: "CHRONO GRANDMASTER", color: "#ffd700", icon: "👑" };
-    if (points >= 1600) return { title: "DIAMOND CIRCUIT", color: "#00f0ff", icon: "💎" };
+    if (points >= 1600) return { title: "DIAMOND CIRCUIT", color: "#00e1ff", icon: "💎" };
     if (points >= 1300) return { title: "GOLD COMBATANT", color: "#ffb700", icon: "🥇" };
     if (points >= 1100) return { title: "SILVER DUELIST", color: "#a8c0d8", icon: "🥈" };
     return { title: "BRONZE ROOKIE", color: "#cd7f32", icon: "🥉" };
@@ -166,7 +164,7 @@ function UserPageContent() {
 
   return (
     <main className="user-page-shell">
-      <UserProfilePhaserEffects />
+      <div className="user-page-art" aria-hidden="true"><UserProfilePhaserEffects /></div>
       <div className="user-page-grid" aria-hidden="true" />
       <div className="user-page-vignette" aria-hidden="true" />
 
@@ -182,7 +180,7 @@ function UserPageContent() {
           <span><UserCheck size={18} /></span>
           <div>
             <strong>Chrono Genesis</strong>
-            <small>Player dossier & Identity</small>
+            <small>Cyber identity & Dossier</small>
           </div>
         </div>
         <div className="user-page-status">
@@ -198,12 +196,12 @@ function UserPageContent() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.08 }}
       >
-        <p><Shield size={14} /> Identity Record <i /> Season 01</p>
+        <p><Shield size={14} /> Power Matrix <i /> Season 01</p>
         <div className="user-page-heading-row">
           <div>
-            <h1>Player <em>Profile</em></h1>
+            <h1>Cyber <em>Dossier</em></h1>
             <span>
-              Manage your personal credentials, customize avatar portrait and analyze performance metrics
+              Manage your identity profile, customize avatar portrait and monitor combat power metrics
             </span>
           </div>
         </div>
