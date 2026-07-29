@@ -204,7 +204,7 @@ function OnlinePlayPageContent() {
           <ArrowLeft size={18} />
           <span>Lobby</span>
         </button>
-        <div className="matchmaking-title"><span>KALEIDOSCOPE</span><small>RANKED CIRCUIT</small></div>
+        <div className="matchmaking-title"><span>CHRONO GENESIS TCG</span><small>RANKED CIRCUIT</small></div>
         <button className="matchmaking-audio" onClick={toggleMusic} aria-label={muted ? "Enable matchmaking music" : "Mute matchmaking music"} title={muted ? "Enable music" : "Mute music"}>
           {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
         </button>
