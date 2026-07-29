@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export function useLoopingAudio(src: string, volume = 0.35) {
+export function useLoopingAudio(src: string, volume = 0.35, enabled = true) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const enabledRef = useRef(enabled);
   const [muted, setMuted] = useState(false);
+  enabledRef.current = enabled;
 
   const play = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || audio.muted) return;
+    if (!audio || audio.muted || !enabledRef.current) return;
     void audio.play().catch(() => undefined);
   }, []);
 
@@ -35,8 +37,13 @@ export function useLoopingAudio(src: string, volume = 0.35) {
   useEffect(() => {
     if (!audioRef.current) return;
     audioRef.current.muted = muted;
+    if (!enabled) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      return;
+    }
     if (!muted) play();
-  }, [muted, play]);
+  }, [enabled, muted, play]);
 
   return { muted, toggleMuted: () => setMuted((current) => !current) };
 }

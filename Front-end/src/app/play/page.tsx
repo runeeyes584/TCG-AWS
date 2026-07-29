@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -20,6 +20,7 @@ import { PendingMatchDialog, PendingMatchLoadingGate } from "../../components/lo
 import { DeckSelectionPanel } from "../../components/deck/DeckSelectionPanel";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import { useLocalGame } from "../../hooks/useLocalGame";
+import { useLoopingAudio } from "../../hooks/useLoopingAudio";
 import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../../libs/api";
 import { getDefaultLocalDeck, getSelectedDeckId, loadLocalDecks, type LocalDeck } from "../../libs/localDecks";
 
@@ -36,8 +37,6 @@ function OnlinePlayPageContent() {
   const resumeConfirmed = searchParams.get("resume") === "1";
   const resumeRoomCode = resumeConfirmed ? requestedRoomCode : undefined;
   const controller = useGameMatch(resumeRoomCode);
-  const musicRef = useRef<HTMLAudioElement | null>(null);
-  // const [muted, setMuted] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile>();
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
   const [pendingMatchError, setPendingMatchError] = useState<string>();
@@ -45,7 +44,8 @@ function OnlinePlayPageContent() {
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(resumeConfirmed);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
-  const { muted, toggleMuted } = useLoopingAudio("/audio/play-page.mp3", 0.3);
+  const matchReady = controller.inGame || Boolean(controller.roomCode && controller.localPlayerId);
+  const { muted, toggleMuted } = useLoopingAudio("/audio/play-page.mp3", 0.3, !matchReady);
 
   useEffect(() => {
     if (!controller.resumeRequired) return;
@@ -75,19 +75,7 @@ function OnlinePlayPageContent() {
   }, [controller.localPlayerId, controller.roomCode, resumeConfirmed]);
 
   useEffect(() => {
-    // const audio = new Audio("/audio/play-page.mp3");
-    // audio.loop = true;
-    // audio.preload = "auto";
-    // audio.volume = 0.38;
-    // musicRef.current = audio;
-
     void me().then(({ user }) => setProfile(user)).catch(() => undefined);
-
-    // return () => {
-    //   audio.pause();
-    //   audio.currentTime = 0;
-    //   musicRef.current = null;
-    // };
   }, []);
 
   useEffect(() => {
@@ -130,32 +118,14 @@ function OnlinePlayPageContent() {
     }
   };
 
-  // useEffect(() => {
-  //   const audio = musicRef.current;
-  //   if (!audio) return;
-  // 
-  //   audio.muted = muted;
-  //   if (!controller.searching) {
-  //     audio.pause();
-  //     audio.currentTime = 0;
-  //   }
-  // }, [controller.searching, muted]);
-
   const startSearch = () => {
     // Do not let a click win the race against the active-match check.
     if (!pendingMatchChecked || pendingMatch) return;
-    // const audio = musicRef.current;
-    // if (audio && !muted) {
-    //   audio.currentTime = 0;
-    //   void audio.play().catch(() => undefined);
-    // }
     controller.startMatchmaking({ deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
   };
 
   const cancelSearch = () => {
     controller.cancelMatchmaking();
-    // musicRef.current?.pause();
-    // if (musicRef.current) musicRef.current.currentTime = 0;
   };
 
   const handleBackToLobby = () => {
@@ -167,12 +137,6 @@ function OnlinePlayPageContent() {
 
   const toggleMusic = () => {
     toggleMuted();
-    // const nextMuted = !muted;
-    // setMuted(nextMuted);
-    // 
-    // if (!nextMuted && controller.searching) {
-    //   void musicRef.current?.play().catch(() => undefined);
-    // }
   };
 
   // Keep the board mounted while the opponent reconnects. Unmounting it would
@@ -403,7 +367,6 @@ function PlayPageContent() {
 }
 
 import { AuthGuard } from "../../components/lobby/AuthGuard";
-import { useLoopingAudio } from "src/hooks/useLoopingAudio";
 
 export default function PlayPage() {
   return (
