@@ -128,14 +128,15 @@ export class ApiGatewaySocket implements RealtimeSocket {
       // AWS Lambdas may send state on matchmaking:found or room:update. Normalize
       // both into the RoomUpdate contract consumed by useGameMatch.
       if ((message.event === "room:update" || message.event === "matchmaking:found") && message.state && message.playerId) {
-        this.emit("room:update", {
+        const update: Partial<RoomUpdate> & Pick<RoomUpdate, "playerId" | "state"> = {
           roomCode: message.roomCode || this.roomCode || "",
           playerId: message.playerId,
           opponentConnected: message.opponentConnected ?? true,
-          players: message.players ?? {},
-          state: message.state,
-          log: message.log ?? [],
-        } satisfies RoomUpdate);
+          state: message.state
+        };
+        if (message.players) update.players = message.players;
+        if (message.log) update.log = message.log;
+        this.emit("room:update", update);
       }
 
       if (message.event !== "room:update") this.emit(message.event, message);

@@ -391,12 +391,15 @@
       {
         "id": "null-circuit-unit-13-attack",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
@@ -1962,12 +1965,15 @@
       {
         "id": "emberwing-retinue-unit-05-quick",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
@@ -2026,7 +2032,7 @@
       {
         "id": "emberwing-retinue-unit-07-attack",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
@@ -2040,7 +2046,7 @@
             "attack": 1,
             "health": 0,
             "duration": "THIS_ROUND",
-            "target": "EVENT_UNIT"
+            "target": "RANDOM_ATTACKING_ALLY"
           }
         ]
       }
@@ -2129,12 +2135,15 @@
       {
         "id": "emberwing-retinue-unit-10-power",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
@@ -2259,12 +2268,15 @@
       {
         "id": "emberwing-retinue-unit-14-nexus",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
@@ -2432,12 +2444,15 @@
       {
         "id": "emberwing-retinue-champion-1-lv1-attack",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
@@ -2470,12 +2485,15 @@
       {
         "id": "emberwing-retinue-champion-1-lv2-attack",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
@@ -2518,12 +2536,15 @@
       {
         "id": "emberwing-retinue-champion-2-lv1-attack",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
@@ -2556,12 +2577,15 @@
       {
         "id": "emberwing-retinue-champion-2-lv2-attack",
         "when": {
-          "event": "ATTACK_DECLARED"
+          "event": "ATTACK_COMMITTED"
         },
         "conditions": [
           {
             "type": "EVENT_PLAYER_IS",
             "player": "SELF"
+          },
+          {
+            "type": "SOURCE_IS_ATTACKING"
           }
         ],
         "effects": [
