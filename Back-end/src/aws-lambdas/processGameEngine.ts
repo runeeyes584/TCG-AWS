@@ -26,28 +26,7 @@ type MatchPlayerRecord = {
   user_id?: string;
   connection_id?: string;
   connected?: boolean;
-  username?: string;
-  elo?: number;
-  avatar?: string;
 };
-
-function getPlayerProfiles(match: MatchRecord) {
-  const profile = (player?: MatchPlayerRecord) => {
-    if (!player?.username) return undefined;
-    return {
-      username: player.username,
-      elo: player.elo ?? 0,
-      ...(player.avatar ? { avatar: player.avatar } : {})
-    };
-  };
-
-  const player1 = profile(match.player_1);
-  const player2 = profile(match.player_2);
-  return {
-    ...(player1 ? { P1: player1 } : {}),
-    ...(player2 ? { P2: player2 } : {})
-  };
-}
 
 function isGone(error: any): boolean {
   return error?.name === "GoneException" || error?.$metadata?.httpStatusCode === 410;
@@ -253,7 +232,6 @@ async function publishState(
           roomCode: match.match_id,
           playerId,
           opponentConnected,
-          players: getPlayerProfiles(match),
           state: redactStateForPlayer(state, playerId)
         }))
       }));

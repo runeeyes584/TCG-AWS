@@ -1,4 +1,4 @@
-import { PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import type { APIGatewayProxyResult, APIGatewayProxyWebsocketEventV2 } from "aws-lambda";
 import { verifyToken } from "../auth/verifyToken";
 import { dynamoDb } from "../config/dynamodb";
@@ -6,6 +6,7 @@ import { env } from "../config/env";
 
 const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
+const userProfileTable = process.env.USER_PROFILE_TABLE || "UserProfile";
 
 type ConnectEvent = APIGatewayProxyWebsocketEventV2 & {
   headers?: Record<string, string | undefined>;
@@ -40,13 +41,29 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
     const payload = await verifyToken(token);
     if (!payload.sub) return { statusCode: 401, body: "Unauthorized: Invalid token claims." };
     userId = payload.sub;
-    username = (payload.username as string) || username;
+    username = String(payload.preferred_username || payload.username || username);
   } catch (error) {
     console.error("Token verification failed:", error);
     return { statusCode: 401, body: "Unauthorized: Invalid token." };
   }
 
   try {
+    try {
+      const profileResult = await dynamoDb.send(new GetCommand({
+        TableName: userProfileTable,
+        Key: { user_id: userId },
+        ConsistentRead: true
+      }));
+      if (typeof profileResult.Item?.username === "string" && profileResult.Item.username.trim()) {
+        username = profileResult.Item.username.trim();
+      }
+    } catch (error) {
+      // startMatch also resolves the authoritative profile. Keep connection
+      // establishment available if this Lambda has not received profile-table
+      // read permission yet.
+      console.warn("Unable to resolve profile username during WebSocket connect:", error);
+    }
+
     await dynamoDb.send(new PutCommand({
       TableName: connectionsTable,
       Item: { connection_id: connectionId, user_id: userId, username, connected_at: Date.now() }
