@@ -10,6 +10,17 @@ import { accessTokenNeedsRefresh, refreshToken } from "../libs/api";
 import { socketManager } from "../libs/socket";
 import { getSelectedDeckId, loadLocalDecks } from "../libs/localDecks";
 
+function mergePlayerProfiles(
+  current: RoomUpdate["players"],
+  incoming: RoomUpdate["players"]
+): RoomUpdate["players"] {
+  return {
+    ...current,
+    ...(incoming.P1 ? { P1: { ...current.P1, ...incoming.P1 } } : {}),
+    ...(incoming.P2 ? { P2: { ...current.P2, ...incoming.P2 } } : {})
+  };
+}
+
 export interface SocketGameController extends GameController {
   roomCode?: string;
   localPlayerId?: PlayerId;
@@ -236,7 +247,9 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setRoomCode(nextRoomCode);
       setLocalPlayerId(update.playerId);
       setOpponentConnected(update.opponentConnected ?? true);
-      if (update.players) setPlayerProfiles(update.players);
+      if (update.players) {
+        setPlayerProfiles((current) => mergePlayerProfiles(current, update.players!));
+      }
       setGameState(update.state);
       if (update.log) setActionLog(update.log);
       setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
@@ -247,6 +260,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         playerId?: PlayerId;
         state?: GameState;
         opponentConnected?: boolean;
+        players?: RoomUpdate["players"];
       }) => {
       if (!message?.roomCode) {
         setError("The game server did not return a room code.");
@@ -256,6 +270,9 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setRoomCode(message.roomCode);
       setLocalPlayerId(message.playerId ?? "P1");
       if (message.state) setGameState(message.state);
+      if (message.players) {
+        setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
+      }
       setOpponentConnected(message.opponentConnected ?? false);
       setSearching(false);
       setQueueTime(0);
@@ -278,7 +295,12 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       setStatus("Matchmaking cancelled");
       });
 
-      socket.on("matchmaking:found", (message?: { roomCode?: string; playerId?: PlayerId; state?: GameState }) => {
+      socket.on("matchmaking:found", (message?: {
+        roomCode?: string;
+        playerId?: PlayerId;
+        state?: GameState;
+        players?: RoomUpdate["players"];
+      }) => {
       if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
       if (message?.roomCode) {
         roomCodeRef.current = message.roomCode;
@@ -286,6 +308,9 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       }
       if (message?.playerId) setLocalPlayerId(message.playerId);
       if (message?.state) setGameState(message.state);
+      if (message?.players) {
+        setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
+      }
       setOpponentConnected(true);
       setSearching(false);
       setQueueTime(0);

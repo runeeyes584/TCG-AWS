@@ -100,6 +100,7 @@ export function resolvePlayedSpellEffectTarget(
     case "SOURCE":
     case "EVENT_UNIT":
     case "RANDOM_ENEMY_UNIT":
+    case "RANDOM_ATTACKING_ALLY":
       return selectedTarget;
   }
 }

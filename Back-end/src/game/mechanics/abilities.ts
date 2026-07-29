@@ -207,6 +207,17 @@ function assertConditions(
         }
         break;
       }
+      case "SOURCE_IS_ATTACKING": {
+        if (
+          !context.sourceUnit ||
+          !state.combat.attackers.some(
+            (lane) => lane.attackerId === context.sourceUnit?.instanceId
+          )
+        ) {
+          throw new GameValidationError("Ability condition failed: source is not attacking.");
+        }
+        break;
+      }
     }
   }
 }
@@ -471,6 +482,8 @@ function resolveEffectTarget(
       return resolveEventUnitTarget(context.event);
     case "RANDOM_ENEMY_UNIT":
       return resolveRandomEnemyUnitTarget(state, context.sourcePlayerId);
+    case "RANDOM_ATTACKING_ALLY":
+      return resolveRandomAttackingAllyTarget(state, context.sourcePlayerId);
     case "ALLY_UNIT":
     case "ENEMY_UNIT":
       return context.sourceUnit
@@ -508,6 +521,23 @@ function resolveRandomEnemyUnitTarget(
   const index = state.rngSeed % enemyBoard.length;
   state.rngSeed += 1;
   return { type: "UNIT", playerId: enemyId, unitId: enemyBoard[index].instanceId };
+}
+
+function resolveRandomAttackingAllyTarget(
+  state: GameState,
+  sourcePlayerId: PlayerId
+): SpellTarget | undefined {
+  if (state.attackTokenPlayerId !== sourcePlayerId) {
+    return undefined;
+  }
+  const attackerIds = state.combat.attackers.map((lane) => lane.attackerId);
+  if (attackerIds.length === 0) {
+    return undefined;
+  }
+
+  const index = state.rngSeed % attackerIds.length;
+  state.rngSeed += 1;
+  return { type: "UNIT", playerId: sourcePlayerId, unitId: attackerIds[index] };
 }
 
 function requireDiscardHandCardTarget(

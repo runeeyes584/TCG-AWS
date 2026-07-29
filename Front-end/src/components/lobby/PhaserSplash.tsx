@@ -8,13 +8,11 @@ import gaia from "../../assets/heros/gaia.png";
 import laevan from "../../assets/heros/laevan.png";
 import raye from "../../assets/heros/raye.png";
 import varesa from "../../assets/heros/varesa.png";
-import catMeimei from "../../assets/catMeme/cat-Meimei.png";
 import catUIA from "../../assets/catMeme/cat-UIA.png";
 import catSigma from "../../assets/catMeme/cat-sigma.jpeg";
 
 const splashes = [
   { key: "gaia", src: gaia.src },
-  { key: "cat-meimei", src: catMeimei.src },
   { key: "cat-uia", src: catUIA.src },
   { key: "cat-sigma", src: catSigma.src },
   { key: "aoi", src: aoi.src },

@@ -217,7 +217,7 @@ export function PrivateRoomScreen(props: {
           <ArrowLeft size={18} />
           <span>Lobby</span>
         </button>
-        <div className="matchmaking-title"><span>KALEIDOSCOPE</span><small>PRIVATE CIRCUIT</small></div>
+        <div className="matchmaking-title"><span>CHRONO GENESIS TCG</span><small>PRIVATE CIRCUIT</small></div>
         <span className="private-room-connection"><Radio size={15} /> {controller.status}</span>
       </header>
 

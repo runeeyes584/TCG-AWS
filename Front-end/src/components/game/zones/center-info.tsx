@@ -1,7 +1,5 @@
 import clsx from "clsx";
 import type { GameState, PlayerId } from "@backend/game/types";
-import { getCurrentUser, UserProfile } from "../../../libs/api"
-import { useState, useEffect } from "react";
 
 function Chip({
   label,
@@ -39,22 +37,9 @@ export interface CenterInfoProps {
 export function CenterInfo({ state, timeRemainingMs, playerNames = {} }: CenterInfoProps) {
   const remainingSeconds = Math.ceil(timeRemainingMs / 1000);
   const isTimeCritical = state.started && remainingSeconds <= 5;
-  const [user, setUser] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    async function loadUser() {
-      const response = await getCurrentUser();
-
-      if (response.success) {
-        setUser(response.user);
-      }
-    }
-
-    loadUser();
-  }, []);
 
   const playerName = (playerId: PlayerId) =>
-    playerNames[playerId] ?? `Player ${playerId === "P1" ? user?.username : "Two"}`;
+    playerNames[playerId]?.trim() || `Player ${playerId === "P1" ? "One" : "Two"}`;
   const attackToken = `${playerName(state.attackTokenPlayerId)}${state.attackTokenAvailable ? "" : " spent"}`;
 
   return (

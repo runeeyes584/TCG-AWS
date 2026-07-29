@@ -18,8 +18,14 @@ type MatchRecord = {
   status: "IN_PROGRESS" | "FINISHED";
   state_version?: number;
   engine_state: GameState;
-  player_1?: { user_id?: string; connection_id?: string; connected?: boolean };
-  player_2?: { user_id?: string; connection_id?: string; connected?: boolean };
+  player_1?: MatchPlayerRecord;
+  player_2?: MatchPlayerRecord;
+};
+
+type MatchPlayerRecord = {
+  user_id?: string;
+  connection_id?: string;
+  connected?: boolean;
 };
 
 function isGone(error: any): boolean {
