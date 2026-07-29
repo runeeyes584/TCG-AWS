@@ -63,6 +63,18 @@ type MatchRecord = {
   expire_at?: number;
 };
 
+function getPlayerProfiles(player1: PlayerRecord, player2?: PlayerRecord | null) {
+  const profile = (player: PlayerRecord) => ({
+    username: player.username,
+    elo: player.elo
+  });
+
+  return {
+    P1: profile(player1),
+    ...(player2 ? { P2: profile(player2) } : {})
+  };
+}
+
 class RequestError extends Error {
   constructor(public readonly statusCode: number, message: string) {
     super(message);
@@ -441,6 +453,7 @@ async function sendRoomCreated(
     roomCode: match.join_code || match.match_id,
     playerId: "P1",
     opponentConnected: false,
+    players: getPlayerProfiles(match.player_1),
     state: redactStateForPlayer(match.engine_state, "P1")
   });
 }
@@ -673,6 +686,7 @@ async function joinPrivateRoom(input: {
     roomCode: match.match_id,
     playerId: "P1",
     opponentElo: input.elo,
+    players: getPlayerProfiles(match.player_1, player2),
     state: redactStateForPlayer(updatedEngineState, "P1")
   });
   if (!player1Delivered) {
@@ -685,6 +699,7 @@ async function joinPrivateRoom(input: {
     roomCode: match.match_id,
     playerId: "P2",
     opponentElo: match.player_1.elo,
+    players: getPlayerProfiles(match.player_1, player2),
     state: redactStateForPlayer(updatedEngineState, "P2")
   });
   if (!player2Delivered) {
@@ -847,6 +862,7 @@ export const handler = async (event: any) => {
             roomCode: associatedMatch.match_id,
             playerId,
             opponentConnected: opponent?.connected !== false,
+            players: getPlayerProfiles(associatedMatch.player_1, associatedMatch.player_2),
             state: redactStateForPlayer(associatedMatch.engine_state, playerId)
           });
           if (!delivered) {
@@ -858,6 +874,7 @@ export const handler = async (event: any) => {
               roomCode: associatedMatch.match_id,
               playerId: opponentId,
               opponentConnected: true,
+              players: getPlayerProfiles(associatedMatch.player_1, associatedMatch.player_2),
               state: redactStateForPlayer(associatedMatch.engine_state, opponentId)
             });
           }
@@ -1045,6 +1062,7 @@ export const handler = async (event: any) => {
           roomCode: pendingMatch.match_id,
           playerId: "P1",
           opponentElo: playerElo,
+          players: getPlayerProfiles(pendingMatch.player_1, player2),
           state: redactStateForPlayer(updatedEngineState, "P1")
         }
       );
@@ -1059,6 +1077,7 @@ export const handler = async (event: any) => {
         roomCode: pendingMatch.match_id,
         playerId: "P2",
         opponentElo: candidate.opponentElo,
+        players: getPlayerProfiles(pendingMatch.player_1, player2),
         state: redactStateForPlayer(updatedEngineState, "P2")
       });
 

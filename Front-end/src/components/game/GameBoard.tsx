@@ -158,7 +158,7 @@ export function GameBoardView({
   const canControl = (playerId: PlayerId) => !localPlayerId || localPlayerId === playerId;
   const shouldHideHand = (playerId: PlayerId) => Boolean(localPlayerId && localPlayerId !== playerId);
   const getPlayerName = (playerId: PlayerId) =>
-    playerProfiles?.[playerId]?.username ?? `Player ${playerId === "P1" ? "One" : "Two"}`;
+    playerProfiles?.[playerId]?.username?.trim() || `Player ${playerId === "P1" ? "One" : "Two"}`;
   const getPlayerProfile = (playerId: PlayerId) => playerProfiles?.[playerId];
   const winnerId = gameState.winnerId;
   const isViewerWinner = Boolean(winnerId && winnerId === viewerPlayerId);

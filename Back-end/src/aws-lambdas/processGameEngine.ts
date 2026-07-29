@@ -18,9 +18,36 @@ type MatchRecord = {
   status: "IN_PROGRESS" | "FINISHED";
   state_version?: number;
   engine_state: GameState;
-  player_1?: { user_id?: string; connection_id?: string; connected?: boolean };
-  player_2?: { user_id?: string; connection_id?: string; connected?: boolean };
+  player_1?: MatchPlayerRecord;
+  player_2?: MatchPlayerRecord;
 };
+
+type MatchPlayerRecord = {
+  user_id?: string;
+  connection_id?: string;
+  connected?: boolean;
+  username?: string;
+  elo?: number;
+  avatar?: string;
+};
+
+function getPlayerProfiles(match: MatchRecord) {
+  const profile = (player?: MatchPlayerRecord) => {
+    if (!player?.username) return undefined;
+    return {
+      username: player.username,
+      elo: player.elo ?? 0,
+      ...(player.avatar ? { avatar: player.avatar } : {})
+    };
+  };
+
+  const player1 = profile(match.player_1);
+  const player2 = profile(match.player_2);
+  return {
+    ...(player1 ? { P1: player1 } : {}),
+    ...(player2 ? { P2: player2 } : {})
+  };
+}
 
 function isGone(error: any): boolean {
   return error?.name === "GoneException" || error?.$metadata?.httpStatusCode === 410;
@@ -226,6 +253,7 @@ async function publishState(
           roomCode: match.match_id,
           playerId,
           opponentConnected,
+          players: getPlayerProfiles(match),
           state: redactStateForPlayer(state, playerId)
         }))
       }));
