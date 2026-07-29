@@ -26,6 +26,8 @@
     "start": "next start Front-end",
     "db:setup": "tsx Back-end/src/database/setupTables.ts",
     "db:seed": "tsx Back-end/src/database/seedData.ts",
+    "build:lambda:connect": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/connectHandler.ts connectHandler",
+    "build:lambda:handle-timeout": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/handleTimeout.ts handleTimeout",
     "build:lambda:start-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/startMatch.ts startMatch",
     "build:lambda:process-engine": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/processGameEngine.ts processGameEngine",
     "build:lambda:http": "node scripts/build-http-lambda.mjs",

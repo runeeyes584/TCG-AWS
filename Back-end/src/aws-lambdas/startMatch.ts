@@ -63,15 +63,37 @@ type MatchRecord = {
   expire_at?: number;
 };
 
-function getPlayerProfiles(player1: PlayerRecord, player2?: PlayerRecord | null) {
-  const profile = (player: PlayerRecord) => ({
-    username: player.username,
-    elo: player.elo
+function getPlayerProfiles(
+  player1: PlayerRecord,
+  player2?: PlayerRecord | null,
+  snapshots: Partial<Record<PlayerId, MatchProfileSnapshot>> = {}
+) {
+  const profile = (player: PlayerRecord, playerId: PlayerId) => ({
+    username: snapshots[playerId]?.username ?? player.username,
+    elo: snapshots[playerId]?.elo ?? player.elo,
+    ...(snapshots[playerId]?.avatar ? { avatar: snapshots[playerId].avatar } : {})
   });
 
   return {
-    P1: profile(player1),
-    ...(player2 ? { P2: profile(player2) } : {})
+    P1: profile(player1, "P1"),
+    ...(player2 ? { P2: profile(player2, "P2") } : {})
+  };
+}
+
+type MatchProfileSnapshot = {
+  username: string;
+  avatar?: string;
+  elo: number;
+};
+
+function withPlayerProfile(
+  player: PlayerRecord,
+  profile: MatchProfileSnapshot
+): PlayerRecord {
+  return {
+    ...player,
+    username: profile.username,
+    elo: profile.elo
   };
 }
 
@@ -191,22 +213,31 @@ async function releaseMatchmakingLock(owner: string): Promise<void> {
   }
 }
 
-async function loadElo(userId: string): Promise<number> {
+async function loadPlayerProfile(
+  userId: string,
+  fallbackUsername = "Player"
+): Promise<MatchProfileSnapshot> {
   const result = await dynamoDb.send(new GetCommand({
     TableName: userProfileTable,
     Key: { user_id: userId },
     ConsistentRead: true
   }));
   const item = result.Item;
-  return finiteNumber(
-    item?.stats?.elo_rating,
-    item?.stats?.rank_points,
-    item?.stats?.rating,
-    item?.elo_rating,
-    item?.rank_points,
-    item?.rating,
-    item?.elo
-  ) ?? 1000;
+  const storedUsername = typeof item?.username === "string" ? item.username.trim() : "";
+  const storedAvatar = item?.avatar_url ?? item?.avatar;
+  return {
+    username: storedUsername || fallbackUsername,
+    ...(typeof storedAvatar === "string" && storedAvatar ? { avatar: storedAvatar } : {}),
+    elo: finiteNumber(
+      item?.stats?.elo_rating,
+      item?.stats?.rank_points,
+      item?.stats?.rating,
+      item?.elo_rating,
+      item?.rank_points,
+      item?.rating,
+      item?.elo
+    ) ?? 1000
+  };
 }
 
 async function loadWaitingMatches(): Promise<MatchRecord[]> {
@@ -375,8 +406,8 @@ async function createPublicWaitingMatch(input: {
 
 async function claimMatch(
   match: MatchRecord,
+  player1: PlayerRecord,
   player2: PlayerRecord,
-  player1Elo: number,
   expectedType: MatchType
 ): Promise<GameState | undefined> {
   const baseEngineState = createInitialGameState(
@@ -410,7 +441,7 @@ async function claimMatch(
       TableName: gameStateTable,
       Key: { match_id: match.match_id },
       UpdateExpression:
-        "SET #status = :active, player_1.elo = :player1Elo, player_2 = :player2, " +
+        "SET #status = :active, player_1 = :player1, player_2 = :player2, " +
         "engine_state = :engineState, expire_at = :expireAt, state_version = :nextVersion, " +
         "current_round = :round, turn_player_id = :nextPlayerId",
       ConditionExpression:
@@ -424,7 +455,7 @@ async function claimMatch(
       ExpressionAttributeValues: {
         ":active": "IN_PROGRESS",
         ":waiting": "WAITING",
-        ":player1Elo": player1Elo,
+        ":player1": player1,
         ":player2": player2,
         ":emptyPlayer": null,
         ":currentVersion": currentVersion,
@@ -446,14 +477,19 @@ async function claimMatch(
 
 async function sendRoomCreated(
   wsClient: ApiGatewayManagementApiClient,
-  match: MatchRecord
+  match: MatchRecord,
+  player1Profile?: MatchProfileSnapshot
 ): Promise<boolean> {
   return sendMessage(wsClient, match.player_1.connection_id, {
     event: "room:created",
     roomCode: match.join_code || match.match_id,
     playerId: "P1",
     opponentConnected: false,
-    players: getPlayerProfiles(match.player_1),
+    players: getPlayerProfiles(
+      match.player_1,
+      undefined,
+      player1Profile ? { P1: player1Profile } : {}
+    ),
     state: redactStateForPlayer(match.engine_state, "P1")
   });
 }
@@ -462,6 +498,7 @@ async function createPrivateRoom(input: {
   connectionId: string;
   userId: string;
   username: string;
+  avatar?: string;
   elo: number;
   deckSelection?: MatchmakingDeckSelection;
   wsClient: ApiGatewayManagementApiClient;
@@ -533,7 +570,11 @@ async function createPrivateRoom(input: {
       throw error;
     }
 
-    if (!(await sendRoomCreated(input.wsClient, match))) {
+      if (!(await sendRoomCreated(input.wsClient, match, {
+        username: input.username,
+        avatar: input.avatar,
+        elo: input.elo
+      }))) {
       await deleteWaitingMatch(match);
       throw new RequestError(410, "WebSocket connection closed before the room was created.");
     }
@@ -548,6 +589,7 @@ async function joinPrivateRoom(input: {
   connectionId: string;
   userId: string;
   username: string;
+  avatar?: string;
   elo: number;
   deckSelection?: MatchmakingDeckSelection;
   wsClient: ApiGatewayManagementApiClient;
@@ -634,7 +676,11 @@ async function joinPrivateRoom(input: {
       ...match,
       player_1: { ...match.player_1, connection_id: input.connectionId, connected: true }
     };
-    if (!(await sendRoomCreated(input.wsClient, resumedMatch))) {
+    if (!(await sendRoomCreated(input.wsClient, resumedMatch, {
+      username: input.username,
+      avatar: input.avatar,
+      elo: input.elo
+    }))) {
       await deleteWaitingMatch(resumedMatch);
       throw new RequestError(410, "WebSocket connection closed while resuming the room.");
     }
@@ -655,7 +701,9 @@ async function joinPrivateRoom(input: {
     selected_deck_id: input.deckSelection?.deckId,
     selected_deck_card_ids: input.deckSelection?.cardIds
   };
-  const updatedEngineState = await claimMatch(match, player2, match.player_1.elo, "PRIVATE");
+  const player1Profile = await loadPlayerProfile(match.player_1.user_id, match.player_1.username);
+  const player1 = withPlayerProfile(match.player_1, player1Profile);
+  const updatedEngineState = await claimMatch(match, player1, player2, "PRIVATE");
   if (!updatedEngineState) {
     throw new RequestError(409, "Another player joined this room first.");
   }
@@ -686,7 +734,10 @@ async function joinPrivateRoom(input: {
     roomCode: match.match_id,
     playerId: "P1",
     opponentElo: input.elo,
-    players: getPlayerProfiles(match.player_1, player2),
+    players: getPlayerProfiles(player1, player2, {
+      P1: player1Profile,
+      P2: { username: input.username, avatar: input.avatar, elo: input.elo }
+    }),
     state: redactStateForPlayer(updatedEngineState, "P1")
   });
   if (!player1Delivered) {
@@ -698,8 +749,11 @@ async function joinPrivateRoom(input: {
     event: "matchmaking:found",
     roomCode: match.match_id,
     playerId: "P2",
-    opponentElo: match.player_1.elo,
-    players: getPlayerProfiles(match.player_1, player2),
+    opponentElo: player1.elo,
+    players: getPlayerProfiles(player1, player2, {
+      P1: player1Profile,
+      P2: { username: input.username, avatar: input.avatar, elo: input.elo }
+    }),
     state: redactStateForPlayer(updatedEngineState, "P2")
   });
   if (!player2Delivered) {
@@ -770,7 +824,11 @@ export const handler = async (event: any) => {
     }
 
     const userId = String(connection.user_id);
-    const username = String(connection.username || "Player");
+    const storedProfile = await loadPlayerProfile(
+      userId,
+      String(connection.username || "Player")
+    );
+    const { username, avatar, elo: playerElo } = storedProfile;
 
     // Resuming an active match is a separate, explicit user decision.  In
     // particular, a normal "Find match" request must never silently re-open
@@ -831,9 +889,22 @@ export const handler = async (event: any) => {
         if (playerId) {
           const playerPath = playerId === "P1" ? "player_1" : "player_2";
           const opponentId: PlayerId = playerId === "P1" ? "P2" : "P1";
-          const opponent = opponentId === "P1"
+          const currentPlayer = playerId === "P1"
             ? associatedMatch.player_1
             : associatedMatch.player_2;
+          if (!currentPlayer) {
+            throw new RequestError(409, "The player record is missing from this match.");
+          }
+          const refreshedPlayer = withPlayerProfile(currentPlayer, storedProfile);
+          const refreshedMatch: MatchRecord = playerId === "P1"
+            ? { ...associatedMatch, player_1: refreshedPlayer }
+            : { ...associatedMatch, player_2: refreshedPlayer };
+          const opponent = opponentId === "P1"
+            ? refreshedMatch.player_1
+            : refreshedMatch.player_2;
+          const opponentProfile = opponent
+            ? await loadPlayerProfile(opponent.user_id, opponent.username)
+            : undefined;
           await dynamoDb.send(new UpdateCommand({
             TableName: gameStateTable,
             Key: { match_id: associatedMatch.match_id },
@@ -841,7 +912,8 @@ export const handler = async (event: any) => {
               `#status = :active AND ${playerPath}.user_id = :userId ` +
               `AND ${playerPath}.connection_id = :connectionId`,
             UpdateExpression:
-              `SET ${playerPath}.connected = :connected, ${playerPath}.reconnected_at = :now ` +
+              `SET ${playerPath}.connected = :connected, ${playerPath}.reconnected_at = :now, ` +
+              `${playerPath}.username = :username, ${playerPath}.elo = :elo ` +
               `REMOVE ${playerPath}.disconnected_at, ${playerPath}.resume_connection_at`,
             ExpressionAttributeNames: { "#status": "status" },
             ExpressionAttributeValues: {
@@ -849,7 +921,9 @@ export const handler = async (event: any) => {
               ":userId": userId,
               ":connectionId": connectionId,
               ":connected": true,
-              ":now": Date.now()
+              ":now": Date.now(),
+              ":username": storedProfile.username,
+              ":elo": storedProfile.elo
             }
           }));
           await dynamoDb.send(new UpdateCommand({
@@ -862,7 +936,10 @@ export const handler = async (event: any) => {
             roomCode: associatedMatch.match_id,
             playerId,
             opponentConnected: opponent?.connected !== false,
-            players: getPlayerProfiles(associatedMatch.player_1, associatedMatch.player_2),
+            players: getPlayerProfiles(refreshedMatch.player_1, refreshedMatch.player_2, {
+              [playerId]: storedProfile,
+              ...(opponentProfile ? { [opponentId]: opponentProfile } : {})
+            }),
             state: redactStateForPlayer(associatedMatch.engine_state, playerId)
           });
           if (!delivered) {
@@ -874,7 +951,10 @@ export const handler = async (event: any) => {
               roomCode: associatedMatch.match_id,
               playerId: opponentId,
               opponentConnected: true,
-              players: getPlayerProfiles(associatedMatch.player_1, associatedMatch.player_2),
+              players: getPlayerProfiles(refreshedMatch.player_1, refreshedMatch.player_2, {
+                [playerId]: storedProfile,
+                ...(opponentProfile ? { [opponentId]: opponentProfile } : {})
+              }),
               state: redactStateForPlayer(associatedMatch.engine_state, opponentId)
             });
           }
@@ -897,7 +977,7 @@ export const handler = async (event: any) => {
               throw new RequestError(409, "Cancel your current room before joining another one.");
             }
           }
-          if (!(await sendRoomCreated(wsClient, associatedMatch))) {
+          if (!(await sendRoomCreated(wsClient, associatedMatch, storedProfile))) {
             await deleteWaitingMatch(associatedMatch);
             throw new RequestError(410, "WebSocket connection closed while resuming the room.");
           }
@@ -916,7 +996,6 @@ export const handler = async (event: any) => {
     }
 
     const deckSelection = await resolveDeckSelection(userId, body.deckSelection);
-    const playerElo = await loadElo(userId);
     console.info("Matchmaking player loaded", { connectionId, userId, playerElo });
 
     if (route === "room-create") {
@@ -924,6 +1003,7 @@ export const handler = async (event: any) => {
         connectionId,
         userId,
         username,
+        avatar,
         elo: playerElo,
         deckSelection,
         wsClient
@@ -944,6 +1024,7 @@ export const handler = async (event: any) => {
         connectionId,
         userId,
         username,
+        avatar,
         elo: playerElo,
         deckSelection,
         wsClient
@@ -957,7 +1038,7 @@ export const handler = async (event: any) => {
 
     const nowSeconds = Math.floor(Date.now() / 1000);
     const waitingMatches = await loadWaitingMatches();
-    const candidates: Array<{ match: MatchRecord; opponentElo: number }> = [];
+    const candidates: Array<{ match: MatchRecord; opponentProfile: MatchProfileSnapshot }> = [];
 
     for (const match of waitingMatches) {
       if (!isPublicMatch(match)) continue;
@@ -1003,20 +1084,24 @@ export const handler = async (event: any) => {
 
       // Always compare the latest rating from UserProfile. The value stored in a
       // WAITING record is only a snapshot and older queue records may not have it.
-      const opponentElo = await loadElo(String(match.player_1.user_id));
-      if (Math.abs(opponentElo - playerElo) <= eloRange) {
-        candidates.push({ match, opponentElo });
+      const opponentProfile = await loadPlayerProfile(
+        String(match.player_1.user_id),
+        match.player_1.username
+      );
+      if (Math.abs(opponentProfile.elo - playerElo) <= eloRange) {
+        candidates.push({ match, opponentProfile });
       }
     }
 
     candidates.sort((left, right) => {
-      const leftDifference = Math.abs(left.opponentElo - playerElo);
-      const rightDifference = Math.abs(right.opponentElo - playerElo);
+      const leftDifference = Math.abs(left.opponentProfile.elo - playerElo);
+      const rightDifference = Math.abs(right.opponentProfile.elo - playerElo);
       return leftDifference - rightDifference || left.match.created_at - right.match.created_at;
     });
 
     for (const candidate of candidates) {
       const pendingMatch = candidate.match;
+      const player1 = withPlayerProfile(pendingMatch.player_1, candidate.opponentProfile);
       const player2: PlayerRecord = {
         user_id: userId,
         connection_id: connectionId,
@@ -1029,8 +1114,8 @@ export const handler = async (event: any) => {
       };
       const updatedEngineState = await claimMatch(
         pendingMatch,
+        player1,
         player2,
-        candidate.opponentElo,
         "PUBLIC"
       );
       if (!updatedEngineState) continue;
@@ -1062,7 +1147,10 @@ export const handler = async (event: any) => {
           roomCode: pendingMatch.match_id,
           playerId: "P1",
           opponentElo: playerElo,
-          players: getPlayerProfiles(pendingMatch.player_1, player2),
+          players: getPlayerProfiles(player1, player2, {
+            P1: candidate.opponentProfile,
+            P2: storedProfile
+          }),
           state: redactStateForPlayer(updatedEngineState, "P1")
         }
       );
@@ -1076,8 +1164,11 @@ export const handler = async (event: any) => {
         event: "matchmaking:found",
         roomCode: pendingMatch.match_id,
         playerId: "P2",
-        opponentElo: candidate.opponentElo,
-        players: getPlayerProfiles(pendingMatch.player_1, player2),
+        opponentElo: candidate.opponentProfile.elo,
+        players: getPlayerProfiles(player1, player2, {
+          P1: candidate.opponentProfile,
+          P2: storedProfile
+        }),
         state: redactStateForPlayer(updatedEngineState, "P2")
       });
 
