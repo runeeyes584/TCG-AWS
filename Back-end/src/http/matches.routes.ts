@@ -15,7 +15,7 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { authenticate } from "../auth/auth.middleware";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAction } from "../game/core/engine";
-import type { GameState, PlayerId } from "../game/types";
+import type { GameState, MatchEndReason, PlayerId } from "../game/types";
 import type { MatchHistory, UserProfile } from "../database/database.types";
 
 const router = Router();
@@ -31,6 +31,7 @@ type MatchRecord = {
   status: "WAITING" | "IN_PROGRESS" | "FINISHED";
   created_at?: number;
   expire_at?: number;
+  end_reason?: MatchEndReason;
   player_1?: { user_id?: string; connection_id?: string; connected?: boolean };
   player_2?: { user_id?: string; connection_id?: string; connected?: boolean } | null;
   engine_state: GameState;
@@ -69,9 +70,12 @@ export async function findPendingMatch(userId: string): Promise<MatchRecord | un
     .filter((match) => {
       if (match.expire_at && match.expire_at <= nowSeconds) return false;
       // An active match must have two authenticated players. This excludes a
-      // malformed/stale room record from being presented as resumable.
-      return match.status !== "IN_PROGRESS" || Boolean(
-        match.player_1?.user_id && match.player_2?.user_id
+      // malformed/stale room record from being presented as resumable. The
+      // winner in engine_state is authoritative if a legacy/racing writer did
+      // not update the top-level status to FINISHED.
+      return match.status !== "IN_PROGRESS" || (
+        !match.engine_state?.winnerId &&
+        Boolean(match.player_1?.user_id && match.player_2?.user_id)
       );
     })
     .sort((left, right) => {
@@ -218,19 +222,28 @@ router.post("/pending/forfeit", authenticate, async (req, res) => {
       type: "SURRENDER",
       playerId: requestingPlayerId
     });
-    const winnerId = finalState.winnerId || (requestingPlayerId === "P1" ? "P2" : "P1");
+    const winnerId = finalState.winnerId;
+    if (!winnerId) {
+      return res.status(409).json({ success: false, message: "Match has no winner." });
+    }
+    const endReason = finalState.endReason ?? "SURRENDER";
+    const endedAt = Date.now();
 
     await dynamoDb.send(new UpdateCommand({
       TableName: gameStateTable,
       Key: { match_id: match.match_id },
       ConditionExpression: "#status = :active",
-      UpdateExpression: "SET #status = :finished, engine_state = :state, winner_id = :winner",
+      UpdateExpression:
+        "SET #status = :finished, engine_state = :state, winner_id = :winner, " +
+        "end_reason = :endReason, ended_at = :endedAt",
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
         ":active": "IN_PROGRESS",
         ":finished": "FINISHED",
         ":state": finalState,
-        ":winner": winnerId
+        ":winner": winnerId,
+        ":endReason": endReason,
+        ":endedAt": endedAt
       }
     }));
 
@@ -238,11 +251,11 @@ router.post("/pending/forfeit", authenticate, async (req, res) => {
       TableName: gameLogsTable,
       Item: {
         match_id: match.match_id,
-        action_sequence: Date.now(),
+        action_sequence: endedAt,
         actor_id: requestingPlayerId,
         action_type: "END_MATCH",
-        details: { reason: "FORFEIT", winnerId },
-        timestamp: Date.now()
+        details: { reason: endReason, winnerId },
+        timestamp: endedAt
       }
     }));
 
@@ -265,7 +278,7 @@ router.post("/pending/forfeit", authenticate, async (req, res) => {
             event: "match:ended",
             roomCode: match.match_id,
             winnerId,
-            reason: "FORFEIT",
+            reason: endReason,
             state: redactStateForPlayer(finalState, playerId)
           }))
         }));
@@ -280,8 +293,8 @@ router.post("/pending/forfeit", authenticate, async (req, res) => {
         MessageBody: JSON.stringify({
           matchId: match.match_id,
           winnerId,
-          reason: "FORFEIT",
-          endedAt: Date.now(),
+          reason: endReason,
+          endedAt,
           player1: { userId: match.player_1.user_id },
           player2: { userId: match.player_2.user_id }
         })
@@ -344,6 +357,7 @@ router.get("/history", authenticate, async (req, res) => {
 
         return {
           ...match,
+          end_reason: match.end_reason ?? "UNKNOWN_LEGACY",
           opponent_name: opponent?.username ?? match.opponent_id,
           opponent_avatar: opponent?.avatar_url
         };
