@@ -278,6 +278,7 @@ describe("game engine", () => {
 
     expect(state.players.P1.nexusHp).toBe(0);
     expect(state.winnerId).toBe("P2");
+    expect(state.endReason).toBe("DECK_EXHAUSTED");
   });
 
   it("first player to deck out during round draw loses before the other draw resolves", () => {
@@ -299,6 +300,7 @@ describe("game engine", () => {
     state = applyAction(state, { type: "START_ROUND" });
 
     expect(state.winnerId).toBe("P2");
+    expect(state.endReason).toBe("DECK_EXHAUSTED");
     expect(state.players.P1.nexusHp).toBe(0);
     expect(state.players.P2.nexusHp).toBe(20);
   });
@@ -383,12 +385,14 @@ describe("game engine", () => {
 
     expect(state.players.P1.consecutiveAfkCount).toBe(3);
     expect(state.winnerId).toBe("P2");
+    expect(state.endReason).toBe("AFK_TIMEOUT");
   });
 
   it("awards the game to the opponent when a player surrenders", () => {
     const state = applyAction(startedGame(), { type: "SURRENDER", playerId: "P1" });
 
     expect(state.winnerId).toBe("P2");
+    expect(state.endReason).toBe("SURRENDER");
   });
 
   it("declares attackers into combat state and commits to block phase", () => {
@@ -667,12 +671,25 @@ describe("game engine", () => {
 
     expect(state.players.P2.nexusHp).toBe(0);
     expect(state.winnerId).toBe("P1");
+    expect(state.endReason).toBe("NEXUS_DESTROYED");
     expect(() =>
       applyAction(state, {
         type: "DRAW_CARD",
         playerId: "P1"
       })
     ).toThrow(GameValidationError);
+  });
+
+  it("records simultaneous nexus destruction separately", () => {
+    let state = startedGame();
+    state.players.P1.nexusHp = 0;
+    state.players.P2.nexusHp = 0;
+    state.priorityPlayerId = "P2";
+
+    state = applyAction(state, { type: "DRAW_CARD", playerId: "P2" });
+
+    expect(state.winnerId).toBe("P2");
+    expect(state.endReason).toBe("DOUBLE_NEXUS_DESTROYED");
   });
 
   it("unblocked combat damage goes through dealDamage and emits NEXUS_DAMAGED once", () => {

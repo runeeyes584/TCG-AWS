@@ -36,6 +36,8 @@ import { useBattleMusic } from "../../hooks/useBattleMusic";
 import { DeveloperResourcesPanel } from "./DeveloperResourcesPanel";
 import type { RoomUpdate } from "@backend/shared/multiplayer";
 
+const MATCH_RESULT_RETURN_SECONDS = 20;
+
 interface Props {
   controller: GameController;
 }
@@ -83,6 +85,7 @@ export function GameBoardView({
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | undefined>();
   const [showExitTrialDialog, setShowExitTrialDialog] = useState(false);
   const [showSurrenderDialog, setShowSurrenderDialog] = useState(false);
+  const [resultReturnSeconds, setResultReturnSeconds] = useState(MATCH_RESULT_RETURN_SECONDS);
   const developerToolsEnabled = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
   const canEditDeveloperResources = developerToolsEnabled && Boolean(setDeveloperResources);
   const [previewCard, setPreviewCard] = useState<CardInstance>();
@@ -165,6 +168,29 @@ export function GameBoardView({
   const winnerName = winnerId ? getPlayerName(winnerId) : "";
   const winnerAvatar = winnerId ? getPlayerProfile(winnerId)?.avatar : undefined;
   const winnerInitial = winnerName.slice(0, 1).toUpperCase() || "?";
+
+  useEffect(() => {
+    if (!winnerId || !localPlayerId) {
+      setResultReturnSeconds(MATCH_RESULT_RETURN_SECONDS);
+      return;
+    }
+
+    const deadline = Date.now() + MATCH_RESULT_RETURN_SECONDS * 1_000;
+    const updateCountdown = () => {
+      setResultReturnSeconds(Math.max(0, Math.ceil((deadline - Date.now()) / 1_000)));
+    };
+    updateCountdown();
+
+    const interval = window.setInterval(updateCountdown, 250);
+    const redirect = window.setTimeout(() => {
+      window.location.assign("/");
+    }, MATCH_RESULT_RETURN_SECONDS * 1_000);
+
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(redirect);
+    };
+  }, [localPlayerId, winnerId]);
 
   const leaveToLobby = () => {
     window.location.assign("/");
@@ -2037,6 +2063,17 @@ export function GameBoardView({
                   <strong>{winnerName}</strong>
                 </span>
               </div>
+              {localPlayerId ? (
+                <div className="match-result-panel__timeout" role="status" aria-live="polite">
+                  <span>Returning to lobby automatically</span>
+                  <strong>{resultReturnSeconds}s</strong>
+                  <progress
+                    aria-label="Time remaining before returning to lobby"
+                    max={MATCH_RESULT_RETURN_SECONDS}
+                    value={resultReturnSeconds}
+                  />
+                </div>
+              ) : null}
               <div className="match-result-panel__actions">
                 <button type="button" className="match-result-panel__action match-result-panel__action--secondary" onClick={leaveToLobby}>
                   <House size={17} aria-hidden="true" /> Lobby

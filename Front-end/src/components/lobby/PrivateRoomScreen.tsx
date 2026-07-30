@@ -122,7 +122,14 @@ export function PrivateRoomScreen(props: {
     controller.joinRoom(validJoinCode, { deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
   }, [controller, deckSelectionReady, pendingMatch, pendingMatchChecked, props.mode, selectedDeck, validJoinCode]);
 
-  if (controller.inGame && controller.roomCode && controller.localPlayerId) {
+  // `match:ended` intentionally marks the live session as no longer in-game.
+  // Keep the board mounted for the committed winner state so both private-room
+  // players can see and act on the result dialog.
+  if (
+    (controller.inGame || Boolean(controller.gameState.winnerId)) &&
+    controller.roomCode &&
+    controller.localPlayerId
+  ) {
     return (
       <GameBoardView
         controller={controller}

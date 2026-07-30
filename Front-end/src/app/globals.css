@@ -828,6 +828,50 @@ button svg { vertical-align: -2px; }
   font-size: 14px;
 }
 
+.match-result-panel__timeout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: min(320px, 100%);
+  align-items: center;
+  gap: 5px 12px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.match-result-panel__timeout strong {
+  color: var(--result-color);
+  font-size: 12px;
+}
+
+.match-result-panel__timeout progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.match-result-panel__timeout progress::-webkit-progress-bar {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.match-result-panel__timeout progress::-webkit-progress-value {
+  background: var(--result-color);
+  box-shadow: 0 0 10px var(--result-color);
+  transition: width 250ms linear;
+}
+
+.match-result-panel__timeout progress::-moz-progress-bar {
+  background: var(--result-color);
+  box-shadow: 0 0 10px var(--result-color);
+}
+
 .match-result-panel__actions {
   display: grid;
   grid-template-columns: 1fr 1.35fr;

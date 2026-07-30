@@ -54,7 +54,7 @@ type MatchRecord = {
   match_id: string;
   match_type?: MatchType;
   join_code?: string;
-  status: "WAITING" | "IN_PROGRESS";
+  status: "WAITING" | "IN_PROGRESS" | "FINISHED";
   player_1: PlayerRecord;
   player_2?: PlayerRecord | null;
   state_version?: number;
@@ -851,7 +851,7 @@ export const handler = async (event: any) => {
         ConsistentRead: true
       }));
       const associatedMatch = existing.Item as MatchRecord | undefined;
-      if (associatedMatch?.status === "IN_PROGRESS") {
+      if (associatedMatch?.status === "IN_PROGRESS" && !associatedMatch.engine_state?.winnerId) {
         if (
           resumeRequested &&
           requestedResumeMatchId &&
@@ -910,7 +910,8 @@ export const handler = async (event: any) => {
             Key: { match_id: associatedMatch.match_id },
             ConditionExpression:
               `#status = :active AND ${playerPath}.user_id = :userId ` +
-              `AND ${playerPath}.connection_id = :connectionId`,
+              `AND ${playerPath}.connection_id = :connectionId ` +
+              "AND attribute_not_exists(engine_state.winnerId)",
             UpdateExpression:
               `SET ${playerPath}.connected = :connected, ${playerPath}.reconnected_at = :now, ` +
               `${playerPath}.username = :username, ${playerPath}.elo = :elo ` +

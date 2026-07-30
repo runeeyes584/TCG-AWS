@@ -389,6 +389,14 @@ export type VisualEvent =
   | { type: "SUMMON"; playerId: PlayerId; instanceId: string }
   | { type: "AFK_WARNING"; playerId: PlayerId; afkCount: number };
 
+export type MatchEndReason =
+  | "NEXUS_DESTROYED"
+  | "DOUBLE_NEXUS_DESTROYED"
+  | "DECK_EXHAUSTED"
+  | "AFK_TIMEOUT"
+  | "SURRENDER"
+  | "UNKNOWN_LEGACY";
+
 export interface GameState {
   players: Record<PlayerId, PlayerState>;
   activePlayerId: PlayerId;
@@ -413,6 +421,7 @@ export interface GameState {
   rngSeed: number;
   started: boolean;
   winnerId?: PlayerId;
+  endReason?: MatchEndReason;
   effectQueue: QueuedEffect[];
   visualEvents: VisualEvent[];
 }

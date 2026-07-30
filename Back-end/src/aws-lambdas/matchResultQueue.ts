@@ -1,5 +1,5 @@
 import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
-import type { PlayerId } from "../game/types";
+import type { MatchEndReason, PlayerId } from "../game/types";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const sqs = new SQSClient({ region });
@@ -13,7 +13,7 @@ export interface CompletedMatchRecord {
 export async function enqueueMatchResult(input: {
   match: CompletedMatchRecord;
   winnerId: PlayerId;
-  reason: string;
+  reason: MatchEndReason;
   endedAt?: number;
 }): Promise<boolean> {
   const queueUrl = process.env.SQS_MATCH_RESULTS_QUEUE_URL;

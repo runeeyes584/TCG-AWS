@@ -1,4 +1,5 @@
 import type { SavedDeck } from "../decks/deck.types";
+import type { MatchEndReason } from "../game/types";
 
 // ─── Player State ────────────────────────────────────────────────────────────
 
@@ -33,6 +34,9 @@ export interface GameState {
   player_1: PlayerState;
   player_2: PlayerState;
   action_stack: GameAction[];
+  winner_id?: string;
+  end_reason?: MatchEndReason;
+  ended_at?: number;
   expire_at?: number;
 }
 
@@ -103,6 +107,7 @@ export interface MatchHistory {
   match_id: string;
   opponent_id: string;
   result: "WIN" | "LOSS" | "DRAW";
+  end_reason: MatchEndReason;
   rank_point_change: number;
   elo_change?: number; // Alias for rank_point_change
   duration?: number;   // Match duration in seconds

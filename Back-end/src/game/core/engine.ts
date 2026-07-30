@@ -17,6 +17,7 @@ import {
   checkWinConditions,
   cloneState,
   findUnit,
+  finishGame,
   MAX_MANA,
   MAX_SPELL_MANA,
   HAND_LIMIT,
@@ -446,7 +447,7 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       next = handleTimeout(cleanState, action.playerId);
       break;
     case "SURRENDER":
-      next.winnerId = opponentOf(action.playerId);
+      finishGame(next, opponentOf(action.playerId), "SURRENDER");
       break;
   }
 
@@ -1345,7 +1346,7 @@ function handleTimeout(state: GameState, playerId: PlayerId): GameState {
   player.consecutiveAfkCount += 1;
 
   if (player.consecutiveAfkCount >= 3) {
-    next.winnerId = opponentOf(playerId);
+    finishGame(next, opponentOf(playerId), "AFK_TIMEOUT");
     return next;
   }
 

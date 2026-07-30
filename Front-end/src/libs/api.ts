@@ -1,4 +1,5 @@
 import type { SaveDeckPayload, SavedDeck } from "@backend/decks/deck.types";
+import type { MatchEndReason } from "@backend/game/types";
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const API_URL = (
@@ -102,6 +103,7 @@ export interface MatchHistory {
   opponent_name?: string;
   opponent_avatar?: string;
   result: "WIN" | "LOSS" | "DRAW";
+  end_reason: MatchEndReason;
   rank_point_change: number;
   elo_change?: number;
   duration?: number;
