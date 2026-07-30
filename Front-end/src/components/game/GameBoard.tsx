@@ -1296,37 +1296,16 @@ export function GameBoardView({
       );
     }
 
-    const slots: Array<UnitInstance | undefined> = Array(6).fill(undefined);
-    const assignedBlockerIds = new Set<string>();
-
-    gameState.combat.attackers.forEach((lane, index) => {
-      if (!lane.blockerId) {
-        return;
-      }
-
-      const blocker = gameState.players[playerId].board.find(
-        (unit) => unit.instanceId === lane.blockerId
-      );
-      if (blocker) {
-        slots[index] = blocker;
-        assignedBlockerIds.add(blocker.instanceId);
-      }
-    });
-
-    // Keep unassigned revived units visible without occupying attacker lanes,
-    // so the defender can select one and then choose a blocking slot.
-    const activeUnits = gameState.players[playerId].board.filter(
-      (unit) => unit.boardRow === "ACTIVE" && !assignedBlockerIds.has(unit.instanceId)
+    // During combat the active row represents combat lanes only. Units which
+    // have not been assigned as blockers stay in the selectable staging row,
+    // regardless of how they entered the board.
+    return gameState.combat.attackers.map((lane) =>
+      lane.blockerId
+        ? gameState.players[playerId].board.find(
+          (unit) => unit.instanceId === lane.blockerId
+        )
+        : undefined
     );
-    let activeIndex = activeUnits.length - 1;
-    for (let index = slots.length - 1; index >= 0 && activeIndex >= 0; index -= 1) {
-      if (!slots[index]) {
-        slots[index] = activeUnits[activeIndex];
-        activeIndex -= 1;
-      }
-    }
-
-    return slots;
   }
 
   function canSelectWaitingUnit(playerId: PlayerId): boolean {
