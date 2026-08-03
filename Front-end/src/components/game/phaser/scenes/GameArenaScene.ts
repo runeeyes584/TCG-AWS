@@ -1,10 +1,10 @@
 import Phaser from "phaser";
-import type { PlayerId, UnitInstance, VisualEvent } from "@backend/game/types";
+import type { GameState, PlayerId, UnitInstance, VisualEvent } from "@backend/game/types";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
 import { getArenaLayout, getSlotPosition } from "../config/arenaLayout";
 import { ArenaBoardRenderer } from "../renders/ArenaBoardRenderer";
 import { CardRenderer } from "../renders/CardRenderer";
-import { drawCardLane } from "../renders/CardLaneRenderer";
+import { drawCardLane, drawDefendCardLane } from "../renders/CardLaneRenderer";
 import { ArenaStateSystem } from "../systems/ArenaStateSystem";
 import { ArenaInputSystem } from "../systems/ArenaInputSystem";
 
@@ -12,18 +12,25 @@ import { ArenaInputSystem } from "../systems/ArenaInputSystem";
 export class GameArenaScene extends Phaser.Scene {
   private board?: Phaser.GameObjects.Graphics;
   private slots?: Phaser.GameObjects.Graphics;
+  private defendSlots?: Phaser.GameObjects.Graphics;
   private readonly boardRenderer = new ArenaBoardRenderer(this);
   private readonly stateSystem = new ArenaStateSystem();
   private readonly inputSystem = new ArenaInputSystem(this);
   private readonly animationUnsubscriptions: Array<() => void> = [];
   private cards!: CardRenderer;
   private lastVisualSignature = "";
+  private defendSignature = "";
+  private defendBreathAlpha = 0.5;
+  private defendDashOffset = 0;
+  private defendBreathTween?: Phaser.Tweens.Tween;
+  private defendDashTween?: Phaser.Tweens.Tween;
 
   constructor() { super({ key: "GameArenaScene" }); }
 
   create() {
     this.board = this.add.graphics().setDepth(0);
     this.slots = this.add.graphics().setDepth(1);
+    this.defendSlots = this.add.graphics().setDepth(1.5);
     this.cards = new CardRenderer(this, () => this.renderArena());
     this.stateSystem.start(() => this.renderArena());
     this.animationUnsubscriptions.push(
@@ -41,16 +48,20 @@ export class GameArenaScene extends Phaser.Scene {
     this.animationUnsubscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
     this.scale.off("resize", this.renderArena, this);
     this.cards.clear();
+    this.defendBreathTween?.stop();
+    this.defendDashTween?.stop();
+    this.defendSlots?.destroy();
     this.inputSystem.destroy();
   }
 
   private renderArena() {
     const { gameState, viewerPlayerId, camera } = this.stateSystem.snapshot;
-    if (!this.board || !this.slots || !gameState) return;
+    if (!this.board || !this.slots || !this.defendSlots || !gameState) return;
     const { width, height } = this.scale;
     const layout = getArenaLayout(width, height, camera.zoom, camera.tilt);
     this.boardRenderer.render(this.board, width, height, layout);
     this.slots.clear();
+    this.defendSlots.clear();
     this.cards.clear();
     this.inputSystem.clear();
 
@@ -87,7 +98,62 @@ export class GameArenaScene extends Phaser.Scene {
         });
       });
     });
+    this.renderDefendSlots(gameState, viewerPlayerId, width, height, layout.cardWidth);
     this.renderVisualEvents(gameState.visualEvents);
+  }
+
+  private renderDefendSlots(
+    gameState: GameState,
+    viewerPlayerId: PlayerId,
+    width: number,
+    height: number,
+    cardWidth: number,
+  ) {
+    if (!this.defendSlots) return;
+    const defenderId: PlayerId = gameState.attackTokenPlayerId === "P1" ? "P2" : "P1";
+    const active = gameState.phase === "BLOCK" && viewerPlayerId === defenderId && gameState.priorityPlayerId === defenderId;
+    const signature = active ? `${width}:${height}:${defenderId}:${cardWidth}` : "off";
+    if (signature !== this.defendSignature) {
+      this.defendSignature = signature;
+      this.defendBreathTween?.stop();
+      this.defendDashTween?.stop();
+      if (active) {
+        this.defendBreathAlpha = 0.5;
+        this.defendDashOffset = 0;
+        this.defendBreathTween = this.tweens.add({
+          targets: this,
+          defendBreathAlpha: 1,
+          duration: 850,
+          ease: "Sine.InOut",
+          yoyo: true,
+          repeat: -1,
+          onUpdate: () => this.drawDefendSlots(defenderId, width, height, cardWidth),
+        });
+        this.defendDashTween = this.tweens.add({
+          targets: this,
+          defendDashOffset: 1,
+          duration: 1400,
+          ease: "Linear",
+          repeat: -1,
+          onUpdate: () => this.drawDefendSlots(defenderId, width, height, cardWidth),
+        });
+      }
+    }
+    if (active) this.drawDefendSlots(defenderId, width, height, cardWidth);
+  }
+
+  private drawDefendSlots(defenderId: PlayerId, width: number, height: number, cardWidth: number) {
+    if (!this.defendSlots) return;
+    this.defendSlots.clear();
+    this.defendSlots.setData("dashOffset", this.defendDashOffset);
+    const y = defenderId === "P1" ? height * 0.64 : height * 0.36;
+    const scale = 1;
+    const laneWidth = cardWidth * scale;
+    const laneHeight = laneWidth * 1.38;
+    for (let index = 0; index < 6; index += 1) {
+      const point = getSlotPosition(index, y, width, scale);
+      drawDefendCardLane(this.defendSlots, point.x, point.y, laneWidth, laneHeight, this.defendBreathAlpha, scale);
+    }
   }
 
   private renderVisualEvents(events: VisualEvent[]) {
