@@ -3059,7 +3059,14 @@ button.card-view {
 .card-view.game-card-v2.game-card-v2--framed {
   background-color: #15191f;
   background-image: linear-gradient(160deg, #182234, #090d16);
-  border-color: rgba(196, 103, 81, 0.72);
+  border-color: rgba(100, 149, 237, 0.72);
+}
+
+.card-view.game-card-v2.game-card-v2--framed.game-card-v2--unit {
+  border-color: rgba(100, 149, 237, 0.85);
+  box-shadow:
+    0 0 16px rgba(56, 189, 248, 0.28),
+    inset 0 0 12px rgba(30, 58, 138, 0.25);
 }
 
 .card-view.game-card-v2.game-card-v2--framed.game-card-v2--spell {
@@ -3067,6 +3074,15 @@ button.card-view {
   box-shadow:
     0 0 20px rgba(168, 85, 247, 0.5),
     inset 0 0 14px rgba(168, 85, 247, 0.25);
+}
+
+.card-view.game-card-v2.game-card-v2--framed.game-card-v2--champion {
+  border-color: rgba(245, 158, 11, 0.95);
+  box-shadow:
+    0 0 24px rgba(239, 68, 68, 0.45),
+    0 0 14px rgba(245, 158, 11, 0.6),
+    inset 0 0 16px rgba(245, 158, 11, 0.25);
+  animation: champion-glow 2.8s ease-in-out infinite;
 }
 
 .game-card-v2__frame-overlay {
@@ -3080,8 +3096,16 @@ button.card-view {
   filter: drop-shadow(0 0 3px rgba(255, 71, 47, 0.18));
 }
 
+.game-card-v2--unit .game-card-v2__frame-overlay {
+  filter: hue-rotate(180deg) saturate(1.1) brightness(1.05) drop-shadow(0 0 4px rgba(56, 189, 248, 0.35));
+}
+
 .game-card-v2--spell .game-card-v2__frame-overlay {
   filter: hue-rotate(220deg) saturate(1.4) drop-shadow(0 0 6px rgba(168, 85, 247, 0.6));
+}
+
+.game-card-v2--champion .game-card-v2__frame-overlay {
+  filter: sepia(1) saturate(3.5) hue-rotate(330deg) drop-shadow(0 0 8px rgba(245, 158, 11, 0.75));
 }
 
 .card-view.game-card-v2.game-card-v2--framed.is-selected {
@@ -3179,7 +3203,8 @@ button.card-view.game-card-v2 {
 }
 
 .game-card-v2--unit .game-card-v2__header {
-  background: linear-gradient(90deg, rgba(51,65,85,0.92), rgba(15,23,42,0.78));
+  border-color: rgba(100, 149, 237, 0.5);
+  background: linear-gradient(90deg, rgba(30, 58, 110, 0.92), rgba(15, 23, 42, 0.85));
 }
 
 .game-card-v2--spell .game-card-v2__header {
@@ -3452,6 +3477,13 @@ button.card-view.game-card-v2 {
   border-color: rgba(168, 85, 247, 0.95);
   background: radial-gradient(circle, #2e104d 0 58%, #120624 60% 100%);
   box-shadow: 0 0 0 2px rgba(3, 8, 18, 0.9), 0 0 12px rgba(168, 85, 247, 0.65);
+}
+
+.game-card-v2--champion .game-card-v2__header .game-card-v2__stat-pip,
+.game-card-v2__header .game-card-v2__stat-pip--champion {
+  border-color: rgba(245, 158, 11, 0.95);
+  background: radial-gradient(circle, #571c06 0 58%, #260902 60% 100%);
+  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.9), 0 0 14px rgba(245, 158, 11, 0.75);
 }
 
 .game-card-v2__art-stage {

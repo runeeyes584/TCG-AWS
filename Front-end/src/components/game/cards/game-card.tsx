@@ -111,10 +111,10 @@ export const GameCard: React.FC<GameCardProps> = ({
       <span className="game-card-v2__frame-overlay" aria-hidden="true" />
       <span className="game-card-v2__header">
         <StatPip
-          kind={isSpell ? "spell" : "mana"}
+          kind={isSpell ? "spell" : isChampion ? "champion" : "mana"}
           value={definition.cost}
           size="sm"
-          className={`game-card-v2__stat-pip game-card-v2__stat-pip--mana ${isSpell ? "game-card-v2__stat-pip--spell" : ""}`}
+          className={`game-card-v2__stat-pip game-card-v2__stat-pip--mana ${isSpell ? "game-card-v2__stat-pip--spell" : isChampion ? "game-card-v2__stat-pip--champion" : ""}`}
         />
         <span className="game-card-v2__name">{definition.name}</span>
       </span>
