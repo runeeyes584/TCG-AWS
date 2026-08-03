@@ -1,7 +1,7 @@
 import { GiBroadsword, GiHeartShield, GiLightningStorm } from "react-icons/gi";
 import clsx from "clsx";
 
-export type StatKind = "mana" | "attack" | "hp";
+export type StatKind = "mana" | "attack" | "hp" | "spell";
 
 const CONFIG: Record<
   StatKind,
@@ -12,6 +12,12 @@ const CONFIG: Record<
     iconColor: "text-mana/52", // Soft sky blue
     textColor: "text-mana font-extrabold", // Bright sky blue text
     glow: "filter drop-shadow-[0_0_8px_rgba(14,165,233,0.4)]",
+  },
+  spell: {
+    Icon: GiLightningStorm,
+    iconColor: "text-purple-400/60", // Soft purple
+    textColor: "text-purple-300 font-extrabold", // Bright purple text
+    glow: "filter drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]", // Purple glow
   },
   attack: {
     Icon: GiBroadsword,
