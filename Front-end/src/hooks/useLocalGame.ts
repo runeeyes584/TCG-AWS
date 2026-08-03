@@ -236,5 +236,9 @@ function describeVisualEvent(event: VisualEvent): string | undefined {
       return `${event.playerId}'s champion leveled up to level ${event.newLevel}!`;
     case "SUMMON":
       return `${event.playerId} revived a unit.`;
+    case "BANISH":
+      return `${event.cardInstanceId} was banished from the graveyard.`;
+    case "GRAVEYARD_RESTORE":
+      return `${event.cardInstanceId} was ${event.mode === "REVIVE" ? "revived to the board" : "returned to hand"}.`;
   }
 }

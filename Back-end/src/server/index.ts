@@ -894,6 +894,10 @@ function describeVisualEvent(event: GameState["visualEvents"][number]): string {
       return `${event.playerId}'s champion leveled up.`;
     case "SUMMON":
       return `${event.playerId} revived a unit.`;
+    case "BANISH":
+      return `${event.cardInstanceId} was banished from the graveyard.`;
+    case "GRAVEYARD_RESTORE":
+      return `${event.cardInstanceId} was ${event.mode === "REVIVE" ? "revived to the board" : "returned to hand"}.`;
     case "AFK_WARNING":
       return `${event.playerId} timed out (${event.afkCount}/3).`;
   }

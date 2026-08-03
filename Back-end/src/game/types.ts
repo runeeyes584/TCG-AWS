@@ -387,6 +387,8 @@ export type VisualEvent =
   | { type: "HAND_LIMIT_DISCARD_REQUIRED"; playerId: PlayerId; handSize: number; downTo: number }
   | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number }
   | { type: "SUMMON"; playerId: PlayerId; instanceId: string }
+  | { type: "BANISH"; playerId: PlayerId; cardInstanceId: string }
+  | { type: "GRAVEYARD_RESTORE"; playerId: PlayerId; cardInstanceId: string; mode: "REVIVE" | "REBIRTH" }
   | { type: "AFK_WARNING"; playerId: PlayerId; afkCount: number };
 
 export type MatchEndReason =

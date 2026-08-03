@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { Layers, Skull } from "lucide-react";
 import { motion } from "framer-motion";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
-import type { GraveyardEntry } from "@backend/game/types";
+import type { GraveyardEntry, PlayerId } from "@backend/game/types";
 
 const MAX_DECK_LAYERS = 4;
 const MAX_GRAVEYARD_LAYERS = 3;
@@ -19,6 +19,7 @@ export interface DeckPileProps {
 
 export interface GraveyardPileProps {
   entries: GraveyardEntry[];
+  playerId?: PlayerId;
   label?: string;
   onOpen?: () => void;
 }
@@ -66,7 +67,7 @@ export function DeckPile({
 }
 
 /** A graveyard stack showing an empty state or the most recently discarded card. */
-export function GraveyardPile({ entries, label = "GY", onOpen }: GraveyardPileProps) {
+export function GraveyardPile({ entries, playerId, label = "GY", onOpen }: GraveyardPileProps) {
   const total = entries.length;
   const top = entries.at(-1);
   const layers = Math.min(MAX_GRAVEYARD_LAYERS, total);
@@ -76,6 +77,7 @@ export function GraveyardPile({ entries, label = "GY", onOpen }: GraveyardPilePr
     <button
       type="button"
       className={clsx("side-pile side-pile--graveyard", onOpen && "side-pile--interactive")}
+      data-effect-target-id={playerId ? `graveyard-${playerId}` : undefined}
       onClick={onOpen}
       disabled={!onOpen}
       aria-label={`${label}: ${total} cards${onOpen ? ", click to open graveyard" : ""}`}
