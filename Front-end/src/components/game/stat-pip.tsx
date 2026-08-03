@@ -1,29 +1,29 @@
-import { Heart, Sword, Zap } from "lucide-react";
+import { GiBroadsword, GiHeartShield, GiLightningStorm } from "react-icons/gi";
 import clsx from "clsx";
 
 export type StatKind = "mana" | "attack" | "hp";
 
 const CONFIG: Record<
   StatKind,
-  { Icon: typeof Zap; ring: string; text: string; glow: string }
+  { Icon: any; iconColor: string; textColor: string; glow: string }
 > = {
   mana: {
-    Icon: Zap,
-    ring: 'border-mana/70 bg-mana/20',
-    text: 'text-mana',
-    glow: 'shadow-[0_0_10px_var(--mana)]',
+    Icon: GiLightningStorm,
+    iconColor: "text-mana/52", // Soft sky blue
+    textColor: "text-mana font-extrabold", // Bright sky blue text
+    glow: "filter drop-shadow-[0_0_8px_rgba(14,165,233,0.4)]",
   },
   attack: {
-    Icon: Sword,
-    ring: 'border-attack/70 bg-attack/20',
-    text: 'text-attack',
-    glow: 'shadow-[0_0_10px_var(--attack)]',
+    Icon: GiBroadsword,
+    iconColor: "text-attack/52", // Soft pastel red
+    textColor: "text-attack font-extrabold", // Bright red text
+    glow: "filter drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]",
   },
   hp: {
-    Icon: Heart,
-    ring: 'border-hp/70 bg-hp/20',
-    text: 'text-hp',
-    glow: 'shadow-[0_0_10px_var(--hp)]',
+    Icon: GiHeartShield,
+    iconColor: "text-hp/52", // Soft mint green
+    textColor: "text-hp font-extrabold", // Bright green text
+    glow: "filter drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]",
   }
 };
 
@@ -38,32 +38,46 @@ export function StatPip({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const { Icon, ring, text, glow } = CONFIG[kind];
+  const { Icon, iconColor, textColor, glow } = CONFIG[kind];
+  
+  // Custom sizing for the container to maintain perfect square bounds
   const dims =
     size === "sm"
-      ? "h-6 w-6 text-[11px]"
+      ? "h-[33px] w-[33px] text-[22px]"
       : size === "lg"
-        ? "h-11 w-11 text-lg"
-        : "h-8 w-8 text-sm";
-  const iconSize = size === "sm" ? 9 : size === "lg" ? 15 : 12;
+        ? "h-14 w-14 text-[28px]"
+        : "h-10 w-10 text-[20px]";
 
   return (
     <span
       className={clsx(
-        "relative flex items-center justify-center rounded-full border font-mono font-bold tabular-nums backdrop-blur-sm",
-        ring,
-        text,
-        glow,
+        "relative flex items-center justify-center font-mono font-extrabold tabular-nums select-none",
         dims,
+        glow,
         className
       )}
     >
+      {/* Icon serving as the badge background */}
       <Icon
-        size={iconSize}
-        className="absolute -top-1 -left-1 rounded-full bg-background/80 p-[1px]"
-        strokeWidth={2.5}
+        className={clsx(
+          "absolute inset-0 w-full h-full filter drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
+          iconColor
+        )}
       />
-      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{value}</span>
+      
+      {/* Centered value overlay */}
+      <span
+        className={clsx(
+          "z-10 drop-shadow-[0_2px_3px_rgba(0,0,0,1.0)] text-shadow-glow font-black",
+          textColor
+        )}
+        style={{
+          // Center adjustment for ATK diagonal sword
+          transform: kind === "attack" ? "translate(-0.5px, -1px)" : "none"
+        }}
+      >
+        {value}
+      </span>
     </span>
   );
 }

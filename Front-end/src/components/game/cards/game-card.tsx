@@ -1,8 +1,7 @@
 import React from "react";
 import Tilt from "react-parallax-tilt";
-import { Crown, ScrollText, Skull, Sparkles } from "lucide-react";
 import { getUnitAttack, getUnitHealth, getUnitMaxHealth } from "@backend/game/entities/cards";
-import type { CardInstance, CardType, UnitInstance, VisualEvent } from "@backend/game/types";
+import type { CardInstance, UnitInstance, VisualEvent } from "@backend/game/types";
 import { useHover } from "../../../contexts/HoverContext";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import { CardBack } from "./card-back";
@@ -23,15 +22,6 @@ export interface GameCardProps {
   visualEvents?: VisualEvent[];
   staticRender?: boolean;
 }
-
-const CARD_FRAMES: Record<
-  CardType,
-  { icon: typeof Crown; label: string }
-> = {
-  unit: { icon: Skull, label: "Unit" },
-  spell: { icon: Sparkles, label: "Spell" },
-  champion: { icon: Crown, label: "Champion" }
-};
 
 /**
  * Production card contract with the v2 frame, artwork, stat-pip, and champion
@@ -85,14 +75,11 @@ export const GameCard: React.FC<GameCardProps> = ({
   }
 
   const definition = getCardDefinition(cardId);
-  const frame = CARD_FRAMES[definition.type];
-  const FrameIcon = frame.icon;
-  const isChampion = definition.type === "champion";
   const isSpell = definition.type === "spell";
+  const isChampion = definition.type === "champion";
   const attack = unit ? getUnitAttack(unit) : definition.attack;
   const health = unit ? getUnitHealth(unit) : definition.health;
   const maxHealth = unit ? getUnitMaxHealth(unit) : definition.health;
-  const description = definition.description?.trim() ?? "";
   const isTriggerActivated = visualEvents?.some((event) => event.type === "TRIGGER_ACTIVATED");
   const floatingEvents = visualEvents?.filter(
     (event) => event.type !== "TRIGGER_ACTIVATED" && event.type !== "DRAW"
@@ -101,6 +88,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   const className = [
     "card-view",
     "game-card-v2",
+    "game-card-v2--framed",
     "is-clickable",
     compact ? "game-card-v2--compact" : "",
     board ? "card-view--board" : "",
@@ -120,6 +108,7 @@ export const GameCard: React.FC<GameCardProps> = ({
 
   const content = (
     <>
+      <span className="game-card-v2__frame-overlay" aria-hidden="true" />
       <span className="game-card-v2__header">
         <StatPip
           kind="mana"
@@ -127,7 +116,6 @@ export const GameCard: React.FC<GameCardProps> = ({
           size="sm"
           className="game-card-v2__stat-pip game-card-v2__stat-pip--mana"
         />
-        <FrameIcon className="game-card-v2__type-icon" size={12} aria-hidden="true" />
         <span className="game-card-v2__name">{definition.name}</span>
       </span>
 
@@ -138,60 +126,20 @@ export const GameCard: React.FC<GameCardProps> = ({
       </span>
 
       <span className="game-card-v2__footer">
-        <span className="game-card-v2__details">
-          <span className="game-card-v2__type-label">
-            <ScrollText size={9} aria-hidden="true" />
-            {frame.label}
-          </span>
-          {!compact && showDescription && description ? (
-            <span className="game-card-v2__description">{description}</span>
-          ) : null}
-        </span>
-
-        {!compact && (definition.spellSpeed || definition.keywords?.length || unit?.modifiers.length) ? (
-          <span className="game-card-v2__meta-row">
-            {showDescription && definition.spellSpeed ? (
-              <span className="game-card-v2__speed">{definition.spellSpeed}</span>
-            ) : null}
-            {definition.keywords?.length ? (
-              <span className="game-card-v2__keywords">
-                {definition.keywords.map((keyword) => (
-                  <span className="game-card-v2__keyword" key={keyword} title={keyword}>
-                    {keyword.slice(0, 2)}
-                  </span>
-                ))}
-              </span>
-            ) : null}
-            {unit?.modifiers.length ? (
-              <span className="game-card-v2__effects">
-                {unit.modifiers.map((modifier) => (
-                  <span
-                    className="game-card-v2__effect"
-                    key={modifier.id}
-                    title={`${modifier.sourceName} ${formatEffect(modifier.attackDelta, modifier.healthDelta)}`}
-                  >
-                    {formatEffect(modifier.attackDelta, modifier.healthDelta)}
-                  </span>
-                ))}
-              </span>
-            ) : null}
-          </span>
-        ) : null}
-
         {!isSpell ? (
           <span className="game-card-v2__stats">
-          <StatPip
-            kind="attack"
-            value={attack ?? "-"}
-            size="sm"
-            className="game-card-v2__stat-pip game-card-v2__stat-pip--attack"
-          />
-          <StatPip
-            kind="hp"
-            value={health ?? "-"}
-            size="sm"
-            className="game-card-v2__stat-pip game-card-v2__stat-pip--health"
-          />
+            <StatPip
+              kind="attack"
+              value={attack ?? "-"}
+              size="sm"
+              className="game-card-v2__stat-pip game-card-v2__stat-pip--attack"
+            />
+            <StatPip
+              kind="hp"
+              value={health ?? "-"}
+              size="sm"
+              className="game-card-v2__stat-pip game-card-v2__stat-pip--health"
+            />
           </span>
         ) : null}
       </span>
