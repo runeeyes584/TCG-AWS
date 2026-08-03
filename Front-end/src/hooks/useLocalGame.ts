@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { buildDeckFromCardIds, buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { applyAction, createInitialGameState } from "@backend/game/core/engine";
+import { applyAuthoritativeAction } from "@backend/game/core/authoritativeAction";
 import {
   GameAction,
   GameState,
@@ -35,7 +36,10 @@ export function useLocalGame({ trialMode = false, playerDeckCardIds }: LocalGame
 
   function dispatch(action: GameAction, label = describeAction(action)): boolean {
     try {
-      const nextState = applyAction(gameState, action);
+      // Keep local/trial matches on the same atomic contract as
+      // processGameEngine: COMMIT_BLOCKS immediately resolves combat instead
+      // of leaving the local state stranded in COMBAT.
+      const nextState = applyAuthoritativeAction(gameState, action);
       setGameState(nextState);
       
       const newLogs = nextState.visualEvents.map(describeVisualEvent).filter((s): s is string => Boolean(s));
@@ -57,7 +61,7 @@ export function useLocalGame({ trialMode = false, playerDeckCardIds }: LocalGame
     const allMessages: string[] = [];
     for (const { action, label } of actions) {
       try {
-        state = applyAction(state, action);
+        state = applyAuthoritativeAction(state, action);
         const msg = label ?? describeAction(action);
         if (msg) allMessages.push(msg);
         const newLogs = state.visualEvents.map(describeVisualEvent).filter((s): s is string => Boolean(s));

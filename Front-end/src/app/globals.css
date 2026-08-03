@@ -3042,7 +3042,8 @@ button.card-view {
   height: 100%;
   min-width: 0;
   min-height: 104px;
-  overflow: hidden;
+  /* The art stage clips the image; badges intentionally extend past the card. */
+  overflow: visible;
   isolation: isolate;
   border: 1px solid rgba(148, 163, 184, 0.44);
   border-radius: 1rem 0 1rem 0;
@@ -3051,6 +3052,29 @@ button.card-view {
   font-family: var(--font-serif);
   text-align: left;
   user-select: none;
+}
+
+/* The supplied shell has a transparent centre. It is therefore a visual frame
+   layer, not a background: content remains visible through the centre. */
+.card-view.game-card-v2.game-card-v2--framed {
+  background-color: #15191f;
+  background-image: linear-gradient(160deg, #182234, #090d16);
+  border-color: rgba(196, 103, 81, 0.72);
+}
+
+.game-card-v2__frame-overlay {
+  position: absolute;
+  z-index: 5;
+  /* Extend over the card edge so the PNG frame and the outer card border use
+     the same footprint instead of leaving a second, smaller border inside. */
+  inset: -1px;
+  pointer-events: none;
+  background: url("/monster/card-front.png") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 3px rgba(255, 71, 47, 0.18));
+}
+
+.card-view.game-card-v2.game-card-v2--framed.is-selected {
+  border-color: #69f0df;
 }
 
 .card-view.game-card-v2::before {
@@ -3119,12 +3143,15 @@ button.card-view.game-card-v2 {
 
 .game-card-v2 > .game-card-v2__header {
   position: relative;
-  z-index: 2;
+  z-index: 8;
   display: flex;
   align-items: center;
   gap: 5px;
   min-height: 30px;
-  padding: 4px 5px 4px 30px;
+  margin: 4px 4px 0;
+  padding: 4px 5px 4px 25px;
+  border: 1px solid rgba(196, 103, 81, 0.72);
+  border-radius: 7px;
   background: linear-gradient(90deg, rgba(4,8,18,0.9), rgba(13,21,38,0.7));
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
@@ -3150,6 +3177,9 @@ button.card-view.game-card-v2 {
 .game-card-v2--champion .game-card-v2__type-icon { color: var(--champion); }
 
 .game-card-v2__name {
+  display: -webkit-box;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   color: #fff7df;
@@ -3160,7 +3190,12 @@ button.card-view.game-card-v2 {
   line-height: 1.05;
   text-overflow: ellipsis;
   text-shadow: 0 2px 8px rgba(0,0,0,0.9);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-align: center;
 }
 
 .game-card-v2--champion .game-card-v2__name {
@@ -3170,7 +3205,7 @@ button.card-view.game-card-v2 {
 
 .game-card-v2 > .game-card-v2__details {
   position: relative;
-  z-index: 2;
+  z-index: 8;
   display: grid;
   gap: 2px;
   margin-top: auto;
@@ -3204,7 +3239,7 @@ button.card-view.game-card-v2 {
 
 .game-card-v2 > .game-card-v2__stat-pip {
   position: absolute;
-  z-index: 4;
+  z-index: 10;
 }
 
 .game-card-v2__stat-pip--mana {
@@ -3284,8 +3319,9 @@ button.card-view.game-card-v2 {
   font-family: var(--font-sans);
   font-size: 7px;
   font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .game-card-v2.is-selected {
@@ -3309,7 +3345,7 @@ button.card-view.game-card-v2 {
 .game-card-v2 .floating-events-container {
   position: absolute;
   inset: 0;
-  z-index: 10;
+  z-index: 30;
 }
 
 .game-card-v2 .floating-event {
@@ -3368,22 +3404,32 @@ button.card-view.game-card-v2 {
 
 .game-card-v2 > .game-card-v2__header {
   display: grid;
-  grid-template-columns: 24px auto minmax(0, 1fr);
-  gap: 4px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   min-height: 30px;
-  padding: 3px 6px 3px 3px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  padding: 3px 6px 3px 25px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 7px;
+  overflow: visible;
 }
 
 .game-card-v2__header .game-card-v2__stat-pip {
-  position: relative;
-  inset: auto;
-  z-index: 1;
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  z-index: 12;
+  border: 1px solid rgba(14, 165, 233, 0.9);
+  border-radius: 50%;
+  background: radial-gradient(circle, #102b42 0 58%, #06111e 60% 100%);
+  box-shadow: 0 0 0 2px rgba(3, 8, 18, 0.9), 0 0 10px rgba(14, 165, 233, 0.42);
 }
 
 .game-card-v2__art-stage {
   position: relative;
   display: block;
+  width: calc(100% - 10px);
+  aspect-ratio: 1 / 1;
+  margin: 5px auto 0;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -3418,28 +3464,13 @@ button.card-view.game-card-v2 {
 }
 
 .game-card-v2__footer {
-  position: relative;
-  z-index: 3;
-  display: grid;
-  align-content: start;
-  gap: 3px;
-  min-width: 0;
-  min-height: 30px;
-  padding: 4px 5px;
-  background: linear-gradient(180deg, #101724, #080c14);
-}
-
-.game-card-v2__footer .game-card-v2__details {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  margin: 0;
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 8;
+  height: 0;
   padding: 0;
+  pointer-events: none;
   background: transparent;
-}
-
-.game-card-v2__footer .game-card-v2__description {
-  -webkit-line-clamp: 2;
 }
 
 .game-card-v2__meta-row {
@@ -3467,24 +3498,33 @@ button.card-view.game-card-v2 {
 }
 
 .game-card-v2__stats {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-  margin-top: auto;
+  display: block;
 }
 
 .game-card-v2__stats .game-card-v2__stat-pip {
-  position: relative;
-  inset: auto;
-  z-index: 1;
+  position: absolute;
+  bottom: -10px;
+  z-index: 12;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 50%;
+  background: radial-gradient(circle, #182231 0 58%, #060b14 60% 100%);
+  box-shadow: 0 0 0 2px rgba(3, 8, 18, 0.92), 0 0 10px rgba(0, 0, 0, 0.65);
+  pointer-events: auto;
+}
+
+.game-card-v2__stats .game-card-v2__stat-pip--attack { left: -8px; }
+.game-card-v2__stats .game-card-v2__stat-pip--health { right: -8px; }
+
+/* Make the unit/champion values readable at hand-card scale while keeping
+   them anchored on top of the lower frame. */
+.game-card-v2__stats .game-card-v2__stat-pip {
+  transform: scale(1.08);
 }
 
 .game-card-v2--compact > .game-card-v2__header {
-  grid-template-columns: 20px minmax(0, 1fr);
-  min-height: 24px;
-  padding: 2px 4px 2px 2px;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 27px;
+  padding: 2px 4px 2px 14px;
 }
 
 .game-card-v2--compact .game-card-v2__type-icon {
@@ -3493,12 +3533,12 @@ button.card-view.game-card-v2 {
 
 .game-card-v2--compact .game-card-v2__header .game-card-v2__stat-pip,
 .game-card-v2--compact .game-card-v2__stats .game-card-v2__stat-pip {
-  transform: scale(0.78);
+  transform: scale(1);
 }
 
 .game-card-v2--compact .game-card-v2__footer {
-  min-height: 24px;
-  padding: 2px 4px;
+  min-height: 0;
+  padding: 0;
 }
 
 .game-card-v2--compact .game-card-v2__type-label {
@@ -3509,22 +3549,24 @@ button.card-view.game-card-v2 {
 /* Battlefield cards use their square artwork as a full-frame visual. The
    compact HUD stays readable without shrinking the artwork into a thumbnail. */
 .card-view.game-card-v2.card-view--board {
-  display: block;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 0;
   background: #080d16;
 }
 
 .card-view--board > .game-card-v2__art-stage {
-  position: absolute;
-  inset: 0;
-  width: auto;
-  min-width: 100%;
-  min-height: 100%;
-  border: 0;
+  position: relative;
+  inset: auto;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
 }
 
 .card-view--board .game-card-v2__art-stage > .game-card-v2__art {
-  background-size: cover;
+  background-size: contain;
   background-position: center;
 }
 
@@ -3534,9 +3576,9 @@ button.card-view.game-card-v2 {
 }
 
 .card-view--board > .game-card-v2__header {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 4;
+  position: relative;
+  inset: auto;
+  z-index: 8;
   border-bottom-color: rgba(255, 255, 255, 0.16);
   background: linear-gradient(90deg, rgba(4, 8, 18, 0.92), rgba(13, 21, 38, 0.58), transparent);
 }
@@ -3544,10 +3586,11 @@ button.card-view.game-card-v2 {
 .card-view--board > .game-card-v2__footer {
   position: absolute;
   inset: auto 0 0;
-  z-index: 4;
-  min-height: 30px;
-  padding: 3px 5px;
-  background: linear-gradient(180deg, transparent, rgba(3, 7, 18, 0.9) 38%, rgba(3, 7, 18, 0.98));
+  z-index: 8;
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .card-view--board .game-card-v2__details,
@@ -3556,8 +3599,7 @@ button.card-view.game-card-v2 {
 }
 
 .card-view--board .game-card-v2__stats {
-  height: 100%;
-  align-items: end;
+  height: 0;
 }
 
 .card-view.game-card-v2.card-view--hand .game-card-v2__details {
@@ -5296,6 +5338,70 @@ button.card-view.game-card-v2 {
     animation: none;
   }
 }
+
+/* Phaser owns the board surface. React remains responsible for the HUD,
+   modal flows, and the existing action/controller contracts. */
+.phaser-arena-enabled {
+  display: block;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background: #020817;
+  box-shadow: inset 0 0 34px rgba(32, 121, 182, 0.12);
+}
+
+.phaser-arena-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+}
+
+.phaser-arena-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.phaser-center-info {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  max-width: min(680px, calc(100% - 180px));
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 3px 10px 5px;
+  border: 1px solid rgba(113, 206, 255, 0.24);
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(2, 10, 25, 0.82), rgba(8, 24, 50, 0.9), rgba(2, 10, 25, 0.82));
+  box-shadow: 0 0 18px rgba(55, 190, 255, 0.13);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.phaser-center-info .battle-line-info {
+  gap: 2px;
+  padding: 1px 0;
+}
+
+.phaser-center-info .battle-line-info > div:first-child {
+  display: none;
+}
+
+.phaser-center-info .battle-info-chip {
+  padding: 2px 5px;
+}
+
+.phaser-center-info .battle-info-chip span {
+  font-size: 8px;
+}
+
 
 @media (max-width: 900px) {
   .lobby-art { width: 65vw; opacity: 0.62; }

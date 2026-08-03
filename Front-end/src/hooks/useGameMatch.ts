@@ -399,6 +399,12 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   }
 
   function dispatch(action: GameAction): boolean {
+    if (!socketManager.getSocket()?.connected) {
+      const message = "The game connection is not ready. Please wait for reconnection.";
+      setError(message);
+      addClientLog(message);
+      return false;
+    }
     socketManager.dispatchAction(roomCodeRef.current, action, (response: any) => {
       if (!response.ok) {
         setError(response.error);
