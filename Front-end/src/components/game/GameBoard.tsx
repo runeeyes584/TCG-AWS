@@ -11,7 +11,8 @@ import {
   SpellTarget,
   SpellTargetKind,
   TargetDefinition,
-  UnitInstance
+  UnitInstance,
+  VisualEvent
 } from "@backend/game/types";
 import { useLocalGame } from "../../hooks/useLocalGame";
 import type { GameAction } from "@backend/game/types";
@@ -34,6 +35,7 @@ import type { RoomUpdate } from "@backend/shared/multiplayer";
 import { PhaserArenaCanvas } from "./phaser/PhaserArenaCanvas";
 import { arenaEventBus } from "../../libs/arenaEventBus";
 import { useGameStore } from "../../hooks/useGameStore";
+import { SpellEffectLayer } from "./spell-effect-layer";
 
 const MATCH_RESULT_RETURN_SECONDS = 20;
 
@@ -216,7 +218,40 @@ export function GameBoardView({
       stopSelect();
       stopEmptySlot();
     };
-  }, [gameState, viewerPlayerId, selectedBlockerId]);
+  }, [gameState, viewerPlayerId, selectedBlockerId, selectedSpell, selectedCostTargets]);
+
+  // Target selection is presentation state only. The authoritative action is
+  // still emitted by castSelectedSpell after the engine-valid target is picked.
+  // Phaser uses this signal to highlight the real lane cards instead of
+  // presenting a second, stale React card list.
+  useEffect(() => {
+    const targetKind =
+      selectedSpell && !selectedSpellTarget && !viewingGraveyard
+        ? getPrimarySpellTarget(selectedSpell)
+        : undefined;
+    const unitTargetKind =
+      targetKind === "ALLY_UNIT" || targetKind === "ENEMY_UNIT" ? targetKind : undefined;
+    arenaEventBus.emit("TARGETING_CHANGED", {
+      targetKind: unitTargetKind,
+      playerId: unitTargetKind ? selectedSpell?.ownerId : undefined
+    });
+
+    return () => {
+      arenaEventBus.emit("TARGETING_CHANGED", { targetKind: undefined });
+    };
+  }, [selectedSpell, selectedSpellTarget, viewingGraveyard]);
+
+  // A remote priority/phase transition invalidates any local targeting UI.
+  // Do not leave a stale Phaser highlight active after the authoritative state
+  // has moved on to BLOCK, DISCARD, or a finished match.
+  useEffect(() => {
+    if (gameState.phase !== "ACTION" || gameState.winnerId) {
+      setSelectedSpell(undefined);
+      setSelectedSpellTarget(undefined);
+      setSelectedCostTargets([]);
+      setViewingGraveyard(undefined);
+    }
+  }, [gameState.phase, gameState.winnerId]);
 
   const attackPlayerId = gameState.attackTokenPlayerId;
   const defenderId: PlayerId = attackPlayerId === "P1" ? "P2" : "P1";
@@ -488,8 +523,14 @@ export function GameBoardView({
     }
 
     if (targetKind === "NEXUS") {
+      const targetEffect = (cardDef(card).effects ?? []).find((effect) =>
+        effect.target === "NEXUS" || effect.target === "ALLY_NEXUS" || effect.target === "ENEMY_NEXUS"
+      );
       const targetPlayerId =
-        cardDef(card).effects?.[0]?.type === "HEAL" ? playerId : opponentOf(playerId);
+        targetEffect?.target === "ALLY_NEXUS" ||
+        (targetEffect?.target !== "ENEMY_NEXUS" && targetEffect?.type === "HEAL")
+          ? playerId
+          : opponentOf(playerId);
       setSelectedSpellTarget({ type: "NEXUS", playerId: targetPlayerId });
       return;
     }
@@ -520,6 +561,8 @@ export function GameBoardView({
         candidate === "ENEMY_UNIT" ||
         candidate === "ALLY_UNIT" ||
         candidate === "NEXUS" ||
+        candidate === "ALLY_NEXUS" ||
+        candidate === "ENEMY_NEXUS" ||
         candidate === "SELF" ||
         candidate === "ALLY_GRAVEYARD" ||
         candidate === "ENEMY_GRAVEYARD" ||
@@ -528,6 +571,10 @@ export function GameBoardView({
 
     if (target === "RECALL_UNIT") {
       return "ALLY_UNIT";
+    }
+
+    if (target === "ALLY_NEXUS" || target === "ENEMY_NEXUS") {
+      return "NEXUS";
     }
 
     if (
@@ -1316,6 +1363,7 @@ export function GameBoardView({
     return (
       <GraveyardPile
         entries={gameState.players[playerId].graveyard}
+        playerId={playerId}
         label={label}
         onOpen={() => setViewingGraveyard(playerId)}
       />
@@ -1697,6 +1745,7 @@ export function GameBoardView({
         ) : null}
 
         <section ref={battleTableRef} className="battle-table lor-table" aria-label="Local battle board">
+          <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
           <Hand
             cards={gameState.players[opponentPlayerId].hand}
             side="opponent"
@@ -1755,8 +1804,9 @@ export function GameBoardView({
                     ? getResourcePreview(opponentPlayerId, previewCard)
                     : selectedSpell?.ownerId === opponentPlayerId
                       ? getResourcePreview(opponentPlayerId, selectedSpell)
-                      : { manaUsed: 0, spellManaUsed: 0 }
+                  : { manaUsed: 0, spellManaUsed: 0 }
                 }
+                visualEvents={gameState.visualEvents}
               />
               {renderSpellStack("Spell")}
               {(() => {
@@ -1788,8 +1838,9 @@ export function GameBoardView({
                     ? getResourcePreview(viewerPlayerId, previewCard)
                     : selectedSpell?.ownerId === viewerPlayerId
                       ? getResourcePreview(viewerPlayerId, selectedSpell)
-                      : { manaUsed: 0, spellManaUsed: 0 }
+                  : { manaUsed: 0, spellManaUsed: 0 }
                 }
+                visualEvents={gameState.visualEvents}
               />
             </div>
           </div>
@@ -1806,7 +1857,15 @@ export function GameBoardView({
           />
 
           {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
-            <section className="spell-panel spell-targeting-window" aria-label="Spell targeting">
+            <section
+              className={`spell-panel spell-targeting-window ${
+                getPrimarySpellTarget(selectedSpell) === "ALLY_UNIT" ||
+                getPrimarySpellTarget(selectedSpell) === "ENEMY_UNIT"
+                  ? "spell-targeting-window--lane"
+                  : ""
+              }`}
+              aria-label="Spell targeting"
+            >
               <div className="spell-summary">
                 <strong>{cardDef(selectedSpell).name}</strong>
                 <span>

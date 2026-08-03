@@ -1,4 +1,4 @@
-import type { GameState, PlayerId } from "@backend/game/types";
+import type { GameState, PlayerId, SpellTargetKind } from "@backend/game/types";
 
 export type ArenaEventMap = {
   UPDATE_SLOTS: { gameState: GameState; viewerPlayerId: PlayerId };
@@ -8,6 +8,10 @@ export type ArenaEventMap = {
   HOVER_UNIT: { playerId: PlayerId; unitId: string } | undefined;
   SELECT_UNIT: { playerId: PlayerId; unitId: string };
   EMPTY_SLOT_CLICK: { playerId: PlayerId; index: number };
+  TARGETING_CHANGED: {
+    targetKind: Extract<SpellTargetKind, "ALLY_UNIT" | "ENEMY_UNIT"> | undefined;
+    playerId?: PlayerId;
+  };
   CAMERA_CHANGE: { preset: "dynamic" | "top-down" | "cinematic"; tilt: number; zoom: number };
 };
 

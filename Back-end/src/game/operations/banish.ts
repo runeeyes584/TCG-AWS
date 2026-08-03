@@ -14,6 +14,11 @@ export function banishFromGraveyard(
   if (entryIndex === -1) return;
 
   const [entry] = player.graveyard.splice(entryIndex, 1);
+  state.visualEvents.push({
+    type: "BANISH",
+    playerId: ownerId,
+    cardInstanceId: entry.instanceId
+  });
   emitEvent(state, {
     type: "CARD_BANISHED",
     playerId: ownerId,

@@ -17,9 +17,9 @@ export function PhaserArenaCanvas() {
       if (destroyed || !hostRef.current) return;
       const Phaser = PhaserModule.default;
       game = new Phaser.Game({
-        // Card artwork is served from the existing card CDN. Canvas rendering
-        // displays those cross-origin images without requiring the CDN to add
-        // WebGL CORS headers, while Phaser still owns the full board scene.
+        // Card artwork comes from third-party CDNs that do not consistently
+        // expose CORS headers. Canvas can render those images directly while
+        // keeping the board VFX (graphics, tweens and camera shake) intact.
         type: Phaser.CANVAS,
         parent: hostRef.current,
         width: hostRef.current.clientWidth,
