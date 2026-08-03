@@ -3062,6 +3062,13 @@ button.card-view {
   border-color: rgba(196, 103, 81, 0.72);
 }
 
+.card-view.game-card-v2.game-card-v2--framed.game-card-v2--spell {
+  border-color: rgba(168, 85, 247, 0.95);
+  box-shadow:
+    0 0 20px rgba(168, 85, 247, 0.5),
+    inset 0 0 14px rgba(168, 85, 247, 0.25);
+}
+
 .game-card-v2__frame-overlay {
   position: absolute;
   z-index: 5;
@@ -3071,6 +3078,10 @@ button.card-view {
   pointer-events: none;
   background: url("/monster/card-front.png") center / 100% 100% no-repeat;
   filter: drop-shadow(0 0 3px rgba(255, 71, 47, 0.18));
+}
+
+.game-card-v2--spell .game-card-v2__frame-overlay {
+  filter: hue-rotate(220deg) saturate(1.4) drop-shadow(0 0 6px rgba(168, 85, 247, 0.6));
 }
 
 .card-view.game-card-v2.game-card-v2--framed.is-selected {
@@ -3089,7 +3100,18 @@ button.card-view.game-card-v2 {
 }
 
 .game-card-v2.game-card-v2--spell {
-  border-color: oklch(0.72 0.13 210 / 0.7);
+  border-color: rgba(168, 85, 247, 0.85);
+  box-shadow:
+    0 0 18px rgba(168, 85, 247, 0.4),
+    inset 0 0 14px rgba(168, 85, 247, 0.22);
+}
+
+.game-card-v2.game-card-v2--spell.hand-card--playable,
+.card-view.game-card-v2--spell.hand-card--playable {
+  border-color: #c084fc;
+  box-shadow:
+    0 0 22px rgba(192, 132, 252, 0.85),
+    inset 0 0 14px rgba(168, 85, 247, 0.4);
 }
 
 .game-card-v2.game-card-v2--champion {
@@ -3161,7 +3183,8 @@ button.card-view.game-card-v2 {
 }
 
 .game-card-v2--spell .game-card-v2__header {
-  background: linear-gradient(90deg, rgba(22,78,99,0.9), rgba(15,23,42,0.8));
+  border-color: rgba(168, 85, 247, 0.65);
+  background: linear-gradient(90deg, rgba(88, 28, 135, 0.92), rgba(24, 9, 43, 0.85));
 }
 
 .game-card-v2--champion .game-card-v2__header {
@@ -3173,7 +3196,7 @@ button.card-view.game-card-v2 {
   color: #dbe5f0;
 }
 
-.game-card-v2--spell .game-card-v2__type-icon { color: var(--mana); }
+.game-card-v2--spell .game-card-v2__type-icon { color: #c084fc; }
 .game-card-v2--champion .game-card-v2__type-icon { color: var(--champion); }
 
 .game-card-v2__name {
@@ -3422,6 +3445,13 @@ button.card-view.game-card-v2 {
   border-radius: 50%;
   background: radial-gradient(circle, #102b42 0 58%, #06111e 60% 100%);
   box-shadow: 0 0 0 2px rgba(3, 8, 18, 0.9), 0 0 10px rgba(14, 165, 233, 0.42);
+}
+
+.game-card-v2--spell .game-card-v2__header .game-card-v2__stat-pip,
+.game-card-v2__header .game-card-v2__stat-pip--spell {
+  border-color: rgba(168, 85, 247, 0.95);
+  background: radial-gradient(circle, #2e104d 0 58%, #120624 60% 100%);
+  box-shadow: 0 0 0 2px rgba(3, 8, 18, 0.9), 0 0 12px rgba(168, 85, 247, 0.65);
 }
 
 .game-card-v2__art-stage {

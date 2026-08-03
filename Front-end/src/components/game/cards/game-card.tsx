@@ -111,10 +111,10 @@ export const GameCard: React.FC<GameCardProps> = ({
       <span className="game-card-v2__frame-overlay" aria-hidden="true" />
       <span className="game-card-v2__header">
         <StatPip
-          kind="mana"
+          kind={isSpell ? "spell" : "mana"}
           value={definition.cost}
           size="sm"
-          className="game-card-v2__stat-pip game-card-v2__stat-pip--mana"
+          className={`game-card-v2__stat-pip game-card-v2__stat-pip--mana ${isSpell ? "game-card-v2__stat-pip--spell" : ""}`}
         />
         <span className="game-card-v2__name">{definition.name}</span>
       </span>
@@ -162,15 +162,15 @@ export const GameCard: React.FC<GameCardProps> = ({
   };
 
   const tiltProps = {
-    glareEnable: isChampion,
-    glareMaxOpacity: 0.45,
-    glareColor: "#ffffff",
+    glareEnable: isChampion || isSpell,
+    glareMaxOpacity: isSpell ? 0.35 : 0.45,
+    glareColor: isSpell ? "#c084fc" : "#ffffff",
     glarePosition: "all" as const,
-    tiltMaxAngleX: isChampion ? 15 : 4,
-    tiltMaxAngleY: isChampion ? 15 : 4,
+    tiltMaxAngleX: isChampion ? 15 : isSpell ? 6 : 4,
+    tiltMaxAngleY: isChampion ? 15 : isSpell ? 6 : 4,
     scale: isChampion ? 1.03 : 1.01,
     transitionSpeed: 1000,
-    className: `game-card-tilt-wrapper ${isChampion ? "game-card-tilt-wrapper--champion" : ""}`,
+    className: `game-card-tilt-wrapper ${isChampion ? "game-card-tilt-wrapper--champion" : ""} ${isSpell ? "game-card-tilt-wrapper--spell" : ""}`,
   };
 
   if (staticRender) {
