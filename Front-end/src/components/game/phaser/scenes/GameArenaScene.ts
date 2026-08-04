@@ -58,7 +58,7 @@ export class GameArenaScene extends Phaser.Scene {
       }),
       arenaEventAdapter.on("DESTROY_UNIT", ({ unitId }) => this.cards.playDestroy(unitId)),
       arenaEventAdapter.on("TARGETING_CHANGED", ({ targetKind, playerId }) => {
-        this.targeting = targetKind && playerId ? { targetKind, playerId } : undefined;
+        this.targeting = targetKind ? { targetKind, playerId: playerId || this.stateSystem.snapshot.viewerPlayerId || "P1" } : undefined;
         this.renderArena();
       }),
     );
@@ -121,12 +121,17 @@ export class GameArenaScene extends Phaser.Scene {
         units.slice(0, 6).forEach((unit, index) => {
           if (!unit) return;
           const point = getSlotPosition(index, y, width, rowScale);
-          const isTargetable = Boolean(
-            this.targeting &&
-            ((this.targeting.targetKind === "ALLY_UNIT" && playerId === this.targeting.playerId) ||
-              (this.targeting.targetKind === "ENEMY_UNIT" && playerId !== this.targeting.playerId))
-          );
-          this.cards.create(unit, playerId, layout.cardWidth * rowScale, layout.cardHeight * rowScale, isTargetable)
+          const casterId = this.targeting?.playerId || viewerPlayerId || "P1";
+          const targetKind = this.targeting?.targetKind;
+          const isCasterUnit = playerId === casterId;
+
+          const isAllyTarget = Boolean(targetKind === "ALLY_UNIT" && isCasterUnit);
+          const isEnemyTarget = Boolean(targetKind === "ENEMY_UNIT" && !isCasterUnit);
+
+          const isTargetable = isAllyTarget || isEnemyTarget;
+          const targetType: "ally" | "enemy" | undefined = isAllyTarget ? "ally" : isEnemyTarget ? "enemy" : undefined;
+
+          this.cards.create(unit, playerId, layout.cardWidth * rowScale, layout.cardHeight * rowScale, isTargetable, targetType)
             .setPosition(point.x, point.y)
             .setDepth(10 + point.y);
         });

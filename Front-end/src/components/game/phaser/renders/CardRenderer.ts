@@ -196,7 +196,7 @@ export class CardRenderer {
     return [plate, badge, valueText];
   }
 
-  create(unit: UnitInstance, playerId: PlayerId, width: number, height: number, isTargetable = false) {
+  create(unit: UnitInstance, playerId: PlayerId, width: number, height: number, isTargetable = false, targetType?: "ally" | "enemy") {
     const definition = getCardDefinition(unit.cardId);
     const isChampion = definition.type === "champion";
     // Color theme matching game-card.tsx & hand-card.tsx:
@@ -346,7 +346,7 @@ export class CardRenderer {
     card.unitId = unit.instanceId;
     card.setSize(width, height);
     this.interactions.bind(card, unit, playerId);
-    this.animations.attach(card, isChampion, color, isTargetable);
+    this.animations.attach(card, isChampion, color, isTargetable, targetType);
     this.views.set(unit.instanceId, card);
     return card;
   }
