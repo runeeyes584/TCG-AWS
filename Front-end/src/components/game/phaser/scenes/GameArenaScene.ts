@@ -8,6 +8,7 @@ import { drawCardLane, drawDefendCardLane } from "../renders/CardLaneRenderer";
 import { ArenaStateSystem } from "../systems/ArenaStateSystem";
 import { ArenaInputSystem } from "../systems/ArenaInputSystem";
 import { CombatVFXSystem } from "../systems/CombatVFXSystem";
+import { ArenaBackgroundManager } from "../systems/ArenaBackgroundManager";
 
 /** Phaser orchestration layer. State remains authoritative in Zustand. */
 export class GameArenaScene extends Phaser.Scene {
@@ -32,11 +33,16 @@ export class GameArenaScene extends Phaser.Scene {
   private targeting:
     | { targetKind: Extract<SpellTargetKind, "ALLY_UNIT" | "ENEMY_UNIT">; playerId: PlayerId }
     | undefined;
+  private background!: ArenaBackgroundManager;
 
   constructor() { super({ key: "GameArenaScene" }); }
 
   create() {
-    this.board = this.add.graphics().setDepth(0);
+    // Background layer (rendered below everything)
+    this.background = new ArenaBackgroundManager(this);
+    this.background.init(this.scale.width, this.scale.height);
+
+    this.board = this.add.graphics().setDepth(0.5);
     this.slots = this.add.graphics().setDepth(1);
     this.defendSlots = this.add.graphics().setDepth(1.5);
     this.createCenterSprite();
@@ -67,11 +73,17 @@ export class GameArenaScene extends Phaser.Scene {
     this.renderArena();
   }
 
+  update(_time: number, delta: number) {
+    const phase = this.stateSystem.snapshot.gameState?.phase ?? "ACTION";
+    this.background.tick(delta, this.scale.width, this.scale.height, phase);
+  }
+
   private destroyScene() {
     this.stateSystem.stop();
     this.animationUnsubscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
     this.scale.off("resize", this.renderArena, this);
     this.cards.destroy();
+    this.background.destroy();
     this.centerSpriteTween?.stop();
     this.centerSprite?.destroy();
     this.defendBreathTween?.stop();
