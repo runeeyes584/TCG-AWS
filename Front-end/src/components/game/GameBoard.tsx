@@ -64,7 +64,7 @@ interface GameBoardViewProps {
 }
 
 function PhaserHoverBridge({ gameState }: { gameState: ReturnType<typeof useLocalGame>["gameState"] }) {
-  const { setHoveredCard, selectCard } = useHover();
+  const { setHoveredCard } = useHover();
 
   useEffect(() => {
     const stopHover = arenaEventBus.on("HOVER_UNIT", (entity) => {
@@ -73,15 +73,10 @@ function PhaserHoverBridge({ gameState }: { gameState: ReturnType<typeof useLoca
         : undefined;
       setHoveredCard(undefined, unit);
     });
-    const stopSelect = arenaEventBus.on("SELECT_UNIT", (entity) => {
-      const unit = gameState.players[entity.playerId].board.find((candidate) => candidate.instanceId === entity.unitId);
-      selectCard(undefined, unit);
-    });
     return () => {
       stopHover();
-      stopSelect();
     };
-  }, [gameState, selectCard, setHoveredCard]);
+  }, [gameState, setHoveredCard]);
 
   return null;
 }
