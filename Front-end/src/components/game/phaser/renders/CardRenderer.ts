@@ -151,16 +151,19 @@ export class CardRenderer {
     height: number,
     type: "ATK" | "HP",
     value: number,
+    originalHeight: number
   ) {
     const textureKey = type === "HP" ? "icon-hp" : "icon-atk";
     const tintColor = type === "HP" ? 0x86efac : 0xfca5a5; // Soft pastel green / soft pastel red
     const textColor = type === "HP" ? "#22d389" : "#f14935"; // Bright Tailwind theme colors (var(--hp) / var(--attack))
-    const iconSize = height * 0.9;
-
-    // The stat badges intentionally sit on top of the lower frame corners. A
-    // circular plate keeps the icon and value legible over any artwork.
-    const plate = this.scene.add.circle(x, y, height * 0.78, 0x050b14, 0.98)
+    
+    // Reduce diameter by 3px (reduce radius by 1.5px)
+    const plateRadius = height * 0.78 - 1.5;
+    const plate = this.scene.add.circle(x, y, plateRadius, 0x050b14, 0.98)
       .setStrokeStyle(2, tintColor, 0.98);
+
+    // Reduce icon size by 3px
+    const iconSize = height * 0.9 - 3;
 
     let badge: Phaser.GameObjects.GameObject;
     if (this.scene.textures.exists(textureKey)) {
@@ -174,8 +177,8 @@ export class CardRenderer {
       const fallback = this.scene.add.graphics();
       fallback.fillStyle(tintColor, 0.28);
       fallback.lineStyle(1.6, tintColor, 0.95);
-      if (type === "HP") this.drawHeart(fallback, x, y, width, height);
-      else this.drawSword(fallback, x, y, width, height);
+      if (type === "HP") this.drawHeart(fallback, x, y, width - 3, height - 3);
+      else this.drawSword(fallback, x, y, width - 3, height - 3);
       badge = fallback;
     }
 
@@ -183,7 +186,7 @@ export class CardRenderer {
 
     const valueText = this.scene.add.text(x, y + textOffsetY, String(value), {
       fontFamily: "Inter, Arial, sans-serif",
-      fontSize: `${Math.max(13, Math.round(width * 0.52))}px`,
+      fontSize: `${Math.max(13, Math.round(originalHeight * 0.52))}px`,
       fontStyle: "bold",
       color: textColor,
       stroke: "#000000",
@@ -196,7 +199,9 @@ export class CardRenderer {
   create(unit: UnitInstance, playerId: PlayerId, width: number, height: number, isTargetable = false) {
     const definition = getCardDefinition(unit.cardId);
     const isChampion = definition.type === "champion";
-    const color = isChampion ? 0xf5bd45 : playerId === "P1" ? 0x24d6ca : 0x9b8cff;
+    // Color theme matching game-card.tsx & hand-card.tsx:
+    // Gold-Red (0xf59e0b) for Champions, Steel Blue-Grey (0x6495ed) for Units
+    const color = isChampion ? 0xf59e0b : 0x6495ed;
 
     // A dark ritual-card silhouette with a compact header, square artwork,
     // and stat badges anchored to the lower corners.
@@ -224,8 +229,11 @@ export class CardRenderer {
 
     // The updated PNG has a transparent centre, so it can sit above content as
     // a true frame without hiding artwork, title, or stat badges.
+    // Tint the PNG frame overlay to match the card type theme (Steel Blue-Grey or Gold-Red).
     const cardFront = this.scene.textures.exists("arena-card-front")
-      ? this.scene.add.image(0, 0, "arena-card-front").setDisplaySize(width, height)
+      ? this.scene.add.image(0, 0, "arena-card-front")
+          .setDisplaySize(width, height)
+          .setTint(color)
       : undefined;
 
     const innerRadius = Math.max(2, radius - 3);
@@ -278,6 +286,10 @@ export class CardRenderer {
       strokeThickness: 2,
     }).setOrigin(0.5);
 
+    // Pre-calculate stat height and text size to share with mana text
+    const statHeight = Math.max(25, width * 0.26);
+    const statTextSize = Math.max(13, Math.round(statHeight * 0.52));
+
     // Mana badge floats over the top-left border of the header.
     const manaRadius = Math.max(10, Math.round(width * 0.125));
     const manaX = left + manaRadius * 0.55;
@@ -304,18 +316,17 @@ export class CardRenderer {
 
     const manaText = this.scene.add.text(manaX, manaY, String(definition.cost), {
       fontFamily: "Inter, Arial, sans-serif",
-      fontSize: `${Math.max(10, Math.round(width * 0.1))}px`,
+      fontSize: `${statTextSize}px`,
       fontStyle: "bold",
       color: "#00b4ff",
       stroke: "#000000",
       strokeThickness: 3,
     }).setOrigin(0.5);
 
-    const statHeight = Math.max(25, width * 0.26);
     const statY = bottom - statHeight * 0.45;
     const statX = width * 0.06;
-    const atkParts = this.createStatBadge(left + statX, statY, statHeight, statHeight, "ATK", getUnitAttack(unit));
-    const hpParts = this.createStatBadge(right - statX, statY, statHeight, statHeight, "HP", getUnitHealth(unit));
+    const atkParts = this.createStatBadge(left + statX, statY, statHeight, statHeight, "ATK", getUnitAttack(unit), statHeight);
+    const hpParts = this.createStatBadge(right - statX, statY, statHeight, statHeight, "HP", getUnitHealth(unit), statHeight);
 
     // Assemble Card Components
     const card = this.scene.add.container(0, 0, [
