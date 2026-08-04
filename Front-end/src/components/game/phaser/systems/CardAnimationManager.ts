@@ -8,7 +8,7 @@ export class CardAnimationManager {
 
   constructor(private readonly scene: Phaser.Scene) {}
 
-  attach(card: UnitView, isChampion: boolean, color: number, isTargetable = false) {
+  attach(card: UnitView, isChampion: boolean, color: number, isTargetable = false, targetType?: "ally" | "enemy") {
     if (!card.unitId) return;
     const width = card.width || 100;
     const height = card.height || 140;
@@ -45,25 +45,29 @@ export class CardAnimationManager {
       }));
     }
     if (isTargetable) {
-      cardTweens.push(...this.createTargetingHighlight(card, width, height));
+      cardTweens.push(...this.createTargetingHighlight(card, width, height, targetType));
     }
     this.tweens.set(card.unitId, cardTweens);
   }
 
-  private createTargetingHighlight(card: UnitView, width: number, height: number) {
+  private createTargetingHighlight(card: UnitView, width: number, height: number, targetType?: "ally" | "enemy") {
+    const isEnemy = targetType === "enemy";
+    const mainColor = isEnemy ? 0xef4444 : 0x22c55e; // Fiery Crimson Red for Enemy, Bright Emerald Green for Ally
+    const innerColor = isEnemy ? 0xfca5a5 : 0x86efac;
+
     const highlight = this.scene.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-    highlight.lineStyle(3.2, 0x62f5ff, 0.98);
+    highlight.lineStyle(3.5, mainColor, 0.98);
     highlight.strokeRoundedRect(-width / 2 - 7, -height / 2 - 7, width + 14, height + 14, Math.min(19, width * 0.15));
-    highlight.lineStyle(1, 0xd9ffff, 0.9);
+    highlight.lineStyle(1.4, innerColor, 0.95);
     highlight.strokeRoundedRect(-width / 2 - 3, -height / 2 - 3, width + 6, height + 6, Math.min(16, width * 0.12));
     card.addAt(highlight, 0);
 
     return [this.scene.tweens.add({
       targets: highlight,
-      alpha: { from: 0.48, to: 1 },
-      scaleX: { from: 0.985, to: 1.035 },
-      scaleY: { from: 0.985, to: 1.035 },
-      duration: 640,
+      alpha: { from: 0.45, to: 1 },
+      scaleX: { from: 0.982, to: 1.038 },
+      scaleY: { from: 0.982, to: 1.038 },
+      duration: 600,
       ease: "Sine.InOut",
       yoyo: true,
       repeat: -1,

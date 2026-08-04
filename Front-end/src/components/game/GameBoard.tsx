@@ -226,9 +226,15 @@ export function GameBoardView({
         : undefined;
     const unitTargetKind =
       targetKind === "ALLY_UNIT" || targetKind === "ENEMY_UNIT" ? targetKind : undefined;
+    
+    // Calculate target color based on target kind
+    const targetColor = unitTargetKind === "ALLY_UNIT" ? "ALLY" as const 
+      : unitTargetKind === "ENEMY_UNIT" ? "ENEMY" as const 
+      : undefined;
+
     arenaEventBus.emit("TARGETING_CHANGED", {
       targetKind: unitTargetKind,
-      playerId: unitTargetKind ? selectedSpell?.ownerId : undefined
+      playerId: unitTargetKind ? (selectedSpell?.ownerId || viewerPlayerId || localPlayerId || "P1") : undefined,
     });
 
     return () => {
@@ -1769,6 +1775,36 @@ export function GameBoardView({
                   timeRemainingMs={timeRemainingMs}
                   playerNames={{ P1: getPlayerName("P1"), P2: getPlayerName("P2") }}
                 />
+                {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
+                  <div className="center-target-prompt">
+                    <div className="target-dots">
+                      <span className="target-dot" />
+                      <span className="target-dot" />
+                      <span className="target-dot" />
+                    </div>
+                    <div className="text-xs font-semibold text-cyan-200 tracking-wide drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]">
+                      <strong className="text-white uppercase tracking-wider font-bold mr-1">
+                        {cardDef(selectedSpell).name}:
+                      </strong>
+                      <span>
+                        {cardDef(selectedSpell).type === "unit" ||
+                        cardDef(selectedSpell).type === "champion" ||
+                        cardDef(selectedSpell).type === "spell"
+                          ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
+                          : selectedSpellTarget
+                            ? describeSpellTarget(selectedSpellTarget, getPlayerName)
+                            : describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearSelectedCard}
+                      className="ml-1 rounded-full border border-red-500/50 bg-red-950/70 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-300 transition-colors hover:bg-red-900/90 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : null}
                 {gameState.pendingDiscard ? (
                   <span className="stat-pill">
                     Discard <strong>{getPlayerName(gameState.pendingDiscard.playerId)} {gameState.players[gameState.pendingDiscard.playerId].hand.length}/{gameState.pendingDiscard.downTo}</strong>
@@ -1851,34 +1887,7 @@ export function GameBoardView({
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
-          {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
-            <section
-              className={`spell-panel spell-targeting-window ${
-                getPrimarySpellTarget(selectedSpell) === "ALLY_UNIT" ||
-                getPrimarySpellTarget(selectedSpell) === "ENEMY_UNIT"
-                  ? "spell-targeting-window--lane"
-                  : ""
-              }`}
-              aria-label="Spell targeting"
-            >
-              <div className="spell-summary">
-                <strong>{cardDef(selectedSpell).name}</strong>
-                <span>
-                  Target:{" "}
-                  {cardDef(selectedSpell).type === "unit" ||
-                    cardDef(selectedSpell).type === "champion" ||
-                    cardDef(selectedSpell).type === "spell"
-                    ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
-                    : selectedSpellTarget
-                      ? describeSpellTarget(selectedSpellTarget, getPlayerName)
-                      : describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}
-                </span>
-              </div>
-              <div className="button-row">
-                <button type="button" onClick={clearSelectedCard}>Cancel</button>
-              </div>
-            </section>
-          ) : null}
+
 
         </section>
 
