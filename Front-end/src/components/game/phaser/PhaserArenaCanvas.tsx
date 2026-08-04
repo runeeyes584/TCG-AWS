@@ -51,5 +51,5 @@ export function PhaserArenaCanvas() {
     };
   }, []);
 
-  return <div ref={hostRef} className="phaser-arena-canvas" aria-hidden="true" />;
+  return <div ref={hostRef} className="phaser-arena-canvas absolute inset-0 w-full h-full pointer-events-none z-0" aria-hidden="true" />;
 }

@@ -17,8 +17,8 @@ export function getArenaLayout(width: number, height: number, zoom: number, tilt
     cardHeight: cardWidth * 1.38,
     topInset: width * 0.11,
     bottomInset: width * 0.045,
-    topY: height * 0.055 + height * Math.max(0.08, tilt) * 0.23,
-    bottomY: height * 0.945 - height * Math.max(0.08, tilt) * 0.23,
+    topY: height * 0.16 + height * Math.max(0.08, tilt) * 0.15,
+    bottomY: height * 0.84 - height * Math.max(0.08, tilt) * 0.15,
     centerY: height * 0.5,
   };
 }

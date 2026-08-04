@@ -105,10 +105,10 @@ export type EffectDefinition =
       amount: number;
       target?: "ENEMY_UNIT" | string;
     }
-
   | {
       type: "BANISH_GRAVEYARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
+      allowedTypes?: GraveyardEntryType[];
     }
   | {
       type: "GRANT_KEYWORD";

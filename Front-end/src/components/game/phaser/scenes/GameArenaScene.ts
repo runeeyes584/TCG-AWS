@@ -118,8 +118,8 @@ export class GameArenaScene extends Phaser.Scene {
       const activeIds = new Set(activeUnits.filter((unit): unit is UnitInstance => Boolean(unit)).map((unit) => unit.instanceId));
       const waitingUnits = playerUnits.filter((unit) => !activeIds.has(unit.instanceId));
       [
-        { kind: 'waiting' as const, units: waitingUnits, y: isLocal ? height * 0.87 : height * 0.13, alpha: 0.58 },
-        { kind: 'active' as const, units: activeUnits, y: isLocal ? height * 0.64 : height * 0.36, alpha: 0.95 },
+        { kind: 'waiting' as const, units: waitingUnits, y: isLocal ? height * 0.75 : height * 0.25, alpha: 0.58 },
+        { kind: 'active' as const, units: activeUnits, y: isLocal ? height * 0.62 : height * 0.38, alpha: 0.95 },
       ].forEach(({ kind, units, y, alpha }) => {
         const rowScale = unitScale * (kind === 'waiting' ? 0.82 : 1);
         const color = isLocal ? 0x2dd4bf : 0x9b8cff;
@@ -184,7 +184,7 @@ export class GameArenaScene extends Phaser.Scene {
 
   private updateCenterSprite(width: number, height: number, phase: GameState["phase"]) {
     if (!this.centerSprite) return;
-    this.centerSprite.setPosition(width / 2, height / 2 - 27);
+    this.centerSprite.setPosition(width / 2, height / 2);
     const tint = phase === "COMBAT" ? 0xfb7185 : phase === "BLOCK" ? 0xfbbf24 : 0x8b5cf6;
     this.centerSprite.setTint(tint);
   }
@@ -233,7 +233,7 @@ export class GameArenaScene extends Phaser.Scene {
     if (!this.defendSlots) return;
     this.defendSlots.clear();
     this.defendSlots.setData("dashOffset", this.defendDashOffset);
-    const y = defenderId === "P1" ? height * 0.64 : height * 0.36;
+    const y = defenderId === "P1" ? height * 0.62 : height * 0.38;
     const scale = 1;
     const laneWidth = cardWidth * scale;
     const laneHeight = laneWidth * 1.38;
@@ -259,13 +259,39 @@ export class GameArenaScene extends Phaser.Scene {
         targetId = event.isNexus ? undefined : event.targetId;
       }
       else if (event.type === 'HEAL') { message = `+${event.amount}`; color = '#7dffbf'; targetId = event.isNexus ? undefined : event.targetId; }
-      else if (event.type === 'BUFF' || event.type === 'DEBUFF') { message = `${event.type === 'BUFF' ? 'BUFF' : 'DEBUFF'} ${event.attackDelta >= 0 ? '+' : ''}${event.attackDelta}`; color = event.type === 'BUFF' ? '#71e7ff' : '#ffb56e'; targetId = event.targetId; }
+      else if (event.type === 'BUFF' || event.type === 'DEBUFF') {
+        const isBuff = event.type === 'BUFF';
+        const parts: string[] = [];
+        if (event.attackDelta !== 0) {
+          parts.push(`${event.attackDelta > 0 ? '+' : ''}${event.attackDelta} ATK`);
+        }
+        if (event.healthDelta !== 0) {
+          parts.push(`${event.healthDelta > 0 ? '+' : ''}${event.healthDelta} HP`);
+        }
+        message = parts.length > 0 ? parts.join('  ') : (isBuff ? '+BUFF' : '-DEBUFF');
+        color = isBuff ? '#22c55e' : '#ef4444';
+        targetId = event.targetId;
+        if (isNewEvent) {
+          this.combatVfx.playBuffDebuff(event.targetId, event.type);
+        }
+      }
       else if (event.type === 'CHAMPION_LEVELED_UP') { message = `LEVEL ${event.newLevel}`; color = '#ffd66e'; targetId = event.unitId; }
       if (isNewEvent) this.combatVfx.playVisualEvent(event);
       if (!message) return;
       const target = targetId ? this.cards.get(targetId) : undefined;
-      const text = this.add.text(target?.x ?? this.scale.width / 2, (target?.y ?? this.scale.height / 2) - 20, message, { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color, stroke: '#020817', strokeThickness: 5 }).setOrigin(0.5).setDepth(80);
-      this.tweens.add({ targets: text, y: text.y - 34, alpha: 0, duration: 780, ease: 'Cubic.Out', onComplete: () => text.destroy() });
+      const targetDepth = target ? target.depth + 500 : 9999;
+      const startY = target ? target.y - target.height / 2 - 18 : this.scale.height / 2 - 24;
+      const text = this.add.text(target?.x ?? this.scale.width / 2, startY, message, {
+        fontFamily: 'Inter, Arial, sans-serif',
+        fontSize: '22px',
+        fontStyle: 'bold',
+        color,
+        stroke: '#020817',
+        strokeThickness: 7,
+        shadow: { offsetX: 0, offsetY: 2, color, blur: 10, fill: true }
+      }).setOrigin(0.5).setDepth(targetDepth);
+      const displayDuration = (event.type === 'BUFF' || event.type === 'DEBUFF') ? 3000 : 850;
+      this.tweens.add({ targets: text, y: text.y - 48, alpha: 0, duration: displayDuration, ease: 'Cubic.Out', onComplete: () => text.destroy() });
     });
   }
 }
