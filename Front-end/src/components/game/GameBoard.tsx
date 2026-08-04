@@ -36,6 +36,8 @@ import { PhaserArenaCanvas } from "./phaser/PhaserArenaCanvas";
 import { arenaEventBus } from "../../libs/arenaEventBus";
 import { useGameStore } from "../../hooks/useGameStore";
 import { SpellEffectLayer } from "./spell-effect-layer";
+import { GiEvilEyes } from "react-icons/gi";
+import { FaEyeSlash } from "react-icons/fa";
 
 const MATCH_RESULT_RETURN_SECONDS = 20;
 
@@ -925,10 +927,27 @@ export function GameBoardView({
 
   function getGraveyardAllowedTypes(): GraveyardEntryType[] | undefined {
     if (!selectedSpell) return undefined;
-    const reviveEffect = cardDef(selectedSpell).effects?.find((effect) => effect.type === "REVIVE_CARD" || effect.type === "REBIRTH_CARD");
-    if (reviveEffect && (reviveEffect.type === "REVIVE_CARD" || reviveEffect.type === "REBIRTH_CARD")) {
-      return reviveEffect.allowedTypes as GraveyardEntryType[];
+    const effects = cardDef(selectedSpell).effects ?? [];
+    const gyEffect = effects.find(
+      (effect) =>
+        effect.type === "REVIVE_CARD" ||
+        effect.type === "REBIRTH_CARD" ||
+        effect.type === "BANISH_GRAVEYARD"
+    );
+    if (!gyEffect) return undefined;
+
+    if ("allowedTypes" in gyEffect && gyEffect.allowedTypes && gyEffect.allowedTypes.length > 0) {
+      return gyEffect.allowedTypes as GraveyardEntryType[];
     }
+
+    if (gyEffect.type === "BANISH_GRAVEYARD" || gyEffect.type === "REBIRTH_CARD") {
+      return ["UNIT", "CHAMPION", "SPELL"];
+    }
+
+    if (gyEffect.type === "REVIVE_CARD") {
+      return ["UNIT", "CHAMPION"];
+    }
+
     return undefined;
   }
 
@@ -1681,13 +1700,15 @@ export function GameBoardView({
             playerId={viewingGraveyard}
             playerName={getPlayerName(viewingGraveyard)}
             entries={gameState.players[viewingGraveyard].graveyard}
+            canSelect={canSelectGraveyardCard(viewingGraveyard)}
+            allowedTypes={getGraveyardAllowedTypes()}
             selectedCardInstanceId={
               selectedSpellTarget?.type === "GRAVEYARD" &&
                 selectedSpellTarget.playerId === viewingGraveyard
                 ? selectedSpellTarget.cardInstanceId
                 : undefined
             }
-                     selectionPrompt={
+            selectionPrompt={
               selectedSpell
                 ? `${cardDef(selectedSpell).name}: ${describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}`
                 : undefined
@@ -1745,7 +1766,8 @@ export function GameBoardView({
           </div>
         ) : null}
 
-        <section ref={battleTableRef} className="battle-table lor-table" aria-label="Local battle board">
+        <section ref={battleTableRef} className="battle-table lor-table relative overflow-hidden" aria-label="Local battle board">
+          <PhaserArenaCanvas />
           <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
           <Hand
             cards={gameState.players[opponentPlayerId].hand}
@@ -1768,7 +1790,6 @@ export function GameBoardView({
             </div>
 
             <div className="center-board phaser-arena-enabled">
-              <PhaserArenaCanvas />
               <div className="phaser-center-info">
                 <CenterInfo
                   state={gameState}

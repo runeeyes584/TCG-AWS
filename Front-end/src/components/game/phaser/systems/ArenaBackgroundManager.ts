@@ -4,13 +4,11 @@ import type { GameState } from "@backend/game/types";
 /* ─────────────────────────────────────────────────────────
  * ArenaBackgroundManager - Mythical Constellation Engine
  * ─────────────────────────────────────────────────────────
- * Automatically draws a random mythical creature constellation
- * (Dragon, Phoenix, Wolf, Leviathan, Stag) every 5 seconds.
- *
- * Cycle Breakdown (5.0s total):
- *   0.0s – 2.6s : Glowing tracer particle beam draws the creature paths.
- *   2.6s – 4.0s : Full constellation glows bright with pulsing star nodes.
- *   4.0s – 5.0s : Dissolves & fades out gracefully as next creature emerges.
+ * Features:
+ *   1. 5 Detailed Anatomical Constellation Beasts (Dragon, Phoenix, Wolf, Leviathan, Stag)
+ *   2. Softened Spark Tracer & Refined Thin Lines
+ *   3. Dark Blue Electric Circuit Network & Lightning Discharge Flashes
+ *   4. 4-Corner Animated Beast Eyes (Rotation, Open 3s, Look Around, Close 3s)
  * ───────────────────────────────────────────────────────── */
 
 interface Point2D {
@@ -27,65 +25,120 @@ interface CreatureConstellation {
   paths: Path2D[];
 }
 
-// ── 5 Mythical Creature Definitions (Normalized Coordinates) ─────────
+// ── 5 Detailed Anatomical Creature Definitions ─────────────────────────
 const CREATURES: CreatureConstellation[] = [
+  // 1. Celestial Dragon (Rồng Thần)
   {
     name: "Dragon",
     paths: [
-      { points: [{ x: 0.18, y: 0.72 }, { x: 0.32, y: 0.48 }, { x: 0.48, y: 0.56 }, { x: 0.64, y: 0.42 }, { x: 0.74, y: 0.32 }, { x: 0.82, y: 0.28 }] },
-      { points: [{ x: 0.74, y: 0.32 }, { x: 0.78, y: 0.38 }, { x: 0.7, y: 0.4 }] },
-      { points: [{ x: 0.74, y: 0.32 }, { x: 0.7, y: 0.2 }] },
-      { points: [{ x: 0.48, y: 0.56 }, { x: 0.34, y: 0.28 }, { x: 0.22, y: 0.18 }, { x: 0.38, y: 0.38 }, { x: 0.48, y: 0.56 }] },
-      { points: [{ x: 0.48, y: 0.56 }, { x: 0.62, y: 0.28 }, { x: 0.76, y: 0.18 }, { x: 0.6, y: 0.38 }, { x: 0.48, y: 0.56 }] },
-      { points: [{ x: 0.18, y: 0.72 }, { x: 0.1, y: 0.66 }] },
-      { points: [{ x: 0.18, y: 0.72 }, { x: 0.12, y: 0.78 }] },
+      // Spine & Crest
+      { points: [{ x: 0.15, y: 0.76 }, { x: 0.24, y: 0.62 }, { x: 0.36, y: 0.46 }, { x: 0.48, y: 0.54 }, { x: 0.62, y: 0.44 }, { x: 0.72, y: 0.32 }, { x: 0.82, y: 0.28 }] },
+      // Snout, Jaw & Fangs
+      { points: [{ x: 0.82, y: 0.28 }, { x: 0.88, y: 0.29 }, { x: 0.84, y: 0.35 }, { x: 0.74, y: 0.36 }, { x: 0.72, y: 0.32 }] },
+      { points: [{ x: 0.84, y: 0.35 }, { x: 0.82, y: 0.41 }] },
+      // Horns
+      { points: [{ x: 0.76, y: 0.3 }, { x: 0.78, y: 0.18 }, { x: 0.71, y: 0.14 }] },
+      { points: [{ x: 0.74, y: 0.32 }, { x: 0.68, y: 0.22 }] },
+      // Left Wing Ribs & Claws
+      { points: [{ x: 0.48, y: 0.54 }, { x: 0.36, y: 0.26 }, { x: 0.22, y: 0.16 }, { x: 0.32, y: 0.36 }, { x: 0.4, y: 0.48 }, { x: 0.48, y: 0.54 }] },
+      { points: [{ x: 0.36, y: 0.26 }, { x: 0.26, y: 0.34 }] },
+      { points: [{ x: 0.36, y: 0.26 }, { x: 0.34, y: 0.44 }] },
+      // Right Wing Ribs
+      { points: [{ x: 0.48, y: 0.54 }, { x: 0.62, y: 0.26 }, { x: 0.78, y: 0.16 }, { x: 0.68, y: 0.36 }, { x: 0.58, y: 0.48 }, { x: 0.48, y: 0.54 }] },
+      { points: [{ x: 0.62, y: 0.26 }, { x: 0.72, y: 0.34 }] },
+      // Front Claws
+      { points: [{ x: 0.62, y: 0.44 }, { x: 0.64, y: 0.54 }, { x: 0.68, y: 0.58 }] },
+      // Tail Flame Plumes
+      { points: [{ x: 0.15, y: 0.76 }, { x: 0.08, y: 0.7 }, { x: 0.04, y: 0.64 }] },
+      { points: [{ x: 0.15, y: 0.76 }, { x: 0.09, y: 0.82 }, { x: 0.05, y: 0.88 }] },
     ],
   },
+  // 2. Astral Phoenix (Phượng Hoàng Vũ Trụ)
   {
     name: "Phoenix",
     paths: [
-      { points: [{ x: 0.5, y: 0.78 }, { x: 0.5, y: 0.52 }, { x: 0.5, y: 0.36 }, { x: 0.5, y: 0.24 }] },
-      { points: [{ x: 0.5, y: 0.24 }, { x: 0.46, y: 0.27 }] },
-      { points: [{ x: 0.5, y: 0.24 }, { x: 0.5, y: 0.15 }, { x: 0.45, y: 0.18 }] },
-      { points: [{ x: 0.5, y: 0.15 }, { x: 0.55, y: 0.18 }] },
-      { points: [{ x: 0.5, y: 0.52 }, { x: 0.34, y: 0.38 }, { x: 0.16, y: 0.24 }, { x: 0.24, y: 0.44 }, { x: 0.32, y: 0.56 }, { x: 0.5, y: 0.52 }] },
-      { points: [{ x: 0.5, y: 0.52 }, { x: 0.66, y: 0.38 }, { x: 0.84, y: 0.24 }, { x: 0.76, y: 0.44 }, { x: 0.68, y: 0.56 }, { x: 0.5, y: 0.52 }] },
-      { points: [{ x: 0.5, y: 0.78 }, { x: 0.36, y: 0.9 }] },
-      { points: [{ x: 0.5, y: 0.78 }, { x: 0.5, y: 0.94 }] },
-      { points: [{ x: 0.5, y: 0.78 }, { x: 0.64, y: 0.9 }] },
+      // Crown Feather Plumes & Head
+      { points: [{ x: 0.5, y: 0.12 }, { x: 0.46, y: 0.17 }, { x: 0.5, y: 0.24 }] },
+      { points: [{ x: 0.5, y: 0.12 }, { x: 0.54, y: 0.17 }, { x: 0.5, y: 0.24 }] },
+      { points: [{ x: 0.5, y: 0.24 }, { x: 0.44, y: 0.26 }, { x: 0.5, y: 0.3 }] },
+      // Neck, Sternum & Body Plumes
+      { points: [{ x: 0.5, y: 0.3 }, { x: 0.5, y: 0.44 }, { x: 0.47, y: 0.56 }, { x: 0.5, y: 0.72 }] },
+      { points: [{ x: 0.5, y: 0.44 }, { x: 0.53, y: 0.56 }, { x: 0.5, y: 0.72 }] },
+      // Left Wing Feathers
+      { points: [{ x: 0.5, y: 0.44 }, { x: 0.34, y: 0.34 }, { x: 0.14, y: 0.2 }, { x: 0.2, y: 0.38 }, { x: 0.28, y: 0.5 }, { x: 0.38, y: 0.6 }, { x: 0.5, y: 0.72 }] },
+      { points: [{ x: 0.34, y: 0.34 }, { x: 0.22, y: 0.48 }] },
+      { points: [{ x: 0.2, y: 0.38 }, { x: 0.3, y: 0.56 }] },
+      // Right Wing Feathers
+      { points: [{ x: 0.5, y: 0.44 }, { x: 0.66, y: 0.34 }, { x: 0.86, y: 0.2 }, { x: 0.8, y: 0.38 }, { x: 0.72, y: 0.5 }, { x: 0.62, y: 0.6 }, { x: 0.5, y: 0.72 }] },
+      { points: [{ x: 0.66, y: 0.34 }, { x: 0.78, y: 0.48 }] },
+      // Triple Flowing Tail Plumes
+      { points: [{ x: 0.5, y: 0.72 }, { x: 0.36, y: 0.84 }, { x: 0.28, y: 0.94 }] },
+      { points: [{ x: 0.5, y: 0.72 }, { x: 0.5, y: 0.88 }, { x: 0.5, y: 0.96 }] },
+      { points: [{ x: 0.5, y: 0.72 }, { x: 0.64, y: 0.84 }, { x: 0.72, y: 0.94 }] },
     ],
   },
+  // 3. Spectral Wolf (Sói Thần)
   {
     name: "Wolf",
     paths: [
-      { points: [{ x: 0.78, y: 0.34 }, { x: 0.68, y: 0.26 }, { x: 0.64, y: 0.2 }] },
-      { points: [{ x: 0.68, y: 0.26 }, { x: 0.74, y: 0.22 }] },
-      { points: [{ x: 0.68, y: 0.26 }, { x: 0.6, y: 0.34 }, { x: 0.5, y: 0.4 }, { x: 0.36, y: 0.44 }, { x: 0.24, y: 0.48 }] },
-      { points: [{ x: 0.6, y: 0.34 }, { x: 0.54, y: 0.54 }, { x: 0.5, y: 0.76 }] },
-      { points: [{ x: 0.24, y: 0.48 }, { x: 0.26, y: 0.76 }] },
-      { points: [{ x: 0.24, y: 0.48 }, { x: 0.12, y: 0.38 }] },
+      // Ear L & Ear R
+      { points: [{ x: 0.64, y: 0.16 }, { x: 0.68, y: 0.24 }, { x: 0.72, y: 0.28 }] },
+      { points: [{ x: 0.74, y: 0.18 }, { x: 0.76, y: 0.26 }, { x: 0.72, y: 0.28 }] },
+      // Snout Bridge, Nose & Jaw
+      { points: [{ x: 0.72, y: 0.28 }, { x: 0.82, y: 0.34 }, { x: 0.78, y: 0.4 }, { x: 0.68, y: 0.38 }, { x: 0.62, y: 0.32 }] },
+      // Throat & Chest
+      { points: [{ x: 0.68, y: 0.38 }, { x: 0.6, y: 0.46 }, { x: 0.54, y: 0.58 }] },
+      // Mane & Curved Spine & Rump
+      { points: [{ x: 0.72, y: 0.28 }, { x: 0.6, y: 0.34 }, { x: 0.48, y: 0.38 }, { x: 0.36, y: 0.42 }, { x: 0.24, y: 0.46 }] },
+      // Front Legs & Paws
+      { points: [{ x: 0.54, y: 0.58 }, { x: 0.52, y: 0.7 }, { x: 0.5, y: 0.82 }] },
+      { points: [{ x: 0.58, y: 0.56 }, { x: 0.57, y: 0.7 }, { x: 0.56, y: 0.82 }] },
+      // Rear Legs
+      { points: [{ x: 0.24, y: 0.46 }, { x: 0.22, y: 0.62 }, { x: 0.26, y: 0.74 }, { x: 0.24, y: 0.82 }] },
+      // Bushy Tail
+      { points: [{ x: 0.24, y: 0.46 }, { x: 0.14, y: 0.38 }, { x: 0.08, y: 0.44 }, { x: 0.18, y: 0.52 }] },
     ],
   },
+  // 4. Abyssal Leviathan (Thủy Quái Vực Thẫm)
   {
     name: "Leviathan",
     paths: [
-      { points: [{ x: 0.84, y: 0.72 }, { x: 0.68, y: 0.8 }, { x: 0.48, y: 0.64 }, { x: 0.32, y: 0.42 }, { x: 0.42, y: 0.26 }, { x: 0.26, y: 0.32 }] },
-      { points: [{ x: 0.26, y: 0.32 }, { x: 0.18, y: 0.34 }, { x: 0.22, y: 0.42 }] },
-      { points: [{ x: 0.26, y: 0.32 }, { x: 0.28, y: 0.2 }] },
-      { points: [{ x: 0.48, y: 0.64 }, { x: 0.54, y: 0.55 }] },
-      { points: [{ x: 0.32, y: 0.42 }, { x: 0.24, y: 0.48 }] },
+      // Serpentine Coiling Body
+      { points: [{ x: 0.86, y: 0.76 }, { x: 0.72, y: 0.84 }, { x: 0.52, y: 0.68 }, { x: 0.34, y: 0.44 }, { x: 0.44, y: 0.24 }, { x: 0.28, y: 0.28 }, { x: 0.18, y: 0.36 }] },
+      // Fanged Jaw & Head Crest
+      { points: [{ x: 0.18, y: 0.36 }, { x: 0.12, y: 0.38 }, { x: 0.16, y: 0.44 }, { x: 0.24, y: 0.42 }] },
+      { points: [{ x: 0.12, y: 0.38 }, { x: 0.14, y: 0.45 }] },
+      { points: [{ x: 0.28, y: 0.28 }, { x: 0.32, y: 0.16 }, { x: 0.24, y: 0.18 }] },
+      // Dorsal Fin Spikes
+      { points: [{ x: 0.52, y: 0.68 }, { x: 0.58, y: 0.58 }] },
+      { points: [{ x: 0.34, y: 0.44 }, { x: 0.26, y: 0.52 }] },
+      { points: [{ x: 0.44, y: 0.24 }, { x: 0.52, y: 0.2 }] },
+      // Fluke Tail
+      { points: [{ x: 0.86, y: 0.76 }, { x: 0.94, y: 0.7 }, { x: 0.92, y: 0.82 }] },
     ],
   },
+  // 5. Mystic Stag (Hươu Thần Rừng Thẫm)
   {
     name: "Stag",
     paths: [
-      { points: [{ x: 0.58, y: 0.38 }, { x: 0.5, y: 0.32 }, { x: 0.5, y: 0.48 }, { x: 0.5, y: 0.6 }, { x: 0.38, y: 0.62 }, { x: 0.28, y: 0.64 }] },
-      { points: [{ x: 0.5, y: 0.32 }, { x: 0.42, y: 0.22 }, { x: 0.36, y: 0.16 }] },
-      { points: [{ x: 0.42, y: 0.22 }, { x: 0.46, y: 0.15 }] },
-      { points: [{ x: 0.5, y: 0.32 }, { x: 0.58, y: 0.22 }, { x: 0.64, y: 0.16 }] },
-      { points: [{ x: 0.58, y: 0.22 }, { x: 0.54, y: 0.15 }] },
-      { points: [{ x: 0.5, y: 0.6 }, { x: 0.5, y: 0.8 }] },
-      { points: [{ x: 0.28, y: 0.64 }, { x: 0.28, y: 0.8 }] },
+      // Snout, Jaw, Head & Neck
+      { points: [{ x: 0.62, y: 0.36 }, { x: 0.54, y: 0.3 }, { x: 0.48, y: 0.32 }, { x: 0.48, y: 0.46 }, { x: 0.5, y: 0.58 }] },
+      // Left Multi-Tined Antler
+      { points: [{ x: 0.48, y: 0.32 }, { x: 0.42, y: 0.2 }, { x: 0.36, y: 0.12 }] },
+      { points: [{ x: 0.42, y: 0.2 }, { x: 0.46, y: 0.12 }] },
+      { points: [{ x: 0.38, y: 0.15 }, { x: 0.32, y: 0.18 }] },
+      // Right Multi-Tined Antler
+      { points: [{ x: 0.48, y: 0.32 }, { x: 0.56, y: 0.2 }, { x: 0.62, y: 0.12 }] },
+      { points: [{ x: 0.56, y: 0.2 }, { x: 0.52, y: 0.12 }] },
+      { points: [{ x: 0.6, y: 0.15 }, { x: 0.66, y: 0.18 }] },
+      // Ears
+      { points: [{ x: 0.48, y: 0.32 }, { x: 0.4, y: 0.3 }] },
+      { points: [{ x: 0.48, y: 0.32 }, { x: 0.56, y: 0.32 }] },
+      // Body Spine & Rump
+      { points: [{ x: 0.5, y: 0.58 }, { x: 0.38, y: 0.6 }, { x: 0.26, y: 0.62 }] },
+      // Jointed Legs & Hooves
+      { points: [{ x: 0.5, y: 0.58 }, { x: 0.5, y: 0.72 }, { x: 0.48, y: 0.82 }] },
+      { points: [{ x: 0.26, y: 0.62 }, { x: 0.28, y: 0.72 }, { x: 0.26, y: 0.82 }] },
     ],
   },
 ];
@@ -98,6 +151,24 @@ const DISSOLVE_DURATION = 1.0;
 const FOG_COUNT = 6;
 const SPORE_COUNT = 32;
 const EMBER_COUNT = 14;
+
+// ── Beast Eyes Configuration ───────────────────────────
+interface BeastEye {
+  xRatio: number;
+  yRatio: number;
+}
+
+const BEAST_EYES: BeastEye[] = [
+  { xRatio: 0.07, yRatio: 0.12 }, // Top-Left
+  { xRatio: 0.93, yRatio: 0.12 }, // Top-Right
+  { xRatio: 0.07, yRatio: 0.88 }, // Bottom-Left
+  { xRatio: 0.93, yRatio: 0.88 }, // Bottom-Right
+];
+
+const EYE_CYCLE_DURATION = 6.5;
+const EYE_OPEN_TIME = 0.5;
+const EYE_ACTIVE_TIME = 3.0;
+const EYE_CLOSE_TIME = 0.5;
 
 interface FogWisp {
   sprite: Phaser.GameObjects.Graphics;
@@ -128,19 +199,34 @@ interface Ember {
 export class ArenaBackgroundManager {
   private readonly scene: Phaser.Scene;
 
+  // Layers
   private baseGfx?: Phaser.GameObjects.Graphics;
+  private electricGfx?: Phaser.GameObjects.Graphics;
   private glowGfx?: Phaser.GameObjects.Graphics;
   private coreGfx?: Phaser.GameObjects.Graphics;
   private sparkGfx?: Phaser.GameObjects.Graphics;
+  private eyeGfx?: Phaser.GameObjects.Graphics;
+
   private readonly fogWisps: FogWisp[] = [];
   private readonly spores: Spore[] = [];
   private readonly embers: Ember[] = [];
 
+  // Constellation State
   private currentCreatureIdx = 0;
   private cycleTimer = 0;
   private elapsed = 0;
   private currentPhase: GameState["phase"] = "ACTION";
 
+  // Electric Circuit Discharge State
+  private dischargeTimer = 0;
+  private activeLightningPath: Point2D[] | null = null;
+  private lightningAlpha = 0;
+
+  // Beast Eyes Rotation State
+  private activeEyeIdx = 0;
+  private eyeTimer = 0;
+
+  // Parallax Pointer Tracking
   private pointerX = 0.5;
   private pointerY = 0.5;
 
@@ -148,8 +234,11 @@ export class ArenaBackgroundManager {
     this.scene = scene;
   }
 
+  /* ── Public API ──────────────────────────────────────── */
+
   init(width: number, height: number) {
     this.createBaseBackdrop(width, height);
+    this.createElectricGraphics();
     this.createConstellationGraphics();
     this.createFogWisps(width, height);
     this.createSpores(width, height);
@@ -157,17 +246,38 @@ export class ArenaBackgroundManager {
     this.setupPointerTracking();
   }
 
+  /**
+   * Called every frame from scene update loop.
+   * `delta` in ms.
+   */
   tick(delta: number, width: number, height: number, phase: GameState["phase"]) {
     const dt = delta * 0.001;
     this.elapsed += dt;
     this.cycleTimer += dt;
+    this.eyeTimer += dt;
+    this.dischargeTimer += dt;
 
+    // 5-second automatic creature rotation loop
     if (this.cycleTimer >= CYCLE_DURATION) {
       this.cycleTimer %= CYCLE_DURATION;
       this.currentCreatureIdx = (this.currentCreatureIdx + 1) % CREATURES.length;
     }
 
+    // 6.5-second beast eye rotation loop
+    if (this.eyeTimer >= EYE_CYCLE_DURATION) {
+      this.eyeTimer %= EYE_CYCLE_DURATION;
+      this.activeEyeIdx = (this.activeEyeIdx + 1) % BEAST_EYES.length;
+    }
+
+    // 1.3-second frequent electric discharge flash trigger
+    if (this.dischargeTimer >= 1.3) {
+      this.dischargeTimer = 0;
+      this.triggerLightningFlash();
+    }
+
     this.currentPhase = phase;
+
+    this.drawElectricCircuits(width, height);
     this.drawConstellation(width, height);
     this.tickFog(delta, width, height);
     this.tickSpores(delta, width, height);
@@ -176,6 +286,7 @@ export class ArenaBackgroundManager {
 
   destroy() {
     this.baseGfx?.destroy();
+    this.electricGfx?.destroy();
     this.glowGfx?.destroy();
     this.coreGfx?.destroy();
     this.sparkGfx?.destroy();
@@ -187,10 +298,98 @@ export class ArenaBackgroundManager {
     this.embers.length = 0;
   }
 
+  /* ── Base Backdrop ──────────────────────────────────── */
+
   private createBaseBackdrop(width: number, height: number) {
     this.baseGfx = this.scene.add.graphics().setDepth(0.01);
     this.baseGfx.fillStyle(0x02040a, 1).fillRect(0, 0, width, height);
   }
+
+  /* ── Dark Blue Electric Circuits & Lightning ─────────── */
+
+  private createElectricGraphics() {
+    this.electricGfx = this.scene.add.graphics().setDepth(0.05).setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  private triggerLightningFlash() {
+    const samplePaths: Point2D[][] = [
+      [{ x: 0.01, y: 0.1 }, { x: 0.18, y: 0.1 }, { x: 0.28, y: 0.2 }, { x: 0.42, y: 0.2 }],
+      [{ x: 0.99, y: 0.12 }, { x: 0.82, y: 0.12 }, { x: 0.72, y: 0.22 }, { x: 0.58, y: 0.22 }],
+      [{ x: 0.01, y: 0.88 }, { x: 0.16, y: 0.88 }, { x: 0.26, y: 0.78 }, { x: 0.45, y: 0.78 }],
+      [{ x: 0.99, y: 0.88 }, { x: 0.82, y: 0.88 }, { x: 0.72, y: 0.78 }, { x: 0.55, y: 0.78 }],
+      [{ x: 0.35, y: 0.01 }, { x: 0.35, y: 0.12 }, { x: 0.48, y: 0.22 }],
+      [{ x: 0.65, y: 0.99 }, { x: 0.65, y: 0.88 }, { x: 0.52, y: 0.78 }],
+    ];
+    this.activeLightningPath = Phaser.Utils.Array.GetRandom(samplePaths);
+    this.lightningAlpha = 0.95;
+  }
+
+  private drawElectricCircuits(width: number, height: number) {
+    if (!this.electricGfx) return;
+    this.electricGfx.clear();
+
+    const circuitColor = 0x0369a1;
+    const nodeColor = 0x0284c7;
+    const flashColor = 0x38bdf8;
+
+    const circuits: Point2D[][] = [
+      [{ x: 0.01, y: 0.1 }, { x: 0.18, y: 0.1 }, { x: 0.28, y: 0.2 }, { x: 0.42, y: 0.2 }],
+      [{ x: 0.01, y: 0.88 }, { x: 0.16, y: 0.88 }, { x: 0.26, y: 0.78 }, { x: 0.45, y: 0.78 }],
+      [{ x: 0.99, y: 0.12 }, { x: 0.82, y: 0.12 }, { x: 0.72, y: 0.22 }, { x: 0.58, y: 0.22 }],
+      [{ x: 0.99, y: 0.88 }, { x: 0.82, y: 0.88 }, { x: 0.72, y: 0.78 }, { x: 0.55, y: 0.78 }],
+      [{ x: 0.35, y: 0.01 }, { x: 0.35, y: 0.12 }, { x: 0.48, y: 0.22 }],
+      [{ x: 0.65, y: 0.99 }, { x: 0.65, y: 0.88 }, { x: 0.52, y: 0.78 }],
+    ];
+
+    const pulseProgress = (this.elapsed * 0.45) % 1;
+
+    circuits.forEach((pts) => {
+      this.electricGfx!.lineStyle(1.2, circuitColor, 0.22);
+      this.electricGfx!.beginPath();
+      this.electricGfx!.moveTo(pts[0].x * width, pts[0].y * height);
+
+      for (let i = 1; i < pts.length; i++) {
+        const x = pts[i].x * width;
+        const y = pts[i].y * height;
+        this.electricGfx!.lineTo(x, y);
+
+        this.electricGfx!.fillStyle(nodeColor, 0.45);
+        this.electricGfx!.fillCircle(x, y, i === pts.length - 1 ? 3.2 : 1.8);
+      }
+      this.electricGfx!.strokePath();
+
+      const totalSegs = pts.length - 1;
+      const targetSeg = Math.floor(pulseProgress * totalSegs);
+      const segT = (pulseProgress * totalSegs) % 1;
+      if (targetSeg < totalSegs) {
+        const p1 = pts[targetSeg];
+        const p2 = pts[targetSeg + 1];
+        const sx = (p1.x + (p2.x - p1.x) * segT) * width;
+        const sy = (p1.y + (p2.y - p1.y) * segT) * height;
+        this.electricGfx!.fillStyle(flashColor, 0.85);
+        this.electricGfx!.fillCircle(sx, sy, 2.2);
+      }
+    });
+
+    if (this.activeLightningPath && this.lightningAlpha > 0.02) {
+      this.lightningAlpha *= 0.82;
+      this.electricGfx.lineStyle(2.2, flashColor, this.lightningAlpha * 0.85);
+      this.electricGfx.beginPath();
+
+      const pts = this.activeLightningPath;
+      pts.forEach((p, idx) => {
+        const jx = idx === 0 || idx === pts.length - 1 ? 0 : (Math.random() - 0.5) * 8;
+        const jy = idx === 0 || idx === pts.length - 1 ? 0 : (Math.random() - 0.5) * 8;
+        const x = p.x * width + jx;
+        const y = p.y * height + jy;
+        if (idx === 0) this.electricGfx!.moveTo(x, y);
+        else this.electricGfx!.lineTo(x, y);
+      });
+      this.electricGfx.strokePath();
+    }
+  }
+
+  /* ── Constellation Creature Engine ───────────────────── */
 
   private createConstellationGraphics() {
     this.glowGfx = this.scene.add.graphics().setDepth(0.1).setBlendMode(Phaser.BlendModes.ADD);
@@ -263,8 +462,8 @@ export class ArenaBackgroundManager {
 
       let remainingPathDraw = pathLen * pathProgress;
 
-      this.glowGfx!.lineStyle(11, glowColor, alpha * 0.35 * breath);
-      this.coreGfx!.lineStyle(2.6, coreColor, alpha * 0.85 * breath);
+      this.glowGfx!.lineStyle(3, glowColor, alpha * 0.14 * breath);
+      this.coreGfx!.lineStyle(0.9, coreColor, alpha * 0.40 * breath);
 
       this.glowGfx!.beginPath();
       this.coreGfx!.beginPath();
@@ -317,21 +516,87 @@ export class ArenaBackgroundManager {
       this.coreGfx!.strokePath();
 
       if (hasHead && drawRatio < 1.0) {
-        this.sparkGfx!.fillStyle(sparkColor, alpha * 0.95);
-        this.sparkGfx!.fillCircle(headX, headY, 5.5);
-        this.sparkGfx!.lineStyle(2, 0xffffff, alpha * 0.9);
-        this.sparkGfx!.strokeCircle(headX, headY, 9);
+        this.sparkGfx!.fillStyle(sparkColor, alpha * 0.22);
+        this.sparkGfx!.fillCircle(headX, headY, 2.0);
+        this.sparkGfx!.lineStyle(0.8, 0xffffff, alpha * 0.2);
+        this.sparkGfx!.strokeCircle(headX, headY, 3.8);
       }
     });
   }
 
   private drawStarNode(x: number, y: number, alpha: number, glowColor: number, sparkColor: number) {
     if (!this.sparkGfx) return;
-    this.sparkGfx.fillStyle(sparkColor, alpha * 0.85);
-    this.sparkGfx.fillCircle(x, y, 2.5);
-    this.sparkGfx.lineStyle(1, glowColor, alpha * 0.5);
-    this.sparkGfx.strokeCircle(x, y, 5.5);
+    this.sparkGfx.fillStyle(sparkColor, alpha * 0.35);
+    this.sparkGfx.fillCircle(x, y, 1.2);
+    this.sparkGfx.lineStyle(0.6, glowColor, alpha * 0.2);
+    this.sparkGfx.strokeCircle(x, y, 2.5);
   }
+
+  /* ── 4-Corner Beast Eye Engine ────────────────────────── */
+
+  private createEyeGraphics() {
+    this.eyeGfx = this.scene.add.graphics().setDepth(0.6).setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  private drawBeastEyes(width: number, height: number) {
+    if (!this.eyeGfx) return;
+    this.eyeGfx.clear();
+
+    const activeEyeConfig = BEAST_EYES[this.activeEyeIdx];
+    if (!activeEyeConfig) return;
+
+    let openRatio = 0;
+    let activeAlpha = 0;
+
+    if (this.eyeTimer < EYE_OPEN_TIME) {
+      openRatio = Math.sin((this.eyeTimer / EYE_OPEN_TIME) * (Math.PI / 2));
+      activeAlpha = openRatio;
+    } else if (this.eyeTimer < EYE_OPEN_TIME + EYE_ACTIVE_TIME) {
+      openRatio = 1.0;
+      activeAlpha = 1.0;
+    } else if (this.eyeTimer < EYE_OPEN_TIME + EYE_ACTIVE_TIME + EYE_CLOSE_TIME) {
+      const closeT = (this.eyeTimer - (EYE_OPEN_TIME + EYE_ACTIVE_TIME)) / EYE_CLOSE_TIME;
+      openRatio = Math.cos(closeT * (Math.PI / 2));
+      activeAlpha = openRatio;
+    } else {
+      return;
+    }
+
+    if (activeAlpha <= 0.01) return;
+
+    const eyeX = activeEyeConfig.xRatio * width;
+    const eyeY = activeEyeConfig.yRatio * height;
+
+    const eyeW = 28;
+    const eyeH = 14 * openRatio;
+
+    const isDanger = this.currentPhase === "COMBAT" || this.currentPhase === "BLOCK";
+    const irisColor = isDanger ? 0xef4444 : 0x8b5cf6;
+    const pupilColor = isDanger ? 0xfbbf24 : 0x06b6d4;
+
+    const pupilTrackX = (this.pointerX - 0.5) * 5;
+    const pupilTrackY = (this.pointerY - 0.5) * 3;
+
+    this.eyeGfx.fillStyle(irisColor, activeAlpha * 0.15);
+    this.eyeGfx.fillEllipse(eyeX, eyeY, eyeW * 1.6, Math.max(2, eyeH * 1.6));
+
+    this.eyeGfx.lineStyle(1.8, irisColor, activeAlpha * 0.7);
+    this.eyeGfx.strokeEllipse(eyeX, eyeY, eyeW, Math.max(1, eyeH));
+
+    if (openRatio > 0.2) {
+      const px = eyeX + pupilTrackX;
+      const py = eyeY + pupilTrackY;
+      const pupilH = Math.min(10, eyeH * 0.85);
+
+      this.eyeGfx.fillStyle(pupilColor, activeAlpha * 0.9);
+      this.eyeGfx.fillEllipse(px, py, 2.8, pupilH);
+
+      this.eyeGfx.fillStyle(0xffffff, activeAlpha * 0.8);
+      this.eyeGfx.fillCircle(px - 1, py - pupilH * 0.25, 1.2);
+    }
+  }
+
+  /* ── Fog Wisps ──────────────────────────────────────── */
 
   private createFogWisps(width: number, height: number) {
     for (let i = 0; i < FOG_COUNT; i++) {
@@ -372,6 +637,8 @@ export class ArenaBackgroundManager {
     }
   }
 
+  /* ── Spores (Wilderness) ────────────────────────────── */
+
   private createSpores(width: number, height: number) {
     for (let i = 0; i < SPORE_COUNT; i++) {
       const size = 2 + Math.random() * 3.5;
@@ -411,6 +678,8 @@ export class ArenaBackgroundManager {
       sp.sprite.setAlpha(0.2 + 0.25 * Math.sin(this.elapsed * 1.2 + sp.phase));
     }
   }
+
+  /* ── Embers (Danger) ────────────────────────────────── */
 
   private createEmbers(width: number, height: number) {
     for (let i = 0; i < EMBER_COUNT; i++) {

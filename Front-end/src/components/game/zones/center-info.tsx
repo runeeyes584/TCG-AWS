@@ -1,5 +1,92 @@
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import type { GameState, PlayerId } from "@backend/game/types";
+import { GiSheikahEye } from "react-icons/gi";
+import { RiEyeCloseLine } from "react-icons/ri";
+
+function CenterBeastEye({ phase }: { phase?: string }) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [pupilOffset, setPupilOffset] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsOpen(false);
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+      const distance = Math.min(4.5, Math.hypot(e.clientX - centerX, e.clientY - centerY) / 65);
+      setPupilOffset({
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance
+      });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  const isDanger = phase === "COMBAT" || phase === "BLOCK";
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative flex items-center justify-center pointer-events-none mx-1.5"
+      aria-hidden="true"
+    >
+      <div
+        className={clsx(
+          "relative flex items-center justify-center p-1.5 rounded-full border transition-all duration-500 backdrop-blur-md",
+          isOpen
+            ? isDanger
+              ? "border-red-500/70 bg-red-950/60 shadow-[0_0_22px_rgba(239,68,68,0.85)] scale-105"
+              : "border-purple-500/70 bg-purple-950/60 shadow-[0_0_22px_rgba(147,51,234,0.85)] scale-105"
+            : "border-slate-800/40 bg-slate-950/40 shadow-none scale-90"
+        )}
+      >
+        <span
+          className={clsx(
+            "absolute inset-0 rounded-full animate-ping opacity-30",
+            isDanger ? "bg-red-600" : "bg-purple-600"
+          )}
+        />
+
+        {isOpen ? (
+          <div
+            style={{
+              transform: `translate(${pupilOffset.x}px, ${pupilOffset.y}px)`,
+              transition: "transform 0.08s ease-out"
+            }}
+          >
+            <GiSheikahEye
+              className={clsx(
+                "w-6 h-6 transition-colors duration-300",
+                isDanger
+                  ? "text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.95)]"
+                  : "text-purple-300 drop-shadow-[0_0_10px_rgba(192,132,252,0.95)]"
+              )}
+            />
+          </div>
+        ) : (
+          <RiEyeCloseLine className="w-5 h-5 text-slate-500/60 transition-opacity duration-300" />
+        )}
+      </div>
+    </div>
+  );
+}
 
 function Chip({
   label,
@@ -82,8 +169,8 @@ export function CenterInfo({ state, timeRemainingMs, playerNames = {} }: CenterI
       aria-label="Battle line status"
     >
       <MysticRiftDivider />
-      <div className="battle-line-info__brand">
-        <span className="battle-line-info__sprite" aria-hidden="true">✦</span>
+      <div className="battle-line-info__brand flex items-center gap-2">
+        <CenterBeastEye phase={state.phase} />
         <h2>Battle Line</h2>
         <span className="battle-line-info__brand-line" aria-hidden="true" />
       </div>

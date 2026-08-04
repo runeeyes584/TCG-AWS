@@ -242,8 +242,18 @@ function formatFloatingEvent(event: VisualEvent): string {
       return `-${event.amount}`;
     case "HEAL":
       return `+${event.amount}`;
-    case "BUFF":
-      return `+${event.attackDelta}/+${event.healthDelta}`;
+    case "BUFF": {
+      const parts: string[] = [];
+      if (event.attackDelta !== 0) parts.push(`${event.attackDelta > 0 ? '+' : ''}${event.attackDelta} ATK`);
+      if (event.healthDelta !== 0) parts.push(`${event.healthDelta > 0 ? '+' : ''}${event.healthDelta} HP`);
+      return parts.length > 0 ? parts.join(" ") : "+BUFF";
+    }
+    case "DEBUFF": {
+      const parts: string[] = [];
+      if (event.attackDelta !== 0) parts.push(`${event.attackDelta > 0 ? '+' : ''}${event.attackDelta} ATK`);
+      if (event.healthDelta !== 0) parts.push(`${event.healthDelta > 0 ? '+' : ''}${event.healthDelta} HP`);
+      return parts.length > 0 ? parts.join(" ") : "-DEBUFF";
+    }
     default:
       return "";
   }

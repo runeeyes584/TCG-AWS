@@ -39,6 +39,39 @@ export class CombatVFXSystem {
     }
   }
 
+  playBuffDebuff(unitId: string, type: "BUFF" | "DEBUFF") {
+    const card = this.resolveCard(unitId);
+    if (!card) return;
+    const isBuff = type === "BUFF";
+    const sparkColor = isBuff ? 0x22c55e : 0xef4444;
+
+    const startX = card.x;
+    this.scene.tweens.add({
+      targets: card,
+      x: { from: startX - 2.5, to: startX + 2.5 },
+      duration: 45,
+      ease: "Sine.InOut",
+      yoyo: true,
+      repeat: 2,
+      onComplete: () => card.setX(startX),
+    });
+
+    const ring = this.scene.add.circle(card.x, card.y, 16, sparkColor, 0.12)
+      .setStrokeStyle(3, sparkColor, 0.95)
+      .setDepth(card.depth + 4);
+
+    this.scene.tweens.add({
+      targets: ring,
+      radius: Math.max(card.width, card.height) * 0.78,
+      alpha: 0,
+      duration: 650,
+      ease: "Cubic.Out",
+      onComplete: () => ring.destroy(),
+    });
+
+    this.playSparks(card.x, card.y, sparkColor, 18, card.depth + 5);
+  }
+
   playAttack(unitId: string) {
     const card = this.resolveCard(unitId);
     if (!card) return;
