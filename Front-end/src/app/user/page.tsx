@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Activity, ArrowLeft, Camera, Check, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Activity, AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
@@ -29,6 +29,13 @@ interface UserProfile {
   leaderboard_win_rate?: number;
   leaderboard_wins?: number;
   leaderboard_losses?: number;
+  lastNameChangedAt?: number;
+}
+
+interface ToastNotification {
+  type: "success" | "error";
+  title: string;
+  message: string;
 }
 
 function UserPageContent() {
@@ -41,10 +48,17 @@ function UserPageContent() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
 
   useEffect(() => {
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   async function loadProfile() {
     try {
@@ -69,9 +83,27 @@ function UserPageContent() {
       if (response.success) {
         setUser(response.user);
         setEditingName(false);
+        setToast({
+          type: "success",
+          title: "CALLSIGN UPDATED",
+          message: `Operative callsign updated to "${response.user.username}". Next change available in 30 days.`
+        });
       } else {
-        alert(response.message || "Failed to update username");
+        setToast({
+          type: "error",
+          title: "UPDATE RESTRICTED",
+          message: response.message || "Failed to update username."
+        });
       }
+    } catch (error) {
+      const errorCode = typeof error === "object" && error !== null && "code" in error
+        ? (error as { code?: string }).code
+        : undefined;
+      setToast({
+        type: "error",
+        title: errorCode === "CALLSIGN_TAKEN" ? "CALLSIGN ALREADY IN USE" : "CALLSIGN CHANGE RESTRICTED",
+        message: error instanceof Error ? error.message : "The callsign could not be updated."
+      });
     } finally {
       setSavingName(false);
     }
@@ -177,9 +209,44 @@ function UserPageContent() {
   };
   const tier = getTier(elo);
   const eloProgress = Math.min(100, Math.max(8, Math.round((elo / 2200) * 100)));
+  const usernameChangeDate = user.lastNameChangedAt
+    ? user.lastNameChangedAt + 30 * 24 * 60 * 60 * 1000
+    : Date.now() + 30 * 24 * 60 * 60 * 1000;
+  const formatDate = (timestamp: number) => new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit"
+  }).format(new Date(timestamp));
 
   return (
     <main className="user-page-shell">
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="top-toast"
+            initial={{ opacity: 0, y: -60, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className={`profile-toast profile-toast--${toast.type}`}
+          >
+            <div className="profile-toast__icon">
+              {toast.type === "success" ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+            </div>
+            <div className="profile-toast__content">
+              <strong>
+                {toast.title}
+              </strong>
+              <p>
+                {toast.message}
+              </p>
+            </div>
+            <button className="profile-toast__close" onClick={() => setToast(null)} aria-label="Dismiss notification">
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="user-page-art" aria-hidden="true">
         <UserProfilePhaserEffects />
       </div>
@@ -258,41 +325,12 @@ function UserPageContent() {
 
           <div className="user-identity-info">
             <span className="identity-eyebrow">Authenticated player identity</span>
-            {editingName ? (
-              <div className="username-edit-box">
-                <input
-                  className="username-input"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  maxLength={20}
-                  autoFocus
-                />
-                <button
-                  className="user-btn save"
-                  onClick={handleSaveUsername}
-                  disabled={savingName}
-                >
-                  <Check size={14} /> Save
-                </button>
-                <button
-                  className="user-btn cancel"
-                  onClick={() => {
-                    setUsername(user.username);
-                    setEditingName(false);
-                  }}
-                  disabled={savingName}
-                >
-                  <X size={14} /> Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="username-display-box">
-                <h2>{user.username}</h2>
-                <button className="user-btn edit" onClick={() => setEditingName(true)}>
-                  <Edit3 size={14} /> Edit Name
-                </button>
-              </div>
-            )}
+            <div className="username-display-box">
+              <h2>{user.username}</h2>
+              <button className="user-btn edit" onClick={() => { setUsername(user.username); setEditingName(true); }}>
+                <Edit3 size={14} /> Edit Name
+              </button>
+            </div>
 
             <div className="user-meta-pills">
               <div className="user-meta-pill">
@@ -392,6 +430,57 @@ function UserPageContent() {
           </div>
         </div>
       </motion.div>
+      <AnimatePresence>
+        {editingName && (
+          <motion.div
+            className="username-edit-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="username-edit-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.section
+              className="username-edit-modal"
+              initial={{ opacity: 0, y: -24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -18, scale: 0.98 }}
+            >
+              <div className="username-edit-modal__eyebrow"><Shield size={14} /> IDENTITY CONTROL</div>
+              <h2 id="username-edit-title">EDIT OPERATIVE CALLSIGN</h2>
+              <p className="username-edit-modal__warning">
+                You have one callsign change every 30 days. {user.lastNameChangedAt
+                  ? `Your next change is available on ${formatDate(usernameChangeDate)}.`
+                  : `If you save this change now, your next change will be available on ${formatDate(usernameChangeDate)}.`}
+              </p>
+              <label className="username-edit-modal__field">
+                <span>New callsign</span>
+                <input
+                  className="username-input"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  maxLength={20}
+                  autoFocus
+                />
+              </label>
+              <p className="username-edit-modal__hint">Use 3–20 letters, numbers, or underscores. The name must be unique.</p>
+              <div className="username-edit-modal__actions">
+                <button
+                  className="user-btn cancel"
+                  onClick={() => { setUsername(user.username); setEditingName(false); }}
+                  disabled={savingName}
+                >
+                  <X size={14} /> Cancel
+                </button>
+                <button className="user-btn save" onClick={handleSaveUsername} disabled={savingName}>
+                  <Check size={14} /> {savingName ? "Saving..." : "Save changes"}
+                </button>
+              </div>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="user-account-actions">
         <button className="user-delete-account" onClick={() => setShowDeleteModal(true)}>
           <Trash2 size={15} /> Delete Account

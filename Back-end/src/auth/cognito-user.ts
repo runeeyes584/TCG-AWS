@@ -1,6 +1,7 @@
 import {
   AdminDeleteUserCommand,
   AdminGetUserCommand,
+  DeleteUserCommand,
   ListUsersCommand,
   UserNotFoundException,
   type UserType
@@ -52,14 +53,12 @@ export async function getCognitoUserByEmail(email: string): Promise<UserType | n
   }
 }
 
-export async function deleteCognitoAccountByEmail(email: string): Promise<boolean> {
-  const listedUser = await findCognitoUserByEmail(email);
-  if (!listedUser?.Username) return false;
-
+export async function deleteCognitoUserWithAccessToken(accessToken: string): Promise<boolean> {
+  const token = accessToken.trim();
+  if (!token) return false;
   try {
-    await cognito.send(new AdminDeleteUserCommand({
-      UserPoolId: env.userPoolId,
-      Username: listedUser.Username
+    await cognito.send(new DeleteUserCommand({
+      AccessToken: token
     }));
     return true;
   } catch (error) {
@@ -67,3 +66,4 @@ export async function deleteCognitoAccountByEmail(email: string): Promise<boolea
     throw error;
   }
 }
+
