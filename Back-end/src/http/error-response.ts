@@ -19,6 +19,9 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (message.includes("callsign") && message.includes("taken")) {
     return { status: 409, code: "CALLSIGN_TAKEN", message: rawMessage || "This operative callsign is already taken." };
   }
+  if (name === "UsernameChangeCooldownError" || message.includes("change your operative callsign once every 30 days")) {
+    return { status: 429, code: "USERNAME_CHANGE_COOLDOWN", message: rawMessage };
+  }
   if (message.includes("recently deleted") || message.includes("wait 24 hours")) {
     return { status: 429, code: "EMAIL_DELETION_COOLDOWN", message: rawMessage };
   }
@@ -39,6 +42,9 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   }
   if (name === "UserNotFoundException" || message === "user not found.") {
     return { status: 404, code: "USER_NOT_FOUND", message: "User profile was not found." };
+  }
+  if (name === "MissingAccessTokenError") {
+    return { status: 401, code: "MISSING_ACCESS_TOKEN", message: "Your authenticated session is required to delete the account." };
   }
 
   return { status: 500, code: "INTERNAL_ERROR", message: fallback };

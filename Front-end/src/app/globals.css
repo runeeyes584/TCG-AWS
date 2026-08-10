@@ -10280,6 +10280,125 @@ button.card-view.game-card-v2 {
   margin: -8px 0 8px;
 }
 
+.profile-toast {
+  position: fixed;
+  top: 22px;
+  left: 50%;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(92vw, 510px);
+  padding: 15px 17px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(88, 230, 255, 0.42);
+  background: rgba(5, 13, 27, 0.96);
+  box-shadow: 0 0 28px rgba(88, 230, 255, 0.18), inset 0 0 18px rgba(88, 230, 255, 0.045);
+  backdrop-filter: blur(14px);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+
+.profile-toast::before {
+  position: absolute;
+  top: 0;
+  right: 18%;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #58e6ff, transparent);
+  box-shadow: 0 0 10px #58e6ff;
+  content: "";
+}
+
+.profile-toast--success {
+  border-color: rgba(74, 222, 128, 0.55);
+  box-shadow: 0 0 28px rgba(74, 222, 128, 0.2), inset 0 0 18px rgba(74, 222, 128, 0.05);
+}
+
+.profile-toast--error {
+  border-color: rgba(255, 105, 126, 0.62);
+  box-shadow: 0 0 28px rgba(255, 64, 104, 0.2), inset 0 0 18px rgba(255, 64, 104, 0.05);
+}
+
+.profile-toast__icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #58e6ff;
+}
+
+.profile-toast--success .profile-toast__icon { color: #6ef3a7; }
+.profile-toast--error .profile-toast__icon { color: #ff7890; }
+
+.profile-toast__content { flex: 1; min-width: 0; }
+.profile-toast__content strong {
+  display: block;
+  color: #baf4ff;
+  font: 800 10px var(--font-mono);
+  letter-spacing: 0.14em;
+}
+.profile-toast--success .profile-toast__content strong { color: #9cf8bf; }
+.profile-toast--error .profile-toast__content strong { color: #ffb0bd; }
+.profile-toast__content p { margin: 5px 0 0; color: #d7e5ec; font-size: 0.82rem; line-height: 1.5; }
+.profile-toast__close { flex: 0 0 auto; padding: 2px; border: 0; background: transparent; color: #76909d; cursor: pointer; }
+.profile-toast__close:hover { color: #fff; }
+
+.username-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(1, 5, 14, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.username-edit-modal {
+  position: relative;
+  width: min(460px, 100%);
+  padding: 25px 26px 23px;
+  border: 1px solid rgba(var(--profile-cyan-rgb), 0.48);
+  background:
+    linear-gradient(135deg, rgba(9, 26, 43, 0.98), rgba(13, 10, 32, 0.98)),
+    #07101d;
+  box-shadow: 0 0 42px rgba(88, 230, 255, 0.16), inset 0 0 24px rgba(88, 230, 255, 0.045);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+}
+
+.username-edit-modal::before {
+  position: absolute;
+  top: 0;
+  right: 20%;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--profile-cyan), transparent);
+  box-shadow: 0 0 12px var(--profile-cyan);
+  content: "";
+}
+
+.username-edit-modal__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--profile-cyan);
+  font: 800 9px var(--font-mono);
+  letter-spacing: 0.16em;
+}
+
+.username-edit-modal h2 { margin: 10px 0 13px; color: #effcff; font-size: 1.25rem; letter-spacing: 0.08em; }
+.username-edit-modal__warning { margin: 0; padding: 12px 13px; border-left: 2px solid #ffd166; background: rgba(255, 209, 102, 0.07); color: #f9e2a1; font-size: 0.85rem; line-height: 1.55; }
+.username-edit-modal__field { display: block; margin-top: 18px; }
+.username-edit-modal__field span { display: block; margin-bottom: 7px; color: #79a3b7; font: 800 9px var(--font-mono); letter-spacing: 0.13em; text-transform: uppercase; }
+.username-edit-modal__field .username-input { width: 100%; box-sizing: border-box; }
+.username-edit-modal__hint { margin: 8px 0 0; color: #6f8a9b; font-size: 0.76rem; }
+.username-edit-modal__actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 21px; }
+
+@media (max-width: 640px) {
+  .profile-toast { top: 14px; }
+  .username-edit-modal { padding: 22px 19px 20px; }
+  .username-edit-modal h2 { font-size: 1.05rem; }
+  .username-edit-modal__actions { flex-wrap: wrap; }
+}
+
 .user-account-actions {
   position: fixed;
   right: clamp(16px, 2.8vw, 42px);

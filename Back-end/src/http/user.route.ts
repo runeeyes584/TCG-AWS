@@ -60,6 +60,7 @@ router.patch("/username", authenticate, async (req, res) => {
     if (typeof req.body?.username !== "string") return res.status(400).json({ success: false, message: "Username is required." });
     const username = req.body.username.trim();
     if (username.length < 3 || username.length > 20) return res.status(400).json({ success: false, message: "Username must be between 3 and 20 characters." });
+    if (!/^[A-Za-z0-9_]+$/.test(username)) return res.status(400).json({ success: false, message: "Username can only contain letters, numbers, and underscores." });
     const user = await updateUsername(userId, username);
     return res.json({ success: true, message: "Username updated successfully.", user });
   } catch (error) {
@@ -74,7 +75,12 @@ router.delete("/account", authenticate, async (req, res) => {
     const tokenUser = (req as any).user;
     const email = typeof tokenUser?.username === "string" ? tokenUser.username.trim().toLowerCase() : undefined;
     if (!userId || !email) return res.status(401).json({ success: false, message: "Unauthorized." });
-    await deleteAccount(userId, email);
+
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader && /^Bearer\s+/i.test(authHeader) ? authHeader.replace(/^Bearer\s+/i, "").trim() : undefined;
+    const accessToken = bearerToken || req.cookies?.accessToken || req.cookies?.access_token || req.body?.accessToken;
+
+    await deleteAccount(userId, email, accessToken);
     res.clearCookie("access_token");
     res.clearCookie("refresh_token");
     res.clearCookie("email");
