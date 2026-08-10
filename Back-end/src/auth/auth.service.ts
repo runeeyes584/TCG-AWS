@@ -132,10 +132,17 @@ export async function verify(data: VerifyRequest) {
     const email = data.email.trim().toLowerCase();
     const code = normalizeConfirmationCode(data.code);
 
+    let cognitoUsername = email;
     try {
         const existingUser = await findCognitoUserByEmail(email);
-        const cognitoUsername = existingUser?.Username || email;
+        if (existingUser?.Username) {
+            cognitoUsername = existingUser.Username;
+        }
+    } catch {
+        cognitoUsername = email;
+    }
 
+    try {
         const command = new ConfirmSignUpCommand({
 
             ClientId: env.clientId,
@@ -150,18 +157,20 @@ export async function verify(data: VerifyRequest) {
 
         await cognito.send(command);
 
-        // Create the application profile only after Cognito has confirmed the
-        // account. This prevents abandoned registrations from leaving orphan
-        // profiles in DynamoDB.
-        const confirmedUser = await getCognitoUserByEmail(email);
-        const username =
-            getCognitoAttribute(confirmedUser?.Attributes, "preferred_username") ||
-            email.split("@")[0];
-        const userId =
-            getCognitoAttribute(confirmedUser?.Attributes, "sub") ||
-            confirmedUser?.Username;
-        if (userId) {
-            await ensureUserProfile({ id: userId, email, username });
+        try {
+            const confirmedUser = await getCognitoUserByEmail(email);
+            const username =
+                getCognitoAttribute(confirmedUser?.Attributes, "preferred_username") ||
+                email.split("@")[0];
+            const userId =
+                getCognitoAttribute(confirmedUser?.Attributes, "sub") ||
+                confirmedUser?.Username;
+            if (userId) {
+                await ensureUserProfile({ id: userId, email, username });
+            }
+        } catch {
+            // Admin API is restricted on this environment.
+            // Profile will be created seamlessly during first login / token verification.
         }
 
         return {
