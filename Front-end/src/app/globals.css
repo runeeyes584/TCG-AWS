@@ -5629,6 +5629,82 @@ button.card-view.game-card-v2 {
   color: #dbeafe;
 }
 
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 2px solid #ee6868;
+  background: rgba(111, 19, 31, 0.22);
+  color: #ffb8b8;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.auth-error svg { flex: 0 0 auto; }
+
+.auth-notice {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-left: 2px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 2px;
+  box-shadow: inset 0 0 16px rgba(245, 158, 11, 0.05);
+}
+
+.auth-notice__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.auth-notice__header svg {
+  flex-shrink: 0;
+  color: #fbbf24;
+}
+
+.auth-notice__body {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.auth-notice__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  margin-top: 2px;
+  padding: 0 14px;
+  border: 1px solid #f59e0b;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(180, 83, 9, 0.32));
+  color: #fef08a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-notice__action:hover {
+  border-color: #fbbf24;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.35), rgba(180, 83, 9, 0.48));
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+  color: #ffffff;
+}
+
 .battle-line-info__brand {
   display: flex;
   align-items: center;
@@ -10194,3 +10270,52 @@ button.card-view.game-card-v2 {
 .target-dot:nth-child(2) {
   animation-delay: -0.16s;
 }
+
+.auth-inline-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ff8d8d;
+  font-size: 0.78rem;
+  margin: -8px 0 8px;
+}
+
+.user-account-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.user-delete-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 95, 95, 0.55);
+  background: rgba(90, 15, 25, 0.32);
+  color: #ff9b9b;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+.account-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 5, 14, 0.82);
+}
+
+.account-delete-modal {
+  width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+  border: 1px solid rgba(255, 95, 95, 0.55);
+  background: #080d1c;
+  box-shadow: 0 0 40px rgba(255, 45, 70, 0.18);
+}
+
+.account-delete-modal h2 { color: #ff9b9b; font-size: 1rem; letter-spacing: 0.12em; }
+.account-delete-modal p { color: #b7bfd2; line-height: 1.6; font-size: 0.9rem; }
+.account-delete-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.account-delete-actions button { padding: 9px 13px; cursor: pointer; }
+.confirm-delete { border: 1px solid #ff5f6d; background: #5a1520; color: #fff; }
