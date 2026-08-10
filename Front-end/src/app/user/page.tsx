@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, ArrowLeft, Camera, Check, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap } from "lucide-react";
+import { Activity, ArrowLeft, Camera, Check, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
-import { getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
+import { deleteAccount, getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
 
 interface UserProfile {
   user_id: string;
@@ -39,6 +39,8 @@ function UserPageContent() {
   const [username, setUsername] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -116,6 +118,19 @@ function UserPageContent() {
       }
     } finally {
       setUploadingAvatar(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      localStorage.clear();
+      sessionStorage.clear();
+      router.replace("/login?deleted=1");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Unable to delete account.");
+      setDeleting(false);
     }
   }
 
@@ -377,6 +392,23 @@ function UserPageContent() {
           </div>
         </div>
       </motion.div>
+      <div className="user-account-actions">
+        <button className="user-delete-account" onClick={() => setShowDeleteModal(true)}>
+          <Trash2 size={15} /> Delete Account
+        </button>
+      </div>
+      {showDeleteModal && (
+        <div className="account-delete-overlay" role="dialog" aria-modal="true">
+          <section className="account-delete-modal">
+            <h2>TERMINATE OPERATIVE PROFILE</h2>
+            <p>This action is permanent. Your profile, stats, decks, and account data will be deleted. The email address will be unavailable for 24 hours.</p>
+            <div className="account-delete-actions">
+              <button onClick={() => setShowDeleteModal(false)} disabled={deleting}>CANCEL</button>
+              <button className="confirm-delete" onClick={handleDeleteAccount} disabled={deleting}>{deleting ? "DELETING..." : "CONFIRM DELETION"}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -21,5 +21,9 @@ export const env = {
     clientId: required("COGNITO_CLIENT_ID", process.env.COGNITO_CLIENT_ID),
     // Required only when the selected Cognito app client was created with a secret.
     clientSecret: process.env.COGNITO_CLIENT_SECRET,
+    // Optional cross-account role used for Cognito admin operations such as
+    // ListUsers/AdminGetUser. Leave unset when the Lambda role has direct
+    // permissions in the same AWS account as the user pool.
+    cognitoAdminRoleArn: process.env.COGNITO_ADMIN_ROLE_ARN,
     JWT_SECRET: process.env.JWT_SECRET,
 };

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as authService from "./auth.service";
 import { LoginRequest, RegisterRequest, VerifyRequest, ResetPasswordRequest, ForgotPasswordRequest } from "./types";
 import { ensureUserProfile, getUserById } from "../user/user.repository";
+import { sendApiError } from "../http/error-response";
 
 const productionCookies = process.env.NODE_ENV === "production";
 const authCookieOptions = {
@@ -20,13 +21,7 @@ export async function register(
         return res.status(201).json(result);
     }
     catch (error) {
-        return res.status(400).json({
-            success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error"
-        });
+        return sendApiError(res, error, "Unable to register this account.");
     }
 }
 
@@ -41,17 +36,7 @@ export async function verify(
         return res.json(result);
 
     } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error"
-
-        });
+        return sendApiError(res, error, "Unable to verify this account.");
 
     }
 
@@ -102,14 +87,7 @@ export async function login(
 
     }
     catch (error) {
-        return res.status(400).json({
-            success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error"
-
-        });
+        return sendApiError(res, error, "Unable to sign in.");
     }
 }
 
@@ -256,12 +234,7 @@ export async function forgotPassword(
 
         return res.json(result);
     } catch (error) {
-        return res.status(400).json({
-            success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Unknown error"
-        });
+        return sendApiError(res, error, "Unable to send the password reset code.");
     }
 }
 
@@ -278,11 +251,27 @@ export async function resetPassword(
 
         return res.json(result);
     } catch (error) {
-        return res.status(400).json({
-            success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Unknown error"
-        });
+        return sendApiError(res, error, "Unable to reset the password.");
     }
 }
+
+export async function resendCode(
+    req: Request<{}, {}, { email?: string }>,
+    res: Response
+) {
+    try {
+        const email = req.body?.email;
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email address is required."
+            });
+        }
+
+        const result = await authService.resendConfirmationCode(email);
+        return res.json(result);
+    } catch (error) {
+        return sendApiError(res, error, "Unable to resend the verification code.");
+    }
+}
+

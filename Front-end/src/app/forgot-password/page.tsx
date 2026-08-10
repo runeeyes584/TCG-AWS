@@ -19,21 +19,23 @@ export default function ForgotPasswordPage() {
         event.preventDefault();
         setError("");
 
-        if (!email) {
-            setError("Vui lòng nhập email của tài khoản.");
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail) {
+            setError("Please enter your registered account email address.");
             return;
         }
 
         try {
             setLoading(true);
 
-            await forgotPassword(email);
+            await forgotPassword(normalizedEmail);
 
             router.push(
-                `/reset-password?email=${encodeURIComponent(email)}`
+                `/reset-password?email=${encodeURIComponent(normalizedEmail)}`
             );
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Không thể gửi mã xác thực. Vui lòng thử lại.");
+            setError(err instanceof Error ? err.message : "Could not send verification code. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -43,8 +45,8 @@ export default function ForgotPasswordPage() {
         <AuthShell
             eyebrow="Account recovery"
             title={<>Recover your <em>Access</em></>}
-            description="Nhập email đã đăng ký. Prism Network sẽ gửi mã xác thực để đặt lại mật khẩu."
-            footer={<>Đã nhớ mật khẩu? <Link href="/login">Return to sign in</Link></>}
+            description="Enter your registered email address. Prism Network will send a verification code to reset your password."
+            footer={<>Remembered your password? <Link href="/login">Return to sign in</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
                 <label className="auth-field">

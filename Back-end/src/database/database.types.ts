@@ -112,3 +112,10 @@ export interface MatchHistory {
   elo_change?: number; // Alias for rank_point_change
   duration?: number;   // Match duration in seconds
 }
+
+// ---- Account Deletion Cooldown -------
+export interface AccDeletionCooldown {
+  email: string;
+  delete_at: number;
+  available_at: number; // = set TTL
+}

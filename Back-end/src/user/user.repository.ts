@@ -1,4 +1,4 @@
-import { GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import type { SaveDeckPayload, SavedDeck } from "../decks/deck.types";
 import { calculateElo } from "../matchmaking/elo";
@@ -6,6 +6,11 @@ import type { User } from "./user.types";
 import { buildLeaderboardProjection } from "../leaderboard/leaderboard";
 
 const tableName = process.env.USER_PROFILE_TABLE || "UserProfile";
+const deletionCooldownTable = process.env.ACCOUNT_DELETION_COOLDOWN_TABLE || "AccountDeletionCooldown";
+const DELETION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const normalizeUsername = (username: string) => username.trim().toLowerCase();
 
 function fromProfile(item: Record<string, any>): User {
   return {
@@ -16,7 +21,8 @@ function fromProfile(item: Record<string, any>): User {
     elo: Number(item.stats?.elo_rating ?? item.stats?.rank_points ?? item.elo ?? 1000),
     wins: Number(item.stats?.wins ?? item.wins ?? 0),
     losses: Number(item.stats?.losses ?? item.losses ?? 0),
-    decks: item.decks && typeof item.decks === "object" ? item.decks : undefined
+    decks: item.decks && typeof item.decks === "object" ? item.decks : undefined,
+    lastNameChangedAt: typeof item.lastNameChangedAt === "number" ? item.lastNameChangedAt : undefined
   };
 }
 
@@ -62,13 +68,50 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const result = await dynamoDb.send(new ScanCommand({
-    TableName: tableName,
-    FilterExpression: "email = :email",
-    ExpressionAttributeValues: { ":email": email },
-    Limit: 1
+  const target = normalizeEmail(email);
+  let cursor: Record<string, unknown> | undefined;
+  do {
+    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
+    const match = (result.Items || []).find((item) => normalizeEmail(String(item.email || "")) === target);
+    if (match) return fromProfile(match);
+    cursor = result.LastEvaluatedKey;
+  } while (cursor);
+  return undefined;
+}
+
+export async function findUserByUsername(username: string): Promise<User | null> {
+  const target = normalizeUsername(username);
+  let cursor: Record<string, unknown> | undefined;
+  do {
+    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
+    const match = (result.Items || []).find((item) => normalizeUsername(String(item.username || "")) === target);
+    if (match) return fromProfile(match);
+    cursor = result.LastEvaluatedKey;
+  } while (cursor);
+  return null;
+}
+
+export async function isEmailInDeletionCooldown(email: string): Promise<{ inCooldown: boolean; availableAt?: number }> {
+  const result = await dynamoDb.send(new GetCommand({
+    TableName: deletionCooldownTable,
+    Key: { email: normalizeEmail(email) },
+    ConsistentRead: true
   }));
-  return result.Items?.[0] ? fromProfile(result.Items[0]) : undefined;
+  const availableAtSeconds = Number(result.Item?.available_at || 0);
+  const availableAt = availableAtSeconds * 1000;
+  return availableAt > Date.now() ? { inCooldown: true, availableAt } : { inCooldown: false };
+}
+
+export async function recordAccountDeletionCooldown(email: string): Promise<void> {
+  const deletedAt = Math.floor(Date.now() / 1000);
+  await dynamoDb.send(new PutCommand({
+    TableName: deletionCooldownTable,
+    Item: {
+      email: normalizeEmail(email),
+      deleted_at: deletedAt,
+      available_at: deletedAt + Math.floor(DELETION_COOLDOWN_MS / 1000)
+    }
+  }));
 }
 
 export async function getUserById(id: string): Promise<User | undefined> {
@@ -80,6 +123,13 @@ export async function getUserById(id: string): Promise<User | undefined> {
   return result.Item ? fromProfile(result.Item) : undefined;
 }
 
+export async function deleteUserProfile(id: string): Promise<void> {
+  await dynamoDb.send(new DeleteCommand({
+    TableName: tableName,
+    Key: { user_id: id }
+  }));
+}
+
 export async function ensureUserProfile(input: {
   id: string;
   email: string;
@@ -87,6 +137,17 @@ export async function ensureUserProfile(input: {
 }): Promise<User> {
   const existing = await getUserById(input.id);
   if (existing) return existing;
+
+  let cursor: Record<string, unknown> | undefined;
+  do {
+    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
+    for (const item of result.Items || []) {
+      if (String(item.user_id) !== input.id && normalizeEmail(String(item.email || "")) === normalizeEmail(input.email)) {
+        await deleteUserProfile(String(item.user_id));
+      }
+    }
+    cursor = result.LastEvaluatedKey;
+  } while (cursor);
 
   const user: User = {
     id: input.id,
