@@ -55,6 +55,12 @@ function emailAlreadyRegisteredError(): Error {
     return error;
 }
 
+function emailDeletionCooldownError(remainingHours: number): Error {
+    const error = new Error(`This email belongs to an account deleted recently. You cannot register with this email for 24 hours (please wait ${remainingHours} more hour(s)).`);
+    error.name = "EmailDeletionCooldownError";
+    return error;
+}
+
 export async function register(data: RegisterRequest) {
 
     const normalizedData = {
@@ -68,7 +74,10 @@ export async function register(data: RegisterRequest) {
 
     const cooldown = await isEmailInDeletionCooldown(email);
     if (cooldown.inCooldown) {
-        throw new Error("This email was recently deleted. You must wait 24 hours before registering again with this email.");
+        const remainingHours = cooldown.availableAt
+            ? Math.max(1, Math.ceil((cooldown.availableAt - Date.now()) / (60 * 60 * 1000)))
+            : 24;
+        throw emailDeletionCooldownError(remainingHours);
     }
 
     // DynamoDB is the authoritative application-level check. This also

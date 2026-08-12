@@ -85,13 +85,28 @@ router.patch("/username", authenticate, async (req, res) => {
 router.delete("/account", authenticate, async (req, res) => {
   try {
     const userId = authenticatedUserId(req);
-    const tokenUser = (req as any).user;
-    const email = typeof tokenUser?.username === "string" ? tokenUser.username.trim().toLowerCase() : undefined;
-    if (!userId || !email) return res.status(401).json({ success: false, message: "Unauthorized." });
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized." });
 
     const authHeader = req.headers.authorization;
     const bearerToken = authHeader && /^Bearer\s+/i.test(authHeader) ? authHeader.replace(/^Bearer\s+/i, "").trim() : undefined;
     const accessToken = bearerToken || req.cookies?.accessToken || req.cookies?.access_token || req.body?.accessToken;
+
+    let email: string | undefined;
+    const userProfile = await getUserProfile(userId);
+    if (typeof userProfile?.email === "string" && userProfile.email.includes("@")) {
+      email = userProfile.email.trim().toLowerCase();
+    } else if (accessToken) {
+      try {
+        const identity = await getCognitoIdentityByAccessToken(accessToken, userId);
+        email = identity.email;
+      } catch {
+        // Safe fallback ignored
+      }
+    }
+
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ success: false, message: "Unable to resolve valid email address for account deletion." });
+    }
 
     await deleteAccount(userId, email, accessToken);
     res.clearCookie("access_token");
