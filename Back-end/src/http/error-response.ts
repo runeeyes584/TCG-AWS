@@ -25,8 +25,8 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (name === "UsernameChangeCooldownError" || message.includes("change your operative callsign once every 30 days")) {
     return { status: 429, code: "USERNAME_CHANGE_COOLDOWN", message: rawMessage };
   }
-  if (message.includes("recently deleted") || message.includes("wait 24 hours")) {
-    return { status: 429, code: "EMAIL_DELETION_COOLDOWN", message: rawMessage };
+  if (name === "EmailDeletionCooldownError" || message.includes("recently deleted") || message.includes("deleted recently") || message.includes("wait 24 hours")) {
+    return { status: 429, code: "EMAIL_DELETION_COOLDOWN", message: rawMessage || "This email belongs to an account deleted recently. You cannot register with this email for 24 hours." };
   }
   if (name === "UserNotConfirmedException" || message.includes("not verified")) {
     return { status: 403, code: "ACCOUNT_UNCONFIRMED", message: "This account is not verified. Please complete registration or sign up again." };

@@ -190,13 +190,6 @@ export default function RegisterPage() {
                     </div>
                 ) : null}
 
-                {isCooldown ? (
-                    <div className="auth-notice" role="alert">
-                        <div className="auth-notice__header"><ShieldAlert size={16} aria-hidden="true" /><span>REGISTRATION RESTRICTED</span></div>
-                        <p className="auth-notice__body">This email was recently deleted. You must wait 24 hours before registering again with this email.</p>
-                    </div>
-                ) : null}
-
                 <button type="submit" disabled={loading} className="auth-submit">
                     <UserRoundPlus size={18} />
                     <span>{loading ? "Creating profile..." : "Create operative"}</span>
