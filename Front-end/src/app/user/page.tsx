@@ -38,6 +38,18 @@ interface ToastNotification {
   message: string;
 }
 
+function normalizeProfile(value: unknown): UserProfile | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<UserProfile> & { id?: unknown };
+  const userId = typeof candidate.user_id === "string"
+    ? candidate.user_id
+    : typeof candidate.id === "string"
+      ? candidate.id
+      : "";
+  if (!userId || typeof candidate.username !== "string" || typeof candidate.email !== "string") return null;
+  return { ...candidate, user_id: userId } as UserProfile;
+}
+
 function UserPageContent() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -64,8 +76,10 @@ function UserPageContent() {
     try {
       const response = await getCurrentUser();
       if (response.success) {
-        setUser(response.user);
-        setUsername(response.user.username);
+        const profile = normalizeProfile(response.user);
+        if (!profile) throw new Error("The backend returned an invalid user profile.");
+        setUser(profile);
+        setUsername(profile.username);
       }
     } finally {
       setLoading(false);
@@ -81,12 +95,14 @@ function UserPageContent() {
     try {
       const response = await updateUsername(username);
       if (response.success) {
-        setUser(response.user);
+        const profile = normalizeProfile(response.user);
+        if (!profile) throw new Error("The backend returned an invalid updated profile.");
+        setUser(profile);
         setEditingName(false);
         setToast({
           type: "success",
           title: "CALLSIGN UPDATED",
-          message: `Operative callsign updated to "${response.user.username}". Next change available in 30 days.`
+          message: `Operative callsign updated to "${profile.username}". Next change available in 30 days.`
         });
       } else {
         setToast({

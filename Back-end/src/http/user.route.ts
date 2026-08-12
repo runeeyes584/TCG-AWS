@@ -4,6 +4,8 @@ import { authenticate } from "../auth/auth.middleware";
 import { dynamoDb } from "../config/dynamodb";
 import { deleteAccount, updateUsername } from "../user/user.service";
 import { sendApiError } from "./error-response";
+import { ensureUserProfile } from "../user/user.repository";
+import { getCognitoIdentityByAccessToken } from "../auth/cognito-user";
 
 const router = Router();
 const userProfileTable = process.env.USER_PROFILE_TABLE || "UserProfile";
@@ -25,6 +27,11 @@ router.get("/", authenticate, async (req, res) => {
   try {
     const userId = authenticatedUserId(req);
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized." });
+    const accessToken = (req as any).accessToken as string | undefined;
+    if (accessToken) {
+      const identity = await getCognitoIdentityByAccessToken(accessToken, userId);
+      await ensureUserProfile(identity);
+    }
     const user = await getUserProfile(userId);
     if (!user) return res.status(404).json({ success: false, message: "User not found." });
     return res.json({ success: true, user });
@@ -61,7 +68,13 @@ router.patch("/username", authenticate, async (req, res) => {
     const username = req.body.username.trim();
     if (username.length < 3 || username.length > 20) return res.status(400).json({ success: false, message: "Username must be between 3 and 20 characters." });
     if (!/^[A-Za-z0-9_]+$/.test(username)) return res.status(400).json({ success: false, message: "Username can only contain letters, numbers, and underscores." });
-    const user = await updateUsername(userId, username);
+    await updateUsername(userId, username);
+    // Keep PATCH /username's response contract identical to GET /user.
+    // The service uses the domain field `id`, while the profile API exposes
+    // DynamoDB's `user_id`; returning the raw service object breaks the FE
+    // profile renderer after a successful update.
+    const user = await getUserProfile(userId);
+    if (!user) return res.status(404).json({ success: false, message: "User profile not found." });
     return res.json({ success: true, message: "Username updated successfully.", user });
   } catch (error) {
     console.error("PATCH /user/username failed:", error);

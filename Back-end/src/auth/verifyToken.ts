@@ -23,3 +23,16 @@ export async function verifyToken(token: string) {
 
     return payload;
 }
+
+export async function verifyIdToken(token: string) {
+    const { payload } = await jwtVerify(token, JWKS, {
+        issuer: `https://cognito-idp.${env.region}.amazonaws.com/${env.userPoolId}`,
+        audience: env.clientId
+    });
+
+    if (payload.token_use !== "id") {
+        throw new Error("Invalid token type.");
+    }
+
+    return payload;
+}
