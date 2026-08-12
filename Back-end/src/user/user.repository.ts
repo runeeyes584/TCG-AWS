@@ -12,11 +12,18 @@ const DELETION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 const normalizeUsername = (username: string) => username.trim().toLowerCase();
 
+function isLegacyUsername(username: string, userId: string): boolean {
+  const value = username.trim();
+  return !value ||
+    value.toLowerCase() === userId.trim().toLowerCase() ||
+    /^user_[0-9a-f-]{5,}$/i.test(value) ||
+    /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value);
+}
 function fromProfile(item: Record<string, any>): User {
   return {
     id: String(item.user_id),
     email: String(item.email || ""),
-    username: String(item.username || `User_${String(item.user_id).slice(0, 5)}`),
+    username: String(item.username || "Unregistered operative"),
     avatar: item.avatar_url || item.avatar,
     elo: Number(item.stats?.elo_rating ?? item.stats?.rank_points ?? item.elo ?? 1000),
     wins: Number(item.stats?.wins ?? item.wins ?? 0),
@@ -136,7 +143,9 @@ export async function ensureUserProfile(input: {
   username: string;
 }): Promise<User> {
   const existing = await getUserById(input.id);
-  if (existing) return existing;
+  if (existing) {
+    return (await repairUserProfileIdentity(input)) || existing;
+  }
 
   let cursor: Record<string, unknown> | undefined;
   do {
@@ -151,8 +160,8 @@ export async function ensureUserProfile(input: {
 
   const user: User = {
     id: input.id,
-    email: input.email,
-    username: input.username,
+    email: normalizeEmail(input.email),
+    username: input.username.trim(),
     elo: 1000,
     wins: 0,
     losses: 0
@@ -168,6 +177,53 @@ export async function ensureUserProfile(input: {
   }
   return (await getUserById(input.id)) || user;
 }
+
+/**
+ * Repairs identity fields without replacing gameplay data. This is important
+ * for profiles created by an older auth flow that accidentally persisted the
+ * Cognito internal Username/sub as email or callsign.
+ */
+export async function repairUserProfileIdentity(input: {
+  id: string;
+  email: string;
+  username: string;
+}): Promise<User | undefined> {
+  const existingResult = await dynamoDb.send(new GetCommand({
+    TableName: tableName,
+    Key: { user_id: input.id },
+    ConsistentRead: true
+  }));
+  if (!existingResult.Item) return undefined;
+
+  const normalizedEmail = normalizeEmail(input.email);
+  const normalizedUsername = input.username.trim();
+  const currentEmail = String(existingResult.Item.email || "");
+  const currentUsername = String(existingResult.Item.username || "");
+  // Cognito's preferred_username is the initial callsign only. After a
+  // successful rename, the DynamoDB value is authoritative and must not be
+  // overwritten on every profile load. Replace the username only when the
+  // stored value is a known legacy identity placeholder.
+  const shouldRepairUsername = isLegacyUsername(currentUsername, input.id);
+  const nextUsername = shouldRepairUsername ? normalizedUsername : currentUsername;
+  if (currentEmail === normalizedEmail && currentUsername === nextUsername) {
+    return fromProfile(existingResult.Item);
+  }
+
+  await dynamoDb.send(new UpdateCommand({
+    TableName: tableName,
+    Key: { user_id: input.id },
+    UpdateExpression: "SET email = :email, username = :username, updated_at = :updatedAt",
+    ConditionExpression: "attribute_exists(user_id)",
+    ExpressionAttributeValues: {
+      ":email": normalizedEmail,
+      ":username": nextUsername,
+      ":updatedAt": Date.now()
+    }
+  }));
+
+  return getUserById(input.id);
+}
+
 
 export async function saveUsers(users: User[]): Promise<void> {
   await Promise.all(users.map(updateUser));

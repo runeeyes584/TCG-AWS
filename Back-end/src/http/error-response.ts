@@ -16,6 +16,9 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (name === "UsernameExistsException" || message.includes("email already exists")) {
     return { status: 409, code: "EMAIL_ALREADY_REGISTERED", message: "This email is already registered. Please sign in instead." };
   }
+  if (name === "AliasExistsException" || name === "EmailAlreadyRegisteredError" || message.includes("this email is already registered")) {
+    return { status: 409, code: "EMAIL_ALREADY_REGISTERED", message: "This email is already registered. Please sign in instead." };
+  }
   if (message.includes("callsign") && message.includes("taken")) {
     return { status: 409, code: "CALLSIGN_TAKEN", message: rawMessage || "This operative callsign is already taken." };
   }

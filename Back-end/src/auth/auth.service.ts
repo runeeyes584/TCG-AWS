@@ -13,6 +13,7 @@ import {
     ResendConfirmationCodeCommand,
     InvalidParameterException,
     UserNotFoundException,
+    AliasExistsException,
 } from "@aws-sdk/client-cognito-identity-provider";
 
 import { cognito } from "./cognito";
@@ -21,15 +22,9 @@ import { secretHashAuthParameters, secretHashField } from "./utils";
 import { validateRegister } from "./validators";
 import { LoginRequest, RegisterRequest, VerifyRequest } from "./types";
 import { normalizeConfirmationCode } from "./confirmationCode";
-import { ensureUserProfile, findUserByUsername, isEmailInDeletionCooldown } from "../user/user.repository";
-import { findCognitoUserByEmail, getCognitoUserByEmail } from "./cognito-user";
-
-function getCognitoAttribute(
-    attributes: Array<{ Name?: string; Value?: string }> | undefined,
-    name: string,
-): string | undefined {
-    return attributes?.find((attribute) => attribute.Name === name)?.Value;
-}
+import { ensureUserProfile, findUserByUsername, getUserByEmail, isEmailInDeletionCooldown } from "../user/user.repository";
+import { getCognitoIdentityByAccessToken } from "./cognito-user";
+import { verifyIdToken } from "./verifyToken";
 
 async function signUpNewUser(email: string, username: string, password: string) {
     return cognito.send(
@@ -46,33 +41,18 @@ async function signUpNewUser(email: string, username: string, password: string) 
     );
 }
 
-async function resendConfirmationForUser(email: string, username: string): Promise<void> {
+async function resendConfirmationForEmail(email: string): Promise<void> {
     await cognito.send(new ResendConfirmationCodeCommand({
         ClientId: env.clientId,
-        Username: username,
-        ...secretHashField(username),
+        Username: email,
+        ...secretHashField(email),
     }));
 }
 
-async function resendConfirmationForEmail(email: string): Promise<void> {
-    try {
-        // Email is the public sign-in identifier for the configured app client.
-        // This path does not require cognito-idp:ListUsers or admin IAM access.
-        await resendConfirmationForUser(email, email);
-        return;
-    } catch (error) {
-        if (!(error instanceof UserNotFoundException)) throw error;
-    }
-
-    // Some pools use an internal username instead of email. Only those pools
-    // need the admin ListUsers fallback to resolve the actual username.
-    const user = await findCognitoUserByEmail(email);
-    if (!user?.Username) {
-        const error = new Error("Registration not found.");
-        error.name = "UserNotFoundException";
-        throw error;
-    }
-    await resendConfirmationForUser(email, user.Username);
+function emailAlreadyRegisteredError(): Error {
+    const error = new Error("This email is already registered. Please sign in instead.");
+    error.name = "EmailAlreadyRegisteredError";
+    return error;
 }
 
 export async function register(data: RegisterRequest) {
@@ -91,6 +71,14 @@ export async function register(data: RegisterRequest) {
         throw new Error("This email was recently deleted. You must wait 24 hours before registering again with this email.");
     }
 
+    // DynamoDB is the authoritative application-level check. This also
+    // catches profiles created by an earlier auth flow before Cognito is
+    // contacted, so a different callsign cannot reuse the same email.
+    const existingEmail = await getUserByEmail(email);
+    if (existingEmail) {
+        throw emailAlreadyRegisteredError();
+    }
+
     const existingUsername = await findUserByUsername(username);
     if (existingUsername) {
         throw new Error(`Operative callsign '${username}' is already taken by another player.`);
@@ -107,6 +95,10 @@ export async function register(data: RegisterRequest) {
         };
 
     } catch (error) {
+        if (error instanceof AliasExistsException) {
+            throw emailAlreadyRegisteredError();
+        }
+
         if (error instanceof UsernameExistsException) {
             try {
                 await resendConfirmationForEmail(email);
@@ -118,7 +110,10 @@ export async function register(data: RegisterRequest) {
                 };
             } catch (resumeError) {
                 if (resumeError instanceof InvalidParameterException || resumeError instanceof NotAuthorizedException) {
-                    throw new Error("This email is already registered. Please sign in instead.");
+                    // Resend is accepted only for an UNCONFIRMED Cognito
+                    // registration. A confirmed user must sign in and must
+                    // never be routed to the OTP page from Register.
+                    throw emailAlreadyRegisteredError();
                 }
                 throw resumeError;
             }
@@ -132,46 +127,23 @@ export async function verify(data: VerifyRequest) {
     const email = data.email.trim().toLowerCase();
     const code = normalizeConfirmationCode(data.code);
 
-    let cognitoUsername = email;
-    try {
-        const existingUser = await findCognitoUserByEmail(email);
-        if (existingUser?.Username) {
-            cognitoUsername = existingUser.Username;
-        }
-    } catch {
-        cognitoUsername = email;
-    }
-
     try {
         const command = new ConfirmSignUpCommand({
 
             ClientId: env.clientId,
 
-            Username: cognitoUsername,
+            // The app client is configured with email as the sign-in alias.
+            // Keep confirmation on the public client path; never resolve or
+            // persist Cognito's generated internal Username here.
+            Username: email,
 
             ConfirmationCode: code,
 
-            ...secretHashField(cognitoUsername)
+            ...secretHashField(email)
 
         });
 
         await cognito.send(command);
-
-        try {
-            const confirmedUser = await getCognitoUserByEmail(email);
-            const username =
-                getCognitoAttribute(confirmedUser?.Attributes, "preferred_username") ||
-                email.split("@")[0];
-            const userId =
-                getCognitoAttribute(confirmedUser?.Attributes, "sub") ||
-                confirmedUser?.Username;
-            if (userId) {
-                await ensureUserProfile({ id: userId, email, username });
-            }
-        } catch {
-            // Admin API is restricted on this environment.
-            // Profile will be created seamlessly during first login / token verification.
-        }
 
         return {
 
@@ -221,6 +193,35 @@ export async function login(data: LoginRequest) {
         });
 
         const response = await cognito.send(command);
+
+        const accessToken = response.AuthenticationResult?.AccessToken;
+        const idToken = response.AuthenticationResult?.IdToken;
+        if (!accessToken) {
+            throw new Error("Cognito did not return an access token.");
+        }
+
+        // ID-token claims are verified locally and contain the attributes that
+        // were submitted during registration. GetUser is the public Cognito
+        // fallback when an app client does not expose all claims in the ID token.
+        let identity: { id: string; email: string; username: string } | undefined;
+        if (idToken) {
+            try {
+                const claims = await verifyIdToken(idToken);
+                const claimId = typeof claims.sub === "string" ? claims.sub : undefined;
+                const claimEmail = typeof claims.email === "string" ? claims.email.trim().toLowerCase() : undefined;
+                const claimUsername = typeof claims.preferred_username === "string" ? claims.preferred_username.trim() : undefined;
+                if (claimId && claimEmail && claimUsername) {
+                    identity = { id: claimId, email: claimEmail, username: claimUsername };
+                }
+            } catch {
+                // GetUser below remains the public fallback for this case.
+            }
+        }
+        if (!identity) {
+            const publicUser = await getCognitoIdentityByAccessToken(accessToken);
+            identity = publicUser;
+        }
+        await ensureUserProfile(identity);
 
         return {
 

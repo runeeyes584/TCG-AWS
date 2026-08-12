@@ -3,6 +3,7 @@ import * as authService from "./auth.service";
 import { LoginRequest, RegisterRequest, VerifyRequest, ResetPasswordRequest, ForgotPasswordRequest } from "./types";
 import { ensureUserProfile, getUserById } from "../user/user.repository";
 import { sendApiError } from "../http/error-response";
+import { getCognitoIdentityByAccessToken } from "./cognito-user";
 
 const productionCookies = process.env.NODE_ENV === "production";
 const authCookieOptions = {
@@ -135,16 +136,15 @@ export async function me(
 
     const payload = (req as any).user || {};
     const userId = typeof payload.sub === "string" ? payload.sub : undefined;
-    const email = req.cookies.email ?? (typeof payload.username === "string" ? payload.username : "");
+    const accessToken = (req as any).accessToken as string | undefined;
+    const identity = accessToken
+        ? await getCognitoIdentityByAccessToken(accessToken, userId)
+        : undefined;
     let user = userId ? await getUserById(userId) : undefined;
-    if (!user && userId) {
-        user = await ensureUserProfile({
-            id: userId,
-            email,
-            username: typeof payload.preferred_username === "string"
-                ? payload.preferred_username
-                : `User_${userId.slice(0, 5)}`
-        });
+    if (identity) {
+        user = await ensureUserProfile(identity);
+    } else if (!user) {
+        throw new Error("Cognito user attributes are unavailable; profile creation was not completed.");
     }
 
     return res.json({
