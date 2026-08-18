@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
 import { deleteAccount, getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
-import { setCachedProfile, clearCachedProfile } from "../../libs/profileCache";
+import { getCachedProfile, setCachedProfile, clearCachedProfile } from "../../libs/profileCache";
 
 interface UserProfile {
   user_id: string;
@@ -53,10 +53,30 @@ function normalizeProfile(value: unknown): UserProfile | null {
 
 function UserPageContent() {
   const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedProfile();
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    if (!cached) return null;
+    return {
+      user_id: cached.id,
+      username: cached.username,
+      email: cached.email,
+      avatar_url: cached.avatar,
+      stats: {
+        elo: cached.elo,
+        wins: cached.wins,
+        losses: cached.losses,
+        gamesPlayed: cached.wins + cached.losses,
+        winRate: (cached.wins + cached.losses > 0) ? Math.round((cached.wins / (cached.wins + cached.losses)) * 100) : 0,
+      },
+      created_at: new Date(cached.updatedAt || Date.now()).toISOString(),
+      leaderboard_elo: cached.elo,
+      leaderboard_wins: cached.wins,
+      leaderboard_losses: cached.losses,
+    };
+  });
+  const [loading, setLoading] = useState(() => !cached);
   const [editingName, setEditingName] = useState(false);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(() => cached?.username || "");
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -196,16 +216,7 @@ function UserPageContent() {
   }
 
   if (loading) {
-    return (
-      <main className="user-page-shell">
-        <div className="user-page-grid" aria-hidden="true" />
-        <div className="user-page-vignette" aria-hidden="true" />
-        <div className="user-page-loading">
-          <div className="user-page-spinner" />
-          <p>Accessing Player Dossier...</p>
-        </div>
-      </main>
-    );
+    return <UserPageLoadingGate />;
   }
 
   if (!user) {
@@ -531,9 +542,22 @@ function UserPageContent() {
   );
 }
 
+function UserPageLoadingGate() {
+  return (
+    <main className="user-page-shell">
+      <div className="user-page-grid" aria-hidden="true" />
+      <div className="user-page-vignette" aria-hidden="true" />
+      <div className="user-page-loading">
+        <div className="user-page-spinner" />
+        <p>Accessing Player Dossier...</p>
+      </div>
+    </main>
+  );
+}
+
 export default function UserPage() {
   return (
-    <AuthGuard>
+    <AuthGuard loadingComponent={<UserPageLoadingGate />}>
       <UserPageContent />
     </AuthGuard>
   );
