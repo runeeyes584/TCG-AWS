@@ -12,7 +12,13 @@ export interface CachedPlayerProfile {
   updatedAt: number;
 }
 
+export interface CachedPendingMatchState {
+  match: { roomCode: string; status: "WAITING" | "IN_PROGRESS"; playerId?: "P1" | "P2" } | null;
+  checkedAt: number;
+}
+
 const PROFILE_CACHE_KEY = "user_profile";
+const PENDING_MATCH_CACHE_KEY = "pending_match_state";
 
 export function getCachedProfile(): CachedPlayerProfile | null {
   if (typeof window === "undefined") return null;
@@ -55,10 +61,51 @@ export function setCachedProfile(profile: Partial<CachedPlayerProfile>): void {
   }
 }
 
+export function getCachedPendingMatch(maxAgeMs = 60_000): CachedPendingMatchState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PENDING_MATCH_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedPendingMatchState;
+    if (parsed && typeof parsed === "object" && typeof parsed.checkedAt === "number") {
+      if (Date.now() - parsed.checkedAt > maxAgeMs) {
+        return null;
+      }
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedPendingMatch(match: CachedPendingMatchState["match"]): void {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: CachedPendingMatchState = {
+      match,
+      checkedAt: Date.now(),
+    };
+    window.localStorage.setItem(PENDING_MATCH_CACHE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("[ProfileCache] Failed to write pending match cache:", error);
+  }
+}
+
+export function clearCachedPendingMatch(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(PENDING_MATCH_CACHE_KEY);
+  } catch (error) {
+    console.warn("[ProfileCache] Failed to clear pending match cache:", error);
+  }
+}
+
 export function clearCachedProfile(): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(PROFILE_CACHE_KEY);
+    window.localStorage.removeItem(PENDING_MATCH_CACHE_KEY);
     window.localStorage.removeItem("accessToken");
     window.localStorage.removeItem("refreshToken");
     window.localStorage.removeItem("email");
@@ -100,7 +147,11 @@ export async function warmupUserSession(): Promise<CachedPlayerProfile | null> {
       wins: user.wins,
       losses: user.losses,
     });
-    return getCachedProfile();
+  }
+
+  const pendingResult = results[1];
+  if (pendingResult.status === "fulfilled" && pendingResult.value) {
+    setCachedPendingMatch(pendingResult.value.match);
   }
 
   return getCachedProfile();
