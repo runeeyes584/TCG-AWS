@@ -78,13 +78,14 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
       const matches = await dynamoDb.send(new ScanCommand({
         TableName: gameStateTable,
         FilterExpression:
-          "#status = :active AND (player_1.user_id = :userId OR player_2.user_id = :userId)",
+          "#status = :active AND attribute_not_exists(engine_state.winnerId) " +
+          "AND (player_1.user_id = :userId OR player_2.user_id = :userId)",
         ExpressionAttributeNames: { "#status": "status" },
         ExpressionAttributeValues: { ":active": "IN_PROGRESS", ":userId": userId },
         ExclusiveStartKey: cursor,
         ConsistentRead: true
       }));
-      const match = matches.Items?.[0] as any;
+      const match = matches.Items?.find((item: any) => !item.engine_state?.winnerId) as any;
       if (match) {
         const playerPath = match.player_1?.user_id === userId ? "player_1" : "player_2";
         await dynamoDb.send(new UpdateCommand({
@@ -93,7 +94,9 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
           UpdateExpression:
             `SET ${playerPath}.connection_id = :connectionId, ` +
             `${playerPath}.connected = :connected, ${playerPath}.resume_connection_at = :now`,
-          ConditionExpression: `#status = :active AND ${playerPath}.user_id = :userId`,
+          ConditionExpression:
+            `#status = :active AND attribute_not_exists(engine_state.winnerId) ` +
+            `AND ${playerPath}.user_id = :userId`,
           ExpressionAttributeNames: { "#status": "status" },
           ExpressionAttributeValues: {
             ":active": "IN_PROGRESS",

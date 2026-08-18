@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { VisualEvent } from "@backend/game/types";
-
-type SpellEffectKind = "arcane" | "dark" | "explosion";
+import {
+  getEffectKind,
+  getEffectTargetId,
+  type SpellEffectKind
+} from "./visualEffectSemantics";
 
 interface ActiveSpellEffect {
   id: string;
@@ -35,48 +38,16 @@ const SHARDS = Array.from({ length: 10 }, (_, index) => {
   };
 });
 
-function getEffectKind(event: VisualEvent): SpellEffectKind | undefined {
-  switch (event.type) {
-    case "DAMAGE":
-      return "explosion";
-    case "DEBUFF":
-      return "dark";
-    case "HEAL":
-    case "BUFF":
-    case "SUMMON":
-    case "TRIGGER_ACTIVATED":
-      return "arcane";
-    default:
-      return undefined;
-  }
-}
-
-function getTargetId(event: VisualEvent): string | undefined {
-  switch (event.type) {
-    case "DAMAGE":
-    case "HEAL":
-    case "BUFF":
-    case "DEBUFF":
-      return event.targetId;
-    case "SUMMON":
-      return event.instanceId;
-    case "TRIGGER_ACTIVATED":
-      return event.sourceId;
-    default:
-      return undefined;
-  }
-}
-
 function getEffectPosition(
   event: VisualEvent,
   stage: HTMLElement | null
-): Pick<ActiveSpellEffect, "x" | "y"> {
+): Pick<ActiveSpellEffect, "x" | "y"> | undefined {
   if (!stage) {
     return { x: 0, y: 0 };
   }
 
   const stageRect = stage.getBoundingClientRect();
-  const targetId = getTargetId(event);
+  const targetId = getEffectTargetId(event);
   const target = targetId
     ? stage.querySelector<HTMLElement>(`[data-effect-target-id="${targetId}"]`)
     : undefined;
@@ -88,6 +59,11 @@ function getEffectPosition(
       y: targetRect.top - stageRect.top + targetRect.height / 2
     };
   }
+
+  // Board units are owned by Phaser and receive their effect from
+  // CombatVFXSystem. Do not render a misleading burst at the HUD center when
+  // a Phaser target has no DOM node.
+  if (targetId) return undefined;
 
   return { x: stageRect.width / 2, y: stageRect.height / 2 };
 }
@@ -166,10 +142,13 @@ export function SpellEffectLayer({ events, stageRef }: SpellEffectLayerProps) {
         return [];
       }
 
+      const position = getEffectPosition(event, stage);
+      if (!position) return [];
+
       return [{
         id: `spell-effect-${nextEffectIdRef.current++}`,
         kind,
-        ...getEffectPosition(event, stage)
+        ...position
       }];
     });
 

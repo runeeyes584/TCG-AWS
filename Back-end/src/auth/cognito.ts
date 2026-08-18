@@ -5,6 +5,6 @@ import {
 import { env } from "../config/env";
 
 export const cognito = new CognitoIdentityProviderClient({
-    region: env.region,
+    region: env.region
 });
 

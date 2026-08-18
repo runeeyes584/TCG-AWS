@@ -110,6 +110,7 @@ export const handler = async (event: any) => {
     }
 
     const finished = Boolean(nextState.winnerId);
+    const endReason = nextState.endReason ?? "UNKNOWN_LEGACY";
     const currentVersion = match.state_version ?? 0;
     const nextVersion = currentVersion + 1;
     const timeoutScheduling = enqueueTurnTimeout({
@@ -135,7 +136,7 @@ export const handler = async (event: any) => {
         UpdateExpression:
           "SET engine_state = :state, #status = :status, current_round = :round, " +
           "turn_player_id = :nextPlayerId, state_version = :nextVersion" +
-          (finished ? ", winner_id = :winnerId, ended_at = :endedAt" : ""),
+          (finished ? ", winner_id = :winnerId, end_reason = :endReason, ended_at = :endedAt" : ""),
         ExpressionAttributeNames: { "#status": "status" },
         ExpressionAttributeValues: {
           ":active": "IN_PROGRESS",
@@ -148,7 +149,13 @@ export const handler = async (event: any) => {
           ":status": finished ? "FINISHED" : "IN_PROGRESS",
           ":round": nextState.round,
           ":nextPlayerId": nextState.priorityPlayerId,
-          ...(finished ? { ":winnerId": nextState.winnerId, ":endedAt": Date.now() } : {})
+          ...(finished
+            ? {
+                ":winnerId": nextState.winnerId,
+                ":endReason": endReason,
+                ":endedAt": Date.now()
+              }
+            : {})
         }
       }));
     } catch (error: any) {
@@ -167,7 +174,7 @@ export const handler = async (event: any) => {
       ? enqueueMatchResult({
           match,
           winnerId: nextState.winnerId,
-          reason: action.type === "SURRENDER" ? "SURRENDER" : "GAME_COMPLETED"
+          reason: endReason
         })
       : Promise.resolve(false);
     const [logResult, , resultQueueResult] = await Promise.allSettled([

@@ -28,6 +28,12 @@ const tables: CreateTableCommandInput[] = [
     BillingMode: "PAY_PER_REQUEST",
   },
   {
+    TableName: "AccountDeletionCooldown",
+    KeySchema: [{ AttributeName: "email", KeyType: "HASH" }],
+    AttributeDefinitions: [{ AttributeName: "email", AttributeType: "S" }],
+    BillingMode: "PAY_PER_REQUEST",
+  },
+  {
     TableName: "GameState",
     KeySchema: [{ AttributeName: "match_id", KeyType: "HASH" }],
     AttributeDefinitions: [

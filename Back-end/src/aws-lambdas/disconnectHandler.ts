@@ -9,7 +9,7 @@ const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
 
 type MatchRecord = {
   match_id: string;
-  status: "WAITING" | "IN_PROGRESS";
+  status: "WAITING" | "IN_PROGRESS" | "FINISHED";
   engine_state: GameState;
   player_1?: { connection_id?: string; connected?: boolean };
   player_2?: { connection_id?: string; connected?: boolean } | null;
@@ -32,13 +32,17 @@ async function findMatches(connectionId: string): Promise<MatchRecord[]> {
   do {
     const result = await dynamoDb.send(new ScanCommand({
       TableName: gameStateTable,
-      FilterExpression: "(#status = :waiting OR #status = :active) AND (player_1.connection_id = :id OR player_2.connection_id = :id)",
+      FilterExpression:
+        "(#status = :waiting OR (#status = :active AND attribute_not_exists(engine_state.winnerId))) " +
+        "AND (player_1.connection_id = :id OR player_2.connection_id = :id)",
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: { ":waiting": "WAITING", ":active": "IN_PROGRESS", ":id": connectionId },
       ExclusiveStartKey: cursor,
       ConsistentRead: true
     }));
-    matches.push(...((result.Items || []) as MatchRecord[]));
+    matches.push(...((result.Items || []) as MatchRecord[]).filter(
+      (match) => match.status !== "IN_PROGRESS" || !match.engine_state?.winnerId
+    ));
     cursor = result.LastEvaluatedKey;
   } while (cursor);
   return matches;
@@ -80,7 +84,9 @@ export const handler = async (event: any) => {
           TableName: gameStateTable,
           Key: { match_id: match.match_id },
           UpdateExpression: `SET ${playerPath}.connected = :false, ${playerPath}.disconnected_at = :now`,
-          ConditionExpression: "#status = :active AND " + playerPath + ".connection_id = :id",
+          ConditionExpression:
+            "#status = :active AND attribute_not_exists(engine_state.winnerId) AND " +
+            playerPath + ".connection_id = :id",
           ExpressionAttributeNames: { "#status": "status" },
           ExpressionAttributeValues: { ":active": "IN_PROGRESS", ":id": connectionId, ":false": false, ":now": Date.now() }
         }));

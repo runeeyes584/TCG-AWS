@@ -1,6 +1,6 @@
 import { emitEvent } from "../mechanics/triggers";
 import { GameState, PlayerId } from "../types";
-import { opponentOf } from "../rules/gameRules";
+import { finishGame, opponentOf } from "../rules/gameRules";
 
 export function drawCards(state: GameState, playerId: PlayerId, amount: number): void {
   const player = state.players[playerId];
@@ -10,7 +10,7 @@ export function drawCards(state: GameState, playerId: PlayerId, amount: number):
     const card = player.deck.shift();
     if (!card) {
       player.nexusHp = 0;
-      state.winnerId = opponentOf(player.id);
+      finishGame(state, opponentOf(player.id), "DECK_EXHAUSTED");
       return;
     }
     player.hand.push(card);

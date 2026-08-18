@@ -27,6 +27,7 @@ import {
   type PendingMatch,
   type PlayerProfile
 } from "../libs/api";
+import { getCachedProfile, setCachedProfile, clearCachedProfile, setCachedPendingMatch } from "../libs/profileCache";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { UserProfilePhaserEffects } from "../components/user/UserProfilePhaserEffects";
 import { PendingMatchDialog, PendingMatchLoadingGate } from "../components/lobby/PendingMatchDialog";
@@ -69,10 +70,18 @@ export default function Home() {
   const powerLevel = Math.min(100, Math.max(10, Math.round((elo / 2200) * 100)));
 
   useEffect(() => {
-    const email = window.localStorage.getItem("email");
+    const cached = getCachedProfile();
     const token = window.localStorage.getItem("accessToken");
+    const email = window.localStorage.getItem("email");
 
-    if (email) {
+    if (cached) {
+      setPlayerName(cached.username);
+      setAvatar(cached.avatar);
+      setEmail(cached.email);
+      setElo(cached.elo);
+      setWins(cached.wins);
+      setLosses(cached.losses);
+    } else if (email) {
       setPlayerName(email.split("@")[0]);
       setEmail(email);
     }
@@ -95,9 +104,7 @@ export default function Home() {
         msg.includes("sign in");
 
       if (isAuthErr) {
-        window.localStorage.removeItem("accessToken");
-        window.localStorage.removeItem("refreshToken");
-        window.localStorage.removeItem("email");
+        clearCachedProfile();
         setIsSignedIn(false);
         setPlayerName("Guest Operative");
         setElo(1200);
@@ -122,6 +129,16 @@ export default function Home() {
         setEmail(profile.email || email || "guest@kaleidoscope.local");
         setWins(profile.wins ?? 0);
         setLosses(profile.losses ?? 0);
+
+        setCachedProfile({
+          id: profile.id,
+          username: profile.username,
+          email: profile.email,
+          avatar: profile.avatar,
+          elo: profile.elo,
+          wins: profile.wins,
+          losses: profile.losses,
+        });
       })
       .catch((error) => {
         handleAuthError(error);
@@ -130,6 +147,7 @@ export default function Home() {
     void getPendingMatch()
       .then((result) => {
         setPendingMatch(result.match);
+        setCachedPendingMatch(result.match);
         setPendingMatchError(undefined);
       })
       .catch((error) => {
@@ -165,9 +183,7 @@ export default function Home() {
   };
 
   const signOut = () => {
-    window.localStorage.removeItem("accessToken");
-    window.localStorage.removeItem("refreshToken");
-    window.localStorage.removeItem("email");
+    clearCachedProfile();
     setIsSignedIn(false);
     setPlayerName("Guest Operative");
     setElo(1200);
@@ -192,6 +208,7 @@ export default function Home() {
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
+      setCachedPendingMatch(null);
       const { user } = await me();
       if (user) {
         setElo(user.elo);

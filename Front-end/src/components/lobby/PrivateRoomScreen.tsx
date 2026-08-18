@@ -17,9 +17,11 @@ import {
 import {
   getDefaultLocalDeck,
   getSelectedDeckId,
+  loadLocalDecks,
   mergeCloudDecks,
   type LocalDeck
 } from "../../libs/localDecks";
+import { getCachedPendingMatch, setCachedPendingMatch } from "../../libs/profileCache";
 
 type PrivateRoomMode = "create" | "join";
 
@@ -38,13 +40,22 @@ export function PrivateRoomScreen(props: {
   const createRequestedRef = useRef(false);
   const joinRequestedRef = useRef(false);
   const [copied, setCopied] = useState(false);
-  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(() => {
+    const cached = getCachedPendingMatch();
+    return cached ? cached.match : null;
+  });
   const [pendingMatchError, setPendingMatchError] = useState<string>();
-  const [pendingMatchChecked, setPendingMatchChecked] = useState(false);
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(() => {
+    return getCachedPendingMatch() !== null;
+  });
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
-  const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
-  const [deckSelectionReady, setDeckSelectionReady] = useState(false);
+  const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(() => {
+    const decks = loadLocalDecks();
+    const selectedId = getSelectedDeckId();
+    return decks.find((deck) => deck.deckId === selectedId) ?? decks[0] ?? getDefaultLocalDeck();
+  });
+  const [deckSelectionReady, setDeckSelectionReady] = useState(true);
   const [leavingRoom, setLeavingRoom] = useState(false);
 
   useEffect(() => {
@@ -56,9 +67,7 @@ export function PrivateRoomScreen(props: {
         const selected = decks.find((deck) => deck.deckId === getSelectedDeckId()) ?? decks[0];
         setSelectedDeck(selected);
       })
-      .catch(() => {
-        if (mounted) setSelectedDeck(getDefaultLocalDeck());
-      })
+      .catch(() => undefined)
       .finally(() => {
         if (mounted) setDeckSelectionReady(true);
       });
@@ -71,6 +80,7 @@ export function PrivateRoomScreen(props: {
       .then((result) => {
         if (mounted) {
           setPendingMatch(result.match);
+          setCachedPendingMatch(result.match);
           setPendingMatchError(undefined);
         }
       })
@@ -92,27 +102,31 @@ export function PrivateRoomScreen(props: {
   }, [controller.resumeRequired]);
 
   useEffect(() => {
+    if (controller.error) {
+      createRequestedRef.current = false;
+      joinRequestedRef.current = false;
+    }
+  }, [controller.error]);
+
+  useEffect(() => {
     if (
       props.mode !== "create" ||
+      controller.roomCode ||
       createRequestedRef.current ||
-      !pendingMatchChecked ||
       Boolean(pendingMatch) ||
-      !deckSelectionReady ||
       controller.status !== "Connected"
     ) {
       return;
     }
     createRequestedRef.current = true;
     controller.createRoom({ deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
-  }, [controller, deckSelectionReady, pendingMatch, pendingMatchChecked, props.mode, selectedDeck]);
+  }, [controller.status, controller.roomCode, pendingMatch, props.mode, selectedDeck]);
 
   useEffect(() => {
     if (
       props.mode !== "join" ||
       joinRequestedRef.current ||
-      !pendingMatchChecked ||
       Boolean(pendingMatch) ||
-      !deckSelectionReady ||
       !validJoinCode ||
       controller.status !== "Connected"
     ) {
@@ -120,9 +134,16 @@ export function PrivateRoomScreen(props: {
     }
     joinRequestedRef.current = true;
     controller.joinRoom(validJoinCode, { deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
-  }, [controller, deckSelectionReady, pendingMatch, pendingMatchChecked, props.mode, selectedDeck, validJoinCode]);
+  }, [controller.status, pendingMatch, props.mode, selectedDeck, validJoinCode]);
 
-  if (controller.inGame && controller.roomCode && controller.localPlayerId) {
+  // `match:ended` intentionally marks the live session as no longer in-game.
+  // Keep the board mounted for the committed winner state so both private-room
+  // players can see and act on the result dialog.
+  if (
+    (controller.inGame || Boolean(controller.gameState.winnerId)) &&
+    controller.roomCode &&
+    controller.localPlayerId
+  ) {
     return (
       <GameBoardView
         controller={controller}
@@ -192,6 +213,7 @@ export function PrivateRoomScreen(props: {
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
+      setCachedPendingMatch(null);
     } catch (error) {
       setPendingMatchError(error instanceof Error ? error.message : "Unable to leave the active match.");
     } finally {
@@ -267,7 +289,6 @@ export function PrivateRoomScreen(props: {
           </button>
         </section>
       </section>
-      {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
       {pendingMatch ? (
         <PendingMatchDialog
           status={pendingMatch.status}

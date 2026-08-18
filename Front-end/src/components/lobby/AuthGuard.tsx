@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck, LogIn, ArrowLeft } from "lucide-react";
 import { PhaserSplash } from "./PhaserSplash";
 import { me } from "../../libs/api";
+import { clearCachedProfile } from "../../libs/profileCache";
 
 interface AuthGuardProps {
   children: React.ReactNode;
+  loadingMessage?: string;
+  loadingComponent?: React.ReactNode;
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children, loadingMessage, loadingComponent }: AuthGuardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
 
@@ -18,6 +21,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     let mounted = true;
     const token = window.localStorage.getItem("accessToken");
     if (!token) {
+      clearCachedProfile();
       if (mounted) setStatus("unauthenticated");
       return;
     }
@@ -29,9 +33,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           setStatus("authenticated");
         } else {
           // Token invalid or expired
-          window.localStorage.removeItem("accessToken");
-          window.localStorage.removeItem("refreshToken");
-          window.localStorage.removeItem("email");
+          clearCachedProfile();
           setStatus("unauthenticated");
         }
       })
@@ -45,9 +47,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           msg.includes("token") ||
           msg.includes("sign in")
         ) {
-          window.localStorage.removeItem("accessToken");
-          window.localStorage.removeItem("refreshToken");
-          window.localStorage.removeItem("email");
+          clearCachedProfile();
         }
         setStatus("unauthenticated");
       });
@@ -58,6 +58,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, []);
 
   if (status === "loading") {
+    if (loadingComponent) {
+      return <>{loadingComponent}</>;
+    }
     return (
       <main className="matchmaking-shell" style={{ minHeight: "100vh" }}>
         <div className="matchmaking-grid" aria-hidden="true" />
@@ -67,7 +70,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         <div className="matchmaking-shade" aria-hidden="true" />
         
         <div style={{ height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "16px", zIndex: 10, position: "relative" }}>
-          <p className="lobby-eyebrow" style={{ margin: 0 }}>Verifying connection</p>
+          <p className="lobby-eyebrow" style={{ margin: 0 }}>{loadingMessage || "Verifying connection"}</p>
           <div className="leaderboard-state" style={{ minHeight: "auto" }}>
             <span />
             <span />
