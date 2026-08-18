@@ -9,9 +9,11 @@ import { clearCachedProfile } from "../../libs/profileCache";
 
 interface AuthGuardProps {
   children: React.ReactNode;
+  loadingMessage?: string;
+  loadingComponent?: React.ReactNode;
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children, loadingMessage, loadingComponent }: AuthGuardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
 
@@ -56,6 +58,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, []);
 
   if (status === "loading") {
+    if (loadingComponent) {
+      return <>{loadingComponent}</>;
+    }
     return (
       <main className="matchmaking-shell" style={{ minHeight: "100vh" }}>
         <div className="matchmaking-grid" aria-hidden="true" />
@@ -65,7 +70,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         <div className="matchmaking-shade" aria-hidden="true" />
         
         <div style={{ height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "16px", zIndex: 10, position: "relative" }}>
-          <p className="lobby-eyebrow" style={{ margin: 0 }}>Verifying connection</p>
+          <p className="lobby-eyebrow" style={{ margin: 0 }}>{loadingMessage || "Verifying connection"}</p>
           <div className="leaderboard-state" style={{ minHeight: "auto" }}>
             <span />
             <span />
