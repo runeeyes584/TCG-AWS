@@ -14,7 +14,7 @@ export class TextureLoader {
     this.requested.add(key);
     const image = new Image();
     image.onload = () => {
-      if (this.disposed) return;
+      if (this.disposed || !this.scene?.sys?.isActive() || !this.scene?.textures) return;
       // WebGL rejects a tainted image during texImage2D. The image must have
       // been created with CORS enabled before src is assigned, otherwise an
       // apparently successful load can still crash Phaser during upload.

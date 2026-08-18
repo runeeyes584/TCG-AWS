@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck, LogIn, ArrowLeft } from "lucide-react";
 import { PhaserSplash } from "./PhaserSplash";
 import { me } from "../../libs/api";
+import { clearCachedProfile } from "../../libs/profileCache";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     let mounted = true;
     const token = window.localStorage.getItem("accessToken");
     if (!token) {
+      clearCachedProfile();
       if (mounted) setStatus("unauthenticated");
       return;
     }
@@ -29,9 +31,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           setStatus("authenticated");
         } else {
           // Token invalid or expired
-          window.localStorage.removeItem("accessToken");
-          window.localStorage.removeItem("refreshToken");
-          window.localStorage.removeItem("email");
+          clearCachedProfile();
           setStatus("unauthenticated");
         }
       })
@@ -45,9 +45,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           msg.includes("token") ||
           msg.includes("sign in")
         ) {
-          window.localStorage.removeItem("accessToken");
-          window.localStorage.removeItem("refreshToken");
-          window.localStorage.removeItem("email");
+          clearCachedProfile();
         }
         setStatus("unauthenticated");
       });

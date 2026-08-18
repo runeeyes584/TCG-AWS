@@ -35,7 +35,19 @@ class ArenaEventBus {
   }
 
   emit<K extends keyof ArenaEventMap>(event: K, payload: ArenaEventMap[K]) {
-    this.listeners.get(event)?.forEach((listener) => listener(payload));
+    const eventListeners = this.listeners.get(event);
+    if (!eventListeners || eventListeners.size === 0) return;
+    Array.from(eventListeners).forEach((listener) => {
+      try {
+        listener(payload);
+      } catch (error) {
+        console.error(`[ArenaEventBus] Listener failed for event "${String(event)}":`, error);
+      }
+    });
+  }
+
+  clear() {
+    this.listeners.clear();
   }
 }
 
