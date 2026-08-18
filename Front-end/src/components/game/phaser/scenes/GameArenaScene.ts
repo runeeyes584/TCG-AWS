@@ -35,9 +35,13 @@ export class GameArenaScene extends Phaser.Scene {
     | undefined;
   private background!: ArenaBackgroundManager;
 
+  private isSceneDestroyed = false;
+
   constructor() { super({ key: "GameArenaScene" }); }
 
   create() {
+    this.isSceneDestroyed = false;
+
     // Background layer (rendered below everything)
     this.background = new ArenaBackgroundManager(this);
     this.background.init(this.scale.width, this.scale.height);
@@ -55,46 +59,72 @@ export class GameArenaScene extends Phaser.Scene {
     this.stateSystem.start(() => this.renderArena());
     this.animationUnsubscriptions.push(
       arenaEventAdapter.on("SUMMON_UNIT", ({ unitId }) => {
+        if (this.isSceneDestroyed) return;
         this.cards.playSummon(unitId);
         this.combatVfx.playSummon(unitId);
       }),
       arenaEventAdapter.on("ATTACK_UNIT", ({ unitId }) => {
+        if (this.isSceneDestroyed) return;
         this.cards.playAttack(unitId);
         this.combatVfx.playAttack(unitId);
       }),
-      arenaEventAdapter.on("DESTROY_UNIT", ({ unitId }) => this.cards.playDestroy(unitId)),
+      arenaEventAdapter.on("DESTROY_UNIT", ({ unitId }) => {
+        if (this.isSceneDestroyed) return;
+        this.cards.playDestroy(unitId);
+      }),
       arenaEventAdapter.on("TARGETING_CHANGED", ({ targetKind, playerId }) => {
+        if (this.isSceneDestroyed) return;
         this.targeting = targetKind ? { targetKind, playerId: playerId || this.stateSystem.snapshot.viewerPlayerId || "P1" } : undefined;
         this.renderArena();
       }),
     );
     this.scale.on("resize", this.renderArena, this);
-    this.events.once("shutdown", this.destroyScene, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyScene, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyScene, this);
     this.renderArena();
   }
 
   update(_time: number, delta: number) {
+    if (this.isSceneDestroyed || !this.background) return;
     const phase = this.stateSystem.snapshot.gameState?.phase ?? "ACTION";
     this.background.tick(delta, this.scale.width, this.scale.height, phase);
   }
 
   private destroyScene() {
+    if (this.isSceneDestroyed) return;
+    this.isSceneDestroyed = true;
+
     this.stateSystem.stop();
     this.animationUnsubscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
     this.scale.off("resize", this.renderArena, this);
-    this.cards.destroy();
-    this.background.destroy();
+    this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.destroyScene, this);
+    this.events.off(Phaser.Scenes.Events.DESTROY, this.destroyScene, this);
+
+    this.cards?.destroy();
+    this.background?.destroy();
+
     this.centerSpriteTween?.stop();
     this.centerSprite?.destroy();
+    this.centerSprite = undefined;
+
     this.defendBreathTween?.stop();
     this.defendDashTween?.stop();
     this.defendSlots?.destroy();
-    this.inputSystem.destroy();
+    this.defendSlots = undefined;
+
+    this.board?.destroy();
+    this.board = undefined;
+
+    this.slots?.destroy();
+    this.slots = undefined;
+
+    this.inputSystem?.destroy();
   }
 
   private renderArena() {
+    if (this.isSceneDestroyed || !this.sys?.isActive() || !this.add || !this.board || !this.slots || !this.defendSlots) return;
     const { gameState, viewerPlayerId, camera } = this.stateSystem.snapshot;
-    if (!this.board || !this.slots || !this.defendSlots || !gameState) return;
+    if (!gameState) return;
     const { width, height } = this.scale;
     const layout = getArenaLayout(width, height, camera.zoom, camera.tilt);
     this.updateCenterSprite(width, height, gameState.phase);

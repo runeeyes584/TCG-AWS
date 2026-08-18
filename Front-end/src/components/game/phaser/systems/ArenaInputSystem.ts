@@ -9,7 +9,11 @@ export class ArenaInputSystem {
   constructor(private readonly scene: Phaser.Scene) {}
 
   clear() {
-    this.targets.forEach((target) => target.destroy());
+    this.targets.forEach((target) => {
+      if (target.active) {
+        target.destroy();
+      }
+    });
     this.targets.clear();
   }
 
@@ -22,6 +26,7 @@ export class ArenaInputSystem {
     width: number,
     height: number,
   ) {
+    if (!this.scene?.sys?.isActive() || !this.scene?.add) return undefined;
     const target = this.scene.add.zone(x, y, width, height).setDepth(2);
     if (rowType === "active") {
       target.setInteractive({ useHandCursor: true });

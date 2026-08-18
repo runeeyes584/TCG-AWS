@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
 import { deleteAccount, getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
+import { setCachedProfile, clearCachedProfile } from "../../libs/profileCache";
 
 interface UserProfile {
   user_id: string;
@@ -80,6 +81,15 @@ function UserPageContent() {
         if (!profile) throw new Error("The backend returned an invalid user profile.");
         setUser(profile);
         setUsername(profile.username);
+        setCachedProfile({
+          id: profile.user_id,
+          username: profile.username,
+          email: profile.email,
+          avatar: profile.avatar_url,
+          elo: profile.leaderboard_elo ?? profile.stats?.elo ?? 1200,
+          wins: profile.leaderboard_wins ?? profile.stats?.wins ?? 0,
+          losses: profile.leaderboard_losses ?? profile.stats?.losses ?? 0,
+        });
       }
     } finally {
       setLoading(false);
@@ -99,6 +109,7 @@ function UserPageContent() {
         if (!profile) throw new Error("The backend returned an invalid updated profile.");
         setUser(profile);
         setEditingName(false);
+        setCachedProfile({ username: profile.username });
         setToast({
           type: "success",
           title: "CALLSIGN UPDATED",
@@ -161,6 +172,7 @@ function UserPageContent() {
       const response = await updateAvatar(base64);
       if (response.success) {
         setUser(response.user);
+        setCachedProfile({ avatar: response.user?.avatar_url || base64 });
       } else {
         alert(response.message || "Failed to update avatar");
       }
@@ -173,6 +185,7 @@ function UserPageContent() {
     setDeleting(true);
     try {
       await deleteAccount();
+      clearCachedProfile();
       localStorage.clear();
       sessionStorage.clear();
       router.replace("/login?deleted=1");

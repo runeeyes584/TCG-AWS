@@ -284,20 +284,6 @@ export class ArenaBackgroundManager {
     this.tickEmbers(delta, width, height);
   }
 
-  destroy() {
-    this.baseGfx?.destroy();
-    this.electricGfx?.destroy();
-    this.glowGfx?.destroy();
-    this.coreGfx?.destroy();
-    this.sparkGfx?.destroy();
-    this.fogWisps.forEach((f) => f.sprite.destroy());
-    this.spores.forEach((s) => s.sprite.destroy());
-    this.embers.forEach((e) => e.sprite.destroy());
-    this.fogWisps.length = 0;
-    this.spores.length = 0;
-    this.embers.length = 0;
-  }
-
   /* ── Base Backdrop ──────────────────────────────────── */
 
   private createBaseBackdrop(width: number, height: number) {
@@ -727,12 +713,47 @@ export class ArenaBackgroundManager {
     }
   }
 
-  /* ── Pointer Tracking ───────────────────────────────── */
+  /* ── Pointer Tracking & Lifecycle ─────────────────── */
+
+  private readonly handlePointerMove = (pointer: Phaser.Input.Pointer) => {
+    if (!this.scene.scale?.width || !this.scene.scale?.height) return;
+    this.pointerX = pointer.x / this.scene.scale.width;
+    this.pointerY = pointer.y / this.scene.scale.height;
+  };
 
   private setupPointerTracking() {
-    this.scene.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
-      this.pointerX = pointer.x / this.scene.scale.width;
-      this.pointerY = pointer.y / this.scene.scale.height;
-    });
+    this.scene.input.on("pointermove", this.handlePointerMove);
+  }
+
+  destroy() {
+    this.scene.input?.off("pointermove", this.handlePointerMove);
+
+    this.baseGfx?.destroy();
+    this.baseGfx = undefined;
+
+    this.electricGfx?.destroy();
+    this.electricGfx = undefined;
+
+    this.glowGfx?.destroy();
+    this.glowGfx = undefined;
+
+    this.coreGfx?.destroy();
+    this.coreGfx = undefined;
+
+    this.sparkGfx?.destroy();
+    this.sparkGfx = undefined;
+
+    this.eyeGfx?.destroy();
+    this.eyeGfx = undefined;
+
+    this.fogWisps.forEach((wisp) => wisp.sprite?.destroy());
+    this.fogWisps.length = 0;
+
+    this.spores.forEach((spore) => spore.sprite?.destroy());
+    this.spores.length = 0;
+
+    this.embers.forEach((ember) => ember.sprite?.destroy());
+    this.embers.length = 0;
   }
 }
+

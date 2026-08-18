@@ -47,6 +47,7 @@ export class CardRenderer {
 
       const img = new Image();
       img.onload = () => {
+        if (!this.scene?.sys?.isActive() || !this.scene?.textures) return;
         if (!this.scene.textures.exists(key)) {
           this.scene.textures.addImage(key, img);
           this.onTextureLoaded();

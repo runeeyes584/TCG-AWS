@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, BadgeCheck, MailCheck, RefreshCw, CheckCircle2, Mail } from "lucide-react";
 import { login, resendCode, verify } from "../../libs/api";
+import { warmupUserSession } from "../../libs/profileCache";
 import { AuthShell } from "../../components/auth/AuthShell";
 
 export function VerifyForm() {
@@ -114,6 +115,7 @@ export function VerifyForm() {
                     window.localStorage.setItem("accessToken", result.accessToken);
                     window.localStorage.setItem("refreshToken", result.refreshToken);
                     window.localStorage.setItem("email", normalizedEmail);
+                    await warmupUserSession();
                     window.location.replace("/");
                     return;
                 } catch {

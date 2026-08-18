@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Eye, EyeOff, LockKeyhole, LogIn, Mail, ShieldAlert } from "lucide-react";
 import { login } from "../../libs/api";
+import { warmupUserSession } from "../../libs/profileCache";
 import { AuthShell } from "../../components/auth/AuthShell";
 
 export default function LoginPage() {
@@ -13,6 +14,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState("Authenticating...");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [isUnverified, setIsUnverified] = useState(false);
@@ -31,11 +33,16 @@ export default function LoginPage() {
 
         try {
             setLoading(true);
+            setLoadingText("Authenticating...");
 
             const result = await login(normalizedEmail, password);
             localStorage.setItem("accessToken", result.accessToken);
             localStorage.setItem("refreshToken", result.refreshToken);
             localStorage.setItem("email", normalizedEmail);
+
+            setLoadingText("Warming up operative uplink...");
+            await warmupUserSession();
+
             window.location.replace("/");
 
         } catch (err: unknown) {
@@ -136,7 +143,7 @@ export default function LoginPage() {
 
                 <button type="submit" disabled={loading} className="auth-submit">
                     <LogIn size={18} />
-                    <span>{loading ? "Authenticating..." : "Enter the arena"}</span>
+                    <span>{loading ? loadingText : "Enter the arena"}</span>
                 </button>
             </form>
         </AuthShell>

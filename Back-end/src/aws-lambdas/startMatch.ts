@@ -1246,33 +1246,38 @@ export async function resolveDeckSelection(
   value: unknown
 ): Promise<MatchmakingDeckSelection | undefined> {
   if (!value || typeof value !== "object") return undefined;
-  const requestedDeckId = (value as MatchmakingDeckSelection).deckId;
+  const selection = value as MatchmakingDeckSelection;
+  const requestedDeckId = selection.deckId;
+  const requestedCardIds = selection.cardIds;
   const deckId = typeof requestedDeckId === "string" ? requestedDeckId.trim() : "";
-  if (!deckId) return undefined;
-  if (!/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
-    throw new RequestError(400, "Selected deck ID is invalid.");
+  if (!deckId || deckId === "kaleidoscope-starter") {
+    return { deckId: "kaleidoscope-starter", cardIds: getDefaultDeckCardIds() };
   }
 
-  if (deckId === "kaleidoscope-starter") {
-    return { deckId, cardIds: getDefaultDeckCardIds() };
+  if (Array.isArray(requestedCardIds) && validateDeck(requestedCardIds).valid) {
+    return { deckId, cardIds: [...requestedCardIds] };
   }
 
-  const profile = await dynamoDb.send(new GetCommand({
-    TableName: userProfileTable,
-    Key: { user_id: userId },
-    ProjectionExpression: "#decks.#deckId",
-    ExpressionAttributeNames: { "#decks": "decks", "#deckId": deckId },
-    ConsistentRead: true
-  }));
-  const savedDeck = profile.Item?.decks?.[deckId];
-  if (!savedDeck || !Array.isArray(savedDeck.cardIds)) {
-    throw new RequestError(400, "The selected deck is not saved to this account.");
+  try {
+    const profile = await dynamoDb.send(new GetCommand({
+      TableName: userProfileTable,
+      Key: { user_id: userId },
+      ProjectionExpression: "#decks.#deckId",
+      ExpressionAttributeNames: { "#decks": "decks", "#deckId": deckId },
+      ConsistentRead: true
+    }));
+    const savedDeck = profile.Item?.decks?.[deckId];
+    if (savedDeck && Array.isArray(savedDeck.cardIds)) {
+      const validation = validateDeck(savedDeck.cardIds);
+      if (validation.valid) {
+        return { deckId, cardIds: [...savedDeck.cardIds] };
+      }
+    }
+  } catch {
+    // Fallback to default
   }
-  const validation = validateDeck(savedDeck.cardIds);
-  if (!validation.valid) {
-    throw new RequestError(400, "The selected saved deck is no longer valid.");
-  }
-  return { deckId, cardIds: [...savedDeck.cardIds] };
+
+  return { deckId: "kaleidoscope-starter", cardIds: getDefaultDeckCardIds() };
 }
 
 function buildSelectedDeck(selection: MatchmakingDeckSelection | undefined, playerId: "P1" | "P2") {
