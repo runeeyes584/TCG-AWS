@@ -1,4 +1,5 @@
 import type { SaveDeckPayload, SavedDeck } from "@backend/decks/deck.types";
+import type { MatchEndReason } from "@backend/game/types";
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const API_URL = (
@@ -13,6 +14,13 @@ export interface LoginResponse {
     idToken: string;
     refreshToken: string;
     expiresIn: number;
+}
+
+export interface RegisterResponse {
+    success: boolean;
+    message: string;
+    requiresVerification: boolean;
+    resumedUnconfirmed?: boolean;
 }
 
 export interface UserProfile {
@@ -102,6 +110,7 @@ export interface MatchHistory {
   opponent_name?: string;
   opponent_avatar?: string;
   result: "WIN" | "LOSS" | "DRAW";
+  end_reason: MatchEndReason;
   rank_point_change: number;
   elo_change?: number;
   duration?: number;
@@ -261,11 +270,11 @@ async function request<T = any>(
     }
 
     if (!response.ok) {
-        throw new Error(
-            data && typeof data.message === "string"
-                ? data.message
-                : `Request failed (HTTP ${response.status}).`
-        );
+        const apiError = new Error(
+            data?.error?.message || data?.message || `Request failed (HTTP ${response.status}).`
+        ) as Error & { code?: string };
+        apiError.code = data?.error?.code || data?.code;
+        throw apiError;
     }
 
     return data as T;
@@ -275,9 +284,9 @@ export async function register(
     username: string,
     email: string,
     password: string
-) {
+) : Promise<RegisterResponse> {
 
-    return request("/auth/register", {
+    return request<RegisterResponse>("/auth/register", {
 
         method: "POST",
 
@@ -314,6 +323,17 @@ export async function verify(
 
     });
 
+}
+
+export async function resendCode(
+    email: string
+) {
+    return request("/auth/resend-code", {
+        method: "POST",
+        body: JSON.stringify({
+            email: email.trim().toLowerCase()
+        })
+    });
 }
 
 export async function login(
@@ -459,6 +479,12 @@ export async function updateUsername(username: string) {
         body: JSON.stringify({
             username
         })
+    });
+}
+
+export async function deleteAccount() {
+    return request<{ success: boolean; message: string }>("/user/account", {
+        method: "DELETE"
     });
 }
 

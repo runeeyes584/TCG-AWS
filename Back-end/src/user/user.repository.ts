@@ -1,4 +1,4 @@
-import { GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import type { SaveDeckPayload, SavedDeck } from "../decks/deck.types";
 import { calculateElo } from "../matchmaking/elo";
@@ -6,17 +6,30 @@ import type { User } from "./user.types";
 import { buildLeaderboardProjection } from "../leaderboard/leaderboard";
 
 const tableName = process.env.USER_PROFILE_TABLE || "UserProfile";
+const deletionCooldownTable = process.env.ACCOUNT_DELETION_COOLDOWN_TABLE || "AccountDeletionCooldown";
+const DELETION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const normalizeUsername = (username: string) => username.trim().toLowerCase();
+
+function isLegacyUsername(username: string, userId: string): boolean {
+  const value = username.trim();
+  return !value ||
+    value.toLowerCase() === userId.trim().toLowerCase() ||
+    /^user_[0-9a-f-]{5,}$/i.test(value) ||
+    /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value);
+}
 function fromProfile(item: Record<string, any>): User {
   return {
     id: String(item.user_id),
     email: String(item.email || ""),
-    username: String(item.username || `User_${String(item.user_id).slice(0, 5)}`),
+    username: String(item.username || "Unregistered operative"),
     avatar: item.avatar_url || item.avatar,
     elo: Number(item.stats?.elo_rating ?? item.stats?.rank_points ?? item.elo ?? 1000),
     wins: Number(item.stats?.wins ?? item.wins ?? 0),
     losses: Number(item.stats?.losses ?? item.losses ?? 0),
-    decks: item.decks && typeof item.decks === "object" ? item.decks : undefined
+    decks: item.decks && typeof item.decks === "object" ? item.decks : undefined,
+    lastNameChangedAt: typeof item.lastNameChangedAt === "number" ? item.lastNameChangedAt : undefined
   };
 }
 
@@ -62,13 +75,50 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const result = await dynamoDb.send(new ScanCommand({
-    TableName: tableName,
-    FilterExpression: "email = :email",
-    ExpressionAttributeValues: { ":email": email },
-    Limit: 1
+  const target = normalizeEmail(email);
+  let cursor: Record<string, unknown> | undefined;
+  do {
+    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
+    const match = (result.Items || []).find((item) => normalizeEmail(String(item.email || "")) === target);
+    if (match) return fromProfile(match);
+    cursor = result.LastEvaluatedKey;
+  } while (cursor);
+  return undefined;
+}
+
+export async function findUserByUsername(username: string): Promise<User | null> {
+  const target = normalizeUsername(username);
+  let cursor: Record<string, unknown> | undefined;
+  do {
+    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
+    const match = (result.Items || []).find((item) => normalizeUsername(String(item.username || "")) === target);
+    if (match) return fromProfile(match);
+    cursor = result.LastEvaluatedKey;
+  } while (cursor);
+  return null;
+}
+
+export async function isEmailInDeletionCooldown(email: string): Promise<{ inCooldown: boolean; availableAt?: number }> {
+  const result = await dynamoDb.send(new GetCommand({
+    TableName: deletionCooldownTable,
+    Key: { email: normalizeEmail(email) },
+    ConsistentRead: true
   }));
-  return result.Items?.[0] ? fromProfile(result.Items[0]) : undefined;
+  const availableAtSeconds = Number(result.Item?.available_at || 0);
+  const availableAt = availableAtSeconds * 1000;
+  return availableAt > Date.now() ? { inCooldown: true, availableAt } : { inCooldown: false };
+}
+
+export async function recordAccountDeletionCooldown(email: string): Promise<void> {
+  const deletedAt = Math.floor(Date.now() / 1000);
+  await dynamoDb.send(new PutCommand({
+    TableName: deletionCooldownTable,
+    Item: {
+      email: normalizeEmail(email),
+      deleted_at: deletedAt,
+      available_at: deletedAt + Math.floor(DELETION_COOLDOWN_MS / 1000)
+    }
+  }));
 }
 
 export async function getUserById(id: string): Promise<User | undefined> {
@@ -80,18 +130,38 @@ export async function getUserById(id: string): Promise<User | undefined> {
   return result.Item ? fromProfile(result.Item) : undefined;
 }
 
+export async function deleteUserProfile(id: string): Promise<void> {
+  await dynamoDb.send(new DeleteCommand({
+    TableName: tableName,
+    Key: { user_id: id }
+  }));
+}
+
 export async function ensureUserProfile(input: {
   id: string;
   email: string;
   username: string;
 }): Promise<User> {
   const existing = await getUserById(input.id);
-  if (existing) return existing;
+  if (existing) {
+    return (await repairUserProfileIdentity(input)) || existing;
+  }
+
+  let cursor: Record<string, unknown> | undefined;
+  do {
+    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
+    for (const item of result.Items || []) {
+      if (String(item.user_id) !== input.id && normalizeEmail(String(item.email || "")) === normalizeEmail(input.email)) {
+        await deleteUserProfile(String(item.user_id));
+      }
+    }
+    cursor = result.LastEvaluatedKey;
+  } while (cursor);
 
   const user: User = {
     id: input.id,
-    email: input.email,
-    username: input.username,
+    email: normalizeEmail(input.email),
+    username: input.username.trim(),
     elo: 1000,
     wins: 0,
     losses: 0
@@ -107,6 +177,53 @@ export async function ensureUserProfile(input: {
   }
   return (await getUserById(input.id)) || user;
 }
+
+/**
+ * Repairs identity fields without replacing gameplay data. This is important
+ * for profiles created by an older auth flow that accidentally persisted the
+ * Cognito internal Username/sub as email or callsign.
+ */
+export async function repairUserProfileIdentity(input: {
+  id: string;
+  email: string;
+  username: string;
+}): Promise<User | undefined> {
+  const existingResult = await dynamoDb.send(new GetCommand({
+    TableName: tableName,
+    Key: { user_id: input.id },
+    ConsistentRead: true
+  }));
+  if (!existingResult.Item) return undefined;
+
+  const normalizedEmail = normalizeEmail(input.email);
+  const normalizedUsername = input.username.trim();
+  const currentEmail = String(existingResult.Item.email || "");
+  const currentUsername = String(existingResult.Item.username || "");
+  // Cognito's preferred_username is the initial callsign only. After a
+  // successful rename, the DynamoDB value is authoritative and must not be
+  // overwritten on every profile load. Replace the username only when the
+  // stored value is a known legacy identity placeholder.
+  const shouldRepairUsername = isLegacyUsername(currentUsername, input.id);
+  const nextUsername = shouldRepairUsername ? normalizedUsername : currentUsername;
+  if (currentEmail === normalizedEmail && currentUsername === nextUsername) {
+    return fromProfile(existingResult.Item);
+  }
+
+  await dynamoDb.send(new UpdateCommand({
+    TableName: tableName,
+    Key: { user_id: input.id },
+    UpdateExpression: "SET email = :email, username = :username, updated_at = :updatedAt",
+    ConditionExpression: "attribute_exists(user_id)",
+    ExpressionAttributeValues: {
+      ":email": normalizedEmail,
+      ":username": nextUsername,
+      ":updatedAt": Date.now()
+    }
+  }));
+
+  return getUserById(input.id);
+}
+
 
 export async function saveUsers(users: User[]): Promise<void> {
   await Promise.all(users.map(updateUser));

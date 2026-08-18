@@ -9,6 +9,7 @@ export interface User {
     wins: number;
     losses: number;
     decks?: Record<string, SavedDeck>;
+    lastNameChangedAt?: number;
 }
 
 export interface OnlinePlayer {

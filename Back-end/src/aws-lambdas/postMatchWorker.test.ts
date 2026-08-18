@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../config/dynamodb", () => ({ dynamoDb: { send: mocks.dynamoSend } }));
 vi.mock("../leaderboard/realtime", () => ({ notifyConnections: mocks.notifyConnections }));
 
-import { processSingleMatchRecord } from "./postMatchWorker";
+import { processSingleMatchRecord, resolveEndReason } from "./postMatchWorker";
 
 function record(): SQSRecord {
   return {
@@ -41,7 +41,12 @@ describe("postMatchWorker leaderboard projection", () => {
             Item: {
               match_id: "match-ranked",
               status: "FINISHED",
-              engine_state: { winnerId: "P1" },
+              engine_state: {
+                winnerId: "P1",
+                endReason: "NEXUS_DESTROYED"
+              },
+              end_reason: "NEXUS_DESTROYED",
+              ended_at: 123_000,
               player_1: { user_id: "user-p1", connection_id: "connection-p1" },
               player_2: { user_id: "user-p2", connection_id: "connection-p2" }
             }
@@ -91,8 +96,10 @@ describe("postMatchWorker leaderboard projection", () => {
       user_id: "user-p1",
       match_id: "match-ranked",
       result: "WIN",
+      end_reason: "NEXUS_DESTROYED",
       elo_change: 16
     });
+    expect(items[3].Put?.Item?.played_at).toBe(123_000);
     expect(mocks.notifyConnections).toHaveBeenCalledWith(expect.arrayContaining([
       expect.objectContaining({
         connectionId: "connection-p1",
@@ -118,5 +125,12 @@ describe("postMatchWorker leaderboard projection", () => {
     await processSingleMatchRecord(record());
     expect(mocks.dynamoSend).toHaveBeenCalledTimes(1);
     expect(mocks.notifyConnections).not.toHaveBeenCalled();
+  });
+
+  it("uses UNKNOWN_LEGACY when an old GameState has no canonical reason", () => {
+    expect(resolveEndReason({
+      engine_state: { winnerId: "P1" },
+      winner_id: "P1"
+    })).toBe("UNKNOWN_LEGACY");
   });
 });

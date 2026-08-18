@@ -10,6 +10,7 @@ import {
   GameAction,
   GameState,
   GameValidationError,
+  MatchEndReason,
   PlayerId,
   PlayerState,
   SpellEffect,
@@ -231,14 +232,26 @@ export function checkWinConditions(state: GameState): GameState {
   const p2Dead = state.players.P2.nexusHp <= 0;
 
   if (p1Dead && p2Dead) {
-    state.winnerId = state.priorityPlayerId;
+    finishGame(state, state.priorityPlayerId, "DOUBLE_NEXUS_DESTROYED");
   } else if (p1Dead) {
-    state.winnerId = "P2";
+    finishGame(state, "P2", "NEXUS_DESTROYED");
   } else if (p2Dead) {
-    state.winnerId = "P1";
+    finishGame(state, "P1", "NEXUS_DESTROYED");
   }
 
   return state;
+}
+
+export function finishGame(
+  state: GameState,
+  winnerId: PlayerId,
+  reason: MatchEndReason
+): void {
+  if (state.winnerId) {
+    return;
+  }
+  state.winnerId = winnerId;
+  state.endReason = reason;
 }
 
 export function findUnit(
