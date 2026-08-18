@@ -27,7 +27,7 @@ import {
   type PendingMatch,
   type PlayerProfile
 } from "../libs/api";
-import { getCachedProfile, setCachedProfile, clearCachedProfile } from "../libs/profileCache";
+import { getCachedProfile, setCachedProfile, clearCachedProfile, setCachedPendingMatch } from "../libs/profileCache";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { UserProfilePhaserEffects } from "../components/user/UserProfilePhaserEffects";
 import { PendingMatchDialog, PendingMatchLoadingGate } from "../components/lobby/PendingMatchDialog";
@@ -147,6 +147,7 @@ export default function Home() {
     void getPendingMatch()
       .then((result) => {
         setPendingMatch(result.match);
+        setCachedPendingMatch(result.match);
         setPendingMatchError(undefined);
       })
       .catch((error) => {
@@ -207,6 +208,7 @@ export default function Home() {
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
+      setCachedPendingMatch(null);
       const { user } = await me();
       if (user) {
         setElo(user.elo);

@@ -21,6 +21,7 @@ import {
   mergeCloudDecks,
   type LocalDeck
 } from "../../libs/localDecks";
+import { getCachedPendingMatch, setCachedPendingMatch } from "../../libs/profileCache";
 
 type PrivateRoomMode = "create" | "join";
 
@@ -39,9 +40,14 @@ export function PrivateRoomScreen(props: {
   const createRequestedRef = useRef(false);
   const joinRequestedRef = useRef(false);
   const [copied, setCopied] = useState(false);
-  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(() => {
+    const cached = getCachedPendingMatch();
+    return cached ? cached.match : null;
+  });
   const [pendingMatchError, setPendingMatchError] = useState<string>();
-  const [pendingMatchChecked, setPendingMatchChecked] = useState(false);
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(() => {
+    return getCachedPendingMatch() !== null;
+  });
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(() => {
@@ -74,6 +80,7 @@ export function PrivateRoomScreen(props: {
       .then((result) => {
         if (mounted) {
           setPendingMatch(result.match);
+          setCachedPendingMatch(result.match);
           setPendingMatchError(undefined);
         }
       })
@@ -206,6 +213,7 @@ export function PrivateRoomScreen(props: {
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
+      setCachedPendingMatch(null);
     } catch (error) {
       setPendingMatchError(error instanceof Error ? error.message : "Unable to leave the active match.");
     } finally {
@@ -281,7 +289,6 @@ export function PrivateRoomScreen(props: {
           </button>
         </section>
       </section>
-      {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
       {pendingMatch ? (
         <PendingMatchDialog
           status={pendingMatch.status}
