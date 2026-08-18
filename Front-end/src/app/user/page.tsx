@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Activity, ArrowLeft, Camera, Check, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Activity, AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
-import { getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
+import { deleteAccount, getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
+import { getCachedProfile, setCachedProfile, clearCachedProfile } from "../../libs/profileCache";
 
 interface UserProfile {
   user_id: string;
@@ -29,27 +30,86 @@ interface UserProfile {
   leaderboard_win_rate?: number;
   leaderboard_wins?: number;
   leaderboard_losses?: number;
+  lastNameChangedAt?: number;
+}
+
+interface ToastNotification {
+  type: "success" | "error";
+  title: string;
+  message: string;
+}
+
+function normalizeProfile(value: unknown): UserProfile | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<UserProfile> & { id?: unknown };
+  const userId = typeof candidate.user_id === "string"
+    ? candidate.user_id
+    : typeof candidate.id === "string"
+      ? candidate.id
+      : "";
+  if (!userId || typeof candidate.username !== "string" || typeof candidate.email !== "string") return null;
+  return { ...candidate, user_id: userId } as UserProfile;
 }
 
 function UserPageContent() {
   const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedProfile();
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    if (!cached) return null;
+    return {
+      user_id: cached.id,
+      username: cached.username,
+      email: cached.email,
+      avatar_url: cached.avatar,
+      stats: {
+        elo: cached.elo,
+        wins: cached.wins,
+        losses: cached.losses,
+        gamesPlayed: cached.wins + cached.losses,
+        winRate: (cached.wins + cached.losses > 0) ? Math.round((cached.wins / (cached.wins + cached.losses)) * 100) : 0,
+      },
+      created_at: new Date(cached.updatedAt || Date.now()).toISOString(),
+      leaderboard_elo: cached.elo,
+      leaderboard_wins: cached.wins,
+      leaderboard_losses: cached.losses,
+    };
+  });
+  const [loading, setLoading] = useState(() => !cached);
   const [editingName, setEditingName] = useState(false);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(() => cached?.username || "");
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
 
   useEffect(() => {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   async function loadProfile() {
     try {
       const response = await getCurrentUser();
       if (response.success) {
-        setUser(response.user);
-        setUsername(response.user.username);
+        const profile = normalizeProfile(response.user);
+        if (!profile) throw new Error("The backend returned an invalid user profile.");
+        setUser(profile);
+        setUsername(profile.username);
+        setCachedProfile({
+          id: profile.user_id,
+          username: profile.username,
+          email: profile.email,
+          avatar: profile.avatar_url,
+          elo: profile.leaderboard_elo ?? profile.stats?.elo ?? 1200,
+          wins: profile.leaderboard_wins ?? profile.stats?.wins ?? 0,
+          losses: profile.leaderboard_losses ?? profile.stats?.losses ?? 0,
+        });
       }
     } finally {
       setLoading(false);
@@ -65,11 +125,32 @@ function UserPageContent() {
     try {
       const response = await updateUsername(username);
       if (response.success) {
-        setUser(response.user);
+        const profile = normalizeProfile(response.user);
+        if (!profile) throw new Error("The backend returned an invalid updated profile.");
+        setUser(profile);
         setEditingName(false);
+        setCachedProfile({ username: profile.username });
+        setToast({
+          type: "success",
+          title: "CALLSIGN UPDATED",
+          message: `Operative callsign updated to "${profile.username}". Next change available in 30 days.`
+        });
       } else {
-        alert(response.message || "Failed to update username");
+        setToast({
+          type: "error",
+          title: "UPDATE RESTRICTED",
+          message: response.message || "Failed to update username."
+        });
       }
+    } catch (error) {
+      const errorCode = typeof error === "object" && error !== null && "code" in error
+        ? (error as { code?: string }).code
+        : undefined;
+      setToast({
+        type: "error",
+        title: errorCode === "CALLSIGN_TAKEN" ? "CALLSIGN ALREADY IN USE" : "CALLSIGN CHANGE RESTRICTED",
+        message: error instanceof Error ? error.message : "The callsign could not be updated."
+      });
     } finally {
       setSavingName(false);
     }
@@ -111,6 +192,7 @@ function UserPageContent() {
       const response = await updateAvatar(base64);
       if (response.success) {
         setUser(response.user);
+        setCachedProfile({ avatar: response.user?.avatar_url || base64 });
       } else {
         alert(response.message || "Failed to update avatar");
       }
@@ -119,17 +201,22 @@ function UserPageContent() {
     }
   }
 
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      clearCachedProfile();
+      localStorage.clear();
+      sessionStorage.clear();
+      router.replace("/login?deleted=1");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Unable to delete account.");
+      setDeleting(false);
+    }
+  }
+
   if (loading) {
-    return (
-      <main className="user-page-shell">
-        <div className="user-page-grid" aria-hidden="true" />
-        <div className="user-page-vignette" aria-hidden="true" />
-        <div className="user-page-loading">
-          <div className="user-page-spinner" />
-          <p>Accessing Player Dossier...</p>
-        </div>
-      </main>
-    );
+    return <UserPageLoadingGate />;
   }
 
   if (!user) {
@@ -162,9 +249,44 @@ function UserPageContent() {
   };
   const tier = getTier(elo);
   const eloProgress = Math.min(100, Math.max(8, Math.round((elo / 2200) * 100)));
+  const usernameChangeDate = user.lastNameChangedAt
+    ? user.lastNameChangedAt + 30 * 24 * 60 * 60 * 1000
+    : Date.now() + 30 * 24 * 60 * 60 * 1000;
+  const formatDate = (timestamp: number) => new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit"
+  }).format(new Date(timestamp));
 
   return (
     <main className="user-page-shell">
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="top-toast"
+            initial={{ opacity: 0, y: -60, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className={`profile-toast profile-toast--${toast.type}`}
+          >
+            <div className="profile-toast__icon">
+              {toast.type === "success" ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+            </div>
+            <div className="profile-toast__content">
+              <strong>
+                {toast.title}
+              </strong>
+              <p>
+                {toast.message}
+              </p>
+            </div>
+            <button className="profile-toast__close" onClick={() => setToast(null)} aria-label="Dismiss notification">
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="user-page-art" aria-hidden="true">
         <UserProfilePhaserEffects />
       </div>
@@ -243,41 +365,12 @@ function UserPageContent() {
 
           <div className="user-identity-info">
             <span className="identity-eyebrow">Authenticated player identity</span>
-            {editingName ? (
-              <div className="username-edit-box">
-                <input
-                  className="username-input"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  maxLength={20}
-                  autoFocus
-                />
-                <button
-                  className="user-btn save"
-                  onClick={handleSaveUsername}
-                  disabled={savingName}
-                >
-                  <Check size={14} /> Save
-                </button>
-                <button
-                  className="user-btn cancel"
-                  onClick={() => {
-                    setUsername(user.username);
-                    setEditingName(false);
-                  }}
-                  disabled={savingName}
-                >
-                  <X size={14} /> Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="username-display-box">
-                <h2>{user.username}</h2>
-                <button className="user-btn edit" onClick={() => setEditingName(true)}>
-                  <Edit3 size={14} /> Edit Name
-                </button>
-              </div>
-            )}
+            <div className="username-display-box">
+              <h2>{user.username}</h2>
+              <button className="user-btn edit" onClick={() => { setUsername(user.username); setEditingName(true); }}>
+                <Edit3 size={14} /> Edit Name
+              </button>
+            </div>
 
             <div className="user-meta-pills">
               <div className="user-meta-pill">
@@ -377,13 +470,94 @@ function UserPageContent() {
           </div>
         </div>
       </motion.div>
+      <AnimatePresence>
+        {editingName && (
+          <motion.div
+            className="username-edit-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="username-edit-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.section
+              className="username-edit-modal"
+              initial={{ opacity: 0, y: -24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -18, scale: 0.98 }}
+            >
+              <div className="username-edit-modal__eyebrow"><Shield size={14} /> IDENTITY CONTROL</div>
+              <h2 id="username-edit-title">EDIT OPERATIVE CALLSIGN</h2>
+              <p className="username-edit-modal__warning">
+                You have one callsign change every 30 days. {user.lastNameChangedAt
+                  ? `Your next change is available on ${formatDate(usernameChangeDate)}.`
+                  : `If you save this change now, your next change will be available on ${formatDate(usernameChangeDate)}.`}
+              </p>
+              <label className="username-edit-modal__field">
+                <span>New callsign</span>
+                <input
+                  className="username-input"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  maxLength={20}
+                  autoFocus
+                />
+              </label>
+              <p className="username-edit-modal__hint">Use 3–20 letters, numbers, or underscores. The name must be unique.</p>
+              <div className="username-edit-modal__actions">
+                <button
+                  className="user-btn cancel"
+                  onClick={() => { setUsername(user.username); setEditingName(false); }}
+                  disabled={savingName}
+                >
+                  <X size={14} /> Cancel
+                </button>
+                <button className="user-btn save" onClick={handleSaveUsername} disabled={savingName}>
+                  <Check size={14} /> {savingName ? "Saving..." : "Save changes"}
+                </button>
+              </div>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="user-account-actions">
+        <button className="user-delete-account" onClick={() => setShowDeleteModal(true)}>
+          <Trash2 size={15} /> Delete Account
+        </button>
+      </div>
+      {showDeleteModal && (
+        <div className="account-delete-overlay" role="dialog" aria-modal="true">
+          <section className="account-delete-modal">
+            <h2>TERMINATE OPERATIVE PROFILE</h2>
+            <p>This action is permanent. Your profile, stats, decks, and account data will be deleted. The email address will be unavailable for 24 hours.</p>
+            <div className="account-delete-actions">
+              <button onClick={() => setShowDeleteModal(false)} disabled={deleting}>CANCEL</button>
+              <button className="confirm-delete" onClick={handleDeleteAccount} disabled={deleting}>{deleting ? "DELETING..." : "CONFIRM DELETION"}</button>
+            </div>
+          </section>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function UserPageLoadingGate() {
+  return (
+    <main className="user-page-shell">
+      <div className="user-page-grid" aria-hidden="true" />
+      <div className="user-page-vignette" aria-hidden="true" />
+      <div className="user-page-loading">
+        <div className="user-page-spinner" />
+        <p>Accessing Player Dossier...</p>
+      </div>
     </main>
   );
 }
 
 export default function UserPage() {
   return (
-    <AuthGuard>
+    <AuthGuard loadingComponent={<UserPageLoadingGate />}>
       <UserPageContent />
     </AuthGuard>
   );

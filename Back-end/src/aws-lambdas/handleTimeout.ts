@@ -205,6 +205,7 @@ async function processRecord(record: SQSRecord): Promise<void> {
 
   const nextState = applyAction(originalState, { type: "TIME_OUT", playerId });
   const finished = Boolean(nextState.winnerId);
+  const endReason = nextState.endReason ?? "UNKNOWN_LEGACY";
   const currentVersion = match.state_version ?? 0;
   const nextVersion = currentVersion + 1;
 
@@ -234,7 +235,7 @@ async function processRecord(record: SQSRecord): Promise<void> {
       UpdateExpression:
         "SET engine_state = :state, #status = :status, current_round = :round, " +
         "turn_player_id = :nextPlayerId, state_version = :nextVersion" +
-        (finished ? ", winner_id = :winnerId, ended_at = :endedAt" : ""),
+        (finished ? ", winner_id = :winnerId, end_reason = :endReason, ended_at = :endedAt" : ""),
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
         ":active": "IN_PROGRESS",
@@ -247,7 +248,13 @@ async function processRecord(record: SQSRecord): Promise<void> {
         ":status": finished ? "FINISHED" : "IN_PROGRESS",
         ":round": nextState.round,
         ":nextPlayerId": nextState.priorityPlayerId,
-        ...(finished ? { ":winnerId": nextState.winnerId, ":endedAt": Date.now() } : {})
+        ...(finished
+          ? {
+              ":winnerId": nextState.winnerId,
+              ":endReason": endReason,
+              ":endedAt": Date.now()
+            }
+          : {})
       }
     }));
   } catch (error: any) {
@@ -263,7 +270,7 @@ async function processRecord(record: SQSRecord): Promise<void> {
     ? enqueueMatchResult({
         match,
         winnerId: nextState.winnerId,
-        reason: "AFK_TIMEOUT"
+        reason: endReason
       })
     : Promise.resolve(false);
   const results = await Promise.allSettled([

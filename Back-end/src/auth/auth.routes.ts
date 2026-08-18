@@ -12,5 +12,6 @@ router.get("/me", authenticate, controller.me);
 router.post("/refresh", controller.refresh);
 router.post("/forgot-password", controller.forgotPassword);
 router.post("/reset-password", controller.resetPassword);
+router.post("/resend-code", controller.resendCode);
 
-export default router;
+export default router;

@@ -23,6 +23,7 @@ export async function authenticate(
 
         const payload = await verifyToken(token);
         (req as any).user = payload;
+        (req as any).accessToken = token;
 
         next();
 

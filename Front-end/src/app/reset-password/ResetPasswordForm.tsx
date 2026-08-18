@@ -10,7 +10,9 @@ import { AuthShell } from "../../components/auth/AuthShell";
 export function ResetPasswordForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const email = searchParams.get("email") ?? "";
+    const rawEmail = searchParams.get("email") ?? "";
+    const email = rawEmail.trim().toLowerCase();
+
     const [code, setCode] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,23 +20,30 @@ export function ResetPasswordForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
 
+    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+        if (pastedData) {
+            setCode(pastedData);
+        }
+    };
+
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError("");
         const normalizedCode = code.trim();
 
         if (!email) {
-            setError("Không tìm thấy email cần đặt lại mật khẩu.");
+            setError("Reset email address missing. Please start password recovery again.");
             return;
         }
 
         if (!normalizedCode || !password || !confirmPassword) {
-            setError("Vui lòng nhập đầy đủ thông tin.");
+            setError("Please fill in all required fields.");
             return;
         }
 
         if (password !== confirmPassword) {
-            setError("Mật khẩu xác nhận chưa trùng khớp.");
+            setError("Password confirmation does not match.");
             return;
         }
 
@@ -45,7 +54,7 @@ export function ResetPasswordForm() {
 
             router.push("/login");
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+            setError(err instanceof Error ? err.message : "Could not reset password. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -55,8 +64,8 @@ export function ResetPasswordForm() {
         <AuthShell
             eyebrow="Secure recovery"
             title={<>Restore your <em>Access</em></>}
-            description="Xác nhận mã bảo mật và thiết lập mật khẩu mới cho tài khoản."
-            footer={<>Không cần đặt lại nữa? <Link href="/login">Return to sign in</Link></>}
+            description="Confirm your security code and create a new password for your account."
+            footer={<>Cancel password reset? <Link href="/login">Return to sign in</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
                 <div className="auth-destination">
@@ -75,7 +84,8 @@ export function ResetPasswordForm() {
                             maxLength={6}
                             placeholder="000000"
                             value={code}
-                            onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))}
+                            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                            onPaste={handlePaste}
                             autoFocus
                             required
                         />
@@ -125,3 +135,4 @@ export function ResetPasswordForm() {
         </AuthShell>
     );
 }
+

@@ -2,7 +2,7 @@ import type { SQSBatchResponse, SQSEvent, SQSRecord } from "aws-lambda";
 import { GetCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { calculateElo } from "../matchmaking/elo";
-import type { PlayerId } from "../game/types";
+import type { MatchEndReason, PlayerId } from "../game/types";
 import { buildLeaderboardProjection } from "../leaderboard/leaderboard";
 import { notifyConnections } from "../leaderboard/realtime";
 
@@ -15,11 +15,25 @@ export interface PostMatchMessage {
   winnerId?: PlayerId | "DRAW";
   player1?: { userId?: string };
   player2?: { userId?: string };
-  reason?: string;
+  reason?: MatchEndReason;
   endedAt?: number;
 }
 
 type Result = "WIN" | "LOSS" | "DRAW";
+
+const MATCH_END_REASONS = new Set<MatchEndReason>([
+  "NEXUS_DESTROYED",
+  "DOUBLE_NEXUS_DESTROYED",
+  "DECK_EXHAUSTED",
+  "AFK_TIMEOUT",
+  "SURRENDER",
+  "UNKNOWN_LEGACY"
+]);
+
+export function resolveEndReason(match: Record<string, any>): MatchEndReason {
+  const reason = match.engine_state?.endReason ?? match.end_reason;
+  return MATCH_END_REASONS.has(reason) ? reason : "UNKNOWN_LEGACY";
+}
 
 function ratingOf(profile: Record<string, any>): number {
   const rating = Number(profile.stats?.elo_rating ?? profile.stats?.rank_points ?? 1000);
@@ -76,6 +90,7 @@ export async function processSingleMatchRecord(record: SQSRecord): Promise<void>
   const player1UserId = match.player_1?.user_id;
   const player2UserId = match.player_2?.user_id;
   const winnerId = match.engine_state?.winnerId ?? match.winner_id ?? message.winnerId;
+  const endReason = resolveEndReason(match);
   if (!player1UserId || !player2UserId || player1UserId === player2UserId) {
     throw new Error(`Match ${message.matchId} does not contain two valid users.`);
   }
@@ -108,7 +123,11 @@ export async function processSingleMatchRecord(record: SQSRecord): Promise<void>
   const p1Stats = nextStats(p1Profile, ratings.playerA, outcomes.p1);
   const p2Stats = nextStats(p2Profile, ratings.playerB, outcomes.p2);
   const processedAt = Date.now();
-  const playedAt = Number.isFinite(message.endedAt) ? Number(message.endedAt) : processedAt;
+  const playedAt = Number.isFinite(match.ended_at)
+    ? Number(match.ended_at)
+    : Number.isFinite(message.endedAt)
+      ? Number(message.endedAt)
+      : processedAt;
 
   // One transaction updates both players, both histories and the idempotency
   // marker. SQS redelivery can therefore never award a match twice or leave
@@ -119,16 +138,38 @@ export async function processSingleMatchRecord(record: SQSRecord): Promise<void>
         Update: {
           TableName: gameStateTable,
           Key: { match_id: message.matchId },
-          UpdateExpression: "SET post_match_processed_at = :processedAt",
+          UpdateExpression:
+            "SET post_match_processed_at = :processedAt, " +
+            "end_reason = if_not_exists(end_reason, :endReason)",
           ConditionExpression: "#status = :finished AND attribute_not_exists(post_match_processed_at)",
           ExpressionAttributeNames: { "#status": "status" },
-          ExpressionAttributeValues: { ":finished": "FINISHED", ":processedAt": processedAt }
+          ExpressionAttributeValues: {
+            ":finished": "FINISHED",
+            ":processedAt": processedAt,
+            ":endReason": endReason
+          }
         }
       },
       profileUpdate(player1UserId, p1Profile.stats, p1Stats, processedAt),
       profileUpdate(player2UserId, p2Profile.stats, p2Stats, processedAt),
-      historyPut(player1UserId, playedAt, message.matchId, player2UserId, outcomes.p1, ratings.playerA - p1Rating),
-      historyPut(player2UserId, playedAt, message.matchId, player1UserId, outcomes.p2, ratings.playerB - p2Rating)
+      historyPut(
+        player1UserId,
+        playedAt,
+        message.matchId,
+        player2UserId,
+        outcomes.p1,
+        endReason,
+        ratings.playerA - p1Rating
+      ),
+      historyPut(
+        player2UserId,
+        playedAt,
+        message.matchId,
+        player1UserId,
+        outcomes.p2,
+        endReason,
+        ratings.playerB - p2Rating
+      )
     ]
   }));
 
@@ -208,6 +249,7 @@ function historyPut(
   matchId: string,
   opponentId: string,
   result: Result,
+  endReason: MatchEndReason,
   eloChange: number
 ) {
   return {
@@ -219,6 +261,7 @@ function historyPut(
         match_id: matchId,
         opponent_id: opponentId,
         result,
+        end_reason: endReason,
         rank_point_change: eloChange,
         elo_change: eloChange
       },

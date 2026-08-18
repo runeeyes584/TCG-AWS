@@ -5,7 +5,7 @@ import {
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAction } from "../game/core/engine";
-import type { GameState, PlayerId } from "../game/types";
+import type { GameState, MatchEndReason, PlayerId } from "../game/types";
 import { enqueueMatchResult } from "./matchResultQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
@@ -14,15 +14,18 @@ const gameLogsTable = process.env.GAME_LOGS_TABLE || "GameLogs";
 
 export interface EndMatchPayload {
   matchId: string;
-  reason?: "SURRENDER" | "NEXUS_DESTROYED" | "FORFEIT" | string;
+  reason?: "SURRENDER";
 }
 
 export const handler = async (event: any) => {
   const connectionId = event.requestContext?.connectionId as string | undefined;
   const body = typeof event.body === "string" ? JSON.parse(event.body || "{}") : event.body || {};
   const matchId = body.matchId || event.matchId;
-  const reason = body.reason || "SURRENDER";
+  const requestedReason = body.reason || "SURRENDER";
   if (!matchId) return response(400, { error: "Missing matchId parameter." });
+  if (requestedReason !== "SURRENDER") {
+    return response(400, { error: "Players may only end an active match by surrendering." });
+  }
 
   const endpoint = (event.requestContext?.domainName && event.requestContext?.stage)
     ? `https://${event.requestContext.domainName}/${event.requestContext.stage}`
@@ -48,11 +51,13 @@ export const handler = async (event: any) => {
     }
 
     let finalState = match.engine_state as GameState;
-    if (match.status !== "FINISHED" && reason === "SURRENDER" && requestingPlayerId) {
+    if (match.status !== "FINISHED" && requestingPlayerId) {
       finalState = applyAction(finalState, { type: "SURRENDER", playerId: requestingPlayerId });
     }
     const winnerId = finalState.winnerId;
     if (!winnerId) return response(409, { error: "Match has no winner." });
+    const endReason: MatchEndReason =
+      finalState.endReason ?? match.end_reason ?? "UNKNOWN_LEGACY";
 
     if (match.status !== "FINISHED") {
       await dynamoDb.send(new UpdateCommand({
@@ -60,13 +65,15 @@ export const handler = async (event: any) => {
         Key: { match_id: matchId },
         ConditionExpression: "#status = :active",
         UpdateExpression:
-          "SET #status = :finished, engine_state = :state, winner_id = :winner, ended_at = :endedAt",
+          "SET #status = :finished, engine_state = :state, winner_id = :winner, " +
+          "end_reason = :endReason, ended_at = :endedAt",
         ExpressionAttributeNames: { "#status": "status" },
         ExpressionAttributeValues: {
           ":active": "IN_PROGRESS",
           ":finished": "FINISHED",
           ":state": finalState,
           ":winner": winnerId,
+          ":endReason": endReason,
           ":endedAt": Date.now()
         }
       }));
@@ -81,11 +88,11 @@ export const handler = async (event: any) => {
           action_sequence: timestamp,
           actor_id: requestingPlayerId || "SYSTEM",
           action_type: "END_MATCH",
-          details: { reason, winnerId },
+          details: { reason: endReason, winnerId },
           timestamp
         }
       })),
-      enqueueMatchResult({ match, winnerId, reason, endedAt: timestamp })
+      enqueueMatchResult({ match, winnerId, reason: endReason, endedAt: timestamp })
     ]);
     if (queueResult.status === "rejected") {
       console.error("Could not queue the completed match result:", queueResult.reason);
@@ -103,14 +110,19 @@ export const handler = async (event: any) => {
             event: "match:ended",
             roomCode: matchId,
             winnerId,
-            reason,
+            reason: endReason,
             state: redactStateForPlayer(finalState, playerId)
           }))
         }));
       }));
     }
 
-    return response(200, { message: "Match ended successfully.", matchId, winnerId, reason });
+    return response(200, {
+      message: "Match ended successfully.",
+      matchId,
+      winnerId,
+      reason: endReason
+    });
   } catch (error: any) {
     if (error?.name === "ConditionalCheckFailedException") {
       return response(409, { error: "Match state changed. Please retry." });

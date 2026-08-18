@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import * as authService from "./auth.service";
 import { LoginRequest, RegisterRequest, VerifyRequest, ResetPasswordRequest, ForgotPasswordRequest } from "./types";
 import { ensureUserProfile, getUserById } from "../user/user.repository";
+import { sendApiError } from "../http/error-response";
+import { getCognitoIdentityByAccessToken } from "./cognito-user";
 
 const productionCookies = process.env.NODE_ENV === "production";
 const authCookieOptions = {
@@ -20,13 +22,7 @@ export async function register(
         return res.status(201).json(result);
     }
     catch (error) {
-        return res.status(400).json({
-            success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error"
-        });
+        return sendApiError(res, error, "Unable to register this account.");
     }
 }
 
@@ -41,17 +37,7 @@ export async function verify(
         return res.json(result);
 
     } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error"
-
-        });
+        return sendApiError(res, error, "Unable to verify this account.");
 
     }
 
@@ -102,14 +88,7 @@ export async function login(
 
     }
     catch (error) {
-        return res.status(400).json({
-            success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error"
-
-        });
+        return sendApiError(res, error, "Unable to sign in.");
     }
 }
 
@@ -157,16 +136,15 @@ export async function me(
 
     const payload = (req as any).user || {};
     const userId = typeof payload.sub === "string" ? payload.sub : undefined;
-    const email = req.cookies.email ?? (typeof payload.username === "string" ? payload.username : "");
+    const accessToken = (req as any).accessToken as string | undefined;
+    const identity = accessToken
+        ? await getCognitoIdentityByAccessToken(accessToken, userId)
+        : undefined;
     let user = userId ? await getUserById(userId) : undefined;
-    if (!user && userId) {
-        user = await ensureUserProfile({
-            id: userId,
-            email,
-            username: typeof payload.preferred_username === "string"
-                ? payload.preferred_username
-                : `User_${userId.slice(0, 5)}`
-        });
+    if (identity) {
+        user = await ensureUserProfile(identity);
+    } else if (!user) {
+        throw new Error("Cognito user attributes are unavailable; profile creation was not completed.");
     }
 
     return res.json({
@@ -256,12 +234,7 @@ export async function forgotPassword(
 
         return res.json(result);
     } catch (error) {
-        return res.status(400).json({
-            success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Unknown error"
-        });
+        return sendApiError(res, error, "Unable to send the password reset code.");
     }
 }
 
@@ -278,11 +251,27 @@ export async function resetPassword(
 
         return res.json(result);
     } catch (error) {
-        return res.status(400).json({
-            success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Unknown error"
-        });
+        return sendApiError(res, error, "Unable to reset the password.");
     }
 }
+
+export async function resendCode(
+    req: Request<{}, {}, { email?: string }>,
+    res: Response
+) {
+    try {
+        const email = req.body?.email;
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email address is required."
+            });
+        }
+
+        const result = await authService.resendConfirmationCode(email);
+        return res.json(result);
+    } catch (error) {
+        return sendApiError(res, error, "Unable to resend the verification code.");
+    }
+}
+

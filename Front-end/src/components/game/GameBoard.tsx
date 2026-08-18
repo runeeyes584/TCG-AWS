@@ -11,30 +11,35 @@ import {
   SpellTarget,
   SpellTargetKind,
   TargetDefinition,
-  UnitInstance
+  UnitInstance,
+  VisualEvent
 } from "@backend/game/types";
 import { useLocalGame } from "../../hooks/useLocalGame";
 import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { GameCard } from "./cards/game-card";
 import { CardBack } from "./cards/card-back";
-import { BoardRow } from "./zones/board-row";
 import { CenterInfo } from "./zones/center-info";
 import { Hand } from "./zones/hand";
 import { NexusPanel } from "./hud/nexus-panel";
 import { PassButton } from "./hud/pass-button";
 import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
-import { hasKeyword } from "@backend/game/core/engine";
-import { HoverProvider } from "../../contexts/HoverContext";
+import { HoverProvider, useHover } from "../../contexts/HoverContext";
 import { DetailPanel } from "./hud/detail-panel";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { DeckPile, GraveyardPile } from "./hud/side-piles";
-import { SpellEffectLayer } from "./spell-effect-layer";
-import { ParticlesBackground } from "./particles-background";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
 import { DeveloperResourcesPanel } from "./DeveloperResourcesPanel";
 import type { RoomUpdate } from "@backend/shared/multiplayer";
+import { PhaserArenaCanvas } from "./phaser/PhaserArenaCanvas";
+import { arenaEventBus } from "../../libs/arenaEventBus";
+import { useGameStore } from "../../hooks/useGameStore";
+import { SpellEffectLayer } from "./spell-effect-layer";
+import { GiEvilEyes } from "react-icons/gi";
+import { FaEyeSlash } from "react-icons/fa";
+
+const MATCH_RESULT_RETURN_SECONDS = 20;
 
 interface Props {
   controller: GameController;
@@ -60,6 +65,24 @@ interface GameBoardViewProps {
   onExitTrial?: () => void;
 }
 
+function PhaserHoverBridge({ gameState }: { gameState: ReturnType<typeof useLocalGame>["gameState"] }) {
+  const { setHoveredCard } = useHover();
+
+  useEffect(() => {
+    const stopHover = arenaEventBus.on("HOVER_UNIT", (entity) => {
+      const unit = entity
+        ? gameState.players[entity.playerId].board.find((candidate) => candidate.instanceId === entity.unitId)
+        : undefined;
+      setHoveredCard(undefined, unit);
+    });
+    return () => {
+      stopHover();
+    };
+  }, [gameState, setHoveredCard]);
+
+  return null;
+}
+
 export function GameBoard({ controller }: Props) {
   // const controller = useLocalGame();
   return <GameBoardView controller={controller} />;
@@ -83,6 +106,7 @@ export function GameBoardView({
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | undefined>();
   const [showExitTrialDialog, setShowExitTrialDialog] = useState(false);
   const [showSurrenderDialog, setShowSurrenderDialog] = useState(false);
+  const [resultReturnSeconds, setResultReturnSeconds] = useState(MATCH_RESULT_RETURN_SECONDS);
   const developerToolsEnabled = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
   const canEditDeveloperResources = developerToolsEnabled && Boolean(setDeveloperResources);
   const [previewCard, setPreviewCard] = useState<CardInstance>();
@@ -102,6 +126,8 @@ export function GameBoardView({
   }>();
   const [targetError, setTargetError] = useState<string>();
   const targetErrorTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const previousArenaUnitIdsRef = useRef<Set<string>>(new Set());
+  const previousAttackersRef = useRef<string>("");
 
   const showTargetError = (message: string) => {
     if (targetErrorTimeoutRef.current) {
@@ -137,6 +163,99 @@ export function GameBoardView({
   }, [showExitTrialDialog, showSurrenderDialog]);
   const viewerPlayerId: PlayerId = localPlayerId ?? "P1";
   const opponentPlayerId = opponentOf(viewerPlayerId);
+
+  // The bridge mirrors only presentation data. The existing controller remains
+  // the single source of truth for websocket updates and game actions.
+  useEffect(() => {
+    useGameStore.getState().syncGameState(gameState, viewerPlayerId);
+    arenaEventBus.emit("UPDATE_SLOTS", { gameState, viewerPlayerId });
+
+    const unitIds = new Set(
+      (["P1", "P2"] as PlayerId[]).flatMap((playerId) =>
+        gameState.players[playerId].board.map((unit) => unit.instanceId)
+      )
+    );
+    unitIds.forEach((unitId) => {
+      if (!previousArenaUnitIdsRef.current.has(unitId)) {
+        arenaEventBus.emit("SUMMON_UNIT", { unitId });
+      }
+    });
+    previousArenaUnitIdsRef.current.forEach((unitId) => {
+      if (!unitIds.has(unitId)) {
+        arenaEventBus.emit("DESTROY_UNIT", { unitId });
+      }
+    });
+    previousArenaUnitIdsRef.current = unitIds;
+
+    const attackers = gameState.combat.attackers.map((lane) => lane.attackerId).join(":");
+    if (attackers && attackers !== previousAttackersRef.current) {
+      gameState.combat.attackers.forEach((lane) => arenaEventBus.emit("ATTACK_UNIT", { unitId: lane.attackerId }));
+    }
+    previousAttackersRef.current = attackers;
+
+    const stopSelect = arenaEventBus.on("SELECT_UNIT", ({ playerId, unitId }) => {
+      const unit = gameState.players[playerId].board.find((candidate) => candidate.instanceId === unitId);
+      if (unit) selectBoardUnit(playerId, unit);
+    });
+    const stopEmptySlot = arenaEventBus.on("EMPTY_SLOT_CLICK", ({ playerId, index }) => {
+      if (
+        playerId !== defenderId ||
+        gameState.phase !== "BLOCK" ||
+        gameState.priorityPlayerId !== defenderId ||
+        !selectedBlockerId
+      ) return;
+      const lane = gameState.combat.attackers[index];
+      if (!lane || lane.blockerId) return;
+      const attacker = gameState.players[attackPlayerId].board.find(
+        (candidate) => candidate.instanceId === lane.attackerId
+      );
+      if (attacker) assignBlocker(attacker, selectedBlockerId);
+    });
+    return () => {
+      stopSelect();
+      stopEmptySlot();
+    };
+  }, [gameState, viewerPlayerId, selectedBlockerId, selectedSpell, selectedCostTargets]);
+
+  // Target selection is presentation state only. The authoritative action is
+  // still emitted by castSelectedSpell after the engine-valid target is picked.
+  // Phaser uses this signal to highlight the real lane cards instead of
+  // presenting a second, stale React card list.
+  useEffect(() => {
+    const targetKind =
+      selectedSpell && !selectedSpellTarget && !viewingGraveyard
+        ? getPrimarySpellTarget(selectedSpell)
+        : undefined;
+    const unitTargetKind =
+      targetKind === "ALLY_UNIT" || targetKind === "ENEMY_UNIT" ? targetKind : undefined;
+    
+    // Calculate target color based on target kind
+    const targetColor = unitTargetKind === "ALLY_UNIT" ? "ALLY" as const 
+      : unitTargetKind === "ENEMY_UNIT" ? "ENEMY" as const 
+      : undefined;
+
+    arenaEventBus.emit("TARGETING_CHANGED", {
+      targetKind: unitTargetKind,
+      playerId: unitTargetKind ? (selectedSpell?.ownerId || viewerPlayerId || localPlayerId || "P1") : undefined,
+    });
+
+    return () => {
+      arenaEventBus.emit("TARGETING_CHANGED", { targetKind: undefined });
+    };
+  }, [selectedSpell, selectedSpellTarget, viewingGraveyard]);
+
+  // A remote priority/phase transition invalidates any local targeting UI.
+  // Do not leave a stale Phaser highlight active after the authoritative state
+  // has moved on to BLOCK, DISCARD, or a finished match.
+  useEffect(() => {
+    if (gameState.phase !== "ACTION" || gameState.winnerId) {
+      setSelectedSpell(undefined);
+      setSelectedSpellTarget(undefined);
+      setSelectedCostTargets([]);
+      setViewingGraveyard(undefined);
+    }
+  }, [gameState.phase, gameState.winnerId]);
+
   const attackPlayerId = gameState.attackTokenPlayerId;
   const defenderId: PlayerId = attackPlayerId === "P1" ? "P2" : "P1";
   const attackerCount = gameState.combat.attackers.length;
@@ -165,6 +284,29 @@ export function GameBoardView({
   const winnerName = winnerId ? getPlayerName(winnerId) : "";
   const winnerAvatar = winnerId ? getPlayerProfile(winnerId)?.avatar : undefined;
   const winnerInitial = winnerName.slice(0, 1).toUpperCase() || "?";
+
+  useEffect(() => {
+    if (!winnerId || !localPlayerId) {
+      setResultReturnSeconds(MATCH_RESULT_RETURN_SECONDS);
+      return;
+    }
+
+    const deadline = Date.now() + MATCH_RESULT_RETURN_SECONDS * 1_000;
+    const updateCountdown = () => {
+      setResultReturnSeconds(Math.max(0, Math.ceil((deadline - Date.now()) / 1_000)));
+    };
+    updateCountdown();
+
+    const interval = window.setInterval(updateCountdown, 250);
+    const redirect = window.setTimeout(() => {
+      window.location.assign("/");
+    }, MATCH_RESULT_RETURN_SECONDS * 1_000);
+
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(redirect);
+    };
+  }, [localPlayerId, winnerId]);
 
   const leaveToLobby = () => {
     window.location.assign("/");
@@ -384,8 +526,14 @@ export function GameBoardView({
     }
 
     if (targetKind === "NEXUS") {
+      const targetEffect = (cardDef(card).effects ?? []).find((effect) =>
+        effect.target === "NEXUS" || effect.target === "ALLY_NEXUS" || effect.target === "ENEMY_NEXUS"
+      );
       const targetPlayerId =
-        cardDef(card).effects?.[0]?.type === "HEAL" ? playerId : opponentOf(playerId);
+        targetEffect?.target === "ALLY_NEXUS" ||
+        (targetEffect?.target !== "ENEMY_NEXUS" && targetEffect?.type === "HEAL")
+          ? playerId
+          : opponentOf(playerId);
       setSelectedSpellTarget({ type: "NEXUS", playerId: targetPlayerId });
       return;
     }
@@ -408,44 +556,6 @@ export function GameBoardView({
     setPreviewCard(undefined);
   }
 
-  function getDamagePreview(attacker: UnitInstance, blocker?: UnitInstance) {
-    if (!blocker) {
-      return { attackerTakes: 0, blockerTakes: 0, nexusTakes: getUnitAttack(attacker) };
-    }
-    const atk = getUnitAttack(attacker);
-    const blkAtk = getUnitAttack(blocker);
-
-    let attackerTakes = 0;
-    let blockerTakes = 0;
-    let nexusTakes = 0;
-
-    const calcDamage = (amount: number, unit: UnitInstance) => {
-      if (amount <= 0) return 0;
-      if (hasKeyword(unit, "BARRIER")) return 0;
-      return hasKeyword(unit, "TOUGH") ? Math.max(0, amount - 1) : amount;
-    };
-
-    if (hasKeyword(attacker, "QUICK_ATTACK")) {
-      const dmgToBlocker = calcDamage(atk, blocker);
-      blockerTakes = Math.min(getUnitHealth(blocker), dmgToBlocker);
-      if (hasKeyword(attacker, "OVERWHELM")) {
-        nexusTakes = Math.max(0, dmgToBlocker - getUnitHealth(blocker));
-      }
-      if (getUnitHealth(blocker) - blockerTakes > 0) {
-        attackerTakes = calcDamage(blkAtk, attacker);
-      }
-    } else {
-      const dmgToBlocker = calcDamage(atk, blocker);
-      blockerTakes = Math.min(getUnitHealth(blocker), dmgToBlocker);
-      attackerTakes = calcDamage(blkAtk, attacker);
-      if (hasKeyword(attacker, "OVERWHELM")) {
-        nexusTakes = Math.max(0, dmgToBlocker - getUnitHealth(blocker));
-      }
-    }
-
-    return { attackerTakes, blockerTakes, nexusTakes };
-  }
-
   function getPrimarySpellTarget(card: CardInstance): SpellTargetKind | undefined {
     const effects = cardDef(card).effects ?? [];
     const target = effects
@@ -454,6 +564,8 @@ export function GameBoardView({
         candidate === "ENEMY_UNIT" ||
         candidate === "ALLY_UNIT" ||
         candidate === "NEXUS" ||
+        candidate === "ALLY_NEXUS" ||
+        candidate === "ENEMY_NEXUS" ||
         candidate === "SELF" ||
         candidate === "ALLY_GRAVEYARD" ||
         candidate === "ENEMY_GRAVEYARD" ||
@@ -462,6 +574,10 @@ export function GameBoardView({
 
     if (target === "RECALL_UNIT") {
       return "ALLY_UNIT";
+    }
+
+    if (target === "ALLY_NEXUS" || target === "ENEMY_NEXUS") {
+      return "NEXUS";
     }
 
     if (
@@ -811,10 +927,27 @@ export function GameBoardView({
 
   function getGraveyardAllowedTypes(): GraveyardEntryType[] | undefined {
     if (!selectedSpell) return undefined;
-    const reviveEffect = cardDef(selectedSpell).effects?.find((effect) => effect.type === "REVIVE_CARD" || effect.type === "REBIRTH_CARD");
-    if (reviveEffect && (reviveEffect.type === "REVIVE_CARD" || reviveEffect.type === "REBIRTH_CARD")) {
-      return reviveEffect.allowedTypes as GraveyardEntryType[];
+    const effects = cardDef(selectedSpell).effects ?? [];
+    const gyEffect = effects.find(
+      (effect) =>
+        effect.type === "REVIVE_CARD" ||
+        effect.type === "REBIRTH_CARD" ||
+        effect.type === "BANISH_GRAVEYARD"
+    );
+    if (!gyEffect) return undefined;
+
+    if ("allowedTypes" in gyEffect && gyEffect.allowedTypes && gyEffect.allowedTypes.length > 0) {
+      return gyEffect.allowedTypes as GraveyardEntryType[];
     }
+
+    if (gyEffect.type === "BANISH_GRAVEYARD" || gyEffect.type === "REBIRTH_CARD") {
+      return ["UNIT", "CHAMPION", "SPELL"];
+    }
+
+    if (gyEffect.type === "REVIVE_CARD") {
+      return ["UNIT", "CHAMPION"];
+    }
+
     return undefined;
   }
 
@@ -1250,6 +1383,7 @@ export function GameBoardView({
     return (
       <GraveyardPile
         entries={gameState.players[playerId].graveyard}
+        playerId={playerId}
         label={label}
         onOpen={() => setViewingGraveyard(playerId)}
       />
@@ -1269,152 +1403,6 @@ export function GameBoardView({
     );
   }
 
-  function getRecallUnits(playerId: PlayerId) {
-    const combatUnitIds = new Set([...attackerIds, ...assignedBlockerIds]);
-    const activeUnitIds = new Set(
-      getActiveUnits(playerId)
-        .filter((unit): unit is UnitInstance => Boolean(unit))
-        .map((unit) => unit.instanceId)
-    );
-    return gameState.players[playerId].board.filter(
-      (unit) => !combatUnitIds.has(unit.instanceId) && !activeUnitIds.has(unit.instanceId)
-    );
-  }
-
-  function getActiveUnits(playerId: PlayerId): Array<UnitInstance | undefined> {
-    if (gameState.combat.attackers.length === 0) {
-      return gameState.players[playerId].board.filter(
-        (unit) => unit.boardRow === "ACTIVE"
-      );
-    }
-
-    if (playerId === attackPlayerId) {
-      return gameState.combat.attackers.map((lane) =>
-        gameState.players[playerId].board.find(
-          (unit) => unit.instanceId === lane.attackerId
-        )
-      );
-    }
-
-    const slots: Array<UnitInstance | undefined> = Array(6).fill(undefined);
-    const assignedBlockerIds = new Set<string>();
-
-    gameState.combat.attackers.forEach((lane, index) => {
-      if (!lane.blockerId) {
-        return;
-      }
-
-      const blocker = gameState.players[playerId].board.find(
-        (unit) => unit.instanceId === lane.blockerId
-      );
-      if (blocker) {
-        slots[index] = blocker;
-        assignedBlockerIds.add(blocker.instanceId);
-      }
-    });
-
-    // Keep unassigned revived units visible without occupying attacker lanes,
-    // so the defender can select one and then choose a blocking slot.
-    const activeUnits = gameState.players[playerId].board.filter(
-      (unit) => unit.boardRow === "ACTIVE" && !assignedBlockerIds.has(unit.instanceId)
-    );
-    let activeIndex = activeUnits.length - 1;
-    for (let index = slots.length - 1; index >= 0 && activeIndex >= 0; index -= 1) {
-      if (!slots[index]) {
-        slots[index] = activeUnits[activeIndex];
-        activeIndex -= 1;
-      }
-    }
-
-    return slots;
-  }
-
-  function canSelectWaitingUnit(playerId: PlayerId): boolean {
-    if (!gameState.started || gameState.winnerId) {
-      return false;
-    }
-
-    if (selectedSpell) {
-      return canSelectSpellUnit(playerId);
-    }
-
-    if (!canControl(playerId)) {
-      return false;
-    }
-
-    if (
-      gameState.phase === "ACTION" &&
-      playerId === attackPlayerId &&
-      gameState.priorityPlayerId === attackPlayerId &&
-      gameState.attackTokenAvailable
-    ) {
-      return true;
-    }
-
-    if (
-      gameState.phase === "BLOCK" &&
-      playerId === defenderId &&
-      gameState.priorityPlayerId === defenderId
-    ) {
-      return true;
-    }
-
-    return false;
-  }
-
-  function canSelectSpellUnit(playerId: PlayerId): boolean {
-    if (!selectedSpell || gameState.phase !== "ACTION") {
-      return false;
-    }
-
-    const casterId = selectedSpell.ownerId;
-    if (!canControl(casterId)) {
-      return false;
-    }
-
-    const definition = cardDef(selectedSpell);
-    const additionalCost = definition.additionalCost;
-    if (
-      additionalCost?.type === "SACRIFICE_UNITS" &&
-      selectedCostTargets.length < additionalCost.count
-    ) {
-      return playerId === casterId;
-    }
-
-    if (definition.type === "unit" || definition.type === "champion") {
-      return playerId === casterId;
-    }
-
-    const targetKind = getPrimarySpellTarget(selectedSpell);
-    return (
-      (targetKind === "ALLY_UNIT" && playerId === casterId) ||
-      (targetKind === "ENEMY_UNIT" && playerId !== casterId)
-    );
-  }
-
-  function renderWaitingUnit(playerId: PlayerId, unit: UnitInstance) {
-    return (
-      <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
-        <GameCard
-          unit={unit}
-          compact
-          board
-          selected={
-            unit.instanceId === selectedBlockerId ||
-            attackerIds.includes(unit.instanceId) ||
-            assignedBlockerIds.includes(unit.instanceId) ||
-            selectedCostUnitIds.includes(unit.instanceId)
-          }
-          onClick={
-            canSelectWaitingUnit(playerId)
-              ? () => selectBoardUnit(playerId, unit)
-              : undefined
-          }
-        />
-      </div>
-    );
-  }
-
   function startRound() {
     if (!canControl(gameState.priorityPlayerId)) {
       return;
@@ -1428,7 +1416,8 @@ export function GameBoardView({
     );
   }
 
-  function renderActiveUnit(playerId: PlayerId, unit: UnitInstance, _index: number) {
+  /* Board units are rendered by PhaserArenaCanvas.
+  function renderActiveUnitLegacy(playerId: PlayerId, unit: UnitInstance, _index: number) {
     const lane = gameState.combat.attackers.find(
       (candidate) => candidate.blockerId === unit.instanceId
     );
@@ -1488,8 +1477,10 @@ export function GameBoardView({
     );
   }
 
+  */
   return (
     <HoverProvider>
+      <PhaserHoverBridge gameState={gameState} />
       <main className="app-shell board-layout bg-dungeon">
         <div className="utility-dock" aria-label="Utility panels">
           <button
@@ -1709,14 +1700,14 @@ export function GameBoardView({
             playerId={viewingGraveyard}
             playerName={getPlayerName(viewingGraveyard)}
             entries={gameState.players[viewingGraveyard].graveyard}
+            canSelect={canSelectGraveyardCard(viewingGraveyard)}
+            allowedTypes={getGraveyardAllowedTypes()}
             selectedCardInstanceId={
               selectedSpellTarget?.type === "GRAVEYARD" &&
                 selectedSpellTarget.playerId === viewingGraveyard
                 ? selectedSpellTarget.cardInstanceId
                 : undefined
             }
-            canSelect={canSelectGraveyardCard(viewingGraveyard)}
-            allowedTypes={getGraveyardAllowedTypes()}
             selectionPrompt={
               selectedSpell
                 ? `${cardDef(selectedSpell).name}: ${describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}`
@@ -1775,8 +1766,9 @@ export function GameBoardView({
           </div>
         ) : null}
 
-        <section ref={battleTableRef} className="battle-table lor-table" aria-label="Local battle board">
-          <ParticlesBackground />
+        <section ref={battleTableRef} className="battle-table lor-table relative overflow-hidden" aria-label="Local battle board">
+          <PhaserArenaCanvas />
+          <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
           <Hand
             cards={gameState.players[opponentPlayerId].hand}
             side="opponent"
@@ -1797,140 +1789,55 @@ export function GameBoardView({
               {renderGraveyard(viewerPlayerId, "GY")}
             </div>
 
-            <div className="center-board">
-              <BoardRow
-                playerId={opponentPlayerId}
-                rowType="waiting"
-                units={getRecallUnits(opponentPlayerId)}
-                isEnemy={true}
-                hasPriority={gameState.priorityPlayerId === opponentPlayerId}
-                selectedUnitIds={[
-                  ...(attackPlayerId === opponentPlayerId ? attackerIds : assignedBlockerIds),
-                  ...selectedCostUnitIds
-                ]}
-                renderUnit={(unit) => renderWaitingUnit(opponentPlayerId, unit)}
-              />
-
-              <BoardRow
-                playerId={opponentPlayerId}
-                rowType="active"
-                units={getActiveUnits(opponentPlayerId)}
-                isEnemy={true}
-                hasPriority={gameState.priorityPlayerId === opponentPlayerId}
-                isEmptySlotEnabled={
-                  opponentPlayerId === defenderId &&
-                    gameState.phase === "BLOCK" &&
-                    gameState.priorityPlayerId === defenderId &&
-                    Boolean(selectedBlockerId)
-                    ? (index) => {
-                      const lane = gameState.combat.attackers[index];
-                      return Boolean(lane && !lane.blockerId);
-                    }
-                    : undefined
-                }
-                onEmptySlotClick={
-                  opponentPlayerId === defenderId &&
-                    gameState.phase === "BLOCK" &&
-                    gameState.priorityPlayerId === defenderId &&
-                    Boolean(selectedBlockerId)
-                    ? (index) => {
-                      const lane = gameState.combat.attackers[index];
-                      if (!lane || lane.blockerId || !selectedBlockerId) {
-                        return;
-                      }
-
-                      const attacker = gameState.players[attackPlayerId].board.find(
-                        (candidate) => candidate.instanceId === lane.attackerId
-                      );
-                      if (attacker) {
-                        assignBlocker(attacker, selectedBlockerId);
-                      }
-                    }
-                    : undefined
-                }
-                renderUnit={(unit, index) => renderActiveUnit(opponentPlayerId, unit, index)}
-              />
-
-              <div className="combat-status-bar">
+            <div className="center-board phaser-arena-enabled">
+              <div className="phaser-center-info">
                 <CenterInfo
                   state={gameState}
                   timeRemainingMs={timeRemainingMs}
                   playerNames={{ P1: getPlayerName("P1"), P2: getPlayerName("P2") }}
                 />
+                {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
+                  <div className="center-target-prompt">
+                    <div className="target-dots">
+                      <span className="target-dot" />
+                      <span className="target-dot" />
+                      <span className="target-dot" />
+                    </div>
+                    <div className="text-xs font-semibold text-cyan-200 tracking-wide drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]">
+                      <strong className="text-white uppercase tracking-wider font-bold mr-1">
+                        {cardDef(selectedSpell).name}:
+                      </strong>
+                      <span>
+                        {cardDef(selectedSpell).type === "unit" ||
+                        cardDef(selectedSpell).type === "champion" ||
+                        cardDef(selectedSpell).type === "spell"
+                          ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
+                          : selectedSpellTarget
+                            ? describeSpellTarget(selectedSpellTarget, getPlayerName)
+                            : describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearSelectedCard}
+                      className="ml-1 rounded-full border border-red-500/50 bg-red-950/70 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-300 transition-colors hover:bg-red-900/90 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : null}
                 {gameState.pendingDiscard ? (
                   <span className="stat-pill">
-                    Discard{" "}
-                    <strong>
-                      {getPlayerName(gameState.pendingDiscard.playerId)}{" "}
-                      {gameState.players[gameState.pendingDiscard.playerId].hand.length}/
-                      {gameState.pendingDiscard.downTo}
-                    </strong>
+                    Discard <strong>{getPlayerName(gameState.pendingDiscard.playerId)} {gameState.players[gameState.pendingDiscard.playerId].hand.length}/{gameState.pendingDiscard.downTo}</strong>
                   </span>
                 ) : null}
                 {gameState.phase === "BLOCK" && attackerCount > 0 ? (
-                  <span className="stat-pill">
-                    <Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking
-                  </span>
+                  <span className="stat-pill"><Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking</span>
                 ) : null}
                 {selectedBlocker ? (
-                  <span className="stat-pill">
-                    <Shield size={12} aria-hidden="true" /> <strong>{unitDef(selectedBlocker).name}</strong>
-                  </span>
+                  <span className="stat-pill"><Shield size={12} aria-hidden="true" /> <strong>{unitDef(selectedBlocker).name}</strong></span>
                 ) : null}
               </div>
-
-              <BoardRow
-                playerId={viewerPlayerId}
-                rowType="active"
-                units={getActiveUnits(viewerPlayerId)}
-                isEnemy={false}
-                hasPriority={gameState.priorityPlayerId === viewerPlayerId}
-                isEmptySlotEnabled={
-                  viewerPlayerId === defenderId &&
-                    gameState.phase === "BLOCK" &&
-                    gameState.priorityPlayerId === defenderId &&
-                    Boolean(selectedBlockerId)
-                    ? (index) => {
-                      const lane = gameState.combat.attackers[index];
-                      return Boolean(lane && !lane.blockerId);
-                    }
-                    : undefined
-                }
-                onEmptySlotClick={
-                  viewerPlayerId === defenderId &&
-                    gameState.phase === "BLOCK" &&
-                    gameState.priorityPlayerId === defenderId &&
-                    Boolean(selectedBlockerId)
-                    ? (index) => {
-                      const lane = gameState.combat.attackers[index];
-                      if (!lane || lane.blockerId || !selectedBlockerId) {
-                        return;
-                      }
-
-                      const attacker = gameState.players[attackPlayerId].board.find(
-                        (candidate) => candidate.instanceId === lane.attackerId
-                      );
-                      if (attacker) {
-                        assignBlocker(attacker, selectedBlockerId);
-                      }
-                    }
-                    : undefined
-                }
-                renderUnit={(unit, index) => renderActiveUnit(viewerPlayerId, unit, index)}
-              />
-
-              <BoardRow
-                playerId={viewerPlayerId}
-                rowType="waiting"
-                units={getRecallUnits(viewerPlayerId)}
-                isEnemy={false}
-                hasPriority={gameState.priorityPlayerId === viewerPlayerId}
-                selectedUnitIds={[
-                  ...(attackPlayerId === viewerPlayerId ? attackerIds : assignedBlockerIds),
-                  ...selectedCostUnitIds
-                ]}
-                renderUnit={(unit) => renderWaitingUnit(viewerPlayerId, unit)}
-              />
             </div>
 
             <div className="status-column">
@@ -1949,8 +1856,9 @@ export function GameBoardView({
                     ? getResourcePreview(opponentPlayerId, previewCard)
                     : selectedSpell?.ownerId === opponentPlayerId
                       ? getResourcePreview(opponentPlayerId, selectedSpell)
-                      : { manaUsed: 0, spellManaUsed: 0 }
+                  : { manaUsed: 0, spellManaUsed: 0 }
                 }
+                visualEvents={gameState.visualEvents}
               />
               {renderSpellStack("Spell")}
               {(() => {
@@ -1982,12 +1890,12 @@ export function GameBoardView({
                     ? getResourcePreview(viewerPlayerId, previewCard)
                     : selectedSpell?.ownerId === viewerPlayerId
                       ? getResourcePreview(viewerPlayerId, selectedSpell)
-                      : { manaUsed: 0, spellManaUsed: 0 }
+                  : { manaUsed: 0, spellManaUsed: 0 }
                 }
+                visualEvents={gameState.visualEvents}
               />
             </div>
           </div>
-
           <Hand
             cards={gameState.players[viewerPlayerId].hand}
             side="player"
@@ -2000,28 +1908,8 @@ export function GameBoardView({
             onPreviewCard={(card) => setPreviewCard(card)}
           />
 
-          {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
-            <section className="spell-panel spell-targeting-window" aria-label="Spell targeting">
-              <div className="spell-summary">
-                <strong>{cardDef(selectedSpell).name}</strong>
-                <span>
-                  Target:{" "}
-                  {cardDef(selectedSpell).type === "unit" ||
-                    cardDef(selectedSpell).type === "champion" ||
-                    cardDef(selectedSpell).type === "spell"
-                    ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
-                    : selectedSpellTarget
-                      ? describeSpellTarget(selectedSpellTarget, getPlayerName)
-                      : describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}
-                </span>
-              </div>
-              <div className="button-row">
-                <button type="button" onClick={clearSelectedCard}>Cancel</button>
-              </div>
-            </section>
-          ) : null}
 
-          <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
+
         </section>
 
         <DetailPanel />
@@ -2058,6 +1946,17 @@ export function GameBoardView({
                   <strong>{winnerName}</strong>
                 </span>
               </div>
+              {localPlayerId ? (
+                <div className="match-result-panel__timeout" role="status" aria-live="polite">
+                  <span>Returning to lobby automatically</span>
+                  <strong>{resultReturnSeconds}s</strong>
+                  <progress
+                    aria-label="Time remaining before returning to lobby"
+                    max={MATCH_RESULT_RETURN_SECONDS}
+                    value={resultReturnSeconds}
+                  />
+                </div>
+              ) : null}
               <div className="match-result-panel__actions">
                 <button type="button" className="match-result-panel__action match-result-panel__action--secondary" onClick={leaveToLobby}>
                   <House size={17} aria-hidden="true" /> Lobby

@@ -272,6 +272,12 @@ io.on("connection", (socket) => {
       const room = createRoom();
       attachPlayer(socket, room, "P1");
       ack({ ok: true, roomCode: room.code, playerId: "P1" });
+      socket.emit("room:created", {
+        roomCode: room.code,
+        playerId: "P1",
+        opponentConnected: false,
+        state: redactStateForPlayer(room.state, "P1")
+      });
       broadcastRoom(room);
     } catch (error) {
       ack({ ok: false, error: error instanceof Error ? error.message : "Invalid deck selection." });
@@ -541,7 +547,7 @@ function startRoomGame(room: Room, message: string): void {
 function createRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < 6; index += 1) {
     code += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
   return code;
@@ -582,9 +588,19 @@ async function setSocketDeckSelection(
     return;
   }
 
+  if (Array.isArray(selection?.cardIds) && validateDeck(selection.cardIds).valid) {
+    socket.data.selectedDeckId = deckId;
+    socket.data.selectedDeckCardIds = [...selection.cardIds];
+    return;
+  }
+
   const user = await getUserById(getSocketUserId(socket));
   const savedDeck = user?.decks?.[deckId];
-  if (!savedDeck) throw new Error("The selected deck is not saved to this account.");
+  if (!savedDeck) {
+    socket.data.selectedDeckId = undefined;
+    socket.data.selectedDeckCardIds = undefined;
+    return;
+  }
   const validation = validateDeck(savedDeck.cardIds);
   if (!validation.valid) throw new Error("The selected saved deck is no longer valid.");
   socket.data.selectedDeckId = deckId;
@@ -894,6 +910,10 @@ function describeVisualEvent(event: GameState["visualEvents"][number]): string {
       return `${event.playerId}'s champion leveled up.`;
     case "SUMMON":
       return `${event.playerId} revived a unit.`;
+    case "BANISH":
+      return `${event.cardInstanceId} was banished from the graveyard.`;
+    case "GRAVEYARD_RESTORE":
+      return `${event.cardInstanceId} was ${event.mode === "REVIVE" ? "revived to the board" : "returned to hand"}.`;
     case "AFK_WARNING":
       return `${event.playerId} timed out (${event.afkCount}/3).`;
   }
