@@ -269,6 +269,12 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
         effect.allowedTypes
       );
       if (revivedCard) {
+        state.visualEvents.push({
+          type: "GRAVEYARD_RESTORE",
+          playerId: target.playerId,
+          cardInstanceId: revivedCard.instanceId,
+          mode: "REBIRTH"
+        });
         state.visualEvents.push({ type: "DRAW", playerId: target.playerId, count: 1 });
       }
       return;
@@ -285,6 +291,12 @@ function applyEffect(state: GameState, queuedEffect: QueuedEffect): void {
         effect.allowedTypes
       );
       if (revivedUnit) {
+        state.visualEvents.push({
+          type: "GRAVEYARD_RESTORE",
+          playerId: target.playerId,
+          cardInstanceId: revivedUnit.instanceId,
+          mode: "REVIVE"
+        });
         state.visualEvents.push({ type: "SUMMON", playerId: target.playerId, instanceId: revivedUnit.instanceId });
       }
       return;

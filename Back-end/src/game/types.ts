@@ -105,10 +105,10 @@ export type EffectDefinition =
       amount: number;
       target?: "ENEMY_UNIT" | string;
     }
-
   | {
       type: "BANISH_GRAVEYARD";
       target: "ALLY_GRAVEYARD" | "ENEMY_GRAVEYARD" | string;
+      allowedTypes?: GraveyardEntryType[];
     }
   | {
       type: "GRANT_KEYWORD";
@@ -387,7 +387,17 @@ export type VisualEvent =
   | { type: "HAND_LIMIT_DISCARD_REQUIRED"; playerId: PlayerId; handSize: number; downTo: number }
   | { type: "CHAMPION_LEVELED_UP"; playerId: PlayerId; unitId: string; newLevel: number }
   | { type: "SUMMON"; playerId: PlayerId; instanceId: string }
+  | { type: "BANISH"; playerId: PlayerId; cardInstanceId: string }
+  | { type: "GRAVEYARD_RESTORE"; playerId: PlayerId; cardInstanceId: string; mode: "REVIVE" | "REBIRTH" }
   | { type: "AFK_WARNING"; playerId: PlayerId; afkCount: number };
+
+export type MatchEndReason =
+  | "NEXUS_DESTROYED"
+  | "DOUBLE_NEXUS_DESTROYED"
+  | "DECK_EXHAUSTED"
+  | "AFK_TIMEOUT"
+  | "SURRENDER"
+  | "UNKNOWN_LEGACY";
 
 export interface GameState {
   players: Record<PlayerId, PlayerState>;
@@ -413,6 +423,7 @@ export interface GameState {
   rngSeed: number;
   started: boolean;
   winnerId?: PlayerId;
+  endReason?: MatchEndReason;
   effectQueue: QueuedEffect[];
   visualEvents: VisualEvent[];
 }

@@ -23,6 +23,7 @@ export interface DeveloperResourceUpdate {
 
 export interface ServerToClientEvents {
   "room:update": (payload: RoomUpdate) => void;
+  "room:created"?: (payload: Partial<RoomUpdate>) => void;
   "game:error": (message: string) => void;
   "matchmaking:searching": () => void;
   "matchmaking:cancelled": () => void;

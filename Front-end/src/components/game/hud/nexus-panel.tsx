@@ -1,7 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 import { Heart, Shield, Sparkles, Swords, Zap } from "lucide-react";
-import type { PlayerId, PlayerState } from "@backend/game/types";
+import type { PlayerId, PlayerState, VisualEvent } from "@backend/game/types";
 
 const MAX_MANA_PIPS = 10;
 const MAX_SPELL_MANA = 3;
@@ -18,6 +18,7 @@ export interface NexusPanelProps {
   hasPriority: boolean;
   attackTokenAvailable: boolean;
   resourcePreview: { manaUsed: number; spellManaUsed: number };
+  visualEvents?: VisualEvent[];
 }
 
 /** Production nexus data rendered with the v2 status-card presentation. */
@@ -32,16 +33,36 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
   isAttacker,
   hasPriority,
   attackTokenAvailable,
-  resourcePreview
+  resourcePreview,
+  visualEvents = []
 }) => {
   const RoleIcon = isAttacker ? Swords : Shield;
   const roleLabel = isAttacker ? (attackTokenAvailable ? "Attack" : "Spent") : "Defense";
   const accessibleMana = `${playerName} mana ${player.mana}/${player.maxMana}, spell mana ${player.spellMana}/${MAX_SPELL_MANA}`;
   const initial = playerName.trim().slice(0, 1).toUpperCase() || "?";
+  const nexusEvent = [...visualEvents].reverse().find(
+    (event): event is Extract<VisualEvent, { type: "DAMAGE" | "HEAL" }> =>
+      (event.type === "DAMAGE" || event.type === "HEAL") &&
+      event.isNexus &&
+      (event.targetId === playerId || event.targetId === `nexus-${playerId}`)
+  );
+  const nexusEffectClass = nexusEvent
+    ? nexusEvent.type === "DAMAGE"
+      ? "nexus-panel-v2--impact-damage"
+      : "nexus-panel-v2--impact-heal"
+    : "";
+  const impactAmount = nexusEvent?.type === "DAMAGE"
+    ? `-${nexusEvent.amount}`
+    : nexusEvent?.type === "HEAL"
+      ? `+${nexusEvent.amount}`
+      : undefined;
+  const impactKey = nexusEvent
+    ? `${visualEvents.length}:${nexusEvent.type}:${nexusEvent.targetId}:${nexusEvent.amount}`
+    : "none";
 
   return (
     <section
-      className={clsx("nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2", bottomAligned && "nexus-panel-v2--bottom", hasPriority && "nexus-panel-v2--has-priority")}
+      className={clsx("nexus-panel-v2 flex w-[104px] flex-col items-stretch gap-2", bottomAligned && "nexus-panel-v2--bottom", hasPriority && "nexus-panel-v2--has-priority", nexusEffectClass)}
       data-effect-target-id={`nexus-${playerId}`}
       aria-label={`${label} status`}
     >
@@ -73,6 +94,20 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
         <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
           {label}
         </div>
+        {impactAmount ? (
+          <span
+            key={impactKey}
+            className={clsx(
+              "nexus-panel-v2__impact-number",
+              nexusEvent?.type === "DAMAGE"
+                ? "nexus-panel-v2__impact-number--damage"
+                : "nexus-panel-v2__impact-number--heal"
+            )}
+            aria-live="polite"
+          >
+            {impactAmount}
+          </span>
+        ) : null}
         <div className="flex items-center justify-center gap-1 font-serif text-3xl font-bold text-foreground">
           <Heart size={14} className="text-hp" aria-hidden="true" />
           {player.nexusHp}

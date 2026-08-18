@@ -54,7 +54,7 @@ type MatchRecord = {
   match_id: string;
   match_type?: MatchType;
   join_code?: string;
-  status: "WAITING" | "IN_PROGRESS";
+  status: "WAITING" | "IN_PROGRESS" | "FINISHED";
   player_1: PlayerRecord;
   player_2?: PlayerRecord | null;
   state_version?: number;
@@ -851,7 +851,7 @@ export const handler = async (event: any) => {
         ConsistentRead: true
       }));
       const associatedMatch = existing.Item as MatchRecord | undefined;
-      if (associatedMatch?.status === "IN_PROGRESS") {
+      if (associatedMatch?.status === "IN_PROGRESS" && !associatedMatch.engine_state?.winnerId) {
         if (
           resumeRequested &&
           requestedResumeMatchId &&
@@ -910,7 +910,8 @@ export const handler = async (event: any) => {
             Key: { match_id: associatedMatch.match_id },
             ConditionExpression:
               `#status = :active AND ${playerPath}.user_id = :userId ` +
-              `AND ${playerPath}.connection_id = :connectionId`,
+              `AND ${playerPath}.connection_id = :connectionId ` +
+              "AND attribute_not_exists(engine_state.winnerId)",
             UpdateExpression:
               `SET ${playerPath}.connected = :connected, ${playerPath}.reconnected_at = :now, ` +
               `${playerPath}.username = :username, ${playerPath}.elo = :elo ` +
@@ -1245,33 +1246,38 @@ export async function resolveDeckSelection(
   value: unknown
 ): Promise<MatchmakingDeckSelection | undefined> {
   if (!value || typeof value !== "object") return undefined;
-  const requestedDeckId = (value as MatchmakingDeckSelection).deckId;
+  const selection = value as MatchmakingDeckSelection;
+  const requestedDeckId = selection.deckId;
+  const requestedCardIds = selection.cardIds;
   const deckId = typeof requestedDeckId === "string" ? requestedDeckId.trim() : "";
-  if (!deckId) return undefined;
-  if (!/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
-    throw new RequestError(400, "Selected deck ID is invalid.");
+  if (!deckId || deckId === "kaleidoscope-starter") {
+    return { deckId: "kaleidoscope-starter", cardIds: getDefaultDeckCardIds() };
   }
 
-  if (deckId === "kaleidoscope-starter") {
-    return { deckId, cardIds: getDefaultDeckCardIds() };
+  if (Array.isArray(requestedCardIds) && validateDeck(requestedCardIds).valid) {
+    return { deckId, cardIds: [...requestedCardIds] };
   }
 
-  const profile = await dynamoDb.send(new GetCommand({
-    TableName: userProfileTable,
-    Key: { user_id: userId },
-    ProjectionExpression: "#decks.#deckId",
-    ExpressionAttributeNames: { "#decks": "decks", "#deckId": deckId },
-    ConsistentRead: true
-  }));
-  const savedDeck = profile.Item?.decks?.[deckId];
-  if (!savedDeck || !Array.isArray(savedDeck.cardIds)) {
-    throw new RequestError(400, "The selected deck is not saved to this account.");
+  try {
+    const profile = await dynamoDb.send(new GetCommand({
+      TableName: userProfileTable,
+      Key: { user_id: userId },
+      ProjectionExpression: "#decks.#deckId",
+      ExpressionAttributeNames: { "#decks": "decks", "#deckId": deckId },
+      ConsistentRead: true
+    }));
+    const savedDeck = profile.Item?.decks?.[deckId];
+    if (savedDeck && Array.isArray(savedDeck.cardIds)) {
+      const validation = validateDeck(savedDeck.cardIds);
+      if (validation.valid) {
+        return { deckId, cardIds: [...savedDeck.cardIds] };
+      }
+    }
+  } catch {
+    // Fallback to default
   }
-  const validation = validateDeck(savedDeck.cardIds);
-  if (!validation.valid) {
-    throw new RequestError(400, "The selected saved deck is no longer valid.");
-  }
-  return { deckId, cardIds: [...savedDeck.cardIds] };
+
+  return { deckId: "kaleidoscope-starter", cardIds: getDefaultDeckCardIds() };
 }
 
 function buildSelectedDeck(selection: MatchmakingDeckSelection | undefined, playerId: "P1" | "P2") {

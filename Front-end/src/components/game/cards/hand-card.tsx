@@ -1,6 +1,7 @@
 import React from "react";
 import { GameCard } from "./game-card";
 import type { CardInstance } from "@backend/game/types";
+import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 
 export interface HandCardProps {
   card: CardInstance;
@@ -24,9 +25,13 @@ export const HandCard: React.FC<HandCardProps> = ({
   onDoubleClick,
   onPreviewChange
 }) => {
+  const definition = card?.cardId ? getCardDefinition(card.cardId) : undefined;
+  const isSpell = definition?.type === "spell";
+
   const cardClassName = [
     className,
-    playable ? "hand-card--playable" : ""
+    playable ? "hand-card--playable" : "",
+    isSpell ? "hand-card--spell" : ""
   ]
     .filter(Boolean)
     .join(" ");

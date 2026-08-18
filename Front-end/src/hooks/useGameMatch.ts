@@ -321,10 +321,10 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       });
 
       socket.on("match:ended", (message?: { state?: GameState }) => {
-      if (message?.state) setGameState(message.state);
-      setSearching(false);
-      setInGame(false);
-      setStatus("Match ended");
+        if (message?.state) setGameState(message.state);
+        setSearching(false);
+        setInGame(false);
+        setStatus("Match ended");
       });
     };
 
@@ -367,10 +367,14 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       return;
     }
     setStatus("Creating private room...");
-    socketManager.createRoom(selection ?? getLocalDeckSelection(), (response) => {
+    socketManager.createRoom(selection ?? getLocalDeckSelection(), (response: any) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
+      } else if (response.roomCode) {
+        roomCodeRef.current = response.roomCode;
+        setRoomCode(response.roomCode);
+        if (response.playerId) setLocalPlayerId(response.playerId);
       }
     });
   }
@@ -390,15 +394,25 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     }
 
     setStatus(`Joining room ${normalizedRoomCode}...`);
-    socketManager.joinRoom(normalizedRoomCode, selection ?? getLocalDeckSelection(), (response) => {
+    socketManager.joinRoom(normalizedRoomCode, selection ?? getLocalDeckSelection(), (response: any) => {
       if (!response.ok) {
         setError(response.error);
         addClientLog(response.error);
+      } else if (response.roomCode) {
+        roomCodeRef.current = response.roomCode;
+        setRoomCode(response.roomCode);
+        if (response.playerId) setLocalPlayerId(response.playerId);
       }
     });
   }
 
   function dispatch(action: GameAction): boolean {
+    if (!socketManager.getSocket()?.connected) {
+      const message = "The game connection is not ready. Please wait for reconnection.";
+      setError(message);
+      addClientLog(message);
+      return false;
+    }
     socketManager.dispatchAction(roomCodeRef.current, action, (response: any) => {
       if (!response.ok) {
         setError(response.error);

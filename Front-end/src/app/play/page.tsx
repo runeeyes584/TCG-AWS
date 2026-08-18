@@ -23,6 +23,7 @@ import { useLocalGame } from "../../hooks/useLocalGame";
 import { useLoopingAudio } from "../../hooks/useLoopingAudio";
 import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../../libs/api";
 import { getDefaultLocalDeck, getSelectedDeckId, loadLocalDecks, type LocalDeck } from "../../libs/localDecks";
+import { getCachedPendingMatch, setCachedPendingMatch } from "../../libs/profileCache";
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60);
@@ -38,9 +39,16 @@ function OnlinePlayPageContent() {
   const resumeRoomCode = resumeConfirmed ? requestedRoomCode : undefined;
   const controller = useGameMatch(resumeRoomCode);
   const [profile, setProfile] = useState<PlayerProfile>();
-  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(() => {
+    if (resumeConfirmed) return null;
+    const cached = getCachedPendingMatch();
+    return cached ? cached.match : null;
+  });
   const [pendingMatchError, setPendingMatchError] = useState<string>();
-  const [pendingMatchChecked, setPendingMatchChecked] = useState(resumeConfirmed);
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(() => {
+    if (resumeConfirmed) return true;
+    return getCachedPendingMatch() !== null;
+  });
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(resumeConfirmed);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
@@ -59,6 +67,7 @@ function OnlinePlayPageContent() {
     void getPendingMatch()
       .then((result) => {
         setPendingMatch(result.match);
+        setCachedPendingMatch(result.match);
         setPendingMatchError(controller.error);
       })
       .catch((error) => setPendingMatchError(
@@ -86,6 +95,7 @@ function OnlinePlayPageContent() {
     void getPendingMatch()
       .then((result) => {
         setPendingMatch(result.match);
+        setCachedPendingMatch(result.match);
         setPendingMatchError(undefined);
       })
       .catch((error) => setPendingMatchError(
@@ -109,6 +119,7 @@ function OnlinePlayPageContent() {
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
+      setCachedPendingMatch(null);
     } catch (error) {
       setPendingMatchError(
         error instanceof Error ? error.message : "Unable to leave the active match."
@@ -248,7 +259,7 @@ function OnlinePlayPageContent() {
             </button>
           ) : (
             <button className="matchmaking-command" onClick={startSearch} disabled={!pendingMatchChecked || Boolean(pendingMatch)}>
-              <Search size={19} /> Find match
+              <Search size={19} /> {!pendingMatchChecked ? "Verifying arena status..." : "Find match"}
             </button>
           )}
         </motion.section>
@@ -260,7 +271,6 @@ function OnlinePlayPageContent() {
         />
 
         {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
-        {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
         {resumeConfirmed && !controller.roomCode && controller.status !== "Recovery failed"
           ? <PendingMatchLoadingGate message="Restoring your match..." />
           : null}
@@ -277,23 +287,29 @@ function OnlinePlayPageContent() {
 }
 
 function TrialPlayPageContent() {
-  const [selectedDeck, setSelectedDeck] = useState<LocalDeck>();
-  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
-  const [pendingMatchChecked, setPendingMatchChecked] = useState(false);
+  const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(() => {
+    const decks = loadLocalDecks();
+    const selectedId = getSelectedDeckId();
+    return decks.find((deck) => deck.deckId === selectedId) ?? decks[0] ?? getDefaultLocalDeck();
+  });
+  const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(() => {
+    const cached = getCachedPendingMatch();
+    return cached ? cached.match : null;
+  });
+  const [pendingMatchChecked, setPendingMatchChecked] = useState(() => {
+    return getCachedPendingMatch() !== null;
+  });
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
 
   useEffect(() => {
     void getPendingMatch()
-      .then((result) => setPendingMatch(result.match))
+      .then((result) => {
+        setPendingMatch(result.match);
+        setCachedPendingMatch(result.match);
+      })
       .catch(() => undefined)
       .finally(() => setPendingMatchChecked(true));
-  }, []);
-
-  useEffect(() => {
-    const decks = loadLocalDecks();
-    const selectedId = getSelectedDeckId();
-    setSelectedDeck(decks.find((deck) => deck.deckId === selectedId) ?? decks[0]);
   }, []);
 
   const resumePendingMatch = () => {
@@ -310,12 +326,12 @@ function TrialPlayPageContent() {
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
+      setCachedPendingMatch(null);
     } finally {
       setResolvingPendingMatch(false);
     }
   };
 
-  if (!pendingMatchChecked) return <PendingMatchLoadingGate />;
   if (pendingMatch) {
     return (
       <PendingMatchDialog
