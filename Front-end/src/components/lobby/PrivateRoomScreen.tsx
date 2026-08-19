@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Clipboard, Hash, Radio, ShieldCheck, Users, X } from "lucide-react";
 import { GameBoardView } from "../game/GameBoard";
 import { PhaserSplash } from "./PhaserSplash";
-import { PendingMatchDialog, PendingMatchLoadingGate } from "./PendingMatchDialog";
+import { PendingMatchDialog } from "./PendingMatchDialog";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import {
   cancelPendingMatchmaking,

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
-import { PendingMatchDialog, PendingMatchLoadingGate } from "../../components/lobby/PendingMatchDialog";
+import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../../components/deck/DeckSelectionPanel";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import { useLocalGame } from "../../hooks/useLocalGame";
@@ -163,6 +163,27 @@ function OnlinePlayPageContent() {
     );
   }
 
+  if (resumeConfirmed && !controller.roomCode && controller.status !== "Recovery failed") {
+    return (
+      <main className="matchmaking-shell" style={{ minHeight: "100vh" }}>
+        <div className="matchmaking-grid" aria-hidden="true" />
+        <div className="matchmaking-art" aria-hidden="true">
+          <PhaserSplash />
+        </div>
+        <div className="matchmaking-shade" aria-hidden="true" />
+
+        <div style={{ height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "16px", zIndex: 10, position: "relative" }}>
+          <p className="lobby-eyebrow" style={{ margin: 0 }}>Verifying connection</p>
+          <div className="leaderboard-state" style={{ minHeight: "auto" }}>
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   const playerName = profile?.username ?? "Prism Operative";
   const playerInitial = playerName.slice(0, 1).toUpperCase();
   const winRate = profile && profile.wins + profile.losses > 0
@@ -271,9 +292,6 @@ function OnlinePlayPageContent() {
         />
 
         {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
-        {resumeConfirmed && !controller.roomCode && controller.status !== "Recovery failed"
-          ? <PendingMatchLoadingGate message="Restoring your match..." />
-          : null}
         {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
 
         <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
