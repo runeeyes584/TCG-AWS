@@ -33,6 +33,7 @@ export class GameArenaScene extends Phaser.Scene {
   private targeting:
     | { targetKind: Extract<SpellTargetKind, "ALLY_UNIT" | "ENEMY_UNIT">; playerId: PlayerId }
     | undefined;
+  private readonly barrierUnitIds = new Set<string>();
   private background!: ArenaBackgroundManager;
 
   private isSceneDestroyed = false;
@@ -134,6 +135,8 @@ export class GameArenaScene extends Phaser.Scene {
     this.cards.clear();
     this.inputSystem.clear();
 
+    const currentBarrierIds = new Set<string>();
+
     (['P1', 'P2'] as PlayerId[]).forEach((playerId) => {
       const isLocal = playerId === viewerPlayerId;
       const unitScale = isLocal ? 1 : 0.9;
@@ -173,12 +176,25 @@ export class GameArenaScene extends Phaser.Scene {
           const isTargetable = isAllyTarget || isEnemyTarget;
           const targetType: "ally" | "enemy" | undefined = isAllyTarget ? "ally" : isEnemyTarget ? "enemy" : undefined;
 
-          this.cards.create(unit, playerId, layout.cardWidth * rowScale, layout.cardHeight * rowScale, isTargetable, targetType)
+          const hasBarrier = Boolean(unit.keywords?.includes("BARRIER") || unit.temporaryKeywords?.includes("BARRIER"));
+          if (hasBarrier) {
+            currentBarrierIds.add(unit.instanceId);
+          }
+
+          const cardView = this.cards.create(unit, playerId, layout.cardWidth * rowScale, layout.cardHeight * rowScale, isTargetable, targetType)
             .setPosition(point.x, point.y)
             .setDepth(10 + point.y);
+
+          if (hasBarrier && !this.barrierUnitIds.has(unit.instanceId)) {
+            this.cards.playBarrierTrigger(unit.instanceId);
+          }
         });
       });
     });
+
+    this.barrierUnitIds.clear();
+    currentBarrierIds.forEach((id) => this.barrierUnitIds.add(id));
+
     this.renderDefendSlots(gameState, viewerPlayerId, width, height, layout.cardWidth);
     this.renderVisualEvents(gameState.visualEvents);
   }
