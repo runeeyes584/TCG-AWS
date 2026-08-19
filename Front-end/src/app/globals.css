@@ -699,37 +699,279 @@ button svg { vertical-align: -2px; }
   padding: 10px;
 }
 
-.afk-notice {
+/* ===== AFK TOAST NOTIFICATION (PHASER SPLASH / CYBERPUNK THEME) ===== */
+.afk-toast-portal {
   position: fixed;
-  z-index: 50;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  z-index: 9999;
+  bottom: 95px;
+  right: 24px;
+  top: auto;
+  left: auto;
+  transform: none;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: auto;
+  width: auto;
+  max-width: min(90vw, 360px);
+}
+
+.afk-toast-card {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 10px 14px 12px;
+  border-radius: 10px;
+  background: rgba(8, 12, 22, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 200, 80, 0.4);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.7),
+    0 0 20px rgba(255, 180, 50, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #f0f6fc;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.afk-toast-card--warning {
+  border-color: rgba(255, 195, 60, 0.55);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.75),
+    0 0 24px rgba(255, 180, 40, 0.2),
+    inset 0 1px 0 rgba(255, 230, 130, 0.2);
+}
+
+.afk-toast-card--danger {
+  border-color: rgba(255, 55, 80, 0.65);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.8),
+    0 0 28px rgba(255, 40, 70, 0.28),
+    inset 0 1px 0 rgba(255, 100, 120, 0.25);
+  animation: afkDangerPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes afkDangerPulse {
+  0%, 100% {
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 40, 70, 0.25);
+  }
+  50% {
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.85), 0 0 35px rgba(255, 40, 70, 0.45);
+  }
+}
+
+/* Background Cyber Grid */
+.afk-toast-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.15;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+.afk-toast-shards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.afk-shard {
+  position: absolute;
+  background: linear-gradient(135deg, rgba(255, 220, 100, 0.6), transparent);
+  border-radius: 1px;
+}
+
+.afk-toast-card--danger .afk-shard {
+  background: linear-gradient(135deg, rgba(255, 70, 90, 0.6), transparent);
+}
+
+.afk-shard--1 {
+  width: 32px;
+  height: 2px;
+  top: 12%;
+  left: 6%;
+  transform: rotate(-25deg);
+  opacity: 0.5;
+}
+
+.afk-shard--2 {
+  width: 20px;
+  height: 2px;
+  bottom: 22%;
+  right: 8%;
+  transform: rotate(35deg);
+  opacity: 0.4;
+}
+
+.afk-shard--3 {
+  width: 12px;
+  height: 12px;
+  top: 40%;
+  right: 18%;
+  background: radial-gradient(circle, rgba(255, 200, 50, 0.3) 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+/* Header */
+.afk-toast-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  max-width: min(90vw, 560px);
-  padding: 12px 16px;
-  border: 1px solid var(--lor-gold);
-  border-radius: 8px;
-  background: rgba(30, 20, 4, 0.96);
-  color: #fff5ce;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  justify-content: space-between;
+  gap: 6px;
 }
-.afk-notice--danger {
-  border-color: #ff5555;
-  background: rgba(75, 8, 8, 0.97);
-  color: #fff;
-  font-size: 16px;
+
+.afk-toast-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffd700;
 }
-.afk-notice button {
+
+.afk-toast-card--danger .afk-toast-badge {
+  color: #ff5577;
+}
+
+.afk-toast-badge__icon {
+  flex-shrink: 0;
+}
+
+.afk-toast-timer-badge {
   display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #e6edf3;
+}
+
+.afk-toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 4px;
   padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #8b949e;
   cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.afk-toast-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.08);
+}
+
+/* Body */
+.afk-toast-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.afk-toast-icon-frame {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 180, 0, 0.12);
+  border: 1px solid rgba(255, 200, 0, 0.35);
+  color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 190, 0, 0.2);
+}
+
+.afk-toast-card--danger .afk-toast-icon-frame {
+  background: rgba(255, 40, 70, 0.16);
+  border-color: rgba(255, 60, 90, 0.45);
+  color: #ff3366;
+  box-shadow: 0 0 16px rgba(255, 40, 70, 0.3);
+}
+
+.afk-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.afk-toast-title {
+  margin: 0;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.afk-toast-message {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #d0d7de;
+}
+
+/* Progress Track and Bar */
+.afk-toast-progress-track {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 3px;
+  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.afk-toast-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  will-change: width;
+}
+
+.afk-toast-progress-bar--warning {
+  background: linear-gradient(90deg, #ff8800 0%, #ffd700 70%, #ffffff 100%);
+  box-shadow: 0 0 8px #ffaa00;
+}
+
+.afk-toast-progress-bar--danger {
+  background: linear-gradient(90deg, #cc0033 0%, #ff2255 70%, #ffffff 100%);
+  box-shadow: 0 0 10px #ff2255;
+}
+
+.afk-notice {
+  display: none;
 }
 
 /* ===== MATCH RESULT ===== */
