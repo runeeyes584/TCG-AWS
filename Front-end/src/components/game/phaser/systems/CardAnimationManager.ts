@@ -8,7 +8,7 @@ export class CardAnimationManager {
 
   constructor(private readonly scene: Phaser.Scene) {}
 
-  attach(card: UnitView, isChampion: boolean, color: number, isTargetable = false, targetType?: "ally" | "enemy") {
+  attach(card: UnitView, isChampion: boolean, color: number, isTargetable = false, targetType?: "ally" | "enemy", hasBarrier = false) {
     if (!card.unitId) return;
     const width = card.width || 100;
     const height = card.height || 140;
@@ -44,10 +44,38 @@ export class CardAnimationManager {
         repeat: -1,
       }));
     }
+    if (hasBarrier) {
+      cardTweens.push(...this.createBarrierGlow(card, width, height));
+    }
     if (isTargetable) {
       cardTweens.push(...this.createTargetingHighlight(card, width, height, targetType));
     }
     this.tweens.set(card.unitId, cardTweens);
+  }
+
+  private createBarrierGlow(card: UnitView, width: number, height: number) {
+    const skyBlue = 0x38bdf8;
+    const whiteCyan = 0xf0f9ff;
+
+    const glow = this.scene.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    // Outer sky-blue soft glow
+    glow.lineStyle(3.2, skyBlue, 0.92);
+    glow.strokeRoundedRect(-width / 2 - 7, -height / 2 - 7, width + 14, height + 14, Math.min(19, width * 0.15));
+    // Inner crisp white-cyan core line
+    glow.lineStyle(1.6, whiteCyan, 0.98);
+    glow.strokeRoundedRect(-width / 2 - 3, -height / 2 - 3, width + 6, height + 6, Math.min(16, width * 0.12));
+    card.addAt(glow, 0);
+
+    return [this.scene.tweens.add({
+      targets: glow,
+      alpha: { from: 0.45, to: 1 },
+      scaleX: { from: 0.985, to: 1.035 },
+      scaleY: { from: 0.985, to: 1.035 },
+      duration: 750,
+      ease: "Sine.InOut",
+      yoyo: true,
+      repeat: -1,
+    })];
   }
 
   private createTargetingHighlight(card: UnitView, width: number, height: number, targetType?: "ally" | "enemy") {
@@ -134,6 +162,37 @@ export class CardAnimationManager {
     graphics.moveTo(points[0][0], points[0][1]);
     points.slice(1).forEach(([x, y]) => graphics.lineTo(x, y));
     graphics.strokePath();
+  }
+
+  playBarrierTrigger(card: UnitView) {
+    const width = card.width || 100;
+    const height = card.height || 140;
+    const flash = this.scene.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    flash.lineStyle(4, 0x38bdf8, 1);
+    flash.strokeRoundedRect(-width / 2 - 8, -height / 2 - 8, width + 16, height + 16, Math.min(20, width * 0.16));
+    flash.lineStyle(2, 0xffffff, 1);
+    flash.strokeRoundedRect(-width / 2 - 4, -height / 2 - 4, width + 8, height + 8, Math.min(17, width * 0.13));
+    card.add(flash);
+
+    this.scene.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scaleX: 1.15,
+      scaleY: 1.15,
+      duration: 550,
+      ease: "Cubic.Out",
+      onComplete: () => flash.destroy(),
+    });
+
+    this.scene.tweens.add({
+      targets: card,
+      angle: { from: -2.5, to: 2.5 },
+      duration: 75,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.InOut",
+      onComplete: () => card.setAngle(0),
+    });
   }
 
   playEffect(card: UnitView, kind: SpellEffectKind) {

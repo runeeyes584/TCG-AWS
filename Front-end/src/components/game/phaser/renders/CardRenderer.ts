@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GiHeartShield, GiBroadsword, GiLightningStorm } from "react-icons/gi";
+import { GiHeartShield, GiBroadsword, GiLightningStorm, GiShield } from "react-icons/gi";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
 import type { PlayerId, UnitInstance } from "@backend/game/types";
@@ -31,6 +31,7 @@ export class CardRenderer {
     this.preloadReactIcon("icon-hp", GiHeartShield, 128, "#86efac");
     this.preloadReactIcon("icon-atk", GiBroadsword, 128, "#fca5a5");
     this.preloadReactIcon("icon-mana", GiLightningStorm, 128, "#7dd3fc");
+    this.preloadReactIcon("icon-barrier-shield", GiShield, 128, "#38bdf8");
   }
 
   private preloadReactIcon(
@@ -77,6 +78,11 @@ export class CardRenderer {
   playEffect(unitId: string, kind: SpellEffectKind) {
     const view = this.views.get(unitId);
     if (view) this.animations.playEffect(view, kind);
+  }
+
+  playBarrierTrigger(unitId: string) {
+    const view = this.views.get(unitId);
+    if (view) this.animations.playBarrierTrigger(view);
   }
 
   private getTitleFontSize(name: string, width: number) {
@@ -126,6 +132,20 @@ export class CardRenderer {
     g.lineTo(x + width * 0.42, y + height * 0.08);
     g.lineTo(x + width * 0.24, y + height * 0.08);
     g.lineTo(x + width * 0.28, y - height * 0.22);
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+  }
+
+  private drawShield(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
+    const width = w * 0.85;
+    const height = h * 0.95;
+    g.beginPath();
+    g.moveTo(x - width * 0.45, y - height * 0.45);
+    g.lineTo(x + width * 0.45, y - height * 0.45);
+    g.lineTo(x + width * 0.4, y + height * 0.1);
+    g.lineTo(x, y + height * 0.48);
+    g.lineTo(x - width * 0.4, y + height * 0.1);
     g.closePath();
     g.fillPath();
     g.strokePath();
@@ -329,6 +349,37 @@ export class CardRenderer {
     const atkParts = this.createStatBadge(left + statX, statY, statHeight, statHeight, "ATK", getUnitAttack(unit), statHeight);
     const hpParts = this.createStatBadge(right - statX, statY, statHeight, statHeight, "HP", getUnitHealth(unit), statHeight);
 
+    const hasBarrier = Boolean(
+      unit.keywords?.includes("BARRIER") || unit.temporaryKeywords?.includes("BARRIER")
+    );
+
+    let barrierShieldParts: Phaser.GameObjects.GameObject[] = [];
+    if (hasBarrier) {
+      const shieldRadius = Math.max(9, Math.round(width * 0.115));
+      const shieldX = 0;
+      const shieldY = top + 1;
+      const shieldSize = shieldRadius * 1.55;
+
+      const shieldPlate = this.scene.add.circle(shieldX, shieldY, shieldRadius, 0x021324, 0.98)
+        .setStrokeStyle(1.8, 0x38bdf8, 0.98);
+
+      let shieldIcon: Phaser.GameObjects.GameObject;
+      if (this.scene.textures.exists("icon-barrier-shield")) {
+        const img = this.scene.add.image(shieldX, shieldY, "icon-barrier-shield");
+        img.setDisplaySize(shieldSize, shieldSize);
+        img.setAlpha(0.96);
+        shieldIcon = img;
+      } else {
+        const fallback = this.scene.add.graphics();
+        fallback.fillStyle(0x0284c7, 0.4);
+        fallback.lineStyle(1.5, 0x38bdf8, 0.95);
+        this.drawShield(fallback, shieldX, shieldY, shieldSize, shieldSize);
+        shieldIcon = fallback;
+      }
+
+      barrierShieldParts = [shieldPlate, shieldIcon];
+    }
+
     // Assemble Card Components
     const card = this.scene.add.container(0, 0, [
       frameGraphics,
@@ -342,12 +393,13 @@ export class CardRenderer {
       manaText,
       ...atkParts,
       ...hpParts,
+      ...barrierShieldParts,
     ]) as UnitView;
 
     card.unitId = unit.instanceId;
     card.setSize(width, height);
     this.interactions.bind(card, unit, playerId);
-    this.animations.attach(card, isChampion, color, isTargetable, targetType);
+    this.animations.attach(card, isChampion, color, isTargetable, targetType, hasBarrier);
     this.views.set(unit.instanceId, card);
     return card;
   }
