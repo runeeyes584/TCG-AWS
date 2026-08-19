@@ -1,7 +1,7 @@
 "use client";
 
 import { BookOpen, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Shield, Skull, Swords, Trophy, X, Zap } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
   AbilityTargetMap,
@@ -38,6 +38,8 @@ import { useGameStore } from "../../hooks/useGameStore";
 import { SpellEffectLayer } from "./spell-effect-layer";
 import { GiEvilEyes } from "react-icons/gi";
 import { FaEyeSlash } from "react-icons/fa";
+import { AnimatePresence } from "framer-motion";
+import { AfkToastNotification } from "./hud/AfkToastNotification";
 
 const MATCH_RESULT_RETURN_SECONDS = 20;
 
@@ -124,7 +126,14 @@ export function GameBoardView({
     level: "warning" | "danger";
     message: string;
   }>();
+  const lastHandledAfkCountRef = useRef<number>(0);
+  const dismissAfkNotice = useCallback(() => {
+    setAfkNotice(undefined);
+  }, []);
   const [targetError, setTargetError] = useState<string>();
+  const dismissTargetError = useCallback(() => {
+    setTargetError(undefined);
+  }, []);
   const targetErrorTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const previousArenaUnitIdsRef = useRef<Set<string>>(new Set());
   const previousAttackersRef = useRef<string>("");
@@ -382,6 +391,11 @@ export function GameBoardView({
     if (!warning) {
       return;
     }
+
+    if (warning.afkCount === lastHandledAfkCountRef.current) {
+      return;
+    }
+    lastHandledAfkCountRef.current = warning.afkCount;
 
     setAfkNotice(
       warning.afkCount === 1
@@ -1751,20 +1765,27 @@ export function GameBoardView({
           </div>
         ) : null}
 
-        {afkNotice ? (
-          <div className={`afk-notice afk-notice--${afkNotice.level}`} role="alert">
-            <span>{afkNotice.message}</span>
-            <button type="button" onClick={() => setAfkNotice(undefined)} aria-label="Đóng cảnh báo AFK">
-              <X size={16} aria-hidden="true" />
-            </button>
-          </div>
-        ) : null}
+        <AnimatePresence>
+          {afkNotice ? (
+            <AfkToastNotification
+              level={afkNotice.level}
+              message={afkNotice.message}
+              duration={8000}
+              onClose={dismissAfkNotice}
+            />
+          ) : null}
+        </AnimatePresence>
 
-        {targetError ? (
-          <div className="afk-notice afk-notice--danger" style={{ borderColor: "#ffaa00", background: "rgba(90, 45, 0, 0.95)" }} role="alert">
-            <span>{targetError}</span>
-          </div>
-        ) : null}
+        <AnimatePresence>
+          {targetError ? (
+            <AfkToastNotification
+              level="warning"
+              message={targetError}
+              duration={3500}
+              onClose={dismissTargetError}
+            />
+          ) : null}
+        </AnimatePresence>
 
         <section ref={battleTableRef} className="battle-table lor-table relative overflow-hidden" aria-label="Local battle board">
           <PhaserArenaCanvas />
