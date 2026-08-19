@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { MatchRecoveryPhaserLoader } from "./MatchRecoveryPhaserLoader";
+import { Radio, Swords, Play, LogOut, RotateCcw } from "lucide-react";
 
 interface PendingMatchDialogProps {
   status: "WAITING" | "IN_PROGRESS";
@@ -12,45 +12,91 @@ interface PendingMatchDialogProps {
   onForfeit: () => void;
 }
 
-export function PendingMatchDialog({ status, isResolving = false, isContinuing = false, onContinue, onForfeit }: PendingMatchDialogProps) {
-  if (isContinuing) return <PendingMatchLoadingGate message="Restoring your match..." />;
+export function PendingMatchDialog({
+  status,
+  isResolving = false,
+  isContinuing = false,
+  onContinue,
+  onForfeit,
+}: PendingMatchDialogProps) {
   const isQueue = status === "WAITING";
-  return <ModalPortal>{(
-    <div className="pending-match-overlay" role="dialog" aria-modal="true" aria-labelledby="pending-match-title">
-      <section className="pending-match-dialog">
-        <div className="pending-match-dialog__icon" aria-hidden="true">!</div>
-        <p>{isQueue ? "Matchmaking in progress" : "Match in progress"}</p>
-        <h2 id="pending-match-title">{isQueue ? "Resume matchmaking?" : "Continue your active match?"}</h2>
-        <span>
-          {isQueue
-            ? "You are still in the matchmaking queue. You can continue searching or cancel without any ELO penalty."
-            : "Choose Continue Match to reconnect, or Leave Match to surrender. Leaving records a loss and applies the normal ELO change."}
-        </span>
-        <div className="pending-match-dialog__actions">
-          <button type="button" onClick={onForfeit} disabled={isResolving}>
-            {isResolving ? "Processing..." : isQueue ? "Cancel Search" : "Leave Match"}
-          </button>
-          <button type="button" onClick={onContinue} disabled={isResolving} autoFocus>
-            {isQueue ? "Continue Searching" : "Continue Match"}
-          </button>
-        </div>
-      </section>
-    </div>
-  )}</ModalPortal>;
-}
 
-/** Blocks the page while the authoritative pending-match request is running. */
-export function PendingMatchLoadingGate({ message = "Checking your active match…" }: { message?: string }) {
-  return <ModalPortal>{(
-    <div className="pending-match-overlay pending-match-overlay--loading" role="status" aria-live="polite">
-      <section className="pending-match-dialog">
-        <p>Match recovery</p>
-        <MatchRecoveryPhaserLoader />
-        <h2>{message}</h2>
-        <span>Please wait before starting another activity.</span>
-      </section>
-    </div>
-  )}</ModalPortal>;
+  return (
+    <ModalPortal>
+      <div
+        className="pending-match-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pending-match-title"
+      >
+        <section className="pending-match-dialog">
+          {/* Cyberpunk Grid & Ambient Energy Accent */}
+          <div className="pending-match-dialog__glow" aria-hidden="true" />
+          <div className="pending-match-dialog__grid" aria-hidden="true" />
+
+          {/* Header Protocol Badge */}
+          <div className="pending-match-dialog__badge">
+            <Radio size={13} className="pending-match-pulse-icon" />
+            <span>
+              {isQueue
+                ? "MATCHMAKING PROTOCOL · QUEUE ACTIVE"
+                : "RECONNECT PROTOCOL · BATTLEFIELD DETECTED"}
+            </span>
+          </div>
+
+          {/* Central Hologram Visual Icon */}
+          <div className="pending-match-dialog__visual" aria-hidden="true">
+            <div className="pending-match-dialog__radar-ring" />
+            <div className="pending-match-dialog__radar-core">
+              {isQueue ? <Radio size={26} /> : <Swords size={26} />}
+            </div>
+          </div>
+
+          {/* Title & Description */}
+          <h2 id="pending-match-title" className="pending-match-dialog__title">
+            {isQueue ? "Resume Matchmaking Search?" : "Active Match in Progress"}
+          </h2>
+          <p className="pending-match-dialog__desc">
+            {isQueue
+              ? "You are currently registered in the matchmaking queue. You can resume searching or cancel safely without any rating penalty."
+              : "An ongoing duel is currently waiting for your connection. Reconnect immediately to resume your battlefield or surrender the match."}
+          </p>
+
+          {/* Action Buttons */}
+          <div className="pending-match-dialog__actions">
+            <button
+              type="button"
+              className="pending-match-btn pending-match-btn--forfeit"
+              onClick={onForfeit}
+              disabled={isResolving || isContinuing}
+            >
+              <LogOut size={16} />
+              <span>{isResolving ? "Leaving..." : isQueue ? "Cancel Search" : "Leave Match"}</span>
+            </button>
+            <button
+              type="button"
+              className="pending-match-btn pending-match-btn--continue"
+              onClick={onContinue}
+              disabled={isResolving || isContinuing}
+              autoFocus
+            >
+              {isContinuing ? (
+                <>
+                  <RotateCcw size={16} className="pending-match-spin-icon" />
+                  <span>Connecting...</span>
+                </>
+              ) : (
+                <>
+                  <Play size={16} />
+                  <span>{isQueue ? "Continue Searching" : "Continue Match"}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </section>
+      </div>
+    </ModalPortal>
+  );
 }
 
 function ModalPortal({ children }: { children: ReactNode }) {

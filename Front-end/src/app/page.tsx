@@ -30,7 +30,7 @@ import {
 import { getCachedProfile, setCachedProfile, clearCachedProfile, setCachedPendingMatch } from "../libs/profileCache";
 import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { UserProfilePhaserEffects } from "../components/user/UserProfilePhaserEffects";
-import { PendingMatchDialog, PendingMatchLoadingGate } from "../components/lobby/PendingMatchDialog";
+import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
 import { useLoopingAudio } from "../hooks/useLoopingAudio";
 import { useRealtimeRank } from "../hooks/useRealtimeRank";
@@ -434,7 +434,6 @@ export default function Home() {
       </footer>
 
       {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
-      {!pendingMatchChecked ? <PendingMatchLoadingGate /> : null}
       {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
     </main>
   );
