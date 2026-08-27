@@ -1,35 +1,51 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  CircleDotDashed,
   Headphones,
   Radio,
-  Search,
-  ShieldCheck,
   Volume2,
   VolumeX,
-  X,
 } from "lucide-react";
 import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../../components/deck/DeckSelectionPanel";
+import {
+  GladiatorDossierCard,
+  MatchmakingActionBar,
+} from "../../components/matchmaking/FindMatchConsole";
+import { MatchSearchingOverlay } from "../../components/matchmaking/MatchSearchingOverlay";
+import {
+  MatchFoundShowcase,
+  type ShowcasePlayer,
+} from "../../components/matchmaking/MatchFoundShowcase";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import { useLocalGame } from "../../hooks/useLocalGame";
 import { useLoopingAudio } from "../../hooks/useLoopingAudio";
-import { forfeitPendingMatch, getPendingMatch, me, type PendingMatch, type PlayerProfile } from "../../libs/api";
-import { getDefaultLocalDeck, getSelectedDeckId, loadLocalDecks, type LocalDeck } from "../../libs/localDecks";
-import { getCachedPendingMatch, setCachedPendingMatch } from "../../libs/profileCache";
-
-function formatTime(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
-}
+import {
+  forfeitPendingMatch,
+  getPendingMatch,
+  me,
+  type PendingMatch,
+  type PlayerProfile,
+} from "../../libs/api";
+import {
+  getDefaultLocalDeck,
+  getSelectedDeckId,
+  loadLocalDecks,
+  type LocalDeck,
+} from "../../libs/localDecks";
+import {
+  getCachedPendingMatch,
+  setCachedPendingMatch,
+  getCachedProfile,
+  setCachedProfile,
+} from "../../libs/profileCache";
+import { AuthGuard } from "../../components/lobby/AuthGuard";
 
 function OnlinePlayPageContent() {
   const router = useRouter();
@@ -38,7 +54,10 @@ function OnlinePlayPageContent() {
   const resumeConfirmed = searchParams.get("resume") === "1";
   const resumeRoomCode = resumeConfirmed ? requestedRoomCode : undefined;
   const controller = useGameMatch(resumeRoomCode);
-  const [profile, setProfile] = useState<PlayerProfile>();
+  const [profile, setProfile] = useState<PlayerProfile | undefined>(() => {
+    const cached = getCachedProfile();
+    return cached ? (cached as PlayerProfile) : undefined;
+  });
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(() => {
     if (resumeConfirmed) return null;
     const cached = getCachedPendingMatch();
@@ -52,7 +71,16 @@ function OnlinePlayPageContent() {
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(resumeConfirmed);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
-  const matchReady = controller.inGame || Boolean(controller.roomCode && controller.localPlayerId);
+  const [showcaseCompleted, setShowcaseCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!controller.roomCode) {
+      setShowcaseCompleted(false);
+    }
+  }, [controller.roomCode]);
+
+  const matchReady =
+    controller.inGame || Boolean(controller.roomCode && controller.localPlayerId);
   const { muted, toggleMuted } = useLoopingAudio("/audio/play-page.mp3", 0.3, !matchReady);
 
   useEffect(() => {
@@ -70,27 +98,46 @@ function OnlinePlayPageContent() {
         setCachedPendingMatch(result.match);
         setPendingMatchError(controller.error);
       })
-      .catch((error) => setPendingMatchError(
-        error instanceof Error ? error.message : "Unable to check your active match."
-      ));
+      .catch((error) =>
+        setPendingMatchError(
+          error instanceof Error
+            ? error.message
+            : "Unable to check your active match."
+        )
+      );
   }, [controller.error, controller.status, resumeConfirmed]);
 
   useEffect(() => {
     if (!resumeConfirmed || !controller.roomCode || !controller.localPlayerId) return;
-    // Consume the confirmation only after the authoritative game state arrives.
-    // Removing it earlier can make Next render the pending-match flow again
-    // while the WebSocket resume handshake is still in flight.
     window.history.replaceState(null, "", "/play");
   }, [controller.localPlayerId, controller.roomCode, resumeConfirmed]);
 
   useEffect(() => {
-    void me().then(({ user }) => setProfile(user)).catch(() => undefined);
+    void me()
+      .then(({ user }) => {
+        if (user) {
+          setProfile((prev) => {
+            if (
+              prev &&
+              prev.id === user.id &&
+              prev.username === user.username &&
+              prev.avatar === user.avatar &&
+              prev.elo === user.elo &&
+              prev.wins === user.wins &&
+              prev.losses === user.losses
+            ) {
+              return prev;
+            }
+            return user;
+          });
+          setCachedProfile(user);
+        }
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
-    if (resumeConfirmed) {
-      return;
-    }
+    if (resumeConfirmed) return;
 
     void getPendingMatch()
       .then((result) => {
@@ -98,9 +145,13 @@ function OnlinePlayPageContent() {
         setCachedPendingMatch(result.match);
         setPendingMatchError(undefined);
       })
-      .catch((error) => setPendingMatchError(
-        error instanceof Error ? error.message : "Unable to check your active match."
-      ))
+      .catch((error) =>
+        setPendingMatchError(
+          error instanceof Error
+            ? error.message
+            : "Unable to check your active match."
+        )
+      )
       .finally(() => setPendingMatchChecked(true));
   }, [resumeConfirmed]);
 
@@ -108,7 +159,9 @@ function OnlinePlayPageContent() {
     if (pendingMatch) {
       setContinuingPendingMatch(true);
       window.requestAnimationFrame(() => {
-        window.location.assign(`/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`);
+        window.location.assign(
+          `/play?room=${encodeURIComponent(pendingMatch.roomCode)}&resume=1`
+        );
       });
     }
   };
@@ -122,7 +175,9 @@ function OnlinePlayPageContent() {
       setCachedPendingMatch(null);
     } catch (error) {
       setPendingMatchError(
-        error instanceof Error ? error.message : "Unable to leave the active match."
+        error instanceof Error
+          ? error.message
+          : "Unable to leave the active match."
       );
     } finally {
       setResolvingPendingMatch(false);
@@ -130,9 +185,12 @@ function OnlinePlayPageContent() {
   };
 
   const startSearch = () => {
-    // Do not let a click win the race against the active-match check.
     if (!pendingMatchChecked || pendingMatch) return;
-    controller.startMatchmaking({ deckId: selectedDeck.deckId, cardIds: selectedDeck.cardIds });
+    setShowcaseCompleted(false);
+    controller.startMatchmaking({
+      deckId: selectedDeck.deckId,
+      cardIds: selectedDeck.cardIds,
+    });
   };
 
   const cancelSearch = () => {
@@ -150,9 +208,38 @@ function OnlinePlayPageContent() {
     toggleMuted();
   };
 
-  // Keep the board mounted while the opponent reconnects. Unmounting it would
-  // dispose this player's socket as well, causing the server to remove the room.
+  // If match is found, show 10s Versus Showcase before entering Game Board (unless it's a resume reconnect)
   if (controller.roomCode && controller.localPlayerId) {
+    if (!resumeConfirmed && !showcaseCompleted) {
+      const localId = controller.localPlayerId;
+      const oppId = localId === "P1" ? "P2" : "P1";
+      const localProfile = controller.playerProfiles?.[localId];
+      const oppProfile = controller.playerProfiles?.[oppId];
+
+      const localShowcase: ShowcasePlayer = {
+        username: localProfile?.username ?? profile?.username ?? "Prism Operative",
+        avatar: localProfile?.avatar ?? profile?.avatar,
+        elo: localProfile?.elo ?? profile?.elo ?? 1200,
+        title: "Prism Vanguard",
+      };
+
+      const oppShowcase: ShowcasePlayer = {
+        username: oppProfile?.username ?? "Nexus Challenger",
+        avatar: oppProfile?.avatar,
+        elo: oppProfile?.elo ?? (profile?.elo ? profile.elo + 30 : 1230),
+        title: "Nexus Contender",
+      };
+
+      return (
+        <MatchFoundShowcase
+          localPlayer={localShowcase}
+          opponent={oppShowcase}
+          onComplete={() => setShowcaseCompleted(true)}
+          durationSeconds={10}
+        />
+      );
+    }
+
     return (
       <GameBoardView
         controller={controller}
@@ -172,8 +259,21 @@ function OnlinePlayPageContent() {
         </div>
         <div className="matchmaking-shade" aria-hidden="true" />
 
-        <div style={{ height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "16px", zIndex: 10, position: "relative" }}>
-          <p className="lobby-eyebrow" style={{ margin: 0 }}>Verifying connection</p>
+        <div
+          style={{
+            height: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "16px",
+            zIndex: 10,
+            position: "relative",
+          }}
+        >
+          <p className="lobby-eyebrow" style={{ margin: 0 }}>
+            Verifying connection
+          </p>
           <div className="leaderboard-state" style={{ minHeight: "auto" }}>
             <span />
             <span />
@@ -184,122 +284,112 @@ function OnlinePlayPageContent() {
     );
   }
 
-  const playerName = profile?.username ?? "Prism Operative";
-  const playerInitial = playerName.slice(0, 1).toUpperCase();
-  const winRate = profile && profile.wins + profile.losses > 0
-    ? Math.round((profile.wins / (profile.wins + profile.losses)) * 100)
-    : 0;
   return (
-    <main className={`matchmaking-shell ${controller.searching ? "is-searching" : ""} ${pendingMatch ? "is-pending-match" : ""}`}>
+    <main
+      className={`matchmaking-shell ${
+        controller.searching ? "is-searching" : ""
+      } ${pendingMatch ? "is-pending-match" : ""}`}
+    >
       <div className="matchmaking-grid" aria-hidden="true" />
-      <div className="matchmaking-art" aria-hidden="true"><PhaserSplash /></div>
+      <div className="matchmaking-art" aria-hidden="true">
+        <PhaserSplash />
+      </div>
       <div className="matchmaking-shade" aria-hidden="true" />
 
+      {/* Header Bar */}
       <header className="matchmaking-header">
-        <button className="matchmaking-back" onClick={handleBackToLobby} aria-label="Return to lobby" title="Return to lobby">
-          <ArrowLeft size={18} />
+        <button
+          type="button"
+          className="matchmaking-back"
+          onClick={handleBackToLobby}
+          aria-label="Return to lobby"
+          title="Return to lobby"
+        >
+          <ArrowLeft size={16} />
           <span>Lobby</span>
         </button>
-        <div className="matchmaking-title"><span>CHRONO GENESIS TCG</span><small>RANKED CIRCUIT</small></div>
-        <button className="matchmaking-audio" onClick={toggleMusic} aria-label={muted ? "Enable matchmaking music" : "Mute matchmaking music"} title={muted ? "Enable music" : "Mute music"}>
-          {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
+        <div className="matchmaking-title">
+          <span>CHRONO GENESIS TCG</span>
+          <small>RANKED CIRCUIT</small>
+        </div>
+        <button
+          type="button"
+          className="matchmaking-audio"
+          onClick={toggleMusic}
+          aria-label={muted ? "Enable matchmaking music" : "Mute matchmaking music"}
+          title={muted ? "Enable music" : "Mute music"}
+        >
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
       </header>
 
+      {/* Main Content Area - Cyber Matrix Split Panel */}
       <section className="matchmaking-content">
         <motion.div
           className="matchmaking-kicker"
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
+          transition={{ duration: 0.35 }}
         >
-          <Radio size={15} /> Ranked matchmaking
+          <Radio size={13} /> RANKED CIRCUIT // SEASON 01
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 18 }}
+          className="matchmaking-heading-compact"
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.08 }}
+          transition={{ duration: 0.45, delay: 0.05 }}
         >
-          {controller.searching ? <>Seeking a <em>rival</em></> : <>Ready your <em>deck</em></>}
+          BATTLE <em>DEPLOYMENT</em>
         </motion.h1>
 
-        <motion.p
-          className="matchmaking-lede"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.45, delay: 0.16 }}
-        >
-          {controller.searching ? "Scanning the circuit for a worthy opponent." : "Enter the ranked circuit and test your strategy under pressure."}
-        </motion.p>
+        {/* Module 1: Gladiator Dossier & Ranked Metrics */}
+        <GladiatorDossierCard
+          profile={profile}
+          statusText={controller.status}
+        />
 
-        <motion.section
-          className="matchmaking-console"
-          initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.2 }}
-          aria-label="Ranked matchmaking"
-        >
-          <div className="matchmaking-console__top">
-            <div className="matchmaking-player">
-              <div className="matchmaking-avatar">
-                <span>{playerInitial}</span>
-                {profile?.avatar ? <img src={profile.avatar} alt="" onError={(event) => event.currentTarget.remove()} /> : null}
-              </div>
-              <div>
-                <strong>{playerName}</strong>
-                <span><ShieldCheck size={13} /> Prism Vanguard</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="matchmaking-scan" aria-live="polite">
-            <div className="scan-core">
-              <div className="scan-ring scan-ring--outer" />
-              <div className="scan-ring scan-ring--inner" />
-              {controller.searching ? <CircleDotDashed size={42} /> : <Search size={39} />}
-            </div>
-            <div className="scan-copy">
-              <small>{controller.searching ? "Queue time" : "Ranked Duel"}</small>
-              <strong>{controller.searching ? formatTime(controller.queueTime) : `${profile?.elo?.toLocaleString() ?? "1,200"} ELO`}</strong>
-              <span>{controller.searching ? "Match parameters synced" : controller.status}</span>
-            </div>
-          </div>
-
-          <div className="matchmaking-stats">
-            <span><small>Win rate</small><strong>{winRate}%</strong></span>
-            <span><small>Record</small><strong>{profile ? `${profile.wins} - ${profile.losses}` : "--"}</strong></span>
-            <span><small>Region</small><strong>SEA</strong></span>
-          </div>
-
-          {controller.error ? <p className="matchmaking-error">{controller.error}</p> : null}
-
-          {controller.searching ? (
-            <button className="matchmaking-command matchmaking-command--cancel" onClick={cancelSearch}>
-              <X size={19} /> Cancel search
-            </button>
-          ) : (
-            <button className="matchmaking-command" onClick={startSearch} disabled={!pendingMatchChecked || Boolean(pendingMatch)}>
-              <Search size={19} /> {!pendingMatchChecked ? "Verifying arena status..." : "Find match"}
-            </button>
-          )}
-        </motion.section>
-
+        {/* Module 2: Tactical Combat Loadout & 3D Fan-out Cards */}
         <DeckSelectionPanel
           className="matchmaking-deck-panel"
           disabled={controller.searching}
           onDeckChange={setSelectedDeck}
         />
 
-        {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
-        {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+        {/* Module 3: Biometric Waveform & Engage CTA */}
+        <MatchmakingActionBar
+          disabled={!pendingMatchChecked || Boolean(pendingMatch)}
+          onStartSearch={startSearch}
+          errorText={controller.error}
+        />
 
-        <div className={`matchmaking-track ${controller.searching ? "is-playing" : ""}`}>
-          <Headphones size={15} />
-          <span>{controller.searching ? "Find Match" : "Matchmaking signal ready"}</span>
-          <i />
-        </div>
-      </section>
+        {pendingMatchError ? (
+          <p className="pending-match-check-error" role="alert">
+            {pendingMatchError}
+          </p>
+        ) : null}
+
+        {pendingMatch ? (
+          <PendingMatchDialog
+            status={pendingMatch.status}
+            isResolving={resolvingPendingMatch}
+            isContinuing={continuingPendingMatch}
+            onContinue={resumePendingMatch}
+            onForfeit={abandonPendingMatch}
+          />
+        ) : null}
+
+        </section>
+
+      {/* Abyssal Searching Overlay (Wildness & Mystery Vortex) */}
+      <AnimatePresence>
+        {controller.searching ? (
+          <MatchSearchingOverlay
+            queueTime={controller.queueTime}
+            onCancel={cancelSearch}
+          />
+        ) : null}
+      </AnimatePresence>
     </main>
   );
 }
@@ -400,15 +490,25 @@ function PlayPageContent() {
   return <OnlinePlayPageContent />;
 }
 
-import { AuthGuard } from "../../components/lobby/AuthGuard";
-
 export default function PlayPage() {
   return (
-    <Suspense fallback={
-      <div className="matchmaking-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0c', color: '#fff' }}>
-        <span>Loading Ranked Circuit...</span>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div
+          className="matchmaking-shell"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100vh",
+            background: "#02040b",
+            color: "#fff",
+          }}
+        >
+          <span>Loading Ranked Circuit...</span>
+        </div>
+      }
+    >
       <AuthGuard>
         <PlayPageContent />
       </AuthGuard>

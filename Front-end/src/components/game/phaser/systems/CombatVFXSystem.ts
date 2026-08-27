@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { VisualEvent } from "@backend/game/types";
 import type { UnitView } from "../types/arenaTypes";
 import { getEffectKind, getEffectTargetId, type SpellEffectKind } from "../../visualEffectSemantics";

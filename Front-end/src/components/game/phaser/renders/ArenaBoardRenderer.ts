@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 import type { ArenaLayout } from "../config/arenaLayout";
 
 export class ArenaBoardRenderer {

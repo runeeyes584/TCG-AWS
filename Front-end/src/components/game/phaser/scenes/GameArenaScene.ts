@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { GameState, PlayerId, SpellTargetKind, UnitInstance, VisualEvent } from "@backend/game/types";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
 import { getArenaLayout, getSlotPosition } from "../config/arenaLayout";

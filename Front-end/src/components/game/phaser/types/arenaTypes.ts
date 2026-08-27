@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 import type { PlayerId } from "@backend/game/types";
 
 export type UnitView = Phaser.GameObjects.Container & { unitId?: string };
