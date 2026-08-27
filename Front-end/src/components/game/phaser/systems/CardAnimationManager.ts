@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { UnitView } from "../types/arenaTypes";
 import { getEffectColor, type SpellEffectKind } from "../../visualEffectSemantics";
 

@@ -15,7 +15,8 @@ export function UserProfilePhaserEffects() {
     let game: Phaser.Game | undefined;
     let disposed = false;
 
-    void import("phaser").then(({ default: PhaserRuntime }) => {
+    void import("phaser").then((mod) => {
+      const PhaserRuntime = (mod as any).default || mod;
       if (disposed || !hostRef.current) return;
 
       class UserProfileScene extends PhaserRuntime.Scene {

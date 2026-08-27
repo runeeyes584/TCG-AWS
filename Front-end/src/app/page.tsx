@@ -352,7 +352,7 @@ export default function Home() {
               <div className="queue-elo"><small>YOUR ELO</small><strong>{elo.toLocaleString()}</strong></div>
               <button className="queue-action" onClick={startDuel}>
                 <Swords size={20} />
-                <span>{isSignedIn ? "Open matchmaking" : "Sign in to play"}</span>
+                <span>{isSignedIn ? "Enter Battlefield" : "Sign in to play"}</span>
               </button>
             </div>
           </>

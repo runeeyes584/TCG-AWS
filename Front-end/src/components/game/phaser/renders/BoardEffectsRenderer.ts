@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 import type { GamePhase, PlayerId } from "@backend/game/types";
 import type { ArenaLayout } from "../config/arenaLayout";
 

@@ -15,7 +15,7 @@ export function PhaserArenaCanvas() {
 
     void Promise.all([import("phaser"), import("./scenes/GameArenaScene")]).then(([PhaserModule, sceneModule]) => {
       if (destroyed || !hostRef.current) return;
-      const Phaser = PhaserModule.default;
+      const Phaser = (PhaserModule as any).default || PhaserModule;
       game = new Phaser.Game({
         // Card artwork comes from third-party CDNs that do not consistently
         // expose CORS headers. Canvas can render those images directly while

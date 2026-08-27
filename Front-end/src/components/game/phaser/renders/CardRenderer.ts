@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { GiHeartShield, GiBroadsword, GiLightningStorm, GiShield } from "react-icons/gi";

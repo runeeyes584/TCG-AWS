@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 import type { PlayerId, UnitInstance } from "@backend/game/types";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
 import { arenaStoreAdapter } from "../adapters/arenaStoreAdapter";

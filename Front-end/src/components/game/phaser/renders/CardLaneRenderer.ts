@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 
 export function drawCardLane(
   graphics: Phaser.GameObjects.Graphics,
@@ -193,8 +193,8 @@ export function drawDefendCardLane(
   breathAlpha: number,
   perspectiveScale: number,
 ) {
-  const alpha = Phaser.Math.Clamp(breathAlpha, 0, 1);
-  const scale = Phaser.Math.Clamp(perspectiveScale, 0.7, 1.2);
+  const alpha = Math.min(Math.max(breathAlpha, 0), 1);
+  const scale = Math.min(Math.max(perspectiveScale, 0.7), 1.2);
   const radius = Math.min(14, width * 0.12);
   const left = x - width / 2;
   const right = x + width / 2;

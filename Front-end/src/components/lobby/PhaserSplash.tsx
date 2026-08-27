@@ -13,71 +13,237 @@ import catSigma from "../../assets/catMeme/cat-sigma.jpeg";
 
 const splashes = [
   { key: "gaia", src: gaia.src },
-  { key: "cat-uia", src: catUIA.src },
-  { key: "cat-sigma", src: catSigma.src },
   { key: "aoi", src: aoi.src },
   { key: "eldlich", src: eldlich.src },
   { key: "laevan", src: laevan.src },
   { key: "raye", src: raye.src },
   { key: "varesa", src: varesa.src },
+  { key: "cat-uia", src: catUIA.src },
+  { key: "cat-sigma", src: catSigma.src },
 ];
 
 export function PhaserSplash() {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!hostRef.current) return;
+    const host = hostRef.current;
+    if (!host) return;
 
     let game: Phaser.Game | undefined;
     let disposed = false;
 
-    void import("phaser").then(({ default: PhaserRuntime }) => {
+    void import("phaser").then((mod) => {
+      const PhaserRuntime = (mod as any).default || mod;
       if (disposed || !hostRef.current) return;
 
       class LobbySplashScene extends PhaserRuntime.Scene {
         private current?: Phaser.GameObjects.Image;
         private splashIndex = -1;
+        private backgroundGlow?: Phaser.GameObjects.Arc;
+        private staticLayer!: Phaser.GameObjects.Graphics;
+        private energyLayer!: Phaser.GameObjects.Graphics;
+        private shards: Phaser.GameObjects.Rectangle[] = [];
+        private nodes: Phaser.GameObjects.Arc[] = [];
+        private pulses: Phaser.GameObjects.Arc[] = [];
+        private paths: Phaser.Curves.Path[] = [];
+        private reducedMotion = false;
+        private switchTimer?: Phaser.Time.TimerEvent;
+        private dischargeTimer?: Phaser.Time.TimerEvent;
 
         constructor() {
-          super("lobby-splash");
+          super("lobby-splash-enhanced");
         }
 
         preload() {
-          splashes.forEach((splash) => this.load.image(splash.key, splash.src));
+          splashes.forEach((splash) => {
+            if (!this.textures.exists(splash.key)) {
+              this.load.image(splash.key, splash.src);
+            }
+          });
         }
 
         create() {
-          this.createShards();
+          this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          this.staticLayer = this.add.graphics();
+          this.energyLayer = this.add.graphics().setBlendMode(PhaserRuntime.BlendModes.ADD);
+
+          this.rebuildLayers();
           this.showNextSplash();
-          this.time.addEvent({ delay: 6000, loop: true, callback: this.showNextSplash, callbackScope: this });
-          this.scale.on("resize", this.layoutSplash, this);
+
+          this.switchTimer = this.time.addEvent({
+            delay: 6500,
+            loop: true,
+            callback: this.showNextSplash,
+            callbackScope: this,
+          });
+
+          if (!this.reducedMotion) {
+            this.dischargeTimer = this.time.addEvent({
+              delay: 3200,
+              loop: true,
+              callback: this.flashDischarge,
+              callbackScope: this,
+            });
+          }
+
+          this.scale.on("resize", this.handleResize, this);
         }
 
-        private createShards() {
+        private rebuildLayers() {
+          this.shards.forEach((s) => {
+            this.tweens.killTweensOf(s);
+            s.destroy();
+          });
+          this.nodes.forEach((n) => {
+            this.tweens.killTweensOf(n);
+            n.destroy();
+          });
+          this.pulses.forEach((p) => {
+            this.tweens.killTweensOf(p);
+            p.destroy();
+          });
+          this.shards = [];
+          this.nodes = [];
+          this.pulses = [];
+          this.paths = [];
+          this.staticLayer.clear();
+          this.energyLayer.clear();
+
           const { width, height } = this.scale;
+          if (width <= 0 || height <= 0) return;
 
-          for (let index = 0; index < 24; index += 1) {
-            const shard = this.add.rectangle(
-              PhaserRuntime.Math.Between(Math.floor(width * 0.35), width),
-              PhaserRuntime.Math.Between(0, height),
-              PhaserRuntime.Math.Between(2, 5),
-              PhaserRuntime.Math.Between(8, 20),
-              index % 3 === 0 ? 0xb870ff : 0x74ddff,
-              PhaserRuntime.Math.FloatBetween(0.12, 0.48)
-            );
-            shard.setRotation(PhaserRuntime.Math.DegToRad(PhaserRuntime.Math.Between(-35, 35)));
+          this.createBackgroundAura(width, height);
+          this.createRunicCircuits(width, height);
+          this.createEtherParticles(width, height);
+        }
 
+        private createBackgroundAura(width: number, height: number) {
+          const isMobile = width < 768;
+          const focusX = isMobile ? width * 0.5 : width * 0.72;
+          const focusY = height * 0.55;
+          const radius = Math.min(width, height) * 0.45;
+
+          if (this.backgroundGlow) {
+            this.tweens.killTweensOf(this.backgroundGlow);
+            this.backgroundGlow.destroy();
+          }
+
+          this.backgroundGlow = this.add.circle(focusX, focusY, radius, 0x49e6ff, 0.05)
+            .setBlendMode(PhaserRuntime.BlendModes.ADD);
+
+          if (!this.reducedMotion) {
             this.tweens.add({
-              targets: shard,
-              y: shard.y - PhaserRuntime.Math.Between(30, 100),
-              alpha: 0.04,
-              angle: shard.angle + PhaserRuntime.Math.Between(-45, 45),
-              duration: PhaserRuntime.Math.Between(2300, 5200),
-              delay: PhaserRuntime.Math.Between(0, 1800),
-              repeat: -1,
+              targets: this.backgroundGlow,
+              scale: { from: 0.9, to: 1.18 },
+              alpha: { from: 0.04, to: 0.09 },
+              duration: 4800,
               yoyo: true,
+              repeat: -1,
               ease: "Sine.inOut",
             });
+          }
+        }
+
+        private createRunicCircuits(width: number, height: number) {
+          const isMobile = width < 768;
+          const circuits = isMobile
+            ? [
+                [[width * 0.1, height * 0.15], [width * 0.4, height * 0.15], [width * 0.55, height * 0.3], [width * 0.55, height * 0.6]],
+                [[width * 0.9, height * 0.85], [width * 0.6, height * 0.85], [width * 0.45, height * 0.7], [width * 0.45, height * 0.4]],
+              ]
+            : [
+                [[width * 0.35, height * 0.1], [width * 0.55, height * 0.1], [width * 0.65, height * 0.22], [width * 0.85, height * 0.22]],
+                [[width * 0.4, height * 0.9], [width * 0.6, height * 0.9], [width * 0.7, height * 0.78], [width * 0.92, height * 0.78]],
+                [[width * 0.95, height * 0.35], [width * 0.82, height * 0.35], [width * 0.75, height * 0.48], [width * 0.75, height * 0.65]],
+              ];
+
+          circuits.forEach((points, pathIndex) => {
+            const color = pathIndex % 2 === 0 ? 0x49e6ff : 0x8d6bff;
+            const path = new PhaserRuntime.Curves.Path(points[0][0], points[0][1]);
+            this.staticLayer.lineStyle(1, color, 0.12);
+            this.staticLayer.beginPath();
+            this.staticLayer.moveTo(points[0][0], points[0][1]);
+
+            points.slice(1).forEach(([x, y], ptIdx) => {
+              path.lineTo(x, y);
+              this.staticLayer.lineTo(x, y);
+
+              const isTerminal = ptIdx === points.length - 2;
+              const node = this.add.circle(x, y, isTerminal ? 3 : 1.8, color, isTerminal ? 0.65 : 0.25)
+                .setStrokeStyle(1, color, 0.5)
+                .setBlendMode(PhaserRuntime.BlendModes.ADD);
+              this.nodes.push(node);
+
+              if (!this.reducedMotion) {
+                this.tweens.add({
+                  targets: node,
+                  alpha: { from: 0.2, to: 0.85 },
+                  scale: { from: 0.85, to: 1.35 },
+                  duration: 1500 + ptIdx * 180,
+                  yoyo: true,
+                  repeat: -1,
+                  ease: "Sine.inOut",
+                });
+              }
+            });
+            this.staticLayer.strokePath();
+            this.paths.push(path);
+
+            const pulse = this.add.circle(points[0][0], points[0][1], 2.2, color, 0.9)
+              .setBlendMode(PhaserRuntime.BlendModes.ADD);
+            this.pulses.push(pulse);
+
+            if (!this.reducedMotion) {
+              const follower = { progress: 0 };
+              this.tweens.add({
+                targets: follower,
+                progress: 1,
+                delay: pathIndex * 600,
+                duration: 4500 + pathIndex * 600,
+                repeat: -1,
+                ease: "Linear",
+                onUpdate: () => {
+                  const point = path.getPoint(follower.progress);
+                  if (point) pulse.setPosition(point.x, point.y);
+                },
+              });
+            }
+          });
+        }
+
+        private createEtherParticles(width: number, height: number) {
+          const isMobile = width < 768;
+          const count = isMobile ? 18 : 36;
+
+          for (let index = 0; index < count; index += 1) {
+            const colorPalette = [0x49e6ff, 0x8d6bff, 0xffcf5a, 0xff2d55];
+            const color = colorPalette[index % colorPalette.length];
+            const shard = this.add.rectangle(
+              PhaserRuntime.Math.Between(Math.floor(isMobile ? 0 : width * 0.25), width),
+              PhaserRuntime.Math.Between(0, height),
+              PhaserRuntime.Math.Between(2, 4),
+              PhaserRuntime.Math.Between(8, 22),
+              color,
+              PhaserRuntime.Math.FloatBetween(0.12, 0.45)
+            ).setBlendMode(PhaserRuntime.BlendModes.ADD);
+
+            shard.setRotation(PhaserRuntime.Math.DegToRad(PhaserRuntime.Math.Between(-35, 35)));
+            this.shards.push(shard);
+
+            if (!this.reducedMotion) {
+              this.tweens.add({
+                targets: shard,
+                y: shard.y - PhaserRuntime.Math.Between(40, 110),
+                x: shard.x + PhaserRuntime.Math.Between(-15, 15),
+                alpha: { from: shard.alpha, to: 0.02 },
+                angle: shard.angle + PhaserRuntime.Math.Between(-30, 30),
+                duration: PhaserRuntime.Math.Between(2600, 6200),
+                delay: PhaserRuntime.Math.Between(0, 2000),
+                repeat: -1,
+                yoyo: true,
+                ease: "Sine.inOut",
+              });
+            }
           }
         }
 
@@ -85,45 +251,113 @@ export function PhaserSplash() {
           this.splashIndex = (this.splashIndex + 1) % splashes.length;
           const previous = this.current;
           const { width, height } = this.scale;
-          const next = this.add.image(width * 0.71, height * 0.55, splashes[this.splashIndex].key)
+          const isMobile = width < 768;
+
+          const targetX = isMobile ? width * 0.62 : width * 0.72;
+          const targetY = height * 0.55;
+
+          const next = this.add.image(targetX, targetY, splashes[this.splashIndex].key)
             .setAlpha(0)
             .setScale(0.8);
 
           this.current = next;
           this.layoutImage(next);
-          next.setScale(next.scaleX * 0.87, next.scaleY * 0.87);
+
+          const baseScale = next.scaleX;
+          next.setScale(baseScale * 0.92);
 
           this.tweens.add({
             targets: next,
-            alpha: 1,
-            scaleX: next.scaleX / 0.87,
-            scaleY: next.scaleY / 0.87,
-            duration: 1050,
+            alpha: { from: 0, to: 0.95 },
+            scaleX: baseScale,
+            scaleY: baseScale,
+            duration: 1200,
             ease: "Cubic.out",
           });
 
+          // Gentle breathing idle for the active hero art
+          if (!this.reducedMotion) {
+            this.tweens.add({
+              targets: next,
+              scaleX: baseScale * 1.02,
+              scaleY: baseScale * 1.02,
+              duration: 3500,
+              yoyo: true,
+              repeat: -1,
+              ease: "Sine.inOut",
+              delay: 1200,
+            });
+          }
+
           if (previous) {
+            this.tweens.killTweensOf(previous);
             this.tweens.add({
               targets: previous,
               alpha: 0,
-              scaleX: previous.scaleX * 0.9,
-              scaleY: previous.scaleY * 0.9,
-              duration: 700,
+              scaleX: previous.scaleX * 0.92,
+              scaleY: previous.scaleY * 0.92,
+              duration: 800,
               ease: "Cubic.in",
               onComplete: () => previous.destroy(),
             });
           }
         }
 
-        private layoutImage(image: Phaser.GameObjects.Image) {
-          const { width, height } = this.scale;
-          const isMobile = width < 680;
-          const scale = Math.min((isMobile ? width * 1.15 : width * 0.78) / image.width, height * 0.98 / image.height);
-          image.setPosition(isMobile ? width * 0.63 : width * 0.72, height * 0.56).setScale(scale);
+        private flashDischarge() {
+          if (this.paths.length === 0) return;
+          const path = PhaserRuntime.Utils.Array.GetRandom(this.paths);
+          let flashes = 0;
+
+          this.time.addEvent({
+            delay: 50,
+            repeat: 4,
+            callback: () => {
+              this.energyLayer.clear();
+              flashes += 1;
+              if (flashes % 2 === 0) return;
+
+              const sampleCount = 10;
+              this.energyLayer.lineStyle(flashes === 3 ? 2 : 1, 0xc5f7ff, 0.75);
+              this.energyLayer.beginPath();
+
+              for (let idx = 0; idx < sampleCount; idx += 1) {
+                const pt = path.getPoint(idx / (sampleCount - 1));
+                if (!pt) continue;
+                const jitterX = idx === 0 || idx === sampleCount - 1 ? 0 : PhaserRuntime.Math.Between(-3, 3);
+                const jitterY = idx === 0 || idx === sampleCount - 1 ? 0 : PhaserRuntime.Math.Between(-3, 3);
+                if (idx === 0) this.energyLayer.moveTo(pt.x + jitterX, pt.y + jitterY);
+                else this.energyLayer.lineTo(pt.x + jitterX, pt.y + jitterY);
+              }
+              this.energyLayer.strokePath();
+
+              if (flashes === 5) {
+                this.time.delayedCall(60, () => this.energyLayer.clear());
+              }
+            },
+          });
         }
 
-        private layoutSplash() {
+        private layoutImage(image: Phaser.GameObjects.Image) {
+          const { width, height } = this.scale;
+          const isMobile = width < 768;
+          const scale = Math.min(
+            (isMobile ? width * 1.1 : width * 0.76) / (image.width || 800),
+            (height * 0.96) / (image.height || 1000)
+          );
+          image
+            .setPosition(isMobile ? width * 0.62 : width * 0.72, height * 0.55)
+            .setScale(scale);
+        }
+
+        private handleResize() {
+          this.rebuildLayers();
           if (this.current) this.layoutImage(this.current);
+        }
+
+        shutdown() {
+          this.switchTimer?.destroy();
+          this.dischargeTimer?.destroy();
+          this.scale.off("resize", this.handleResize, this);
         }
       }
 
@@ -139,11 +373,9 @@ export function PhaserSplash() {
           height: hostRef.current.clientHeight,
         },
         render: { antialias: true, pixelArt: false },
-        audio: {
-          noAudio: true,
-        },
+        audio: { noAudio: true },
       });
-    });
+    }).catch(() => undefined);
 
     return () => {
       disposed = true;
