@@ -51,25 +51,29 @@ function OnlinePlayPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedRoomCode = searchParams.get("room") ?? undefined;
-  const resumeConfirmed = searchParams.get("resume") === "1";
-  const resumeRoomCode = resumeConfirmed ? requestedRoomCode : undefined;
+  // Keep the resume decision stable for this page session. Next.js integrates
+  // native history.replaceState with the App Router, so reading `resume` from
+  // searchParams directly would turn it off when the URL is cleaned up after
+  // recovery and mount the match-found showcase again.
+  const [isResumeSession] = useState(() => searchParams.get("resume") === "1");
+  const resumeRoomCode = isResumeSession ? requestedRoomCode : undefined;
   const controller = useGameMatch(resumeRoomCode);
   const [profile, setProfile] = useState<PlayerProfile | undefined>(() => {
     const cached = getCachedProfile();
     return cached ? (cached as PlayerProfile) : undefined;
   });
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(() => {
-    if (resumeConfirmed) return null;
+    if (isResumeSession) return null;
     const cached = getCachedPendingMatch();
     return cached ? cached.match : null;
   });
   const [pendingMatchError, setPendingMatchError] = useState<string>();
   const [pendingMatchChecked, setPendingMatchChecked] = useState(() => {
-    if (resumeConfirmed) return true;
+    if (isResumeSession) return true;
     return getCachedPendingMatch() !== null;
   });
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
-  const [continuingPendingMatch, setContinuingPendingMatch] = useState(resumeConfirmed);
+  const [continuingPendingMatch, setContinuingPendingMatch] = useState(isResumeSession);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
   const [showcaseCompleted, setShowcaseCompleted] = useState(false);
 
@@ -90,7 +94,7 @@ function OnlinePlayPageContent() {
   }, [controller.resumeRequired]);
 
   useEffect(() => {
-    if (!resumeConfirmed || controller.status !== "Recovery failed") return;
+    if (!isResumeSession || controller.status !== "Recovery failed") return;
     setContinuingPendingMatch(false);
     void getPendingMatch()
       .then((result) => {
@@ -105,12 +109,12 @@ function OnlinePlayPageContent() {
             : "Unable to check your active match."
         )
       );
-  }, [controller.error, controller.status, resumeConfirmed]);
+  }, [controller.error, controller.status, isResumeSession]);
 
   useEffect(() => {
-    if (!resumeConfirmed || !controller.roomCode || !controller.localPlayerId) return;
+    if (!isResumeSession || !controller.roomCode || !controller.localPlayerId) return;
     window.history.replaceState(null, "", "/play");
-  }, [controller.localPlayerId, controller.roomCode, resumeConfirmed]);
+  }, [controller.localPlayerId, controller.roomCode, isResumeSession]);
 
   useEffect(() => {
     void me()
@@ -137,7 +141,7 @@ function OnlinePlayPageContent() {
   }, []);
 
   useEffect(() => {
-    if (resumeConfirmed) return;
+    if (isResumeSession) return;
 
     void getPendingMatch()
       .then((result) => {
@@ -153,7 +157,7 @@ function OnlinePlayPageContent() {
         )
       )
       .finally(() => setPendingMatchChecked(true));
-  }, [resumeConfirmed]);
+  }, [isResumeSession]);
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
@@ -208,9 +212,10 @@ function OnlinePlayPageContent() {
     toggleMuted();
   };
 
-  // If match is found, show 10s Versus Showcase before entering Game Board (unless it's a resume reconnect)
+  // A resumed match goes straight to the board; the showcase belongs only to
+  // the initial successful matchmaking flow.
   if (controller.roomCode && controller.localPlayerId) {
-    if (!resumeConfirmed && !showcaseCompleted) {
+    if (!isResumeSession && !showcaseCompleted) {
       const localId = controller.localPlayerId;
       const oppId = localId === "P1" ? "P2" : "P1";
       const localProfile = controller.playerProfiles?.[localId];
@@ -250,7 +255,7 @@ function OnlinePlayPageContent() {
     );
   }
 
-  if (resumeConfirmed && !controller.roomCode && controller.status !== "Recovery failed") {
+  if (isResumeSession && !controller.roomCode && controller.status !== "Recovery failed") {
     return (
       <main className="matchmaking-shell" style={{ minHeight: "100vh" }}>
         <div className="matchmaking-grid" aria-hidden="true" />
