@@ -70,14 +70,15 @@ function OnlinePlayPageContent() {
   });
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(resumeConfirmed);
+  const [isResumeSession, setIsResumeSession] = useState(resumeConfirmed);
   const [selectedDeck, setSelectedDeck] = useState<LocalDeck>(getDefaultLocalDeck);
-  const [showcaseCompleted, setShowcaseCompleted] = useState(false);
+  const [showcaseCompleted, setShowcaseCompleted] = useState(() => resumeConfirmed);
 
   useEffect(() => {
-    if (!controller.roomCode) {
+    if (!controller.roomCode && !isResumeSession) {
       setShowcaseCompleted(false);
     }
-  }, [controller.roomCode]);
+  }, [controller.roomCode, isResumeSession]);
 
   const matchReady =
     controller.inGame || Boolean(controller.roomCode && controller.localPlayerId);
@@ -186,6 +187,7 @@ function OnlinePlayPageContent() {
 
   const startSearch = () => {
     if (!pendingMatchChecked || pendingMatch) return;
+    setIsResumeSession(false);
     setShowcaseCompleted(false);
     controller.startMatchmaking({
       deckId: selectedDeck.deckId,
@@ -210,7 +212,7 @@ function OnlinePlayPageContent() {
 
   // If match is found, show 10s Versus Showcase before entering Game Board (unless it's a resume reconnect)
   if (controller.roomCode && controller.localPlayerId) {
-    if (!resumeConfirmed && !showcaseCompleted) {
+    if (!isResumeSession && !showcaseCompleted) {
       const localId = controller.localPlayerId;
       const oppId = localId === "P1" ? "P2" : "P1";
       const localProfile = controller.playerProfiles?.[localId];
@@ -250,7 +252,7 @@ function OnlinePlayPageContent() {
     );
   }
 
-  if (resumeConfirmed && !controller.roomCode && controller.status !== "Recovery failed") {
+  if (isResumeSession && !controller.roomCode && controller.status !== "Recovery failed") {
     return (
       <main className="matchmaking-shell" style={{ minHeight: "100vh" }}>
         <div className="matchmaking-grid" aria-hidden="true" />
