@@ -121,6 +121,7 @@ export function GameBoardView({
     health?: number;
   }>();
   const [timeRemainingMs, setTimeRemainingMs] = useState(0);
+  const timeoutTurnKeyRef = useRef<string | undefined>(undefined);
   const battleTableRef = useRef<HTMLElement>(null);
   const [afkNotice, setAfkNotice] = useState<{
     level: "warning" | "danger";
@@ -373,15 +374,48 @@ export function GameBoardView({
 
   useEffect(() => {
     const updateCountdown = () => {
-      setTimeRemainingMs(Math.max(
-        0,
-        gameState.turnDuration - (Date.now() - gameState.turnStartTime)
+      setTimeRemainingMs(Math.min(
+        gameState.turnDuration,
+        Math.max(0, gameState.turnDuration - (Date.now() - gameState.turnStartTime))
       ));
     };
     updateCountdown();
     const interval = window.setInterval(updateCountdown, 100);
     return () => window.clearInterval(interval);
   }, [gameState.turnDuration, gameState.turnStartTime]);
+
+  useEffect(() => {
+    // The local trial already owns its timer in useLocalGame. Online matches
+    // need one client-side signal at expiry so they do not depend on the
+    // asynchronous scheduler for the visible turn transition.
+    if (
+      trialMode ||
+      !localPlayerId ||
+      !gameState.started ||
+      Boolean(gameState.winnerId) ||
+      gameState.priorityPlayerId !== localPlayerId
+    ) {
+      return;
+    }
+
+    const deadline = gameState.turnStartTime + gameState.turnDuration;
+    // timeRemainingMs starts at zero before the countdown effect's first tick;
+    // the authoritative timestamp prevents an immediate false timeout when
+    // the board mounts during the match-found/showcase handoff.
+    if (timeRemainingMs > 0 || Date.now() < deadline) return;
+
+    const turnKey = `${gameState.turnStartTime}:${gameState.turnDuration}:${gameState.priorityPlayerId}`;
+    if (timeoutTurnKeyRef.current === turnKey) return;
+    timeoutTurnKeyRef.current = turnKey;
+
+    // The server remains authoritative: it validates the deadline, player,
+    // and state version before committing the timeout transition.
+    if (!controller.dispatch({ type: "TIME_OUT", playerId: localPlayerId })) {
+      // Allow a retry after a transient disconnect while the turn is still
+      // represented by the same local state.
+      timeoutTurnKeyRef.current = undefined;
+    }
+  }, [controller, gameState, localPlayerId, timeRemainingMs, trialMode]);
 
   useEffect(() => {
     const warning = gameState.visualEvents.find(
