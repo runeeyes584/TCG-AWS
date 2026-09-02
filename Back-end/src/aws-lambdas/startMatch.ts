@@ -21,7 +21,7 @@ import {
 import { validateDeck } from "../game/rules/deckRules";
 import type { GameState, PlayerId } from "../game/types";
 import type { MatchmakingDeckSelection } from "../shared/multiplayer";
-import { enqueueTurnTimeout } from "./turnTimeoutQueue";
+import { scheduleTurnTimeout } from "./turnTimeoutScheduler";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
@@ -425,16 +425,26 @@ async function claimMatch(
     type: "START_GAME",
     firstPlayerId: "P1"
   });
+  // Offset the first turn start by 10s so the MatchFoundShowcase preparation
+  // screen does not consume the player's 30-second first turn.
+  const SHOWCASE_PREPARATION_MS = 10_000;
+  updatedEngineState.turnStartTime = Date.now() + SHOWCASE_PREPARATION_MS;
+
   const currentVersion = match.state_version ?? 0;
   const nextVersion = currentVersion + 1;
 
   // The first turn has no player action to schedule it. Register its deadline
-  // before claiming the match; a losing claim only leaves a stale SQS message.
-  await enqueueTurnTimeout({
-    matchId: match.match_id,
-    state: updatedEngineState,
-    stateVersion: nextVersion
-  });
+  // before claiming the match. We handle scheduling errors gracefully so
+  // matchmaking is never blocked if the scheduler experiences issues.
+  try {
+    await scheduleTurnTimeout({
+      matchId: match.match_id,
+      state: updatedEngineState,
+      stateVersion: nextVersion
+    });
+  } catch (scheduleError) {
+    console.warn("Could not schedule initial turn timeout on match start:", scheduleError);
+  }
 
   try {
     await dynamoDb.send(new UpdateCommand({

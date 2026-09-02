@@ -6,12 +6,13 @@ import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAuthoritativeAction } from "../game/core/authoritativeAction";
 import type { GameAction, GameState, PlayerId } from "../game/types";
-import { enqueueTurnTimeout } from "./turnTimeoutQueue";
+import { scheduleTurnTimeout } from "./turnTimeoutScheduler";
 import { enqueueMatchResult } from "./matchResultQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
 const gameLogsTable = process.env.GAME_LOGS_TABLE || "GameLogs";
+const CLOCK_SKEW_GRACE_MS = 2_000;
 
 type MatchRecord = {
   match_id: string;
@@ -38,7 +39,7 @@ export function turnHasExpired(state: GameState, now = Date.now()): boolean {
     Number.isFinite(state.turnStartTime) &&
     Number.isFinite(state.turnDuration) &&
     state.turnDuration > 0 &&
-    now >= state.turnStartTime + state.turnDuration;
+    now + CLOCK_SKEW_GRACE_MS >= state.turnStartTime + state.turnDuration;
 }
 
 export const handler = async (event: any) => {
@@ -57,7 +58,8 @@ export const handler = async (event: any) => {
     const body = typeof event.body === "string"
       ? JSON.parse(event.body || "{}")
       : (event.body || {});
-    const { matchId, action } = body as { matchId?: string; action?: GameAction };
+    const { matchId, action: requestedAction } = body as { matchId?: string; action?: GameAction };
+    let action = requestedAction;
 
     if (!matchId || !action || typeof action.type !== "string") {
       return { statusCode: 400, body: "Missing matchId or action." };
@@ -89,16 +91,31 @@ export const handler = async (event: any) => {
       return { statusCode: 403, body: "Action player mismatch." };
     }
 
-    if (action.type === "TIME_OUT" || action.type === "RESOLVE_COMBAT") {
-      await sendError(wsClient, connectionId, "This action is processed by the server.");
-      return { statusCode: 400, body: `${action.type} is a server-only action.` };
-    }
+    if (action.type === "TIME_OUT") {
+      if (match.engine_state.priorityPlayerId !== senderPlayerId) {
+        await sendError(wsClient, connectionId, "Only the priority player can time out.");
+        return { statusCode: 409, body: "Only the priority player can time out." };
+      }
+      if (!turnHasExpired(match.engine_state)) {
+        await sendError(wsClient, connectionId, "Turn has not yet expired.");
+        return { statusCode: 409, body: "Turn has not yet expired." };
+      }
 
-    // A late action must not overwrite the timeout transition. Surrender is
-    // intentionally still accepted after the clock expires.
-    if (action.type !== "SURRENDER" && turnHasExpired(match.engine_state)) {
-      await sendError(wsClient, connectionId, "Turn has already timed out.");
-      return { statusCode: 409, body: "Turn has already timed out." };
+      // Never trust the playerId supplied by the browser. The current
+      // authoritative priority is the only valid timeout actor.
+      action = { type: "TIME_OUT", playerId: senderPlayerId };
+    } else {
+      if (action.type === "RESOLVE_COMBAT") {
+        await sendError(wsClient, connectionId, "This action is processed by the server.");
+        return { statusCode: 400, body: `${action.type} is a server-only action.` };
+      }
+
+      // A late action must not overwrite the timeout transition. Surrender is
+      // intentionally still accepted after the clock expires.
+      if (action.type !== "SURRENDER" && turnHasExpired(match.engine_state)) {
+        await sendError(wsClient, connectionId, "Turn has already timed out.");
+        return { statusCode: 409, body: "Turn has already timed out." };
+      }
     }
 
     let nextState: GameState;
@@ -113,7 +130,7 @@ export const handler = async (event: any) => {
     const endReason = nextState.endReason ?? "UNKNOWN_LEGACY";
     const currentVersion = match.state_version ?? 0;
     const nextVersion = currentVersion + 1;
-    const timeoutScheduling = enqueueTurnTimeout({
+    const timeoutScheduling = scheduleTurnTimeout({
       matchId,
       state: nextState,
       stateVersion: nextVersion

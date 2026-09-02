@@ -70,6 +70,7 @@ const socketRooms = new Map<string, string>();
 const roomTimers = new Map<string, NodeJS.Timeout>();
 const disconnectGraceTimers = new Map<string, NodeJS.Timeout>();
 const disconnectGracePeriodMs = 45_000;
+const CLOCK_SKEW_GRACE_MS = 2_000;
 // const onlinePlayers = new Map<string, OnlinePlayer>();
 
 const expressApp = express();
@@ -404,9 +405,25 @@ io.on("connection", (socket) => {
       return;
     }
 
+    let authoritativeAction = action;
+    if (action.type === "TIME_OUT") {
+      if (room.state.priorityPlayerId !== playerId) {
+        replyError(socket, ack, "Only the priority player can time out.");
+        return;
+      }
+      if (!turnHasExpired(room.state)) {
+        replyError(socket, ack, "Turn has not yet expired.");
+        return;
+      }
+      authoritativeAction = { type: "TIME_OUT", playerId };
+    } else if (action.type !== "SURRENDER" && turnHasExpired(room.state)) {
+      replyError(socket, ack, "Turn has already timed out.");
+      return;
+    }
+
     try {
-      room.state = applyAuthoritativeAction(room.state, action);
-      appendActionLog(room, action);
+      room.state = applyAuthoritativeAction(room.state, authoritativeAction);
+      appendActionLog(room, authoritativeAction);
       await settleRoomResult(room);
       ack?.({ ok: true });
       broadcastRoom(room);
@@ -658,9 +675,19 @@ function refreshTimer(room: Room): void {
   }
 
   const playerId = room.state.priorityPlayerId;
+  const turnStartTime = room.state.turnStartTime;
+  const delay = Math.max(
+    0,
+    turnStartTime + room.state.turnDuration - Date.now() + CLOCK_SKEW_GRACE_MS
+  );
   const timer = setTimeout(async () => {
     roomTimers.delete(room.code);
-    if (rooms.get(room.code) !== room || room.state.winnerId) {
+    if (
+      rooms.get(room.code) !== room ||
+      room.state.winnerId ||
+      room.state.priorityPlayerId !== playerId ||
+      room.state.turnStartTime !== turnStartTime
+    ) {
       return;
     }
 
@@ -674,7 +701,7 @@ function refreshTimer(room: Room): void {
       // A player action may have resolved first; either way, preserve a timer for the current state.
       refreshTimer(room);
     }
-  }, room.state.turnDuration + 2_000);
+  }, delay);
   roomTimers.set(room.code, timer);
 }
 
@@ -805,11 +832,20 @@ function canSubmitAction(playerId: PlayerId, action: GameAction) {
     return playerId === "P1";
   }
 
-  if (action.type === "TIME_OUT" || action.type === "RESOLVE_COMBAT") {
+  if (action.type === "RESOLVE_COMBAT") {
     return false;
   }
 
   return true;
+}
+
+function turnHasExpired(state: GameState, now = Date.now()): boolean {
+  return state.started &&
+    !state.winnerId &&
+    Number.isFinite(state.turnStartTime) &&
+    Number.isFinite(state.turnDuration) &&
+    state.turnDuration > 0 &&
+    now + CLOCK_SKEW_GRACE_MS >= state.turnStartTime + state.turnDuration;
 }
 
 function areValidDeveloperResourceUpdates(

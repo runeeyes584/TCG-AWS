@@ -3,14 +3,13 @@ import {
   PostToConnectionCommand
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import type { SQSBatchResponse, SQSEvent, SQSRecord } from "aws-lambda";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAction } from "../game/core/engine";
 import type { GameState, PlayerId } from "../game/types";
 import {
-  enqueueTurnTimeout,
+  scheduleTurnTimeout,
   type TurnTimeoutMessage
-} from "./turnTimeoutQueue";
+} from "./turnTimeoutScheduler";
 import { enqueueMatchResult } from "./matchResultQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
@@ -44,24 +43,36 @@ function isPlayerId(value: unknown): value is PlayerId {
   return value === "P1" || value === "P2";
 }
 
-export function parseTurnTimeoutMessage(record: SQSRecord): TurnTimeoutMessage {
-  const message = JSON.parse(record.body) as Partial<TurnTimeoutMessage>;
-  if (
-    typeof message.matchId !== "string" ||
-    !message.matchId ||
-    !Number.isInteger(message.stateVersion) ||
-    Number(message.stateVersion) < 0 ||
-    !isPlayerId(message.expectedPlayerId) ||
-    !Number.isFinite(message.turnStartTime) ||
-    !Number.isFinite(message.turnDuration) ||
-    Number(message.turnDuration) <= 0 ||
-    !Number.isFinite(message.deadline)
-  ) {
-    throw new Error(`Invalid turn-timeout message ${record.messageId}.`);
+export function normalizeTurnTimeoutMessage(event: any): TurnTimeoutMessage {
+  let payload = event;
+  if (typeof event === "string") {
+    try {
+      payload = JSON.parse(event);
+    } catch {
+      throw new Error("Invalid string payload for turn timeout.");
+    }
+  } else if (event?.detail && typeof event.detail === "object") {
+    payload = event.detail;
   }
 
-  return message as TurnTimeoutMessage;
+  if (
+    typeof payload?.matchId !== "string" ||
+    !payload.matchId ||
+    !Number.isInteger(payload.stateVersion) ||
+    Number(payload.stateVersion) < 0 ||
+    !isPlayerId(payload.expectedPlayerId) ||
+    !Number.isFinite(payload.turnStartTime) ||
+    !Number.isFinite(payload.turnDuration) ||
+    Number(payload.turnDuration) <= 0 ||
+    !Number.isFinite(payload.deadline)
+  ) {
+    throw new Error(`Invalid turn-timeout payload: ${JSON.stringify(event)}`);
+  }
+
+  return payload as TurnTimeoutMessage;
 }
+
+const CLOCK_SKEW_GRACE_MS = 2_000;
 
 export function duePlayer(match: MatchRecord, now = Date.now()): PlayerId | undefined {
   const state = match.engine_state;
@@ -76,7 +87,7 @@ export function duePlayer(match: MatchRecord, now = Date.now()): PlayerId | unde
     return undefined;
   }
 
-  return now >= state.turnStartTime + state.turnDuration
+  return (now + CLOCK_SKEW_GRACE_MS) >= (state.turnStartTime + state.turnDuration)
     ? state.priorityPlayerId
     : undefined;
 }
@@ -182,12 +193,10 @@ async function loadMatch(matchId: string): Promise<MatchRecord | undefined> {
   return response.Item as MatchRecord | undefined;
 }
 
-async function processRecord(record: SQSRecord): Promise<void> {
-  const message = parseTurnTimeoutMessage(record);
+export async function processTimeout(message: TurnTimeoutMessage): Promise<void> {
   const match = await loadMatch(message.matchId);
 
-  // Missing/finished matches and stale turn tokens are successful no-ops. SQS
-  // can safely delete these messages.
+  // Missing/finished matches and stale turn tokens are successful no-ops.
   if (!match || !timeoutMessageMatches(match, message)) return;
 
   const originalState = match.engine_state;
@@ -195,7 +204,7 @@ async function processRecord(record: SQSRecord): Promise<void> {
   if (!playerId) {
     // Defensive clock-skew handling: put the same authoritative turn back with
     // only its remaining delay instead of losing its timeout permanently.
-    await enqueueTurnTimeout({
+    await scheduleTurnTimeout({
       matchId: match.match_id,
       state: originalState,
       stateVersion: match.state_version ?? 0
@@ -209,10 +218,9 @@ async function processRecord(record: SQSRecord): Promise<void> {
   const currentVersion = match.state_version ?? 0;
   const nextVersion = currentVersion + 1;
 
-  // Start scheduling and the conditional state write concurrently. SQS must
-  // never sit on the critical path before this due timeout is committed and
-  // broadcast. A losing CAS only creates a harmless stale timeout token.
-  const timeoutScheduling = enqueueTurnTimeout({
+  // Start scheduling and the conditional state write concurrently.
+  // A losing CAS only creates a harmless stale timeout token.
+  const timeoutScheduling = scheduleTurnTimeout({
     matchId: match.match_id,
     state: nextState,
     stateVersion: nextVersion
@@ -272,7 +280,8 @@ async function processRecord(record: SQSRecord): Promise<void> {
         winnerId: nextState.winnerId,
         reason: endReason
       })
-    : Promise.resolve(false);
+  : Promise.resolve(false);
+
   const results = await Promise.allSettled([
     writeTimeoutLog(match.match_id, playerId, nextState),
     timeoutScheduling,
@@ -283,26 +292,13 @@ async function processRecord(record: SQSRecord): Promise<void> {
   }
 }
 
-export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
-  // Most records in an active match are intentionally stale because every
-  // accepted action creates a new timer token. Process a received batch in
-  // parallel so stale records from many matches cannot form a serial backlog.
-  const outcomes = await Promise.all((event.Records ?? []).map(async (record) => {
-    try {
-      await processRecord(record);
-      return undefined;
-    } catch (error) {
-      console.error("Turn-timeout message failed:", {
-        messageId: record.messageId,
-        error
-      });
-      return { itemIdentifier: record.messageId };
-    }
-  }));
-
-  return {
-    batchItemFailures: outcomes.filter(
-      (failure): failure is { itemIdentifier: string } => Boolean(failure)
-    )
-  };
+export const handler = async (event: any): Promise<{ statusCode: number; body?: string }> => {
+  try {
+    const message = normalizeTurnTimeoutMessage(event);
+    await processTimeout(message);
+    return { statusCode: 200, body: "Success." };
+  } catch (error: any) {
+    console.error("Turn-timeout invocation failed:", { event, error });
+    return { statusCode: 400, body: error?.message || "Turn-timeout failed." };
+  }
 };
