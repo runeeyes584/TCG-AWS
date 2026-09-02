@@ -189,7 +189,7 @@ function OnlinePlayPageContent() {
   };
 
   const startSearch = () => {
-    if (!pendingMatchChecked || pendingMatch) return;
+    if (!pendingMatchChecked || pendingMatch || !controller.socketConnected) return;
     setShowcaseCompleted(false);
     controller.startMatchmaking({
       deckId: selectedDeck.deckId,
@@ -363,7 +363,7 @@ function OnlinePlayPageContent() {
 
         {/* Module 3: Biometric Waveform & Engage CTA */}
         <MatchmakingActionBar
-          disabled={!pendingMatchChecked || Boolean(pendingMatch)}
+          disabled={!pendingMatchChecked || Boolean(pendingMatch) || !controller.socketConnected}
           onStartSearch={startSearch}
           errorText={controller.error}
         />

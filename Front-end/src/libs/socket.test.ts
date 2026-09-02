@@ -78,4 +78,23 @@ describe("API Gateway private-room socket routes", () => {
       matchId: "MATCH-123"
     });
   });
+
+  it("sends public matchmaking through the configured route", () => {
+    socketManager.connect("token", "player");
+    const socket = FakeWebSocket.latest!;
+    socket.open();
+
+    socketManager.startMatchmaking({
+      deckId: "starter",
+      cardIds: ["card-1", "card-2"]
+    });
+
+    expect(JSON.parse(socket.sent[0])).toEqual({
+      route: "matchfinding-start",
+      deckSelection: {
+        deckId: "starter",
+        cardIds: ["card-1", "card-2"]
+      }
+    });
+  });
 });

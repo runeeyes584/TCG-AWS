@@ -25,6 +25,7 @@ export interface SocketGameController extends GameController {
   roomCode?: string;
   localPlayerId?: PlayerId;
   opponentConnected: boolean;
+  socketConnected: boolean;
   status: string;
   error?: string;
   resumeRequired?: {
@@ -57,6 +58,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   const [localPlayerId, setLocalPlayerId] = useState<PlayerId>();
   const [playerProfiles, setPlayerProfiles] = useState<RoomUpdate["players"]>({});
   const [opponentConnected, setOpponentConnected] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string>();
   const [resumeRequired, setResumeRequired] = useState<SocketGameController["resumeRequired"]>();
@@ -78,6 +80,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       setStatus("Login required");
+      setSocketConnected(false);
       setSearching(false);
       setQueueTime(0);
       setError(message);
@@ -117,7 +120,20 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         return;
       }
 
-      socket = socketManager.connect(token, email);
+      try {
+        socket = socketManager.connect(token, email);
+      } catch (connectionError) {
+        if (active) {
+          setSocketConnected(false);
+          setStatus("Connection failed");
+          setError(
+            connectionError instanceof Error
+              ? connectionError.message
+              : "Unable to connect to the game server."
+          );
+        }
+        return;
+      }
 
       const requestResume = () => {
         if (!active || !resumeRoomCode || !socketManager.getSocket()?.connected) return;
@@ -141,6 +157,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
       const onConnect = () => {
         refreshRetried = false;
+        setSocketConnected(true);
         setStatus("Connected");
         setError(undefined);
         // A room code from the URL is an explicit private-room join (or resume).
@@ -169,12 +186,14 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       }
 
       socket.on("disconnect", () => {
-      setStatus("Disconnected");
-      setSearching(false);
-      setQueueTime(0);
+        setSocketConnected(false);
+        setStatus("Disconnected");
+        setSearching(false);
+        setQueueTime(0);
       });
 
       socket.on("connect_error", (connectError: { message?: string }) => {
+        setSocketConnected(false);
         const message = connectError.message || "Unable to connect to the game server.";
         const storedToken = localStorage.getItem("accessToken");
         const tokenNeedsRefresh = !storedToken || accessTokenNeedsRefresh(storedToken);
@@ -476,6 +495,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       localPlayerId,
       playerProfiles,
       opponentConnected,
+      socketConnected,
       status,
       error,
       resumeRequired,
@@ -487,7 +507,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       cancelMatchmaking,
       inGame
     }),
-    [actionLog, error, gameState, localPlayerId, playerProfiles, opponentConnected, roomCode, status, searching, queueTime, inGame, resumeRequired]
+    [actionLog, error, gameState, localPlayerId, playerProfiles, opponentConnected, roomCode, socketConnected, status, searching, queueTime, inGame, resumeRequired]
   );
 
   return controller;
