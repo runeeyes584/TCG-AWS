@@ -57,4 +57,5 @@ export interface RoomUpdate {
   players: Partial<Record<PlayerId, MatchPlayerProfile>>;
   state: GameState;
   log: Array<{ id: number; message: string }>;
+
 }

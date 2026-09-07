@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { applyAction, createInitialGameState } from "../game/core/engine";
-import type { GameState } from "../game/types";
+import { applyAction, createInitialGameState } from "../../game/core/engine";
+import type { GameState } from "../../game/types";
 import {
   handler,
   normalizeTurnTimeoutMessage,
   timeoutMessageMatches,
   type MatchRecord
-} from "./handleTimeout";
-import { buildTurnTimeoutMessage } from "./turnTimeoutScheduler";
+} from "../handleTimeout";
+import { buildTurnTimeoutMessage } from "../turnTimeoutScheduler";
 
 const mocks = vi.hoisted(() => ({
   dynamoSend: vi.fn(),

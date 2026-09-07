@@ -16,7 +16,7 @@ vi.mock("../config/env", () => ({
   }
 }));
 
-import { handler } from "../../src/aws-lambdas/connectHandler";
+import { handler } from "../connectHandler";
 
 describe("connectHandler resume discovery", () => {
   beforeEach(() => {

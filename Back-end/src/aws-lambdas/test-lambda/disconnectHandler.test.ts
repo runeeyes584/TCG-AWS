@@ -1,6 +1,6 @@
 import { DeleteCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createInitialGameState } from "../../src/game/core/engine";
+import { createInitialGameState } from "../../game/core/engine";
 
 const mocks = vi.hoisted(() => ({
   dynamoSend: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock("@aws-sdk/client-apigatewaymanagementapi", () => ({
   PostToConnectionCommand: class { constructor(public input: any) {} }
 }));
 
-import { handler } from "../../src/aws-lambdas/disconnectHandler";
+import { handler } from "../disconnectHandler";
 
 describe("disconnectHandler", () => {
   beforeEach(() => {
