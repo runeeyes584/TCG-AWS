@@ -9017,6 +9017,162 @@ button.card-view.game-card-v2 {
 @keyframes dangerBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes waveformShift { to { transform: translateX(-12px); } }
 
+/* ===== CYBORG VERSUS SHOWCASE ENHANCEMENTS ===== */
+.cyborg-scanlines-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.22) 0px,
+    rgba(0, 0, 0, 0.22) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.75;
+  z-index: 5;
+}
+
+.banner-glow-tag.cyborg-banner {
+  border-color: rgba(0, 240, 255, 0.7);
+  background: rgba(2, 12, 28, 0.9);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.35), inset 0 0 12px rgba(0, 240, 255, 0.15);
+  color: #00f0ff;
+  letter-spacing: 0.24em;
+  font-family: var(--font-mono);
+}
+
+.banner-zap-icon {
+  animation: cyberGlitchPulse 1.2s infinite ease-in-out;
+}
+
+.cyborg-card {
+  position: relative;
+  overflow: visible;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.cyborg-hud-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  border: 2px solid #00f0ff;
+  opacity: 0.85;
+}
+
+.gladiator-right .cyborg-hud-corner {
+  border-color: #ff0055;
+}
+
+.corner-tl { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+.corner-tr { top: -2px; right: -2px; border-left: none; border-bottom: none; }
+.corner-bl { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+.corner-br { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+.cyborg-telemetry-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 4px 10px;
+  border-radius: 2px;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: #72e9ff;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cyborg-telemetry-badge.hostile {
+  background: rgba(255, 0, 85, 0.06);
+  border-color: rgba(255, 0, 85, 0.2);
+  color: #ff7299;
+}
+
+.cyborg-vs-emblem {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border: 2px solid #ffd700;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(94, 70, 10, 0.85), rgba(12, 8, 2, 0.95) 75%);
+  box-shadow: 0 0 35px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 215, 0, 0.25);
+}
+
+.vs-energy-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 215, 0, 0.5);
+  animation: energyRingSpin 8s linear infinite;
+  pointer-events: none;
+}
+
+.cyborg-vs-emblem.is-urgent-glitch {
+  border-color: #ff0055;
+  box-shadow: 0 0 45px rgba(255, 0, 85, 0.7), inset 0 0 20px rgba(255, 0, 85, 0.4);
+  animation: cyberGlitchJitter 0.22s infinite;
+}
+
+.cyborg-vs-emblem.is-urgent-glitch .vs-energy-ring {
+  border-color: #ff0055;
+  animation-duration: 2s;
+}
+
+.clash-subtext.cyborg-subtext {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: #8faecf;
+}
+
+.countdown-dial.is-urgent + .cyborg-subtext {
+  color: #ff3366;
+  text-shadow: 0 0 10px rgba(255, 51, 102, 0.6);
+  animation: dangerBlink 0.4s infinite;
+}
+
+.ready-now-btn.cyborg-engage-btn {
+  font-family: var(--font-mono);
+  padding: 8px 18px;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.08);
+  color: #6ee7ff;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ready-now-btn.cyborg-engage-btn:hover {
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.45);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+@keyframes energyRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cyberGlitchPulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px #00f0ff); }
+  50% { opacity: 0.45; filter: drop-shadow(0 0 2px #00f0ff); }
+}
+
+@keyframes cyberGlitchJitter {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .matchmaking-header { top: 15px; right: 16px; left: 16px; }
