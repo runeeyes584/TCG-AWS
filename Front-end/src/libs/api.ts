@@ -6,8 +6,6 @@ const API_URL = (
     configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "")
 ).replace(/\/$/, "");
 
-console.log("matches.routes loaded");
-
 export interface LoginResponse {
     success: boolean;
     accessToken: string;

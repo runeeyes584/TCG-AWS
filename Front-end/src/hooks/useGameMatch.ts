@@ -261,17 +261,20 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       });
 
       socket.on("room:update", (update: Partial<RoomUpdate> & Pick<RoomUpdate, "playerId" | "state">) => {
-      const nextRoomCode = update.roomCode ?? roomCodeRef.current;
-      roomCodeRef.current = nextRoomCode;
-      setRoomCode(nextRoomCode);
-      setLocalPlayerId(update.playerId);
-      setOpponentConnected(update.opponentConnected ?? true);
-      if (update.players) {
-        setPlayerProfiles((current) => mergePlayerProfiles(current, update.players!));
-      }
-      setGameState(update.state);
-      if (update.log) setActionLog(update.log);
-      setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
+        const nextRoomCode = update.roomCode ?? roomCodeRef.current;
+        roomCodeRef.current = nextRoomCode;
+        setRoomCode(nextRoomCode);
+        setLocalPlayerId(update.playerId);
+        setOpponentConnected(update.opponentConnected ?? true);
+        if (update.players) {
+          setPlayerProfiles((current) => mergePlayerProfiles(current, update.players!));
+        }
+        setGameState(update.state);
+        if (update.log) setActionLog(update.log);
+        if (update.state?.started) {
+          setInGame(true);
+        }
+        setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
       });
 
       socket.on("room:created", (message?: {
@@ -281,22 +284,22 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         opponentConnected?: boolean;
         players?: RoomUpdate["players"];
       }) => {
-      if (!message?.roomCode) {
-        setError("The game server did not return a room code.");
-        return;
-      }
-      roomCodeRef.current = message.roomCode;
-      setRoomCode(message.roomCode);
-      setLocalPlayerId(message.playerId ?? "P1");
-      if (message.state) setGameState(message.state);
-      if (message.players) {
-        setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
-      }
-      setOpponentConnected(message.opponentConnected ?? false);
-      setSearching(false);
-      setQueueTime(0);
-      setInGame(false);
-      setStatus(`Room ${message.roomCode} created. Waiting for opponent`);
+        if (!message?.roomCode) {
+          setError("The game server did not return a room code.");
+          return;
+        }
+        roomCodeRef.current = message.roomCode;
+        setRoomCode(message.roomCode);
+        setLocalPlayerId(message.playerId ?? "P1");
+        if (message.state) setGameState(message.state);
+        if (message.players) {
+          setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
+        }
+        setOpponentConnected(message.opponentConnected ?? false);
+        setSearching(false);
+        setQueueTime(0);
+        setInGame(false);
+        setStatus(`Room ${message.roomCode} created. Waiting for opponent`);
       });
 
       socket.on("matchmaking:searching", (message?: { roomCode?: string }) => {

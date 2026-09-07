@@ -62,7 +62,6 @@ export default function Home() {
   const [pendingMatchChecked, setPendingMatchChecked] = useState(true);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
-  const [customRoomCode, setCustomRoomCode] = useState("");
   const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
   const currentRank = useRealtimeRank(isSignedIn);
   const totalMatches = wins + losses;
@@ -169,17 +168,7 @@ export default function Home() {
   };
 
   const joinCustomMatch = () => {
-    if (!isSignedIn) {
-      router.push("/login");
-      return;
-    }
-
-    const roomCode = customRoomCode.trim().toUpperCase();
-    if (!roomCode) {
-      return;
-    }
-
-    router.push(`/room-join?room=${encodeURIComponent(roomCode)}`);
+    router.push(isSignedIn ? "/room-join" : "/login");
   };
 
   const signOut = () => {
@@ -370,28 +359,7 @@ export default function Home() {
                 <span>{isSignedIn ? "Create room" : "Sign in to create"}</span>
               </button>
 
-              <label className="custom-room-field">
-                <span>Room ID</span>
-                <input
-                  value={customRoomCode}
-                  maxLength={8}
-                  inputMode="text"
-                  autoCapitalize="characters"
-                  placeholder="ABCDE"
-                  onChange={(event) => setCustomRoomCode(event.target.value.toUpperCase())}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      joinCustomMatch();
-                    }
-                  }}
-                />
-              </label>
-
-              <button
-                className="queue-action custom-match-join"
-                onClick={joinCustomMatch}
-                disabled={isSignedIn && customRoomCode.trim().length === 0}
-              >
+              <button className="queue-action custom-match-join" onClick={joinCustomMatch}>
                 <Hash size={19} />
                 <span>{isSignedIn ? "Join room" : "Sign in to join"}</span>
               </button>

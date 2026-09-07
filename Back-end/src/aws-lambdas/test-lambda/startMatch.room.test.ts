@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPublicMatch, normalizeRoomCode } from "../../src/aws-lambdas/startMatch";
+import { isPublicMatch, normalizeRoomCode } from "../startMatch";
 
 describe("private room input", () => {
   it("normalizes a valid room code", () => {

@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../config/dynamodb", () => ({ dynamoDb: { send: mocks.dynamoSend } }));
 vi.mock("../leaderboard/realtime", () => ({ notifyConnections: mocks.notifyConnections }));
 
-import { rebuildLeaderboardRanks } from "./rebuildLeaderboardRanks";
+import { rebuildLeaderboardRanks } from "../rebuildLeaderboardRanks";
 
 describe("rebuildLeaderboardRanks", () => {
   beforeEach(() => {

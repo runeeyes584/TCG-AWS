@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { applyAction, createInitialGameState } from "../game/core/engine";
+import { applyAction, createInitialGameState } from "../../game/core/engine";
 
 const mocks = vi.hoisted(() => ({ schedulerSend: vi.fn() }));
 
@@ -19,7 +19,7 @@ import {
   classifyTurnTimeoutError,
   sanitizeScheduleName,
   scheduleTurnTimeout
-} from "./turnTimeoutScheduler";
+} from "../turnTimeoutScheduler";
 
 function startedState() {
   const state = applyAction(createInitialGameState([], [], 1), {

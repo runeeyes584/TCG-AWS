@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { applyAction, createInitialGameState } from "../game/core/engine";
-import type { GameState } from "../game/types";
+import { applyAction, createInitialGameState } from "../../game/core/engine";
+import type { GameState } from "../../game/types";
 
 const mocks = vi.hoisted(() => ({
   dynamoSend: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock("./matchResultQueue", () => ({
   enqueueMatchResult: mocks.enqueueMatchResult
 }));
 
-import { handler, turnHasExpired } from "./processGameEngine";
+import { handler, turnHasExpired } from "../processGameEngine";
 
 function startedState(turnStartTime: number): GameState {
   const state = applyAction(createInitialGameState([], [], 1), {
