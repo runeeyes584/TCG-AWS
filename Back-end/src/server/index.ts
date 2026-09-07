@@ -557,6 +557,9 @@ function startRoomGame(room: Room, message: string): void {
     Date.now()
   );
   room.state = applyAction(room.state, { type: "START_GAME", firstPlayerId: "P1" });
+  // Offset turn start by 10s so the Cyborg Versus showcase does not consume Turn 1 time
+  const SHOWCASE_PREPARATION_MS = 10_000;
+  room.state.turnStartTime = Date.now() + SHOWCASE_PREPARATION_MS;
   room.log.unshift({ id: Date.now(), message });
   refreshTimer(room);
 }

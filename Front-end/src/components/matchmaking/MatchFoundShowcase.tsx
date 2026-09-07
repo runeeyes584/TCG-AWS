@@ -20,6 +20,70 @@ interface MatchFoundShowcaseProps {
   durationSeconds?: number;
 }
 
+function playCyborgSfx(type: "intro" | "tick" | "urgent" | "warp") {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+
+    if (type === "intro") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(38, now + 0.65);
+      gain.gain.setValueAtTime(0.24, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.75);
+    } else if (type === "tick") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } else if (type === "urgent") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(1150, now);
+      osc.frequency.exponentialRampToValueAtTime(620, now + 0.12);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } else if (type === "warp") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(1500, now + 0.38);
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    }
+  } catch {
+    // Gracefully ignore audio restrictions
+  }
+}
+
 export function MatchFoundShowcase({
   localPlayer,
   opponent,
@@ -35,8 +99,19 @@ export function MatchFoundShowcase({
   const handleComplete = () => {
     if (completedRef.current) return;
     completedRef.current = true;
+    playCyborgSfx("warp");
     onCompleteRef.current();
   };
+
+  // Intro sound & Hardware Fallback Safety Timeout (Zero Deadlock Guarantee)
+  useEffect(() => {
+    playCyborgSfx("intro");
+    const safetyTimer = setTimeout(() => {
+      handleComplete();
+    }, (durationSeconds + 0.35) * 1000);
+
+    return () => clearTimeout(safetyTimer);
+  }, [durationSeconds]);
 
   // Countdown interval (pure state decrement)
   useEffect(() => {
@@ -53,10 +128,14 @@ export function MatchFoundShowcase({
     return () => clearInterval(timer);
   }, []);
 
-  // Safely trigger onComplete outside state reducer when countdown finishes
+  // Safely trigger audio on tick & onComplete outside state reducer when countdown finishes
   useEffect(() => {
     if (timeLeft === 0) {
       handleComplete();
+    } else if (timeLeft <= 2) {
+      playCyborgSfx("urgent");
+    } else {
+      playCyborgSfx("tick");
     }
   }, [timeLeft]);
 
@@ -191,7 +270,7 @@ export function MatchFoundShowcase({
   }, []);
 
   const progressPercent = (timeLeft / durationSeconds) * 100;
-  const isUrgent = timeLeft <= 3;
+  const isUrgent = timeLeft <= 2;
 
   return (
     <motion.div
@@ -199,12 +278,13 @@ export function MatchFoundShowcase({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4 }}
       aria-label="Match Found Showcase"
     >
       {/* Background Phaser Canvas & Atmospheric Glow */}
       <div className="showcase-art-canvas" ref={canvasRef} aria-hidden="true" />
       <div className="showcase-dark-vignette" aria-hidden="true" />
+      <div className="cyborg-scanlines-overlay" aria-hidden="true" />
 
       {/* Top Banner Alert */}
       <motion.div
@@ -213,10 +293,10 @@ export function MatchFoundShowcase({
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
       >
-        <div className="banner-glow-tag">
-          <Zap size={15} />
-          <span>MATCH LOCATED // ADVERSARY ACQUIRED</span>
-          <Zap size={15} />
+        <div className="banner-glow-tag cyborg-banner">
+          <Zap size={15} className="banner-zap-icon" />
+          <span>CYBORG PROTOCOL // NEURAL COMBAT LINK ACTIVE</span>
+          <Zap size={15} className="banner-zap-icon" />
         </div>
       </motion.div>
 
@@ -224,11 +304,16 @@ export function MatchFoundShowcase({
       <div className="showcase-arena">
         {/* Left Side: Local Player (Cyan) */}
         <motion.div
-          className="showcase-gladiator gladiator-left"
-          initial={{ x: -100, opacity: 0 }}
+          className="showcase-gladiator gladiator-left cyborg-card"
+          initial={{ x: -80, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
+          <div className="cyborg-hud-corner corner-tl" aria-hidden="true" />
+          <div className="cyborg-hud-corner corner-tr" aria-hidden="true" />
+          <div className="cyborg-hud-corner corner-bl" aria-hidden="true" />
+          <div className="cyborg-hud-corner corner-br" aria-hidden="true" />
+
           <div className="gladiator-tag">
             <ShieldCheck size={14} />
             <span>OPERATIVE (YOU)</span>
@@ -251,19 +336,26 @@ export function MatchFoundShowcase({
               <Trophy size={14} className="text-gold" />
               <strong>{localPlayer.elo?.toLocaleString() ?? "1,200"} ELO</strong>
             </div>
+
+            <div className="cyborg-telemetry-badge">
+              <span>SYS: ARMED</span>
+              <span>SYNC: 100%</span>
+              <span>LATENCY: 0.12ms</span>
+            </div>
           </div>
         </motion.div>
 
         {/* Center Clash "VS" & 10s Countdown */}
         <motion.div
           className="showcase-center-clash"
-          initial={{ scale: 0.3, opacity: 0 }}
+          initial={{ scale: 0.4, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2, type: "spring", stiffness: 180 }}
+          transition={{ duration: 0.45, delay: 0.1, type: "spring", stiffness: 220 }}
         >
-          <div className="vs-emblem">
+          <div className={`vs-emblem cyborg-vs-emblem ${isUrgent ? "is-urgent-glitch" : ""}`}>
             <Swords size={36} className="vs-swords-icon" />
             <span className="vs-text">VS</span>
+            <div className="vs-energy-ring" aria-hidden="true" />
           </div>
 
           {/* 10s Circular Timer Countdown */}
@@ -285,15 +377,17 @@ export function MatchFoundShowcase({
             </div>
           </div>
 
-          <p className="clash-subtext">
-            {isUrgent ? "COMMENCING ENGAGEMENT..." : "BATTLEFIELD PREPARATION"}
+          <p className="clash-subtext cyborg-subtext">
+            {isUrgent
+              ? "CRITICAL ENGAGEMENT INCOMING // ENTERING ARENA"
+              : "LINK SYNCHRONIZED"}
           </p>
 
           <button
             type="button"
-            className="ready-now-btn"
+            className="ready-now-btn cyborg-engage-btn"
             onClick={handleComplete}
-            aria-label="Skip countdown and start immediately"
+            aria-label="Skip countdown and enter arena immediately"
           >
             ENTER ARENA NOW
           </button>
@@ -301,11 +395,16 @@ export function MatchFoundShowcase({
 
         {/* Right Side: Opponent (Crimson / Violet) */}
         <motion.div
-          className="showcase-gladiator gladiator-right"
-          initial={{ x: 100, opacity: 0 }}
+          className="showcase-gladiator gladiator-right cyborg-card"
+          initial={{ x: 80, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
+          <div className="cyborg-hud-corner corner-tl" aria-hidden="true" />
+          <div className="cyborg-hud-corner corner-tr" aria-hidden="true" />
+          <div className="cyborg-hud-corner corner-bl" aria-hidden="true" />
+          <div className="cyborg-hud-corner corner-br" aria-hidden="true" />
+
           <div className="gladiator-tag hostile-tag">
             <Zap size={14} />
             <span>RIVAL COMBATANT</span>
@@ -327,6 +426,12 @@ export function MatchFoundShowcase({
             <div className="gladiator-stat-pill">
               <Trophy size={14} className="text-gold" />
               <strong>{opponent.elo?.toLocaleString() ?? "1,200"} ELO</strong>
+            </div>
+
+            <div className="cyborg-telemetry-badge hostile">
+              <span>THREAT: S-RANK</span>
+              <span>CORE: ACTIVE</span>
+              <span>OVERCLOCK: 100%</span>
             </div>
           </div>
         </motion.div>

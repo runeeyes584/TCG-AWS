@@ -19,13 +19,19 @@ import { GameBoardView } from "../game/GameBoard";
 import { PhaserSplash } from "./PhaserSplash";
 import { PendingMatchDialog } from "./PendingMatchDialog";
 import { CyberCodeSlotInput } from "../matchmaking/CyberCodeSlotInput";
+import {
+  MatchFoundShowcase,
+  type ShowcasePlayer,
+} from "../matchmaking/MatchFoundShowcase";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import {
   cancelPendingMatchmaking,
   forfeitPendingMatch,
   getPendingMatch,
   listDecks,
+  me,
   type PendingMatch,
+  type PlayerProfile,
 } from "../../libs/api";
 import {
   getDefaultLocalDeck,
@@ -37,6 +43,8 @@ import {
 import {
   getCachedPendingMatch,
   setCachedPendingMatch,
+  getCachedProfile,
+  setCachedProfile,
 } from "../../libs/profileCache";
 
 type PrivateRoomMode = "create" | "join";
@@ -61,6 +69,12 @@ export function PrivateRoomScreen(props: {
   const createRequestedRef = useRef(false);
   const joinRequestedRef = useRef(false);
 
+  const [showcaseCompleted, setShowcaseCompleted] = useState(false);
+  const [profile, setProfile] = useState<PlayerProfile | undefined>(() => {
+    const cached = getCachedProfile();
+    return cached ? (cached as PlayerProfile) : undefined;
+  });
+
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(() => {
     const cached = getCachedPendingMatch();
     return cached ? cached.match : null;
@@ -79,10 +93,8 @@ export function PrivateRoomScreen(props: {
     return decks.find((deck) => deck.deckId === selectedId) ?? decks[0] ?? getDefaultLocalDeck();
   });
   const [leavingRoom, setLeavingRoom] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [readyForBattle, setReadyForBattle] = useState(false);
 
-  // Sync cloud decks silently in background for accurate payload
+  // Sync cloud decks silently in background for accurate payload & cache profile
   useEffect(() => {
     let mounted = true;
     void listDecks()
@@ -93,10 +105,22 @@ export function PrivateRoomScreen(props: {
         setSelectedDeck(selected);
       })
       .catch(() => undefined);
+
+    if (!profile) {
+      void me()
+        .then(({ user }) => {
+          if (mounted && user) {
+            setProfile(user);
+            setCachedProfile(user);
+          }
+        })
+        .catch(() => undefined);
+    }
+
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [profile]);
 
   // Check pending match
   useEffect(() => {
@@ -134,8 +158,6 @@ export function PrivateRoomScreen(props: {
     if (controller.error) {
       createRequestedRef.current = false;
       joinRequestedRef.current = false;
-      setIsTransitioning(false);
-      setReadyForBattle(false);
     }
   }, [controller.error]);
 
@@ -172,38 +194,65 @@ export function PrivateRoomScreen(props: {
     });
   }, [controller.status, pendingMatch, props.mode, selectedDeck, initialValidCode]);
 
-  const matchHasStarted = Boolean(
+  // Once in game, render 5-second Cyborg Versus showcase first, then game board
+  if (
     (controller.inGame || Boolean(controller.gameState.started) || Boolean(controller.gameState.winnerId)) &&
     controller.roomCode &&
     controller.localPlayerId
-  );
+  ) {
+    const localId = controller.localPlayerId;
+    const oppId = localId === "P1" ? "P2" : "P1";
+    const isNewGame =
+      !controller.gameState.winnerId &&
+      (controller.gameState.turn ?? 1) <= 1 &&
+      (controller.gameState.round ?? 1) <= 1;
 
-  useEffect(() => {
-    if (!matchHasStarted) return;
-    // Fast path: if resuming existing match (turn > 1 or winner already decided), mount immediately
-    if (controller.gameState.winnerId || (controller.gameState.turn && controller.gameState.turn > 1)) {
-      setReadyForBattle(true);
-      return;
-    }
-    // Cinematic buffer: show transition animation for 950ms before mounting GameBoardView
-    if (!readyForBattle && !isTransitioning) {
-      setIsTransitioning(true);
-      const timer = window.setTimeout(() => {
-        setReadyForBattle(true);
-      }, 950);
-      return () => window.clearTimeout(timer);
-    }
-  }, [matchHasStarted, readyForBattle, isTransitioning, controller.gameState.winnerId, controller.gameState.turn]);
+    if (!showcaseCompleted && isNewGame) {
+      const localProfile = controller.playerProfiles?.[localId];
+      const oppProfile = controller.playerProfiles?.[oppId];
 
-  // Once in game and transition complete, render game board
-  if (matchHasStarted && readyForBattle && controller.localPlayerId) {
+      const localShowcase: ShowcasePlayer = {
+        username:
+          localProfile?.username ??
+          profile?.username ??
+          (localId === "P1" ? "Host Operative" : "Guest Operative"),
+        avatar: localProfile?.avatar ?? profile?.avatar,
+        elo: localProfile?.elo ?? profile?.elo ?? 1200,
+        title: "Prism Vanguard",
+      };
+
+      const oppShowcase: ShowcasePlayer = {
+        username:
+          oppProfile?.username ?? (localId === "P1" ? "Guest Operative" : "Host Operative"),
+        avatar: oppProfile?.avatar,
+        elo: oppProfile?.elo ?? (profile?.elo ? profile.elo + 25 : 1225),
+        title: "Nexus Contender",
+      };
+
+      return (
+        <MatchFoundShowcase
+          localPlayer={localShowcase}
+          opponent={oppShowcase}
+          onComplete={() => setShowcaseCompleted(true)}
+          durationSeconds={5}
+        />
+      );
+    }
+
     return (
-      <GameBoardView
-        controller={controller}
-        localPlayerId={controller.localPlayerId}
-        opponentConnected={controller.opponentConnected}
-        connectionStatus={`${controller.status} · Room ${controller.roomCode}`}
-      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
+        style={{ width: "100%", height: "100%" }}
+      >
+        <GameBoardView
+          controller={controller}
+          localPlayerId={controller.localPlayerId}
+          opponentConnected={controller.opponentConnected}
+          connectionStatus={`${controller.status} · Room ${controller.roomCode}`}
+        />
+      </motion.div>
     );
   }
 
@@ -487,15 +536,10 @@ export function PrivateRoomScreen(props: {
                   }
                 }}
                 onComplete={handleCodeAutoJoin}
-                disabled={Boolean(controller.roomCode) || isTransitioning}
+                disabled={Boolean(controller.roomCode)}
                 hasError={Boolean(controller.error)}
                 errorMessage={controller.error}
-                isJoined={Boolean(controller.roomCode) || isTransitioning}
-                statusText={
-                  isTransitioning
-                    ? "FREQUENCY SYNCHRONIZED // ENGAGING COMBAT ARENA..."
-                    : undefined
-                }
+                isJoined={Boolean(controller.roomCode)}
               />
 
               {pendingMatchError ? (
@@ -510,7 +554,7 @@ export function PrivateRoomScreen(props: {
                   type="button"
                   className="btn-cyber-action btn-leave-room"
                   onClick={leaveRoom}
-                  disabled={leavingRoom || isTransitioning}
+                  disabled={leavingRoom}
                   style={{ width: "100%" }}
                 >
                   <ArrowLeft size={16} />
