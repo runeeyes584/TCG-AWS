@@ -2,22 +2,22 @@
 
 import { useEffect, useRef } from "react";
 import type Phaser from "phaser";
-import aoi from "../../assets/heros/aoi.png";
+import tribe from "../../assets/heros/tribe.png";
 import eldlich from "../../assets/heros/eldlich.png";
-import gaia from "../../assets/heros/gaia.png";
-import laevan from "../../assets/heros/laevan.png";
-import raye from "../../assets/heros/raye.png";
-import varesa from "../../assets/heros/varesa.png";
+import evoEldlich from "../../assets/heros/evo-eldlich.png";
+import evoTribe from "../../assets/heros/evo-tribe.png";
+import evoRaye from "../../assets/heros/evo-raye.png";
+import evoVaresa from "../../assets/heros/evo-varesa.png";
 import catUIA from "../../assets/catMeme/cat-UIA.png";
 import catSigma from "../../assets/catMeme/cat-sigma.jpeg";
 
 const splashes = [
-  { key: "gaia", src: gaia.src },
-  { key: "aoi", src: aoi.src },
+  { key: "tribe", src: tribe.src },
+  { key: "evoEldlich", src: evoEldlich.src },
   { key: "eldlich", src: eldlich.src },
-  { key: "laevan", src: laevan.src },
-  { key: "raye", src: raye.src },
-  { key: "varesa", src: varesa.src },
+  { key: "evoTribe", src: evoTribe.src },
+  { key: "evoRaye", src: evoRaye.src },
+  { key: "evoVaresa", src: evoVaresa.src },
   { key: "cat-uia", src: catUIA.src },
   { key: "cat-sigma", src: catSigma.src },
 ];
@@ -362,7 +362,7 @@ export function PhaserSplash() {
       }
 
       game = new PhaserRuntime.Game({
-        type: PhaserRuntime.CANVAS,
+        type: PhaserRuntime.WEBGL,
         parent: hostRef.current,
         transparent: true,
         backgroundColor: "rgba(0,0,0,0)",
@@ -373,6 +373,7 @@ export function PhaserSplash() {
           height: hostRef.current.clientHeight,
         },
         render: { antialias: true, pixelArt: false },
+        fps: { target: 45, min: 20 },
         audio: { noAudio: true },
       });
     }).catch(() => undefined);
