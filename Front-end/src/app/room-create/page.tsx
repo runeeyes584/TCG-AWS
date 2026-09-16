@@ -3,7 +3,7 @@ import { AuthGuard } from "../../components/lobby/AuthGuard";
 
 export default function CreateRoomPage() {
   return (
-    <AuthGuard>
+    <AuthGuard animatedBackdrop={false}>
       <PrivateRoomScreen mode="create" />
     </AuthGuard>
   );
