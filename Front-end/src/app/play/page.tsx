@@ -5,7 +5,6 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  Headphones,
   Radio,
   Volume2,
   VolumeX,
@@ -25,11 +24,10 @@ import {
 } from "../../components/matchmaking/MatchFoundShowcase";
 import { useGameMatch } from "../../hooks/useGameMatch";
 import { useLocalGame } from "../../hooks/useLocalGame";
-import { useLoopingAudio } from "../../hooks/useLoopingAudio";
+import { useGlobalAudio } from "../../contexts/AudioContext";
 import {
   forfeitPendingMatch,
   getPendingMatch,
-  me,
   type PendingMatch,
   type PlayerProfile,
 } from "../../libs/api";
@@ -43,18 +41,15 @@ import {
   getCachedPendingMatch,
   setCachedPendingMatch,
   getCachedProfile,
-  setCachedProfile,
 } from "../../libs/profileCache";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 
 function OnlinePlayPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { settings, toggleMusicMute, playBgm, playSfx } = useGlobalAudio();
+  const isMuted = settings.masterMuted || settings.musicMuted;
   const requestedRoomCode = searchParams.get("room") ?? undefined;
-  // Keep the resume decision stable for this page session. Next.js integrates
-  // native history.replaceState with the App Router, so reading `resume` from
-  // searchParams directly would turn it off when the URL is cleaned up after
-  // recovery and mount the match-found showcase again.
   const [isResumeSession] = useState(() => searchParams.get("resume") === "1");
   const resumeRoomCode = isResumeSession ? requestedRoomCode : undefined;
   const controller = useGameMatch(resumeRoomCode);
@@ -85,7 +80,12 @@ function OnlinePlayPageContent() {
 
   const matchReady =
     controller.inGame || Boolean(controller.roomCode && controller.localPlayerId);
-  const { muted, toggleMuted } = useLoopingAudio("/audio/play-page.mp3", 0.3, !matchReady);
+
+  useEffect(() => {
+    if (!matchReady) {
+      playBgm("/audio/play-page.mp3");
+    }
+  }, [matchReady, playBgm]);
 
   useEffect(() => {
     if (!controller.resumeRequired) return;
@@ -115,30 +115,6 @@ function OnlinePlayPageContent() {
     if (!isResumeSession || !controller.roomCode || !controller.localPlayerId) return;
     window.history.replaceState(null, "", "/play");
   }, [controller.localPlayerId, controller.roomCode, isResumeSession]);
-
-  useEffect(() => {
-    void me()
-      .then(({ user }) => {
-        if (user) {
-          setProfile((prev) => {
-            if (
-              prev &&
-              prev.id === user.id &&
-              prev.username === user.username &&
-              prev.avatar === user.avatar &&
-              prev.elo === user.elo &&
-              prev.wins === user.wins &&
-              prev.losses === user.losses
-            ) {
-              return prev;
-            }
-            return user;
-          });
-          setCachedProfile(user);
-        }
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (isResumeSession) return;
@@ -209,7 +185,8 @@ function OnlinePlayPageContent() {
   };
 
   const toggleMusic = () => {
-    toggleMuted();
+    playSfx("click");
+    toggleMusicMute();
   };
 
   // A resumed match goes straight to the board; the showcase belongs only to
@@ -321,10 +298,10 @@ function OnlinePlayPageContent() {
           type="button"
           className="matchmaking-audio"
           onClick={toggleMusic}
-          aria-label={muted ? "Enable matchmaking music" : "Mute matchmaking music"}
-          title={muted ? "Enable music" : "Mute music"}
+          aria-label={isMuted ? "Enable matchmaking music" : "Mute matchmaking music"}
+          title={isMuted ? "Enable music" : "Mute music"}
         >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
       </header>
 
@@ -383,8 +360,7 @@ function OnlinePlayPageContent() {
             onForfeit={abandonPendingMatch}
           />
         ) : null}
-
-        </section>
+      </section>
 
       {/* Abyssal Searching Overlay (Wildness & Mystery Vortex) */}
       <AnimatePresence>
@@ -514,7 +490,7 @@ export default function PlayPage() {
         </div>
       }
     >
-      <AuthGuard>
+      <AuthGuard animatedBackdrop={false}>
         <PlayPageContent />
       </AuthGuard>
     </Suspense>

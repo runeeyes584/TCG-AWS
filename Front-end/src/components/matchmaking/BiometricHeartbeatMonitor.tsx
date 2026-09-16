@@ -13,6 +13,9 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
   className = "",
 }: BiometricHeartbeatMonitorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDangerRef = useRef(isDanger);
+  isDangerRef.current = isDanger; // Immediate sync on every render
+
   const [bpm, setBpm] = useState(80);
 
   useEffect(() => {
@@ -26,6 +29,13 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
     let cssWidth = canvas.parentElement?.clientWidth || 280;
     let cssHeight = 22;
 
+    // Continuous points buffer (size = cssWidth) - PERSISTENT, NEVER CLEARED
+    const targetLen = Math.max(10, Math.ceil(cssWidth));
+    const points: number[] = new Array(targetLen).fill(cssHeight / 2);
+    let sampleQueue: number[] = [];
+    let restSamplesRemaining = 24;
+    let prevDanger = isDangerRef.current;
+
     function resizeCanvas() {
       if (!canvas || !canvas.parentElement) return;
       dpr = window.devicePixelRatio || 1;
@@ -35,25 +45,28 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
       canvas.height = Math.floor(cssHeight * dpr);
       canvas.style.width = `${cssWidth}px`;
       canvas.style.height = `${cssHeight}px`;
+
+      const newLen = Math.max(10, Math.ceil(cssWidth));
+      while (points.length < newLen) {
+        points.unshift(cssHeight / 2);
+      }
+      while (points.length > newLen) {
+        points.shift();
+      }
     }
 
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // Continuous points buffer (size = cssWidth)
-    const points: number[] = new Array(Math.ceil(cssWidth)).fill(cssHeight / 2);
-    let sampleQueue: number[] = [];
-    let restSamplesRemaining = 30;
-
     // Biological P-Q-R-S-T pulse builder
     function generateNextBeat(danger: boolean) {
-      const amp = (danger ? 1.05 : 0.9) * (0.88 + Math.random() * 0.24); // Biological amplitude variance (±12%)
-      
+      const amp = (danger ? 1.08 : 0.9) * (0.88 + Math.random() * 0.24);
+
       // Multi-sample smooth physiological curve
       const pWave = [0.3, 0.9, 1.8, 2.2, 1.8, 0.9, 0.3].map((v) => v * amp);
       const prSeg = [0, 0, -0.2];
       const qWave = [-0.8, -1.8].map((v) => v * amp);
-      const rPeak = [2.2, 7.8, 6.2, 1.2].map((v) => v * amp); // Clamped apex spike (stays within bounds)
+      const rPeak = [2.2, 7.8, 6.2, 1.2].map((v) => v * amp);
       const sWave = [-2.2, -4.2, -1.8].map((v) => v * amp);
       const stSeg = [0, 0.2, 0];
       const tWave = [0.4, 1.1, 2.0, 2.8, 3.2, 3.2, 2.8, 2.0, 1.1, 0.4].map((v) => v * amp);
@@ -62,54 +75,71 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
       return [...pWave, ...prSeg, ...qWave, ...rPeak, ...sWave, ...stSeg, ...tWave, ...uWave];
     }
 
-    // Dynamic BPM calculation based on beat interval
     let lastBeatTimestamp = performance.now();
     const bpmHistory: number[] = [80];
 
-    function updateBpm(intervalMs: number) {
+    function updateBpm(intervalMs: number, danger: boolean) {
       if (intervalMs <= 0) return;
-      const rawBpm = Math.round((60000 / intervalMs));
-      const clampedBpm = isDanger 
-        ? Math.max(130, Math.min(160, rawBpm)) 
-        : Math.max(70, Math.min(92, rawBpm));
-      
+      const rawBpm = Math.round(60000 / intervalMs);
+      const clampedBpm = danger
+        ? Math.max(135, Math.min(160, rawBpm))
+        : Math.max(72, Math.min(90, rawBpm));
+
       bpmHistory.push(clampedBpm);
       if (bpmHistory.length > 3) bpmHistory.shift();
       const avgBpm = Math.round(bpmHistory.reduce((a, b) => a + b, 0) / bpmHistory.length);
       setBpm(avgBpm);
     }
 
+    // Fractional speed accumulator for seamless variable-speed scrolling
+    let speedAccumulator = 0;
+
     function render() {
       if (!ctx || !canvas) return;
 
+      const danger = isDangerRef.current;
       const midY = cssHeight / 2;
 
-      // Advance sample queue
-      if (sampleQueue.length > 0) {
-        const delta = sampleQueue.shift()!;
-        const noise = (Math.random() - 0.5) * 0.35; // Fine biological micro-jitter
-        // Clamping safe bounds: Never touch top or bottom border
-        const safeY = Math.max(2.5, Math.min(cssHeight - 2.5, midY - (delta + noise)));
-        points.shift();
-        points.push(safeY);
-      } else {
-        restSamplesRemaining -= 1;
-        const noise = (Math.random() - 0.5) * 0.4;
-        const baselineY = midY + noise;
-        points.shift();
-        points.push(baselineY);
+      // On hover transition: if entering danger, shorten current rest so elevated pulse responds quickly
+      if (danger && !prevDanger) {
+        if (restSamplesRemaining > 14) {
+          restSamplesRemaining = 14;
+        }
+      }
+      prevDanger = danger;
 
-        if (restSamplesRemaining <= 0) {
-          sampleQueue = generateNextBeat(isDanger);
-          // Heart Rate Variability: interval between beats
-          restSamplesRemaining = isDanger 
-            ? Math.floor(20 + Math.random() * 14) 
-            : Math.floor(48 + Math.random() * 26);
+      // Speed: exactly 1.0 sample/frame normally, 2.8 samples/frame when hovering (accelerated scan)
+      const speed = danger ? 2.6 : 1.0;
+      speedAccumulator += speed;
+      const steps = Math.floor(speedAccumulator);
+      speedAccumulator -= steps;
 
-          const now = performance.now();
-          const beatDuration = now - lastBeatTimestamp;
-          lastBeatTimestamp = now;
-          updateBpm(beatDuration);
+      for (let s = 0; s < steps; s += 1) {
+        if (sampleQueue.length > 0) {
+          const delta = sampleQueue.shift()!;
+          const noise = (Math.random() - 0.5) * 0.35;
+          const safeY = Math.max(2.5, Math.min(cssHeight - 2.5, midY - (delta + noise)));
+          points.shift();
+          points.push(safeY);
+        } else {
+          restSamplesRemaining -= 1;
+          const noise = (Math.random() - 0.5) * 0.4;
+          const baselineY = midY + noise;
+          points.shift();
+          points.push(baselineY);
+
+          if (restSamplesRemaining <= 0) {
+            sampleQueue = generateNextBeat(danger);
+            // Heart Rate Variability: interval between beats (tighter intervals in danger mode)
+            restSamplesRemaining = danger
+              ? Math.floor(14 + Math.random() * 8)
+              : Math.floor(48 + Math.random() * 26);
+
+            const now = performance.now();
+            const beatDuration = now - lastBeatTimestamp;
+            lastBeatTimestamp = now;
+            updateBpm(beatDuration, danger);
+          }
         }
       }
 
@@ -118,11 +148,12 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, cssWidth, cssHeight);
 
-      const primaryColor = isDanger ? "#ff0044" : "#00f0ff";
-      const glowColor = isDanger ? "rgba(255, 0, 68, 0.55)" : "rgba(0, 240, 255, 0.4)";
-      const gridColor = isDanger ? "rgba(255, 0, 68, 0.06)" : "rgba(0, 240, 255, 0.05)";
+      // Deep, muted red for danger, cyan for stable
+      const primaryColor = danger ? "#c44155" : "#00f0ff";
+      const glowColor = danger ? "rgba(196, 65, 85, 0.45)" : "rgba(0, 240, 255, 0.4)";
+      const gridColor = danger ? "rgba(196, 65, 85, 0.08)" : "rgba(0, 240, 255, 0.05)";
 
-      // 1. Micro ECG Grid Lines (Modern, minimalist, subtle 16px grid)
+      // 1. Micro ECG Grid Lines
       ctx.strokeStyle = gridColor;
       ctx.lineWidth = 0.8;
       ctx.beginPath();
@@ -137,10 +168,10 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
       ctx.stroke();
 
       // 2. High-Precision ECG Waveform Line
-      ctx.shadowBlur = isDanger ? 8 : 5;
+      ctx.shadowBlur = danger ? 7 : 5;
       ctx.shadowColor = glowColor;
       ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = isDanger ? 1.25 : 1.05;
+      ctx.lineWidth = danger ? 1.25 : 1.05;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
@@ -155,11 +186,11 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
 
       // 3. Leading Cursor Dot at the rightmost scanning edge
       const latestY = points[points.length - 1] || midY;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.shadowColor = primaryColor;
-      ctx.fillStyle = isDanger ? "#fff" : "#99f7ff";
+      ctx.fillStyle = danger ? "#ffd6dc" : "#99f7ff";
       ctx.beginPath();
-      ctx.arc(cssWidth - 2, latestY, isDanger ? 2.2 : 1.8, 0, Math.PI * 2);
+      ctx.arc(cssWidth - 2, latestY, danger ? 2.0 : 1.8, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
@@ -173,7 +204,7 @@ export const BiometricHeartbeatMonitor = memo(function BiometricHeartbeatMonitor
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", resizeCanvas);
     };
-  }, [isDanger]);
+  }, []); // Animation loop runs once on mount, points buffer is NEVER reset!
 
   return (
     <div className={`biometric-heartbeat-wrap ${isDanger ? "is-danger-state" : ""} ${className}`}>

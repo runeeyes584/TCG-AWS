@@ -94,7 +94,7 @@ export function PrivateRoomScreen(props: {
   });
   const [leavingRoom, setLeavingRoom] = useState(false);
 
-  // Sync cloud decks silently in background for accurate payload & cache profile
+  // Sync cloud decks once in the background for accurate create/join payloads.
   useEffect(() => {
     let mounted = true;
     void listDecks()
@@ -106,16 +106,24 @@ export function PrivateRoomScreen(props: {
       })
       .catch(() => undefined);
 
-    if (!profile) {
-      void me()
-        .then(({ user }) => {
-          if (mounted && user) {
-            setProfile(user);
-            setCachedProfile(user);
-          }
-        })
-        .catch(() => undefined);
-    }
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // AuthGuard hydrates the profile cache before this screen mounts. Only
+  // request the profile here when a direct mount has no cached profile.
+  useEffect(() => {
+    if (profile) return;
+    let mounted = true;
+    void me()
+      .then(({ user }) => {
+        if (mounted && user) {
+          setProfile(user);
+          setCachedProfile(user);
+        }
+      })
+      .catch(() => undefined);
 
     return () => {
       mounted = false;

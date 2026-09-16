@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -16,10 +16,11 @@ import {
   Swords,
   Trophy,
   Volume2,
-  VolumeX,
-  Zap,
-  History
+  Settings,
+  History,
+  Zap
 } from "lucide-react";
+
 import {
   forfeitPendingMatch,
   getPendingMatch,
@@ -32,7 +33,9 @@ import { PhaserSplash } from "../components/lobby/PhaserSplash";
 import { UserProfilePhaserEffects } from "../components/user/UserProfilePhaserEffects";
 import { PendingMatchDialog } from "../components/lobby/PendingMatchDialog";
 import { DeckSelectionPanel } from "../components/deck/DeckSelectionPanel";
-import { useLoopingAudio } from "../hooks/useLoopingAudio";
+import { useGlobalAudio } from "../contexts/AudioContext";
+import { GlobalSoundModal } from "../components/audio/GlobalSoundModal";
+import { SignOutConfirmDialog } from "../components/lobby/SignOutConfirmDialog";
 import { useRealtimeRank } from "../hooks/useRealtimeRank";
 
 type LobbyTab = "duel" | "deck" | "collection" | "custom" | "trial" | "rank global" | "history";
@@ -62,11 +65,45 @@ export default function Home() {
   const [pendingMatchChecked, setPendingMatchChecked] = useState(true);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
-  const { muted, toggleMuted } = useLoopingAudio("/audio/lobbybgm.mp3", 0.3);
+
+  // Global Audio & Modals
+  const { playBgm, playSfx } = useGlobalAudio();
+  const [isGearMenuOpen, setIsGearMenuOpen] = useState(false);
+  const [isSoundModalOpen, setIsSoundModalOpen] = useState(false);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const gearMenuRef = useRef<HTMLDivElement | null>(null);
+
   const currentRank = useRealtimeRank(isSignedIn);
   const totalMatches = wins + losses;
   const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
   const powerLevel = Math.min(100, Math.max(10, Math.round((elo / 2200) * 100)));
+
+  // Play Lobby BGM on mount
+  useEffect(() => {
+    playBgm("/audio/lobbybgm.mp3");
+  }, [playBgm]);
+
+  // Click outside / ESC listener for Gear Dropdown
+  useEffect(() => {
+    if (!isGearMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (gearMenuRef.current && !gearMenuRef.current.contains(e.target as Node)) {
+        setIsGearMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsGearMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isGearMenuOpen]);
 
   useEffect(() => {
     const cached = getCachedProfile();
@@ -156,22 +193,30 @@ export default function Home() {
   }, []);
 
   const startDuel = () => {
+    playSfx("click");
     router.push(isSignedIn ? "/play" : "/login");
   };
 
   const createCustomMatch = () => {
+    playSfx("click");
     router.push(isSignedIn ? "/room-create" : "/login");
   };
 
   const startTrial = () => {
+    playSfx("click");
     router.push("/play?trial=1");
   };
 
   const joinCustomMatch = () => {
+    playSfx("click");
     router.push(isSignedIn ? "/room-join" : "/login");
   };
 
-  const signOut = () => {
+  const handleConfirmSignOut = () => {
+    setIsSigningOut(true);
+    window.localStorage.removeItem("accessToken");
+    window.localStorage.removeItem("refreshToken");
+    window.localStorage.removeItem("email");
     clearCachedProfile();
     setIsSignedIn(false);
     setPlayerName("Guest Operative");
@@ -180,6 +225,9 @@ export default function Home() {
     setEmail("guest@kaleidoscope.local");
     setWins(0);
     setLosses(0);
+    setIsSigningOut(false);
+    setIsSignOutModalOpen(false);
+    router.push("/login");
   };
 
   const resumePendingMatch = () => {
@@ -232,14 +280,88 @@ export default function Home() {
             <Trophy size={18} aria-hidden="true" />
             <span><small>ELO</small><strong>{elo.toLocaleString()}</strong></span>
           </div>
-          <button className="lobby-icon-button" title={muted ? "Enable lobby music" : "Mute lobby music"} aria-label={muted ? "Enable lobby music" : "Mute lobby music"} onClick={toggleMuted}>
-            {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
-          </button>
-          {isSignedIn ? (
-            <button className="lobby-icon-button" title="Sign out" aria-label="Sign out" onClick={signOut}><LogOut size={19} /></button>
-          ) : (
-            <button className="lobby-menu-button" onClick={() => router.push("/login")}><Menu size={18} /> Sign in</button>
-          )}
+
+          {/* System Options Gear Button & Cyber Dropdown */}
+          <div className="relative" ref={gearMenuRef}>
+            <button
+              className={`lobby-icon-button lobby-gear-btn ${isGearMenuOpen ? "is-active" : ""}`}
+              title="System Options"
+              aria-label="System Options"
+              aria-expanded={isGearMenuOpen}
+              onClick={() => {
+                playSfx("click");
+                setIsGearMenuOpen((prev) => !prev);
+              }}
+            >
+              <Settings size={19} className={isGearMenuOpen ? "animate-spin-slow text-cyan-400" : ""} />
+            </button>
+
+            {isGearMenuOpen && (
+              <div className="lobby-dropdown-menu" role="menu">
+                <div className="lobby-dropdown-header">
+                  <span>SYSTEM MATRIX</span>
+                </div>
+
+                <button
+                  className="lobby-dropdown-item"
+                  role="menuitem"
+                  onClick={() => {
+                    playSfx("click");
+                    setIsGearMenuOpen(false);
+                    setIsSoundModalOpen(true);
+                  }}
+                >
+                  <div className="lobby-dropdown-item__icon">
+                    <Volume2 size={16} />
+                  </div>
+                  <div className="lobby-dropdown-item__text">
+                    <strong>Sound Settings</strong>
+                    <small>Master, BGM & SFX</small>
+                  </div>
+                </button>
+
+                <div className="lobby-dropdown-divider" />
+
+                {isSignedIn ? (
+                  <button
+                    className="lobby-dropdown-item lobby-dropdown-item--danger"
+                    role="menuitem"
+                    onClick={() => {
+                      playSfx("click");
+                      setIsGearMenuOpen(false);
+                      setIsSignOutModalOpen(true);
+                    }}
+                  >
+                    <div className="lobby-dropdown-item__icon">
+                      <LogOut size={16} />
+                    </div>
+                    <div className="lobby-dropdown-item__text">
+                      <strong>Sign Out</strong>
+                      <small>Disconnect uplink</small>
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    className="lobby-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      playSfx("click");
+                      setIsGearMenuOpen(false);
+                      router.push("/login");
+                    }}
+                  >
+                    <div className="lobby-dropdown-item__icon">
+                      <Menu size={16} />
+                    </div>
+                    <div className="lobby-dropdown-item__text">
+                      <strong>Sign In</strong>
+                      <small>Connect operative</small>
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -248,10 +370,14 @@ export default function Home() {
         aria-label={`View ${playerName}'s player profile`}
         role="link"
         tabIndex={0}
-        onClick={() => router.push("/user")}
+        onClick={() => {
+          playSfx("click");
+          router.push("/user");
+        }}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
+            playSfx("click");
             router.push("/user");
           }
         }}
@@ -303,6 +429,7 @@ export default function Home() {
             key={id}
             className={`lobby-nav__item ${activeTab === id ? "is-active" : ""}`}
             onClick={() => {
+              playSfx("click");
               if (id === "deck") {
                 router.push("/deck-builder");
                 return;
@@ -387,7 +514,7 @@ export default function Home() {
             <p className="lobby-eyebrow">Arsenal</p>
             <h1>{activeTab === "deck" ? "Build your\nDeck" : "Your Card\nCollection"}</h1>
             <p className="lobby-lede">The arena is ready. Deck construction and collection management will join this command station next.</p>
-            <button className="queue-action queue-action--small" onClick={() => setActiveTab("duel")}><Swords size={18} /> Go to Duel</button>
+            <button className="queue-action queue-action--small" onClick={() => { playSfx("click"); setActiveTab("duel"); }}><Swords size={18} /> Go to Duel</button>
           </div>
         )}
       </section>
@@ -403,6 +530,20 @@ export default function Home() {
 
       {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
       {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
+
+      {/* Global Sound Matrix Modal */}
+      <GlobalSoundModal
+        isOpen={isSoundModalOpen}
+        onClose={() => setIsSoundModalOpen(false)}
+      />
+
+      {/* Sign Out Confirmation Dialog */}
+      <SignOutConfirmDialog
+        isOpen={isSignOutModalOpen}
+        onCancel={() => setIsSignOutModalOpen(false)}
+        onConfirm={handleConfirmSignOut}
+        isSubmitting={isSigningOut}
+      />
     </main>
   );
 }

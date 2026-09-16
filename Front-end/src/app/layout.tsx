@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Cinzel, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { GlobalAudioProvider } from "../contexts/AudioContext";
+
 
 const cinzel = Cinzel({
   subsets: ['latin'],
@@ -30,7 +32,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${cinzel.variable} ${geistSans.variable} ${geistMono.variable} bg-background`}>
-      <body className="antialiased" suppressHydrationWarning>{children}</body>
+      <body className="antialiased" suppressHydrationWarning>
+        <GlobalAudioProvider>{children}</GlobalAudioProvider>
+      </body>
     </html>
   );
 }
+

@@ -2,25 +2,21 @@
 
 import { useEffect, useRef } from "react";
 import type Phaser from "phaser";
-import tribe from "../../assets/heros/tribe.png";
-import eldlich from "../../assets/heros/eldlich.png";
-import evoEldlich from "../../assets/heros/evo-eldlich.png";
-import evoTribe from "../../assets/heros/evo-tribe.png";
-import evoRaye from "../../assets/heros/evo-raye.png";
-import evoVaresa from "../../assets/heros/evo-varesa.png";
-import catUIA from "../../assets/catMeme/cat-UIA.png";
-import catSigma from "../../assets/catMeme/cat-sigma.jpeg";
 
 const splashes = [
-  { key: "tribe", src: tribe.src },
-  { key: "evoEldlich", src: evoEldlich.src },
-  { key: "eldlich", src: eldlich.src },
-  { key: "evoTribe", src: evoTribe.src },
-  { key: "evoRaye", src: evoRaye.src },
-  { key: "evoVaresa", src: evoVaresa.src },
-  { key: "cat-uia", src: catUIA.src },
-  { key: "cat-sigma", src: catSigma.src },
+  { key: "tribe", src: "/splash/tribe.webp" },
+  { key: "evoEldlich", src: "/splash/evo-eldlich.webp" },
+  { key: "eldlich", src: "/splash/eldlich.webp" },
+  { key: "evoTribe", src: "/splash/evo-tribe.webp" },
+  { key: "evoRaye", src: "/splash/evo-raye.webp" },
+  { key: "evoVaresa", src: "/splash/evo-varesa.webp" },
+  { key: "cat-uia", src: "/splash/cat-UIA.webp" },
+  { key: "cat-sigma", src: "/splash/cat-sigma.webp" },
 ];
+
+// Start with the smallest hero artwork so the first visible frame stays
+// responsive. The remaining artwork is loaded one item at a time later.
+const INITIAL_SPLASH_INDEX = 1;
 
 export function PhaserSplash() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -31,14 +27,31 @@ export function PhaserSplash() {
 
     let game: Phaser.Game | undefined;
     let disposed = false;
+    let idleId: number | undefined;
+    let startTimer: number | undefined;
 
-    void import("phaser").then((mod) => {
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData
+    ) {
+      return;
+    }
+
+    const start = () => {
+      if (disposed) return;
+      void import("phaser").then((mod) => {
       const PhaserRuntime = (mod as any).default || mod;
       if (disposed || !hostRef.current) return;
 
       class LobbySplashScene extends PhaserRuntime.Scene {
         private current?: Phaser.GameObjects.Image;
-        private splashIndex = -1;
+        private splashIndex = INITIAL_SPLASH_INDEX - 1;
+        private loadingSplashKey?: string;
         private backgroundGlow?: Phaser.GameObjects.Arc;
         private staticLayer!: Phaser.GameObjects.Graphics;
         private energyLayer!: Phaser.GameObjects.Graphics;
@@ -55,11 +68,10 @@ export function PhaserSplash() {
         }
 
         preload() {
-          splashes.forEach((splash) => {
-            if (!this.textures.exists(splash.key)) {
-              this.load.image(splash.key, splash.src);
-            }
-          });
+          const initialSplash = splashes[INITIAL_SPLASH_INDEX];
+          if (!this.textures.exists(initialSplash.key)) {
+            this.load.image(initialSplash.key, initialSplash.src);
+          }
         }
 
         create() {
@@ -249,6 +261,25 @@ export function PhaserSplash() {
 
         private showNextSplash() {
           this.splashIndex = (this.splashIndex + 1) % splashes.length;
+          const splash = splashes[this.splashIndex];
+
+          if (!this.textures.exists(splash.key)) {
+            if (this.loadingSplashKey === splash.key) return;
+            this.loadingSplashKey = splash.key;
+            this.load.once("complete", () => {
+              this.loadingSplashKey = undefined;
+              if (!this.scene.isActive()) return;
+              this.renderSplash(splash);
+            });
+            this.load.image(splash.key, splash.src);
+            this.load.start();
+            return;
+          }
+
+          this.renderSplash(splash);
+        }
+
+        private renderSplash(splash: (typeof splashes)[number]) {
           const previous = this.current;
           const { width, height } = this.scale;
           const isMobile = width < 768;
@@ -256,7 +287,7 @@ export function PhaserSplash() {
           const targetX = isMobile ? width * 0.62 : width * 0.72;
           const targetY = height * 0.55;
 
-          const next = this.add.image(targetX, targetY, splashes[this.splashIndex].key)
+          const next = this.add.image(targetX, targetY, splash.key)
             .setAlpha(0)
             .setScale(0.8);
 
@@ -373,13 +404,22 @@ export function PhaserSplash() {
           height: hostRef.current.clientHeight,
         },
         render: { antialias: true, pixelArt: false },
-        fps: { target: 45, min: 20 },
+        fps: { target: 30, min: 20 },
         audio: { noAudio: true },
       });
-    }).catch(() => undefined);
+      }).catch(() => undefined);
+    };
+
+    if (idleWindow.requestIdleCallback) {
+      idleId = idleWindow.requestIdleCallback(start, { timeout: 1200 });
+    } else {
+      startTimer = window.setTimeout(start, 250);
+    }
 
     return () => {
       disposed = true;
+      if (idleId !== undefined) idleWindow.cancelIdleCallback?.(idleId);
+      if (startTimer !== undefined) window.clearTimeout(startTimer);
       game?.destroy(true);
     };
   }, []);
