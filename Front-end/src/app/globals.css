@@ -592,6 +592,367 @@ button svg { vertical-align: -2px; }
   box-shadow: 0 16px 45px rgba(0, 0, 0, 0.4);
 }
 
+/* ==========================================================================
+   SIGN OUT CONFIRMATION MODAL (Tactical HUD / Technology / Minimalism)
+   ========================================================================== */
+
+.signout-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 7, 18, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: signoutModalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes signoutModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.signout-modal-panel {
+  position: relative;
+  overflow: hidden;
+  width: min(100%, 450px);
+  padding: 24px 26px 26px;
+  border-radius: 0;
+  background: linear-gradient(165deg, rgba(8, 14, 28, 0.98) 0%, rgba(4, 7, 16, 0.99) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.42);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.85),
+    0 0 35px rgba(244, 63, 94, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  animation: signoutModalScaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes signoutModalScaleUp {
+  from { opacity: 0; transform: scale(0.95) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Ambient Top Glow Line */
+.signout-modal-panel__laser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #f43f5e 50%, transparent 100%);
+  box-shadow: 0 0 15px #f43f5e, 0 0 30px rgba(244, 63, 94, 0.6);
+  pointer-events: none;
+}
+
+/* Ambient Radial Glow */
+.signout-modal-panel__glow {
+  position: absolute;
+  top: -70px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.22) 0%, rgba(244, 63, 94, 0) 70%);
+  pointer-events: none;
+}
+
+/* Cybernetic Grid */
+.signout-modal-panel__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(244, 63, 94, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(244, 63, 94, 0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8) 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8) 0%, transparent 80%);
+  pointer-events: none;
+}
+
+/* Holographic 90-Degree Sharp Corner Brackets */
+.signout-modal-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #fb7185;
+  pointer-events: none;
+}
+.signout-modal-corner--tl {
+  top: 0;
+  left: 0;
+  border-top: 2px solid #fb7185;
+  border-left: 2px solid #fb7185;
+}
+.signout-modal-corner--tr {
+  top: 0;
+  right: 0;
+  border-top: 2px solid #fb7185;
+  border-right: 2px solid #fb7185;
+}
+.signout-modal-corner--bl {
+  bottom: 0;
+  left: 0;
+  border-bottom: 2px solid #fb7185;
+  border-left: 2px solid #fb7185;
+}
+.signout-modal-corner--br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid #fb7185;
+  border-right: 2px solid #fb7185;
+}
+
+/* Header & Protocol Badge */
+.signout-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.signout-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 0;
+  background: rgba(225, 29, 72, 0.14);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  color: #fda4af;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.2);
+}
+
+.signout-modal-badge__icon {
+  color: #fb7185;
+  animation: signoutBadgePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes signoutBadgePulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.1); color: #fda4af; }
+}
+
+.signout-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 0 !important;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  background: rgba(15, 23, 42, 0.7) !important;
+  color: #94a3b8 !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.signout-modal-close:hover {
+  border-color: rgba(244, 63, 94, 0.8) !important;
+  background: rgba(225, 29, 72, 0.25) !important;
+  color: #fecdd3 !important;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.4);
+}
+
+/* Center Visual & Typography */
+.signout-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  margin: 6px 0 12px;
+}
+
+.signout-modal-visual {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+
+.signout-modal-phaser-host {
+  width: 100px;
+  height: 100px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.signout-modal-title {
+  margin: 0 0 8px;
+  font-family: var(--font-cinzel, serif);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(to right, #ffe4e6 0%, #fecdd3 40%, #fef08a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 25px rgba(244, 63, 94, 0.3);
+}
+
+.signout-modal-desc {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 380px;
+}
+
+.signout-modal-telemetry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 4px 12px;
+  border-radius: 0;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #7dd3fc;
+}
+
+.signout-modal-telemetry__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: signoutTelemetryBlink 1.4s ease-in-out infinite;
+}
+
+@keyframes signoutTelemetryBlink {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.signout-modal-telemetry__sep {
+  color: rgba(148, 163, 184, 0.4);
+}
+
+/* Action Buttons */
+.signout-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  margin-top: 18px;
+  position: relative;
+  z-index: 2;
+}
+
+.signout-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 0 !important;
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+}
+
+.signout-modal-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.signout-modal-btn--stay {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(56, 189, 248, 0.38) !important;
+  color: #bae6fd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.signout-modal-btn--stay:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.16);
+  border-color: rgba(56, 189, 248, 0.9) !important;
+  color: #ffffff;
+  box-shadow:
+    0 0 16px rgba(56, 189, 248, 0.35),
+    inset 0 0 10px rgba(56, 189, 248, 0.15);
+  transform: translateY(-1px);
+}
+
+.signout-modal-btn--stay:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.signout-modal-btn--confirm {
+  background: linear-gradient(135deg, #be123c 0%, #9f1239 100%);
+  border-color: rgba(251, 113, 133, 0.8) !important;
+  color: #ffffff;
+  box-shadow:
+    0 4px 14px rgba(190, 18, 60, 0.4),
+    0 0 20px rgba(244, 63, 94, 0.35);
+}
+
+.signout-modal-btn--confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  border-color: #fda4af !important;
+  box-shadow:
+    0 6px 20px rgba(225, 29, 72, 0.6),
+    0 0 28px rgba(244, 63, 94, 0.6);
+  transform: translateY(-1px);
+}
+
+.signout-modal-btn--confirm:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.signout-modal-spinner {
+  animation: signoutSpin 0.8s linear infinite;
+}
+
+@keyframes signoutSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 440px) {
+  .signout-modal-panel {
+    padding: 20px 18px 22px;
+  }
+  .signout-modal-title {
+    font-size: 18px;
+  }
+  .signout-modal-desc {
+    font-size: 12px;
+  }
+  .signout-modal-actions {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 
 .floating-utility-panel {
   position: fixed;
