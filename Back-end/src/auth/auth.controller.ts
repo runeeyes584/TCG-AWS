@@ -133,28 +133,35 @@ export async function me(
     req: Request,
     res: Response
 ) {
+    try {
+        const payload = (req as any).user || {};
+        const userId = typeof payload.sub === "string" ? payload.sub : undefined;
+        let user = userId ? await getUserById(userId) : undefined;
 
-    const payload = (req as any).user || {};
-    const userId = typeof payload.sub === "string" ? payload.sub : undefined;
-    const accessToken = (req as any).accessToken as string | undefined;
-    const identity = accessToken
-        ? await getCognitoIdentityByAccessToken(accessToken, userId)
-        : undefined;
-    let user = userId ? await getUserById(userId) : undefined;
-    if (identity) {
-        user = await ensureUserProfile(identity);
-    } else if (!user) {
-        throw new Error("Cognito user attributes are unavailable; profile creation was not completed.");
+        if (!user) {
+            const accessToken = (req as any).accessToken as string | undefined;
+            const identity = accessToken
+                ? await getCognitoIdentityByAccessToken(accessToken, userId)
+                : undefined;
+            if (identity) {
+                user = await ensureUserProfile(identity);
+            }
+        }
+
+        if (!user && !payload.sub) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized."
+            });
+        }
+
+        return res.json({
+            success: true,
+            user: user ?? (req as any).user
+        });
+    } catch (error) {
+        return sendApiError(res, error, "Unable to load player profile.");
     }
-
-    return res.json({
-
-        success: true,
-
-        user: user ?? (req as any).user
-
-    });
-
 }
 
 export async function refresh(

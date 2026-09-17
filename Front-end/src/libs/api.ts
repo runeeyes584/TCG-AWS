@@ -233,7 +233,8 @@ async function request<T = any>(
     url: string,
     options: RequestInit = {}
 ): Promise<T> {
-    const token = typeof window === "undefined"
+    const isPublicAuthRoute = /^\/auth\/(login|register|verify|forgot-password|reset-password|resend-code)/.test(url);
+    const token = typeof window === "undefined" || isPublicAuthRoute
         ? undefined
         : window.localStorage.getItem("accessToken");
 
@@ -338,6 +339,10 @@ export async function login(
     email: string,
     password: string
 ): Promise<LoginResponse> {
+    if (typeof window !== "undefined") {
+        window.localStorage.removeItem("accessToken");
+        window.localStorage.removeItem("refreshToken");
+    }
 
     return request<LoginResponse>("/auth/login", {
         method: "POST",

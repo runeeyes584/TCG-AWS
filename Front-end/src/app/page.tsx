@@ -137,7 +137,9 @@ export default function Home() {
         msg.includes("hash") ||
         msg.includes("Unauthorized") ||
         msg.includes("token") ||
-        msg.includes("sign in");
+        msg.includes("sign in") ||
+        msg.includes("HTTP 401") ||
+        msg.includes("HTTP 403");
 
       if (isAuthErr) {
         clearCachedProfile();

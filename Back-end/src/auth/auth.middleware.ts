@@ -12,7 +12,7 @@ export async function authenticate(
         const bearerToken = authorization?.startsWith("Bearer ")
             ? authorization.slice("Bearer ".length).trim()
             : undefined;
-        const token = req.cookies.access_token || bearerToken;
+        const token = bearerToken || req.cookies?.access_token;
 
         if (!token) {
             return res.status(401).json({
