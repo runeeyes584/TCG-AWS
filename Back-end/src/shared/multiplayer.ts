@@ -27,7 +27,7 @@ export interface ServerToClientEvents {
   "game:error": (message: string) => void;
   "matchmaking:searching": () => void;
   "matchmaking:cancelled": () => void;
-  "matchmaking:found": () => void;
+  "matchmaking:found": (payload?: Partial<RoomUpdate>) => void;
 }
 
 export interface RoomAckPayload {

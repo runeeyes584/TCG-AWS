@@ -46,8 +46,11 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (name === "UserNotFoundException" || message === "user not found.") {
     return { status: 404, code: "USER_NOT_FOUND", message: "User profile was not found." };
   }
-  if (name === "MissingAccessTokenError") {
-    return { status: 401, code: "MISSING_ACCESS_TOKEN", message: "Your authenticated session is required to delete the account." };
+  if (name === "TooManyRequestsException" || name === "LimitExceededException" || message.includes("exceeded") || message.includes("too many requests")) {
+    return { status: 429, code: "TOO_MANY_REQUESTS", message: "The service is temporarily busy. Please try again in a few moments." };
+  }
+  if (name === "ProvisionedThroughputExceededException") {
+    return { status: 503, code: "DEPENDENCY_BUSY", message: "The database service is currently busy. Please try again shortly." };
   }
 
   return { status: 500, code: "INTERNAL_ERROR", message: fallback };

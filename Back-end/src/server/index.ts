@@ -325,8 +325,26 @@ io.on("connection", (socket) => {
 
     broadcastRoom(room);
 
-    socket1.emit("matchmaking:found");
-    socket2.emit("matchmaking:found");
+    const playerProfiles = room.players.reduce<Partial<Record<PlayerId, MatchPlayerProfile>>>(
+      (profiles, player) => {
+        profiles[player.playerId] = player.profile;
+        return profiles;
+      },
+      {}
+    );
+
+    socket1.emit("matchmaking:found", {
+      roomCode: room.code,
+      playerId: "P1",
+      players: playerProfiles,
+      state: redactStateForPlayer(room.state, "P1")
+    });
+    socket2.emit("matchmaking:found", {
+      roomCode: room.code,
+      playerId: "P2",
+      players: playerProfiles,
+      state: redactStateForPlayer(room.state, "P2")
+    });
   });
 
   socket.on("matchmaking:cancel", () => {

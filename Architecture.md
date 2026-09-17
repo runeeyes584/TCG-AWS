@@ -97,11 +97,11 @@ The durable boundary is DynamoDB. Lambda invocations are stateless; `GameState.e
 
 `npm run dev` runs `next dev Front-end`; `npm run build` and `npm start` build/serve the Next app. Amplify runs `npm ci` and `npm run build` with `Front-end` as `appRoot`.
 
-### HTTP production path
+### HTTP production path. Use apigateway HTTP on AWS to invoke this endpoint.
 
-API Gateway invokes `aws-lambdas/httpBackend.ts`, which adapts `http/app.ts`. The app validates origin, parses cookies/JSON, authenticates protected routes, calls repositories/AWS clients, and returns JSON.
+API Gateway invokes `aws-lambdas/httpBackend.ts`, which adapts `http/app.ts`. The app validates origin, parses cookies/JSON, authenticates protected routes, calls repositories/AWS clients, and returns JSON. 
 
-### WebSocket production path
+### WebSocket production path. Use apigateway websocket on AWS to invoke this endpoint.
 
 1. The browser obtains/refreshes a Cognito access token.
 2. `ApiGatewaySocket` opens `NEXT_PUBLIC_WS_URL` with token and username query parameters.

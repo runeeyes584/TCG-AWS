@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Eye, EyeOff, LockKeyhole, LogIn, Mail, ShieldAlert } from "lucide-react";
 import { login } from "../../libs/api";
-import { warmupUserSession } from "../../libs/profileCache";
+import { clearCachedProfile, warmupUserSession } from "../../libs/profileCache";
 import { AuthShell } from "../../components/auth/AuthShell";
 
 export default function LoginPage() {
@@ -18,6 +18,10 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [isUnverified, setIsUnverified] = useState(false);
+
+    useEffect(() => {
+        clearCachedProfile();
+    }, []);
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();

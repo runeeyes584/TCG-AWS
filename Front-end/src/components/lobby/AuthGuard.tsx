@@ -47,23 +47,13 @@ export function AuthGuard({
           });
           setStatus("authenticated");
         } else {
-          // Token invalid or expired
           clearCachedProfile();
           setStatus("unauthenticated");
         }
       })
-      .catch((err) => {
+      .catch(() => {
         if (!mounted) return;
-        const msg = err instanceof Error ? err.message : String(err);
-        if (
-          msg.includes("expired") ||
-          msg.includes("hash") ||
-          msg.includes("Unauthorized") ||
-          msg.includes("token") ||
-          msg.includes("sign in")
-        ) {
-          clearCachedProfile();
-        }
+        clearCachedProfile();
         setStatus("unauthenticated");
       });
 
