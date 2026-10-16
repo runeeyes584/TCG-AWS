@@ -96,8 +96,10 @@ const ALTAR_TABLE_GAP = 14;
 /** Depth at which each altar stands beside the table. */
 const ALTAR_DEPTH_S = { opponent: 0.8, me: 0.2 } as const;
 const ALTAR_MIN_SCALE = 0.32;
-/** Radius (px at scale 1) of the Nexus core ring that stands at each altar position. */
-export const NEXUS_CORE_RADIUS = 78;
+/** Radius (px at scale 1) of the Nexus core ring: 64% of the dais so the 20 HP segments stay readable without crowding the slab. */
+export const NEXUS_CORE_RADIUS = ALTAR_HALF_WIDTH * 0.64;
+/** Clear space (px) between the slab edge and the outer rim of a Nexus ring; the same for both players. */
+const NEXUS_TABLE_GAP = 22;
 
 export interface SlotGeometry {
   quad: Quad;
@@ -235,16 +237,22 @@ export function createArenaProjection(width: number, height: number, tilt: numbe
   // Altars stand just outside the slab, at the side of the row each one guards. When the
   // gap between slab and HUD is narrow the altar shrinks instead of covering the table.
   const altar = (depthS: number, side: -1 | 1) => {
-    const edgeX = cx + side * (widthAt(depthS) / 2) * TABLE_HALF_WIDTH_U;
+    // The slab is drawn with straight edges between its corners, so the edge is measured on that line
+    // (not on the perspective curve), or the two altars would not stand the same distance from it.
+    const y = yAt(depthS);
+    const leftEdgeX = edgeNear.x + edgeSlope * (edgeNear.y - y);
+    const edgeX = side > 0 ? 2 * cx - leftEdgeX : leftEdgeX;
     const room = side > 0 ? width - HUD_SIDE_PAD - edgeX : edgeX - HUD_SIDE_PAD;
     const fitScale = (room - ALTAR_TABLE_GAP) / (ALTAR_HALF_WIDTH * 2);
     const scale = clamp(Math.min(unit, fitScale), ALTAR_MIN_SCALE, unit);
-    const halfWidth = ALTAR_HALF_WIDTH * scale;
-    return { scale, point: { x: edgeX + side * (ALTAR_TABLE_GAP + halfWidth), y: yAt(depthS) } };
+    return { scale, edgeX, y };
   };
   const opponentAltar = altar(ALTAR_DEPTH_S.opponent, 1);
   const myAltar = altar(ALTAR_DEPTH_S.me, -1);
   const nexusScale = Math.min(opponentAltar.scale, myAltar.scale);
+  // Both rings share one scale, so each stands the same clear distance from its slab edge.
+  const nexusOffset = NEXUS_TABLE_GAP + NEXUS_CORE_RADIUS * nexusScale;
+  const nexusPoint = (a: { edgeX: number; y: number }, side: -1 | 1): Point => ({ x: a.edgeX + side * nexusOffset, y: a.y });
 
   return {
     width,
@@ -264,8 +272,8 @@ export function createArenaProjection(width: number, height: number, tilt: numbe
     cardPlacement,
     riftBand: RIFT_BAND_S,
     nexus: {
-      opponent: portrait ? project(1.0, -0.78) : opponentAltar.point,
-      me: portrait ? project(0.0, 0.78) : myAltar.point,
+      opponent: portrait ? project(1.0, -0.78) : nexusPoint(opponentAltar, 1),
+      me: portrait ? project(0.0, 0.78) : nexusPoint(myAltar, -1),
       scale: nexusScale,
     },
     riftY,

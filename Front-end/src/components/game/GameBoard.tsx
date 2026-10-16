@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Skull, Swords, Trophy, X, Zap } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Skull, Swords, Trophy, X, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
@@ -123,6 +123,7 @@ export function GameBoardView({
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | undefined>();
   const [showExitTrialDialog, setShowExitTrialDialog] = useState(false);
+  const [trialConsoleOpen, setTrialConsoleOpen] = useState(true);
   const [showSurrenderDialog, setShowSurrenderDialog] = useState(false);
   // A champion is declared only after the player has confirmed it in a dialog of the game.
   const [championConfirm, setChampionConfirm] = useState<{ playerId: PlayerId; card: CardInstance }>();
@@ -475,10 +476,10 @@ export function GameBoardView({
 
     setAfkNotice(
       warning.afkCount === 1
-        ? { level: "warning", message: "Bạn đã bỏ lỡ lượt. Lượt sau chỉ còn 15s." }
+        ? { level: "warning", message: "You missed your turn. Your next turn will be limited to 15 seconds." }
         : {
           level: "danger",
-          message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
+          message: "AFK warning! You will lose the match if you stay inactive next turn."
         }
     );
   }, [gameState.visualEvents, localPlayerId]);
@@ -1587,15 +1588,25 @@ export function GameBoardView({
     <HoverProvider>
       <PhaserHoverBridge gameState={gameState} />
       <main className="app-shell board-layout">
-        <div className="utility-dock" aria-label="Utility panels">
-          <button
-            type="button"
-            className={openPanel === "log" ? "is-active" : ""}
-            onClick={() => setOpenPanel(openPanel === "log" ? undefined : "log")}
-            aria-label="Open action log"
-          >
-            <List size={18} aria-hidden="true" />
-          </button>
+        <div className={`utility-dock${trialMode ? " utility-dock--bare" : ""}`} aria-label="Utility panels">
+          {trialMode ? (
+            <Button
+              data-ui-btn=""
+              icon={<List size={18} />}
+              onClick={() => setOpenPanel(openPanel === "log" ? undefined : "log")}
+              aria-label="Open action log"
+              aria-pressed={openPanel === "log"}
+            />
+          ) : (
+            <button
+              type="button"
+              className={openPanel === "log" ? "is-active" : ""}
+              onClick={() => setOpenPanel(openPanel === "log" ? undefined : "log")}
+              aria-label="Open action log"
+            >
+              <List size={18} aria-hidden="true" />
+            </button>
+          )}
           {developerToolsEnabled ? (
             <button
               type="button"
@@ -1617,41 +1628,59 @@ export function GameBoardView({
             </button>
           ) : null}
           {localPlayerId ? (
-            <button
-              type="button"
+            <Button
+              data-ui-btn=""
               className="utility-dock__surrender"
+              variant="ghost"
+              tone="red"
+              size="sm"
               onClick={() => setShowSurrenderDialog(true)}
               disabled={!gameState.started || Boolean(gameState.winnerId)}
             >
               Surrender
-            </button>
+            </Button>
           ) : null}
         </div>
 
         {trialMode && runTrialCommand ? (
-          <section className="trial-console" aria-label="Trial controls">
-            <strong><FlaskConical size={15} aria-hidden="true" /> Trial</strong>
-            <button type="button" onClick={() => runTrialCommand("ADD_MANA")} title="Add one mana">
-              <Plus size={15} aria-hidden="true" /> Mana
+          <div className="trial-dock" style={{ "--ui-btn-accent": "#d7ff61" } as React.CSSProperties}>
+            <Button
+              data-ui-btn=""
+              tone="accent"
+              icon={<FlaskConical size={15} />}
+              iconEnd={trialConsoleOpen ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+              onClick={() => setTrialConsoleOpen((open) => !open)}
+              aria-expanded={trialConsoleOpen}
+              aria-controls="trial-console-actions"
+              title={trialConsoleOpen ? "Collapse trial controls" : "Expand trial controls"}
+            >
+              Trial
+            </Button>
+            {trialConsoleOpen ? (
+              <section className="trial-console" id="trial-console-actions" aria-label="Trial controls">
+          <button type="button" onClick={() => runTrialCommand("ADD_MANA")} title="Add one mana">
+            <Plus size={15} aria-hidden="true" /> Mana
+          </button>
+          <button type="button" onClick={() => runTrialCommand("MAX_MANA")} title="Fill mana and spell mana">
+            <Zap size={15} aria-hidden="true" /> Max
+          </button>
+          <button type="button" onClick={() => dispatch({ type: "DRAW_CARD", playerId: "P1" }, "Trial: P1 drew a card.")} title="Draw a card">
+            <BookOpen size={15} aria-hidden="true" /> Draw
+          </button>
+          <button type="button" onClick={() => runTrialCommand("READY_ATTACK")} title="Refresh the attack token">
+            <Swords size={15} aria-hidden="true" /> Attack
+          </button>
+          <button type="button" onClick={resetGame} title="Reset trial">
+            <RotateCcw size={15} aria-hidden="true" /> Reset
+          </button>
+          {onExitTrial ? (
+            <button className="trial-console__exit" type="button" onClick={() => setShowExitTrialDialog(true)} title="Exit Trial Duel">
+              <LogOut size={15} aria-hidden="true" /> Exit
             </button>
-            <button type="button" onClick={() => runTrialCommand("MAX_MANA")} title="Fill mana and spell mana">
-              <Zap size={15} aria-hidden="true" /> Max
-            </button>
-            <button type="button" onClick={() => dispatch({ type: "DRAW_CARD", playerId: "P1" }, "Trial: P1 drew a card.")} title="Draw a card">
-              <BookOpen size={15} aria-hidden="true" /> Draw
-            </button>
-            <button type="button" onClick={() => runTrialCommand("READY_ATTACK")} title="Refresh the attack token">
-              <Swords size={15} aria-hidden="true" /> Attack
-            </button>
-            <button type="button" onClick={resetGame} title="Reset trial">
-              <RotateCcw size={15} aria-hidden="true" /> Reset
-            </button>
-            {onExitTrial ? (
-              <button className="trial-console__exit" type="button" onClick={() => setShowExitTrialDialog(true)} title="Exit Trial Duel">
-                <LogOut size={15} aria-hidden="true" /> Exit
-              </button>
+          ) : null}
+              </section>
             ) : null}
-          </section>
+          </div>
         ) : null}
 
         {showExitTrialDialog && onExitTrial ? (
@@ -1680,7 +1709,7 @@ export function GameBoardView({
                 </>
               }
             >
-              Tiến trình thử nghiệm hiện tại sẽ bị hủy và bạn sẽ trở về Lobby.
+              Your current trial progress will be lost, and you will return to the Lobby.
             </NoticeCard>
           </Modal>
         ) : null}
@@ -1718,7 +1747,7 @@ export function GameBoardView({
 
         {connectionStatus && !opponentConnected ? (
           <div className="opponent-disconnected-notice" role="status">
-            Đối thủ đã mất kết nối. Đang chờ kết nối lại...
+            Opponent disconnected. Waiting for them to reconnect...
           </div>
         ) : null}
 
@@ -1744,7 +1773,7 @@ export function GameBoardView({
                     <span>{connectionStatus}</span>
                     {localPlayerId ? <span>You are {localPlayerId}</span> : null}
                     {!opponentConnected ? (
-                      <span>Đối thủ đã mất kết nối. Đang chờ kết nối lại...</span>
+                      <span>Opponent disconnected. Waiting for them to reconnect...</span>
                     ) : null}
                   </section>
                 ) : null}
@@ -1921,6 +1950,7 @@ export function GameBoardView({
             cards={gameState.players[opponentPlayerId].hand}
             side="opponent"
             hidden={shouldHideHand(opponentPlayerId)}
+            opponentHover={trialMode}
             selectedCardId={
               selectedSpell?.ownerId === opponentPlayerId ? selectedSpell.instanceId : undefined
             }

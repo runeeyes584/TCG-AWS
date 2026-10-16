@@ -321,7 +321,7 @@ function UserPageContent() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.08 }}
       >
-        <p><Shield size={14} /> Identity Record <i /> Season 01 <i /> ID {user.user_id.slice(0, 8)}</p>
+        <p><Shield size={14} /> Identity Record <i /> Season 01</p>
         <div className="user-page-heading-row">
           <div>
             <h1>Player <em>Profile</em></h1>
@@ -362,7 +362,7 @@ function UserPageContent() {
           </div>
 
           <div className="user-identity-info">
-            <span className="identity-eyebrow">Authenticated player identity</span>
+            <span className="identity-eyebrow">ID {user.user_id.slice(0, 8)}</span>
             <div className="username-display-box">
               <h2>{user.username}</h2>
               <Button size="sm" icon={<Edit3 size={14} />} onClick={() => { setUsername(user.username); setEditingName(true); }}>
