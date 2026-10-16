@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, History, MinusCircle, RefreshCw, Swords, Trophy, User, XCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Clock, History, MinusCircle, RefreshCw, Swords, Trophy, User, XCircle } from "lucide-react";
+import { Button, LobbyButton } from "../../components/ui/button";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
 import { getMatchHistory, MatchHistory } from "../../libs/api";
+import { StatCard } from "../../components/ui/data";
+import { StatusPanel } from "../../components/ui/feedback";
 
 function HistoryPageContent() {
-  const router = useRouter();
   const [history, setHistory] = useState<MatchHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,9 +42,7 @@ function HistoryPageContent() {
         initial={{ opacity: 0, y: -14 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <button className="history-page-back" onClick={() => router.push("/")}>
-          <ArrowLeft size={17} /> Lobby
-        </button>
+        <LobbyButton />
         <div className="history-page-brand">
           <span><History size={18} /></span>
           <div>
@@ -70,14 +69,14 @@ function HistoryPageContent() {
               Review your recent duel performances, opponent records and Rank Point fluctuations
             </span>
           </div>
-          <button
-            className="history-refresh"
+          <Button
+            size="sm"
+            icon={<RefreshCw size={15} className={loading ? "is-spinning" : ""} />}
             onClick={fetchHistory}
             disabled={loading}
           >
-            <RefreshCw size={15} className={loading ? "is-spinning" : ""} />
             Refresh
-          </button>
+          </Button>
         </div>
       </motion.section>
 
@@ -89,37 +88,30 @@ function HistoryPageContent() {
       >
         {/* Stats Summary Bar */}
         <div className="history-summary-bar">
-          <div className="summary-stat-card">
-            <small>Total Played</small>
-            <strong>{totalMatches}</strong>
-          </div>
-          <div className="summary-stat-card">
-            <small>Wins / Losses</small>
-            <strong>{wins}W <span className="stat-divider">/</span> {losses}L</strong>
-          </div>
-          <div className="summary-stat-card">
-            <small>Win Rate</small>
-            <strong>{winRate}%</strong>
-          </div>
-          <div className="summary-stat-card">
-            <small>Net RP</small>
-            <strong className={totalEloChange >= 0 ? "text-win" : "text-loss"}>
-              {totalEloChange >= 0 ? `+${totalEloChange}` : totalEloChange} RP
-            </strong>
-          </div>
+          <StatCard variant="compact" label="Total Played" value={totalMatches} />
+          <StatCard
+            variant="compact"
+            label="Wins / Losses"
+            value={<>{wins}W <span className="stat-divider">/</span> {losses}L</>}
+          />
+          <StatCard variant="compact" label="Win Rate" value={`${winRate}%`} />
+          <StatCard
+            variant="compact"
+            label="Net RP"
+            tone={totalEloChange >= 0 ? "win" : "loss"}
+            value={`${totalEloChange >= 0 ? `+${totalEloChange}` : totalEloChange} RP`}
+          />
         </div>
 
         {/* Content List */}
         {loading ? (
-          <div className="history-empty-state">
-            <RefreshCw size={28} className="is-spinning" />
-            <p>Retrieving match logs...</p>
-          </div>
+          <StatusPanel boxed icon={<RefreshCw size={28} />} spinIcon>
+            Retrieving match logs...
+          </StatusPanel>
         ) : history.length === 0 ? (
-          <div className="history-empty-state">
-            <Swords size={32} />
-            <p>No duel records found. Complete a match to view your history.</p>
-          </div>
+          <StatusPanel boxed icon={<Swords size={32} />}>
+            No duel records found. Complete a match to view your history.
+          </StatusPanel>
         ) : (
           <div className="history-list-scroll">
             {history.map((match) => (

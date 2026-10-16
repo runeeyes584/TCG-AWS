@@ -1,0 +1,118 @@
+/*
+ * The dialog of the board. The frame is the edge (a gradient seen through the 1px between it and the face); the face is
+ * the dark slab. Both are cut at the top left and the bottom right, like the cells of the table.
+ */
+.shell {
+  --edge: linear-gradient(135deg, rgba(196, 181, 253, 0.85), rgba(232, 194, 106, 0.7) 55%, rgba(124, 92, 220, 0.5));
+  --glow: rgba(124, 92, 220, 0.35);
+  --cut: 16px;
+  /* The accent of the buttons inside (ui/button, tone accent and variant accent). */
+  --ui-btn-accent: #c4b5fd;
+  /* The shadow is on this wrapper: on the clipped frame itself it would be cut off with the corners. */
+  filter: drop-shadow(0 22px 40px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 22px var(--glow));
+  animation: rise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.frame {
+  position: relative;
+  padding: 1px;
+  background: var(--edge);
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+}
+
+.blood {
+  --edge: linear-gradient(135deg, rgba(255, 120, 150, 0.9), rgba(232, 194, 106, 0.6) 60%, rgba(190, 40, 80, 0.6));
+  --glow: rgba(255, 46, 99, 0.3);
+  --ui-btn-accent: #ff7a96;
+}
+
+.face {
+  display: grid;
+  gap: 14px;
+  padding: 22px 24px 20px;
+  background: linear-gradient(160deg, rgba(28, 18, 52, 0.99), rgba(8, 5, 15, 0.99));
+  clip-path: polygon(
+    calc(var(--cut) - 0.5px) 0,
+    100% 0,
+    100% calc(100% - var(--cut) + 0.5px),
+    calc(100% - var(--cut) + 0.5px) 100%,
+    0 100%,
+    0 calc(var(--cut) - 0.5px)
+  );
+  color: #f4f0ff;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #e8c26a;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.gem {
+  width: 7px;
+  height: 7px;
+  background: #e8c26a;
+  transform: rotate(45deg);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-rajdhani), "Rajdhani", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.body {
+  color: #b4acd0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.scroll {
+  max-height: min(56vh, 520px);
+  overflow-y: auto;
+  scrollbar-color: rgba(196, 181, 253, 0.4) transparent;
+  scrollbar-width: thin;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell {
+    animation: none;
+  }
+}

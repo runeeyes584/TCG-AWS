@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { LogOut, ShieldAlert, ArrowLeft, AlertTriangle, X, RotateCcw } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
+import { LogOut, ShieldAlert, ArrowLeft, AlertTriangle, X } from "lucide-react";
 import { useGlobalAudio } from "../../contexts/AudioContext";
+import { Modal } from "../ui/modal";
 import type Phaser from "phaser";
+import { Button } from "../ui/button";
 
 interface SignOutConfirmDialogProps {
   isOpen: boolean;
@@ -22,142 +23,110 @@ export function SignOutConfirmDialog({
   const { playSfx } = useGlobalAudio();
 
   useEffect(() => {
-    if (isOpen) {
-      playSfx("warning");
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape" && !isSubmitting) {
-          playSfx("modal_close");
-          onCancel();
-        }
-      };
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [isOpen, onCancel, playSfx, isSubmitting]);
+    if (isOpen) playSfx("warning");
+  }, [isOpen, playSfx]);
+
+  const handleDismiss = useCallback(() => {
+    playSfx("modal_close");
+    onCancel();
+  }, [onCancel, playSfx]);
 
   if (!isOpen) return null;
 
   return (
-    <ModalPortal>
-      <div
-        className="signout-modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="signout-dialog-title"
-        onClick={() => {
-          if (!isSubmitting) {
+    <Modal
+      tone="rose"
+      corners
+      labelledBy="signout-dialog-title"
+      onClose={handleDismiss}
+      dismissible={!isSubmitting}
+    >
+      {/* Ambient Top Laser Glow Line */}
+      <div className="signout-modal-panel__laser" aria-hidden="true" />
+
+      {/* Ambient Radial Glow & Cyber Grid */}
+      <div className="signout-modal-panel__glow" aria-hidden="true" />
+      <div className="signout-modal-panel__grid" aria-hidden="true" />
+
+      {/* Header: Protocol Badge + Rapid Close X */}
+      <div className="signout-modal-header">
+        <div className="signout-modal-badge">
+          <ShieldAlert size={13} className="signout-modal-badge__icon" />
+          <span>SECURITY PROTOCOL // TERMINATION</span>
+        </div>
+        <button
+          type="button"
+          className="signout-modal-close"
+          onClick={() => {
             playSfx("modal_close");
             onCancel();
-          }
-        }}
-      >
-        <section
-          className="signout-modal-panel"
-          onClick={(e) => e.stopPropagation()}
+          }}
+          disabled={isSubmitting}
+          title="Close (Esc)"
+          aria-label="Close dialog"
         >
-          {/* Ambient Top Laser Glow Line */}
-          <div className="signout-modal-panel__laser" aria-hidden="true" />
-
-          {/* Ambient Radial Glow & Cyber Grid */}
-          <div className="signout-modal-panel__glow" aria-hidden="true" />
-          <div className="signout-modal-panel__grid" aria-hidden="true" />
-
-          {/* Holographic 90-Degree Sharp Corner Brackets */}
-          <div className="signout-modal-corner signout-modal-corner--tl" aria-hidden="true" />
-          <div className="signout-modal-corner signout-modal-corner--tr" aria-hidden="true" />
-          <div className="signout-modal-corner signout-modal-corner--bl" aria-hidden="true" />
-          <div className="signout-modal-corner signout-modal-corner--br" aria-hidden="true" />
-
-          {/* Header: Protocol Badge + Rapid Close X */}
-          <div className="signout-modal-header">
-            <div className="signout-modal-badge">
-              <ShieldAlert size={13} className="signout-modal-badge__icon" />
-              <span>SECURITY PROTOCOL // TERMINATION</span>
-            </div>
-            <button
-              type="button"
-              className="signout-modal-close"
-              onClick={() => {
-                playSfx("modal_close");
-                onCancel();
-              }}
-              disabled={isSubmitting}
-              title="Close (Esc)"
-              aria-label="Close dialog"
-            >
-              <X size={15} />
-            </button>
-          </div>
-
-          {/* Body: Phaser Holographic Reactor + Message */}
-          <div className="signout-modal-body">
-            <div className="signout-modal-visual" aria-hidden="true">
-              <SignOutPhaserVisualizer />
-              {/* Crisp Central Alert Vector Icon */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <AlertTriangle
-                  size={24}
-                  className="text-rose-200 drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]"
-                />
-              </div>
-            </div>
-
-            <h2 id="signout-dialog-title" className="signout-modal-title">
-              TERMINATE ACTIVE SESSION?
-            </h2>
-            <p className="signout-modal-desc">
-              Signing out will disconnect your neural link, forfeit any active matchmaking queue, and return to the Chrono Genesis gate.
-            </p>
-
-            {/* High-Tech Telemetry Status Line */}
-            <div className="signout-modal-telemetry" aria-hidden="true">
-              <span className="signout-modal-telemetry__dot" />
-              <span>LINK: SYNCHRONIZED</span>
-              <span className="signout-modal-telemetry__sep">/</span>
-              <span>DISCONNECT: IMMEDIATE</span>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="signout-modal-actions">
-            <button
-              type="button"
-              className="signout-modal-btn signout-modal-btn--stay"
-              onClick={() => {
-                playSfx("click");
-                onCancel();
-              }}
-              disabled={isSubmitting}
-              autoFocus
-            >
-              <ArrowLeft size={16} />
-              <span>STAY IN LOBBY</span>
-            </button>
-            <button
-              type="button"
-              className="signout-modal-btn signout-modal-btn--confirm"
-              onClick={() => {
-                playSfx("sign_out");
-                onConfirm();
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <RotateCcw size={16} className="signout-modal-spinner" />
-                  <span>DISCONNECTING...</span>
-                </>
-              ) : (
-                <>
-                  <LogOut size={16} />
-                  <span>SIGN OUT</span>
-                </>
-              )}
-            </button>
-          </div>
-        </section>
+          <X size={15} />
+        </button>
       </div>
-    </ModalPortal>
+
+      {/* Body: Phaser Holographic Reactor + Message */}
+      <div className="signout-modal-body">
+        <div className="signout-modal-visual" aria-hidden="true">
+          <SignOutPhaserVisualizer />
+          {/* Crisp Central Alert Vector Icon */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <AlertTriangle
+              size={24}
+              className="text-rose-200 drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]"
+            />
+          </div>
+        </div>
+
+        <h2 id="signout-dialog-title" className="signout-modal-title">
+          TERMINATE ACTIVE SESSION?
+        </h2>
+        <p className="signout-modal-desc">
+          Signing out will disconnect your neural link, forfeit any active matchmaking queue, and return to the Chrono Genesis gate.
+        </p>
+
+        {/* High-Tech Telemetry Status Line */}
+        <div className="signout-modal-telemetry" aria-hidden="true">
+          <span className="signout-modal-telemetry__dot" />
+          <span>LINK: SYNCHRONIZED</span>
+          <span className="signout-modal-telemetry__sep">/</span>
+          <span>DISCONNECT: IMMEDIATE</span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="signout-modal-actions">
+        <Button
+          fullWidth
+          icon={<ArrowLeft size={16} />}
+          onClick={() => {
+            playSfx("click");
+            onCancel();
+          }}
+          disabled={isSubmitting}
+          autoFocus
+        >
+          STAY IN LOBBY
+        </Button>
+        <Button
+          variant="danger"
+          fullWidth
+          icon={<LogOut size={16} />}
+          onClick={() => {
+            playSfx("sign_out");
+            onConfirm();
+          }}
+          loading={isSubmitting}
+          loadingText="DISCONNECTING..."
+        >
+          SIGN OUT
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -297,10 +266,3 @@ function SignOutPhaserVisualizer() {
 
   return <div className="signout-modal-phaser-host" ref={hostRef} aria-hidden="true" />;
 }
-
-function ModalPortal({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  return mounted ? createPortal(children, document.body) : null;
-}
-

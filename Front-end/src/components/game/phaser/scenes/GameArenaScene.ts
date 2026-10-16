@@ -1,26 +1,49 @@
 import * as Phaser from "phaser";
 import type { GameState, PlayerId, SpellTargetKind, UnitInstance, VisualEvent } from "@backend/game/types";
+import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
-import { getArenaLayout, getSlotPosition } from "../config/arenaLayout";
-import { ArenaBoardRenderer } from "../renders/ArenaBoardRenderer";
+import { NEXUS_CORE_RADIUS, boundsOf, createArenaProjection, rowKeyFor, type ArenaProjection, type ArenaRowKey, type SlotGeometry } from "../config/arenaProjection";
+import { densityOf, logicalSize } from "../config/arenaScale";
+import { NexusCoreRenderer } from "../renders/NexusCoreRenderer";
+import { ArenaTableRenderer } from "../renders/ArenaTableRenderer";
+import { PassSealRenderer } from "../renders/PassSealRenderer";
+import { NexusCarryFx } from "../renders/NexusCarryFx";
+import { TurnBannerFx } from "../renders/TurnBannerFx";
+import { RiftSigil } from "../renders/RiftSigil";
+import { GLIDE_MS } from "../config/declareMotion";
+import { laneLinks } from "../config/laneLinks";
+import { DeclareFx } from "../renders/DeclareFx";
+import { LaneBlades } from "../renders/LaneBlades";
+import { splitBoardRows } from "../config/boardRows";
 import { CardRenderer } from "../renders/CardRenderer";
-import { drawCardLane, drawDefendCardLane } from "../renders/CardLaneRenderer";
+import { drawDefendSlot, drawValidSlot } from "../renders/CardLaneRenderer";
 import { ArenaStateSystem } from "../systems/ArenaStateSystem";
 import { ArenaInputSystem } from "../systems/ArenaInputSystem";
 import { CombatVFXSystem } from "../systems/CombatVFXSystem";
-import { ArenaBackgroundManager } from "../systems/ArenaBackgroundManager";
+import { ArenaAtmosphere } from "../systems/ArenaAtmosphere";
+import { ArenaShards } from "../systems/ArenaShards";
+import { UiShieldGuard } from "../systems/UiShieldGuard";
 
 /** Phaser orchestration layer. State remains authoritative in Zustand. */
 export class GameArenaScene extends Phaser.Scene {
-  private board?: Phaser.GameObjects.Graphics;
   private slots?: Phaser.GameObjects.Graphics;
+  private slotFx?: Phaser.GameObjects.Graphics;
   private defendSlots?: Phaser.GameObjects.Graphics;
-  private readonly boardRenderer = new ArenaBoardRenderer(this);
+  private table!: ArenaTableRenderer;
+  private nexus!: NexusCoreRenderer;
+  private passSeal!: PassSealRenderer;
+  private carryFx!: NexusCarryFx;
+  private uiShield?: UiShieldGuard;
+  private turnBanner!: TurnBannerFx;
+  private riftSigil!: RiftSigil;
+  private declareFx!: DeclareFx;
+  private laneBlades!: LaneBlades;
+  private projection?: ArenaProjection;
+  private hoveredSlot?: SlotGeometry;
+  private fxElapsed = 0;
   private readonly stateSystem = new ArenaStateSystem();
   private readonly inputSystem = new ArenaInputSystem(this);
   private combatVfx!: CombatVFXSystem;
-  private centerSprite?: Phaser.GameObjects.Sprite;
-  private centerSpriteTween?: Phaser.Tweens.Tween;
   private readonly animationUnsubscriptions: Array<() => void> = [];
   private cards!: CardRenderer;
   private lastVisualSignature = "";
@@ -34,7 +57,8 @@ export class GameArenaScene extends Phaser.Scene {
     | { targetKind: Extract<SpellTargetKind, "ALLY_UNIT" | "ENEMY_UNIT">; playerId: PlayerId }
     | undefined;
   private readonly barrierUnitIds = new Set<string>();
-  private background!: ArenaBackgroundManager;
+  private atmosphere!: ArenaAtmosphere;
+  private shards!: ArenaShards;
 
   private isSceneDestroyed = false;
 
@@ -42,20 +66,33 @@ export class GameArenaScene extends Phaser.Scene {
 
   create() {
     this.isSceneDestroyed = false;
+    this.fitCamera();
+    // A click on a DOM control drawn over the table is the DOM's, not the table's.
+    this.uiShield = new UiShieldGuard();
+    // A right click on a card opens its codex: the browser's own menu has no business over the table.
+    this.input.mouse?.disableContextMenu();
 
-    // Background layer (rendered below everything)
-    this.background = new ArenaBackgroundManager(this);
-    this.background.init(this.scale.width, this.scale.height);
-
-    this.board = this.add.graphics().setDepth(0.5);
+    // Layers, back to front: atmosphere, table (+sockets), slot fx, Nexus cores, cards.
+    this.atmosphere = new ArenaAtmosphere(this);
+    this.table = new ArenaTableRenderer(this);
+    this.nexus = new NexusCoreRenderer(this);
+    this.shards = new ArenaShards(this);
+    this.passSeal = new PassSealRenderer(this);
+    this.carryFx = new NexusCarryFx(this);
+    this.turnBanner = new TurnBannerFx(this);
+    this.riftSigil = new RiftSigil(this);
     this.slots = this.add.graphics().setDepth(1);
+    this.slotFx = this.add.graphics().setDepth(1.4);
     this.defendSlots = this.add.graphics().setDepth(1.5);
-    this.createCenterSprite();
     this.cards = new CardRenderer(this, () => this.renderArena());
+    this.declareFx = new DeclareFx(this);
+    this.laneBlades = new LaneBlades(this);
+    this.cards.onDeclare = (info) => this.declareFx.play(info);
     this.combatVfx = new CombatVFXSystem(
       this,
       (unitId) => this.cards.get(unitId),
       (unitId, kind) => this.cards.playEffect(unitId, kind),
+      (playerId) => this.nexus.anchorFor(playerId as PlayerId, this.stateSystem.snapshot.viewerPlayerId),
     );
     this.stateSystem.start(() => this.renderArena());
     this.animationUnsubscriptions.push(
@@ -64,10 +101,14 @@ export class GameArenaScene extends Phaser.Scene {
         this.cards.playSummon(unitId);
         this.combatVfx.playSummon(unitId);
       }),
-      arenaEventAdapter.on("ATTACK_UNIT", ({ unitId }) => {
+      arenaEventAdapter.on("COMMIT_CUE", ({ kind, unitIds }) => {
         if (this.isSceneDestroyed) return;
-        this.cards.playAttack(unitId);
-        this.combatVfx.playAttack(unitId);
+        if (kind === "attack") unitIds.forEach((unitId) => this.cards.playAttack(unitId));
+        this.combatVfx.playCommit(kind, unitIds);
+      }),
+      arenaEventAdapter.on("CHAMPION_DECLARED", ({ unitId }) => {
+        if (this.isSceneDestroyed) return;
+        this.combatVfx.playChampionDeclared(unitId, GLIDE_MS);
       }),
       arenaEventAdapter.on("DESTROY_UNIT", ({ unitId }) => {
         if (this.isSceneDestroyed) return;
@@ -79,6 +120,8 @@ export class GameArenaScene extends Phaser.Scene {
         this.renderArena();
       }),
     );
+    // The camera is fitted before the arena is drawn again (it is listed first).
+    this.scale.on("resize", this.fitCamera, this);
     this.scale.on("resize", this.renderArena, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyScene, this);
     this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyScene, this);
@@ -86,9 +129,25 @@ export class GameArenaScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
-    if (this.isSceneDestroyed || !this.background) return;
-    const phase = this.stateSystem.snapshot.gameState?.phase ?? "ACTION";
-    this.background.tick(delta, this.scale.width, this.scale.height, phase);
+    if (this.isSceneDestroyed || !this.atmosphere) return;
+    this.fxElapsed += delta * 0.001;
+    this.atmosphere.tick(delta);
+    this.nexus.tick(delta);
+    this.shards.tick(delta);
+    this.passSeal.tick(delta);
+    this.carryFx.tick(delta);
+    this.turnBanner.tick(delta);
+    this.riftSigil.tick(delta);
+    this.declareFx.tick(delta);
+    this.laneBlades.tick(delta);
+    if (this.hoveredSlot) this.drawHoveredSlot();
+  }
+
+  private drawHoveredSlot() {
+    if (!this.slotFx) return;
+    this.slotFx.clear();
+    if (!this.hoveredSlot) return;
+    drawValidSlot(this.slotFx, this.hoveredSlot, 0.5 + 0.5 * Math.sin(this.fxElapsed * 5));
   }
 
   private destroyScene() {
@@ -97,75 +156,114 @@ export class GameArenaScene extends Phaser.Scene {
 
     this.stateSystem.stop();
     this.animationUnsubscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
+    this.scale.off("resize", this.fitCamera, this);
     this.scale.off("resize", this.renderArena, this);
     this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.destroyScene, this);
     this.events.off(Phaser.Scenes.Events.DESTROY, this.destroyScene, this);
 
+    this.uiShield?.destroy();
+    this.uiShield = undefined;
     this.cards?.destroy();
-    this.background?.destroy();
-
-    this.centerSpriteTween?.stop();
-    this.centerSprite?.destroy();
-    this.centerSprite = undefined;
+    this.atmosphere?.destroy();
+    this.table?.destroy();
+    this.nexus?.destroy();
+    this.shards?.destroy();
+    this.passSeal?.destroy();
+    this.carryFx?.destroy();
+    this.turnBanner?.destroy();
+    this.riftSigil?.destroy();
+    this.declareFx?.destroy();
+    this.laneBlades?.destroy();
 
     this.defendBreathTween?.stop();
     this.defendDashTween?.stop();
     this.defendSlots?.destroy();
     this.defendSlots = undefined;
 
-    this.board?.destroy();
-    this.board = undefined;
-
     this.slots?.destroy();
     this.slots = undefined;
+
+    this.slotFx?.destroy();
+    this.slotFx = undefined;
 
     this.inputSystem?.destroy();
   }
 
+  /**
+   * The canvas has `dpr` pixels for each logical one, and the whole arena is laid out in logical pixels:
+   * the camera zooms by `dpr` about the middle of the logical area, which also turns the pointer back into
+   * logical pixels.
+   */
+  private fitCamera() {
+    const camera = this.cameras?.main;
+    if (!camera) return;
+    const { width, height } = logicalSize(this.scale);
+    camera.setZoom(densityOf(this.scale));
+    camera.centerOn(width / 2, height / 2);
+  }
+
   private renderArena() {
-    if (this.isSceneDestroyed || !this.sys?.isActive() || !this.add || !this.board || !this.slots || !this.defendSlots) return;
+    if (this.isSceneDestroyed || !this.sys?.isActive() || !this.add || !this.slots || !this.slotFx || !this.defendSlots) return;
     const { gameState, viewerPlayerId, camera } = this.stateSystem.snapshot;
     if (!gameState) return;
-    const { width, height } = this.scale;
-    const layout = getArenaLayout(width, height, camera.zoom, camera.tilt);
-    this.updateCenterSprite(width, height, gameState.phase);
-    this.boardRenderer.render(this.board, width, height, layout);
+    const { width, height } = logicalSize(this.scale);
+    const proj = createArenaProjection(width, height, camera.tilt, camera.zoom);
+    this.projection = proj;
+    this.publishRift(proj);
+    const signature = `${width}x${height}:${camera.tilt}:${camera.zoom}`;
+    this.atmosphere.render(proj, signature);
+    this.table.render(proj, signature);
+    this.nexus.layout(proj, signature);
+    this.shards.layout(proj, signature);
+    this.passSeal.place();
+    this.turnBanner.layout(proj);
+    this.riftSigil.layout(proj);
+    this.nexus.update({ P1: gameState.players.P1.nexusHp, P2: gameState.players.P2.nexusHp }, viewerPlayerId);
     this.slots.clear();
+    this.slotFx.clear();
+    this.hoveredSlot = undefined;
     this.defendSlots.clear();
     this.cards.clear();
     this.inputSystem.clear();
 
     const currentBarrierIds = new Set<string>();
+    const renderedUnitIds = new Set<string>();
 
     (['P1', 'P2'] as PlayerId[]).forEach((playerId) => {
       const isLocal = playerId === viewerPlayerId;
-      const unitScale = isLocal ? 1 : 0.9;
       const playerUnits = gameState.players[playerId].board;
       const inCombat = gameState.combat.attackers.length > 0;
-      const activeUnits: Array<UnitInstance | undefined> = inCombat
-        ? gameState.combat.attackers.map((lane) => {
-            const unitId = playerId === gameState.attackTokenPlayerId ? lane.attackerId : lane.blockerId;
-            return unitId ? playerUnits.find((unit) => unit.instanceId === unitId) : undefined;
-          })
-        : playerUnits.filter((unit) => unit.boardRow === 'ACTIVE');
-      const activeIds = new Set(activeUnits.filter((unit): unit is UnitInstance => Boolean(unit)).map((unit) => unit.instanceId));
-      const waitingUnits = playerUnits.filter((unit) => !activeIds.has(unit.instanceId));
+      const { active: activeUnits, waiting: waitingUnits } = splitBoardRows(
+        playerUnits,
+        gameState.combat.attackers,
+        playerId,
+        gameState.attackTokenPlayerId
+      );
       [
-        { kind: 'waiting' as const, units: waitingUnits, y: isLocal ? height * 0.75 : height * 0.25, alpha: 0.58 },
-        { kind: 'active' as const, units: activeUnits, y: isLocal ? height * 0.62 : height * 0.38, alpha: 0.95 },
-      ].forEach(({ kind, units, y, alpha }) => {
-        const rowScale = unitScale * (kind === 'waiting' ? 0.82 : 1);
-        const color = isLocal ? 0x2dd4bf : 0x9b8cff;
+        { kind: 'waiting' as const, units: waitingUnits },
+        { kind: 'active' as const, units: activeUnits },
+      ].forEach(({ kind, units }) => {
+        const row: ArenaRowKey = rowKeyFor(isLocal, kind);
         for (let index = 0; index < 6; index += 1) {
-          const point = getSlotPosition(index, y, width, rowScale);
-          const laneWidth = layout.cardWidth * rowScale;
-          const laneHeight = layout.cardHeight * rowScale;
-          drawCardLane(this.slots!, point.x, point.y, laneWidth, laneHeight, color, alpha);
-          this.inputSystem.createSlotTarget(playerId, kind, index, point.x, point.y, laneWidth, laneHeight);
+          const slot = proj.slot(row, index);
+          const slotBox = boundsOf(slot.quad);
+          this.inputSystem.createSlotTarget(
+            playerId,
+            kind,
+            index,
+            slotBox.x + slotBox.width / 2,
+            slotBox.y + slotBox.height / 2,
+            slotBox.width,
+            slotBox.height,
+            (hovering) => {
+              this.hoveredSlot = hovering ? slot : undefined;
+              if (!hovering) this.slotFx?.clear();
+            },
+          );
         }
         units.slice(0, 6).forEach((unit, index) => {
           if (!unit) return;
-          const point = getSlotPosition(index, y, width, rowScale);
+          const slot = proj.slot(row, index);
           const casterId = this.targeting?.playerId || viewerPlayerId || "P1";
           const targetKind = this.targeting?.targetKind;
           const isCasterUnit = playerId === casterId;
@@ -181,9 +279,16 @@ export class GameArenaScene extends Phaser.Scene {
             currentBarrierIds.add(unit.instanceId);
           }
 
-          const cardView = this.cards.create(unit, playerId, layout.cardWidth * rowScale, layout.cardHeight * rowScale, isTargetable, targetType)
-            .setPosition(point.x, point.y)
-            .setDepth(10 + point.y);
+          // The card lies flat in its lane at the lane's full size. In combat every card of an active
+          // lane (attacker or blocker) is marked: blood-red edge for an attacker, gold for a blocker.
+          renderedUnitIds.add(unit.instanceId);
+          const inLane = inCombat && kind === 'active';
+          this.cards.create(unit, playerId, proj.cardPlacement(slot), {
+            isTargetable,
+            targetType,
+            inLane,
+            role: inLane ? (playerId === gameState.attackTokenPlayerId ? 'attack' : 'defend') : undefined,
+          });
 
           if (hasBarrier && !this.barrierUnitIds.has(unit.instanceId)) {
             this.cards.playBarrierTrigger(unit.instanceId);
@@ -194,58 +299,38 @@ export class GameArenaScene extends Phaser.Scene {
 
     this.barrierUnitIds.clear();
     currentBarrierIds.forEach((id) => this.barrierUnitIds.add(id));
+    this.cards.prune(renderedUnitIds);
 
-    this.renderDefendSlots(gameState, viewerPlayerId, width, height, layout.cardWidth);
+    const isChampion = (unitId: string) =>
+      (['P1', 'P2'] as PlayerId[]).some((playerId) =>
+        gameState.players[playerId].board.some(
+          (unit) => unit.instanceId === unitId && getCardDefinition(unit.cardId).type === 'champion'
+        )
+      );
+    this.laneBlades.setLanes(laneLinks(gameState, viewerPlayerId, isChampion), proj);
+
+    this.renderDefendSlots(gameState, viewerPlayerId, proj);
     this.renderVisualEvents(gameState.visualEvents);
   }
 
-  private createCenterSprite() {
-    const key = "arena-mystic-center-sprite";
-    if (!this.textures.exists(key)) {
-      const size = 48;
-      const rune = this.add.graphics();
-      rune.lineStyle(2, 0x8b5cf6, 0.78);
-      rune.strokeCircle(size / 2, size / 2, 17);
-      rune.lineStyle(1, 0xf59e0b, 0.7);
-      rune.strokeCircle(size / 2, size / 2, 10);
-      rune.lineBetween(8, 31, 40, 17);
-      rune.lineBetween(17, 40, 31, 8);
-      rune.fillStyle(0xfbbf24, 0.9).fillCircle(size / 2, size / 2, 2.5);
-      rune.generateTexture(key, size, size);
-      rune.destroy();
-    }
-    this.centerSprite = this.add.sprite(0, 0, key)
-      .setDepth(2.2)
-      .setAlpha(0.2)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    this.centerSpriteTween = this.tweens.add({
-      targets: this.centerSprite,
-      angle: 360,
-      alpha: { from: 0.16, to: 0.3 },
-      duration: 8400,
-      ease: "Linear",
-      repeat: -1,
-    });
+  /**
+   * Shares the rift with the card animations (registry) and with the DOM turn rail, which
+   * stands in the gutter left of the rift: its height, where the table edge is there and how
+   * far that edge leans, so the rail's frames can lie along it.
+   */
+  private publishRift(proj: ArenaProjection) {
+    this.registry.set("arenaRiftY", proj.riftY);
+    const table = this.game.canvas?.closest<HTMLElement>(".lor-table");
+    table?.style.setProperty("--arena-rift-y", `${proj.riftY.toFixed(1)}px`);
+    table?.style.setProperty("--arena-table-left-at-rift", `${proj.riftEdge.left.toFixed(1)}px`);
+    table?.style.setProperty("--arena-edge-skew", `${(Math.atan(proj.riftEdge.slope) * 180 / Math.PI).toFixed(2)}deg`);
   }
 
-  private updateCenterSprite(width: number, height: number, phase: GameState["phase"]) {
-    if (!this.centerSprite) return;
-    this.centerSprite.setPosition(width / 2, height / 2);
-    const tint = phase === "COMBAT" ? 0xfb7185 : phase === "BLOCK" ? 0xfbbf24 : 0x8b5cf6;
-    this.centerSprite.setTint(tint);
-  }
-
-  private renderDefendSlots(
-    gameState: GameState,
-    viewerPlayerId: PlayerId,
-    width: number,
-    height: number,
-    cardWidth: number,
-  ) {
+  private renderDefendSlots(gameState: GameState, viewerPlayerId: PlayerId, proj: ArenaProjection) {
     if (!this.defendSlots) return;
     const defenderId: PlayerId = gameState.attackTokenPlayerId === "P1" ? "P2" : "P1";
     const active = gameState.phase === "BLOCK" && viewerPlayerId === defenderId && gameState.priorityPlayerId === defenderId;
-    const signature = active ? `${width}:${height}:${defenderId}:${cardWidth}` : "off";
+    const signature = active ? `${proj.width}:${proj.height}:${defenderId}` : "off";
     if (signature !== this.defendSignature) {
       this.defendSignature = signature;
       this.defendBreathTween?.stop();
@@ -260,7 +345,7 @@ export class GameArenaScene extends Phaser.Scene {
           ease: "Sine.InOut",
           yoyo: true,
           repeat: -1,
-          onUpdate: () => this.drawDefendSlots(defenderId, width, height, cardWidth),
+          onUpdate: () => this.drawDefendSlots(proj),
         });
         this.defendDashTween = this.tweens.add({
           targets: this,
@@ -268,24 +353,21 @@ export class GameArenaScene extends Phaser.Scene {
           duration: 1400,
           ease: "Linear",
           repeat: -1,
-          onUpdate: () => this.drawDefendSlots(defenderId, width, height, cardWidth),
+          onUpdate: () => this.drawDefendSlots(proj),
         });
       }
     }
-    if (active) this.drawDefendSlots(defenderId, width, height, cardWidth);
+    if (active) this.drawDefendSlots(proj);
   }
 
-  private drawDefendSlots(defenderId: PlayerId, width: number, height: number, cardWidth: number) {
+  private drawDefendSlots(proj: ArenaProjection) {
     if (!this.defendSlots) return;
     this.defendSlots.clear();
     this.defendSlots.setData("dashOffset", this.defendDashOffset);
-    const y = defenderId === "P1" ? height * 0.62 : height * 0.38;
-    const scale = 1;
-    const laneWidth = cardWidth * scale;
-    const laneHeight = laneWidth * 1.38;
+    // Blocking only happens for the local player, whose front row is "meActive".
     for (let index = 0; index < 6; index += 1) {
-      const point = getSlotPosition(index, y, width, scale);
-      drawDefendCardLane(this.defendSlots, point.x, point.y, laneWidth, laneHeight, this.defendBreathAlpha, scale);
+      const slot = proj.slot("meActive", index);
+      drawDefendSlot(this.defendSlots, slot.quad, this.defendBreathAlpha, proj.widthAt(slot.s) / proj.wNear);
     }
   }
 
@@ -299,12 +381,19 @@ export class GameArenaScene extends Phaser.Scene {
       this.seenVisualEvents.add(eventKey);
       if (this.seenVisualEvents.size > 40) this.seenVisualEvents.delete(this.seenVisualEvents.values().next().value as string);
       let message: string | undefined; let color = '#b8edff'; let targetId: string | undefined;
+      let nexusPlayerId: PlayerId | undefined;
       if (event.type === 'DAMAGE') {
         message = `-${event.amount}`;
         color = '#ff817c';
         targetId = event.isNexus ? undefined : event.targetId;
+        if (event.isNexus) nexusPlayerId = event.targetId.replace('nexus-', '') as PlayerId;
       }
-      else if (event.type === 'HEAL') { message = `+${event.amount}`; color = '#7dffbf'; targetId = event.isNexus ? undefined : event.targetId; }
+      else if (event.type === 'HEAL') {
+        message = `+${event.amount}`;
+        color = '#7dffbf';
+        targetId = event.isNexus ? undefined : event.targetId;
+        if (event.isNexus) nexusPlayerId = event.targetId.replace('nexus-', '') as PlayerId;
+      }
       else if (event.type === 'BUFF' || event.type === 'DEBUFF') {
         const isBuff = event.type === 'BUFF';
         const parts: string[] = [];
@@ -325,9 +414,14 @@ export class GameArenaScene extends Phaser.Scene {
       if (isNewEvent) this.combatVfx.playVisualEvent(event);
       if (!message) return;
       const target = targetId ? this.cards.get(targetId) : undefined;
+      const core = nexusPlayerId ? this.nexus.anchorFor(nexusPlayerId, this.stateSystem.snapshot.viewerPlayerId) : undefined;
       const targetDepth = target ? target.depth + 500 : 9999;
-      const startY = target ? target.y - target.height / 2 - 18 : this.scale.height / 2 - 24;
-      const text = this.add.text(target?.x ?? this.scale.width / 2, startY, message, {
+      const startY = target
+        ? target.y - ((target.getData("topExtent") as number | undefined) ?? target.height / 2) - 18
+        : core
+          ? core.y - (this.projection ? NEXUS_CORE_RADIUS * this.projection.nexus.scale : 0) - 14
+          : (this.projection?.riftY ?? logicalSize(this.scale).height / 2) - 24;
+      const text = this.add.text(target?.x ?? core?.x ?? logicalSize(this.scale).width / 2, startY, message, {
         fontFamily: 'Inter, Arial, sans-serif',
         fontSize: '22px',
         fontStyle: 'bold',

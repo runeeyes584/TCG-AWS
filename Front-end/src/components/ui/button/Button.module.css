@@ -1,0 +1,297 @@
+/*
+ * Shared button. Every variant is square (border-radius: 0) and shares the
+ * Lobby button hover: a bright border, white text and a glow in the variant's own
+ * family (cyan for ghost/info, green for primary/success, red for danger).
+ * Selectors include :not(:disabled) so they outrank the global `button:hover` rule.
+ */
+.btn {
+  --ui-btn-hover-border: #00f0ff;
+  --ui-btn-hover-glow: 0 0 16px rgba(0, 240, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--ui-btn-border, rgba(0, 240, 255, 0.2));
+  border-radius: 0;
+  background: var(--ui-btn-bg, rgba(4, 12, 28, 0.6));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ui-btn-fg, #a9c5e8);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn:hover:not(:disabled):not(.disabled) {
+  border-color: var(--ui-btn-hover-border);
+  color: #fff;
+  box-shadow: var(--ui-btn-hover-glow);
+}
+
+.btn:active:not(:disabled):not(.disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+}
+
+.btn:focus-visible {
+  outline: 2px solid #00f0ff;
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.loading {
+  cursor: wait;
+}
+
+/* ---- variants ---- */
+.ghost:hover:not(:disabled):not(.disabled) {
+  background: var(--ui-btn-hover-bg, rgba(0, 240, 255, 0.12));
+}
+
+/* ---- tones: recolor the outline (ghost) button to match its surroundings ---- */
+.toneAmber {
+  --ui-btn-border: rgba(255, 195, 60, 0.45);
+  --ui-btn-fg: #ffd98a;
+  --ui-btn-bg: rgba(40, 28, 6, 0.55);
+  --ui-btn-hover-bg: rgba(255, 190, 40, 0.14);
+  --ui-btn-hover-border: #ffc83c;
+  --ui-btn-hover-glow: 0 0 16px rgba(255, 190, 40, 0.4);
+}
+
+.toneRed {
+  --ui-btn-border: rgba(251, 113, 133, 0.45);
+  --ui-btn-fg: #ffb4be;
+  --ui-btn-bg: rgba(44, 10, 18, 0.55);
+  --ui-btn-hover-bg: rgba(244, 63, 94, 0.14);
+  --ui-btn-hover-border: #fb7185;
+  --ui-btn-hover-glow: 0 0 16px rgba(244, 63, 94, 0.4);
+}
+
+/* follows --ui-btn-accent, which a parent may set (e.g. the match result panel) */
+.toneAccent {
+  --ui-btn-border: color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 50%, transparent);
+  --ui-btn-fg: color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 70%, white);
+  --ui-btn-bg: rgba(6, 9, 16, 0.6);
+  --ui-btn-hover-bg: color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 16%, transparent);
+  --ui-btn-hover-border: var(--ui-btn-accent, #00f0ff);
+  --ui-btn-hover-glow: 0 0 18px color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 45%, transparent);
+}
+
+.primary {
+  --ui-btn-hover-border: #b6f75a;
+  --ui-btn-hover-glow: 0 0 24px rgba(166, 255, 54, 0.45);
+  border-color: #d3ff54;
+  background: linear-gradient(180deg, #385b1a, #1c3513);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.24), 0 0 20px rgba(166, 255, 54, 0.22);
+  color: #f5ffbc;
+}
+
+.primary:hover:not(:disabled):not(.disabled) {
+  background: linear-gradient(180deg, #4b7621, #263f17);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.32), var(--ui-btn-hover-glow);
+}
+
+.info {
+  border-color: #00f0ff;
+  background: linear-gradient(180deg, #0b4566, #062238);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.24), 0 0 20px rgba(0, 240, 255, 0.22);
+  color: #b8f4ff;
+}
+
+.info:hover:not(:disabled):not(.disabled) {
+  background: linear-gradient(180deg, #135d88, #0a314f);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.32), 0 0 28px rgba(0, 240, 255, 0.4);
+}
+
+.warning {
+  --ui-btn-hover-border: #ffc83c;
+  --ui-btn-hover-glow: 0 0 22px rgba(255, 190, 40, 0.5);
+  border-color: rgba(255, 200, 80, 0.8);
+  background: linear-gradient(180deg, #8a5a08, #4a2f04);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.2), 0 0 18px rgba(255, 180, 40, 0.2);
+  color: #fff2c9;
+}
+
+.warning:hover:not(:disabled):not(.disabled) {
+  background: linear-gradient(180deg, #a86d0b, #5a3905);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.28), var(--ui-btn-hover-glow);
+}
+
+/* solid button in the color of --ui-btn-accent (default cyan) */
+.accent {
+  --ui-btn-hover-border: color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 55%, white);
+  --ui-btn-hover-glow: 0 0 24px color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 55%, transparent);
+  border-color: var(--ui-btn-accent, #00f0ff);
+  background: color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 26%, #111);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.2),
+    0 0 16px color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 22%, transparent);
+  color: #fff7ef;
+}
+
+.accent:hover:not(:disabled):not(.disabled) {
+  background: color-mix(in srgb, var(--ui-btn-accent, #00f0ff) 40%, #17100b);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.28), var(--ui-btn-hover-glow);
+}
+
+.danger {
+  --ui-btn-hover-border: #fb7185;
+  --ui-btn-hover-glow: 0 0 18px rgba(244, 63, 94, 0.45);
+  border-color: rgba(251, 113, 133, 0.7);
+  background: linear-gradient(180deg, #7a1d2b, #3c1118);
+  color: #ffd8dc;
+}
+
+.danger:hover:not(:disabled):not(.disabled) {
+  background: linear-gradient(180deg, #9b2638, #4d1520);
+}
+
+.success {
+  --ui-btn-hover-border: #5dffb0;
+  --ui-btn-hover-glow: 0 0 22px rgba(0, 255, 136, 0.5);
+  border-color: #00ff88;
+  background: rgba(0, 255, 136, 0.14);
+  color: #00ff88;
+  box-shadow: 0 0 18px rgba(0, 255, 136, 0.28);
+}
+
+.success:hover:not(:disabled):not(.disabled) {
+  background: rgba(0, 255, 136, 0.26);
+}
+
+/* ---- sizes ---- */
+.sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.md {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+.lg {
+  min-height: 54px;
+  padding: 0 20px;
+  font-size: 13px;
+  letter-spacing: 0.13em;
+}
+
+.full {
+  width: 100%;
+}
+
+/* ---- parts ---- */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nudge:hover:not(:disabled):not(.disabled) .icon:first-child {
+  transform: translateX(-2.5px);
+}
+
+.spinner {
+  flex-shrink: 0;
+  animation: spin 1s linear infinite;
+  color: #00f0ff;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/*
+ * Chamfered shape: the top left and the bottom right corners are cut at 45 degrees, like the cells of the table.
+ * The clip removes the border along the cut, so a line is drawn there again, in the border colour. An outer glow
+ * would be clipped too, so the hover glow is kept inside the button.
+ */
+.chamfer {
+  --ui-btn-cut: 10px;
+  position: relative;
+  clip-path: polygon(
+    var(--ui-btn-cut) 0,
+    100% 0,
+    100% calc(100% - var(--ui-btn-cut)),
+    calc(100% - var(--ui-btn-cut)) 100%,
+    0 100%,
+    0 var(--ui-btn-cut)
+  );
+}
+
+.chamfer::before,
+.chamfer::after {
+  position: absolute;
+  width: calc(var(--ui-btn-cut) * 1.4142);
+  height: 0;
+  border-top: 1px solid;
+  border-top-color: inherit;
+  content: "";
+  pointer-events: none;
+}
+
+.chamfer::before {
+  top: calc(var(--ui-btn-cut) - 1px);
+  left: -1px;
+  transform: rotate(-45deg);
+  transform-origin: 0 0;
+}
+
+.chamfer::after {
+  right: -1px;
+  bottom: calc(var(--ui-btn-cut) - 1px);
+  transform: rotate(-45deg);
+  transform-origin: 100% 0;
+}
+
+.chamfer:hover:not(:disabled):not(.disabled) {
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--ui-btn-hover-border) 38%, transparent);
+}
+
+.chamfer:active:not(:disabled):not(.disabled) {
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--ui-btn-hover-border) 30%, transparent);
+}
+
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .btn {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .ghost {
+    background-color: rgba(4, 12, 28, 0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

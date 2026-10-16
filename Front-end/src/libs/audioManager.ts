@@ -18,7 +18,13 @@ export type SfxType =
   | "slider_tick"
   | "warning"
   | "success"
-  | "sign_out";
+  | "sign_out"
+  | "tick"
+  | "tick_urgent"
+  | "turn_you"
+  | "turn_enemy"
+  | "blade_draw"
+  | "gate_lock";
 
 const STORAGE_KEY = "chrono_audio_settings_v1";
 
@@ -397,6 +403,37 @@ class AudioManager {
           break;
         }
 
+        case "tick": {
+          // Clock tick of the last ten seconds of a turn.
+          const osc = ctx.createOscillator();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(1000, now);
+
+          gainNode.gain.setValueAtTime(effectiveVol * 0.3, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+          osc.connect(gainNode);
+          osc.start(now);
+          osc.stop(now + 0.055);
+          break;
+        }
+
+        case "tick_urgent": {
+          // Sharper, lower-pitched tick for the last five seconds.
+          const osc = ctx.createOscillator();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(760, now);
+          osc.frequency.exponentialRampToValueAtTime(520, now + 0.07);
+
+          gainNode.gain.setValueAtTime(effectiveVol * 0.4, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+          osc.connect(gainNode);
+          osc.start(now);
+          osc.stop(now + 0.085);
+          break;
+        }
+
         case "success": {
           const osc = ctx.createOscillator();
           osc.type = "sine";
@@ -409,6 +446,122 @@ class AudioManager {
           osc.connect(gainNode);
           osc.start(now);
           osc.stop(now + 0.27);
+          break;
+        }
+
+        case "turn_you": {
+          // Your turn: a low note that rises, with two bright notes ringing above it.
+          const end = now + 0.6;
+          gainNode.gain.setValueAtTime(effectiveVol * 0.5, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, end);
+          const low = ctx.createOscillator();
+          low.type = "sine";
+          low.frequency.setValueAtTime(110, now);
+          low.frequency.exponentialRampToValueAtTime(220, now + 0.45);
+          low.connect(gainNode);
+          low.start(now);
+          low.stop(end);
+          [
+            { freq: 880, delay: 0.05, level: 0.35 },
+            { freq: 1320, delay: 0.12, level: 0.22 }
+          ].forEach(({ freq, delay, level }) => {
+            const bell = ctx.createOscillator();
+            const bellGain = ctx.createGain();
+            bell.type = "triangle";
+            bell.frequency.setValueAtTime(freq, now + delay);
+            bellGain.gain.setValueAtTime(level, now + delay);
+            bellGain.gain.exponentialRampToValueAtTime(0.001, end);
+            bell.connect(bellGain);
+            bellGain.connect(gainNode);
+            bell.start(now + delay);
+            bell.stop(end);
+          });
+          break;
+        }
+
+        case "turn_enemy": {
+          // The enemy's turn: a low, dark note that sinks, with two notes a semitone apart gnawing at it.
+          const end = now + 0.65;
+          gainNode.gain.setValueAtTime(effectiveVol * 0.5, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, end);
+          const filter = ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(420, now);
+          filter.connect(gainNode);
+          const low = ctx.createOscillator();
+          low.type = "sawtooth";
+          low.frequency.setValueAtTime(82, now);
+          low.frequency.exponentialRampToValueAtTime(61, now + 0.5);
+          low.connect(filter);
+          low.start(now);
+          low.stop(end);
+          [233, 247].forEach((freq, i) => {
+            const clash = ctx.createOscillator();
+            const clashGain = ctx.createGain();
+            clash.type = "sine";
+            clash.frequency.setValueAtTime(freq, now + 0.08);
+            clashGain.gain.setValueAtTime(i === 0 ? 0.22 : 0.16, now + 0.08);
+            clashGain.gain.exponentialRampToValueAtTime(0.001, end);
+            clash.connect(clashGain);
+            clashGain.connect(gainNode);
+            clash.start(now + 0.08);
+            clash.stop(end);
+          });
+          break;
+        }
+
+        case "blade_draw": {
+          // A blade drawn: a short, bright rasp that rises and falls away.
+          const end = now + 0.22;
+          gainNode.gain.setValueAtTime(effectiveVol * 0.35, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, end);
+          const filter = ctx.createBiquadFilter();
+          filter.type = "highpass";
+          filter.frequency.setValueAtTime(1200, now);
+          filter.connect(gainNode);
+          const rasp = ctx.createOscillator();
+          rasp.type = "sawtooth";
+          rasp.frequency.setValueAtTime(900, now);
+          rasp.frequency.exponentialRampToValueAtTime(2600, now + 0.12);
+          rasp.frequency.exponentialRampToValueAtTime(1800, end);
+          rasp.connect(filter);
+          rasp.start(now);
+          rasp.stop(end);
+          const ring = ctx.createOscillator();
+          const ringGain = ctx.createGain();
+          ring.type = "sine";
+          ring.frequency.setValueAtTime(3200, now + 0.05);
+          ringGain.gain.setValueAtTime(0.18, now + 0.05);
+          ringGain.gain.exponentialRampToValueAtTime(0.001, end);
+          ring.connect(ringGain);
+          ringGain.connect(gainNode);
+          ring.start(now + 0.05);
+          ring.stop(end);
+          break;
+        }
+
+        case "gate_lock": {
+          // A gate locked: a low thud, then a short bright latch.
+          const end = now + 0.3;
+          gainNode.gain.setValueAtTime(effectiveVol * 0.5, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, end);
+          const thud = ctx.createOscillator();
+          thud.type = "sine";
+          thud.frequency.setValueAtTime(140, now);
+          thud.frequency.exponentialRampToValueAtTime(55, now + 0.22);
+          thud.connect(gainNode);
+          thud.start(now);
+          thud.stop(end);
+          const latch = ctx.createOscillator();
+          const latchGain = ctx.createGain();
+          latch.type = "square";
+          latch.frequency.setValueAtTime(1800, now + 0.04);
+          latchGain.gain.setValueAtTime(0.12, now + 0.04);
+          latchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          latch.connect(latchGain);
+          latchGain.connect(gainNode);
+          latch.start(now + 0.04);
+          latch.stop(now + 0.11);
           break;
         }
 

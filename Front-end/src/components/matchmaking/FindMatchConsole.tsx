@@ -8,6 +8,7 @@ import { ConsolePhaserBackground } from "./ConsolePhaserBackground";
 import { BiometricHeartbeatMonitor } from "./BiometricHeartbeatMonitor";
 import { getCachedProfile } from "../../libs/profileCache";
 import type { PlayerProfile } from "../../libs/api";
+import { CornerBrackets } from "../ui/decor";
 
 interface GladiatorDossierCardProps {
   profile?: PlayerProfile;
@@ -39,10 +40,7 @@ export const GladiatorDossierCard = memo(function GladiatorDossierCard({
       <ConsolePhaserBackground />
 
       <div className="card-hazard-line" aria-hidden="true" />
-      <div className="card-corner top-left" aria-hidden="true" />
-      <div className="card-corner top-right" aria-hidden="true" />
-      <div className="card-corner bottom-left" aria-hidden="true" />
-      <div className="card-corner bottom-right" aria-hidden="true" />
+      <CornerBrackets />
 
       {/* Telemetry status bar */}
       <div className="dossier-telemetry-header">

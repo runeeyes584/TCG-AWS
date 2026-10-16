@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap, Trash2 } from "lucide-react";
+import { Activity, AlertTriangle, Camera, Check, CheckCircle2, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button, LobbyButton } from "../../components/ui/button";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
 import { deleteAccount, getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
 import { getCachedProfile, setCachedProfile, clearCachedProfile } from "../../libs/profileCache";
+import { StatCard } from "../../components/ui/data";
 
 interface UserProfile {
   user_id: string;
@@ -226,9 +228,7 @@ function UserPageContent() {
         <div className="user-page-vignette" aria-hidden="true" />
         <div className="user-page-loading">
           <p>Unable to load user profile.</p>
-          <button className="user-page-back" onClick={() => router.push("/")}>
-            <ArrowLeft size={16} /> Return to Lobby
-          </button>
+          <LobbyButton label="Return to Lobby" />
         </div>
       </main>
     );
@@ -299,9 +299,7 @@ function UserPageContent() {
         initial={{ opacity: 0, y: -14 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <button className="user-page-back" onClick={() => router.push("/")}>
-          <ArrowLeft size={17} /> Lobby
-        </button>
+        <LobbyButton />
         <div className="user-page-brand">
           <span><UserCheck size={18} /></span>
           <div>
@@ -367,9 +365,9 @@ function UserPageContent() {
             <span className="identity-eyebrow">Authenticated player identity</span>
             <div className="username-display-box">
               <h2>{user.username}</h2>
-              <button className="user-btn edit" onClick={() => { setUsername(user.username); setEditingName(true); }}>
-                <Edit3 size={14} /> Edit Name
-              </button>
+              <Button size="sm" icon={<Edit3 size={14} />} onClick={() => { setUsername(user.username); setEditingName(true); }}>
+                Edit Name
+              </Button>
             </div>
 
             <div className="user-meta-pills">
@@ -399,45 +397,10 @@ function UserPageContent() {
         </div>
 
         <div className="user-stats-grid">
-          <motion.div className="user-stat-card elo-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Shield size={18} />
-              <span>Combat Rating</span>
-            </div>
-            <strong className="stat-card-value">{elo.toLocaleString()}</strong>
-            <small className="stat-card-sub">ELO Points</small>
-            <span className="stat-card-code">CR-01</span>
-          </motion.div>
-
-          <motion.div className="user-stat-card win-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Swords size={18} />
-              <span>Victories</span>
-            </div>
-            <strong className="stat-card-value text-win">{wins}</strong>
-            <small className="stat-card-sub">Matches Won</small>
-            <span className="stat-card-code">VX-02</span>
-          </motion.div>
-
-          <motion.div className="user-stat-card loss-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Swords size={18} />
-              <span>Defeats</span>
-            </div>
-            <strong className="stat-card-value text-loss">{losses}</strong>
-            <small className="stat-card-sub">Matches Lost</small>
-            <span className="stat-card-code">DX-03</span>
-          </motion.div>
-
-          <motion.div className="user-stat-card rate-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Zap size={18} />
-              <span>Win Ratio</span>
-            </div>
-            <strong className="stat-card-value">{winRate}%</strong>
-            <small className="stat-card-sub">{games} Total Duels</small>
-            <span className="stat-card-code">WR-04</span>
-          </motion.div>
+          <StatCard lift icon={<Shield size={18} />} label="Combat Rating" value={elo.toLocaleString()} sub="ELO Points" code="CR-01" />
+          <StatCard lift icon={<Swords size={18} />} label="Victories" tone="win" value={wins} sub="Matches Won" code="VX-02" />
+          <StatCard lift icon={<Swords size={18} />} label="Defeats" tone="loss" value={losses} sub="Matches Lost" code="DX-03" />
+          <StatCard lift icon={<Zap size={18} />} label="Win Ratio" tone="accent" value={`${winRate}%`} sub={`${games} Total Duels`} code="WR-04" />
         </div>
 
         <div className="user-details-panel">
@@ -506,16 +469,18 @@ function UserPageContent() {
               </label>
               <p className="username-edit-modal__hint">Use 3–20 letters, numbers, or underscores. The name must be unique.</p>
               <div className="username-edit-modal__actions">
-                <button
-                  className="user-btn cancel"
+                <Button
+                  size="sm"
+                  variant="danger"
+                  icon={<X size={14} />}
                   onClick={() => { setUsername(user.username); setEditingName(false); }}
                   disabled={savingName}
                 >
-                  <X size={14} /> Cancel
-                </button>
-                <button className="user-btn save" onClick={handleSaveUsername} disabled={savingName}>
-                  <Check size={14} /> {savingName ? "Saving..." : "Save changes"}
-                </button>
+                  Cancel
+                </Button>
+                <Button size="sm" variant="success" icon={<Check size={14} />} onClick={handleSaveUsername} disabled={savingName}>
+                  {savingName ? "Saving..." : "Save changes"}
+                </Button>
               </div>
             </motion.section>
           </motion.div>
@@ -532,8 +497,8 @@ function UserPageContent() {
             <h2>TERMINATE OPERATIVE PROFILE</h2>
             <p>This action is permanent. Your profile, stats, decks, and account data will be deleted. The email address will be unavailable for 24 hours.</p>
             <div className="account-delete-actions">
-              <button onClick={() => setShowDeleteModal(false)} disabled={deleting}>CANCEL</button>
-              <button className="confirm-delete" onClick={handleDeleteAccount} disabled={deleting}>{deleting ? "DELETING..." : "CONFIRM DELETION"}</button>
+              <Button size="sm" onClick={() => setShowDeleteModal(false)} disabled={deleting}>CANCEL</Button>
+              <Button size="sm" variant="danger" onClick={handleDeleteAccount} loading={deleting} loadingText="DELETING...">CONFIRM DELETION</Button>
             </div>
           </section>
         </div>

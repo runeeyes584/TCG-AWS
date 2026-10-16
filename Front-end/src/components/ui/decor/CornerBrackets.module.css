@@ -1,0 +1,35 @@
+.corner {
+  position: absolute;
+  width: var(--ui-corner-size);
+  height: var(--ui-corner-size);
+  border: 0 solid var(--ui-corner-color);
+  pointer-events: none;
+}
+
+.tl {
+  top: var(--ui-corner-offset);
+  left: var(--ui-corner-offset);
+  border-top-width: var(--ui-corner-thickness);
+  border-left-width: var(--ui-corner-thickness);
+}
+
+.tr {
+  top: var(--ui-corner-offset);
+  right: var(--ui-corner-offset);
+  border-top-width: var(--ui-corner-thickness);
+  border-right-width: var(--ui-corner-thickness);
+}
+
+.bl {
+  bottom: var(--ui-corner-offset);
+  left: var(--ui-corner-offset);
+  border-bottom-width: var(--ui-corner-thickness);
+  border-left-width: var(--ui-corner-thickness);
+}
+
+.br {
+  bottom: var(--ui-corner-offset);
+  right: var(--ui-corner-offset);
+  border-bottom-width: var(--ui-corner-thickness);
+  border-right-width: var(--ui-corner-thickness);
+}

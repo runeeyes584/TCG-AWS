@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cinzel, Geist, Geist_Mono } from "next/font/google";
+import { Cinzel, Geist, Geist_Mono, Rajdhani } from "next/font/google";
 import "./globals.css";
 import { GlobalAudioProvider } from "../contexts/AudioContext";
 
@@ -8,6 +8,12 @@ const cinzel = Cinzel({
   subsets: ['latin'],
   weight: ['500', '600', '700', '800'],
   variable: '--font-cinzel',
+});
+
+const rajdhani = Rajdhani({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-rajdhani',
 });
 
 const geistSans = Geist({
@@ -31,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${cinzel.variable} ${geistSans.variable} ${geistMono.variable} bg-background`}>
+    <html lang="en" className={`${cinzel.variable} ${rajdhani.variable} ${geistSans.variable} ${geistMono.variable} bg-background`}>
       <body className="antialiased" suppressHydrationWarning>
         <GlobalAudioProvider>{children}</GlobalAudioProvider>
       </body>

@@ -1,0 +1,63 @@
+.shell {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #02040b;
+  color: #edf5ff;
+  font-family: var(--font-sans);
+}
+
+.centered {
+  place-items: center;
+}
+
+.grid,
+.shade,
+.art {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.grid {
+  z-index: -3;
+  opacity: 0.38;
+  background:
+    linear-gradient(117deg, transparent 0 44%, rgba(0, 240, 255, 0.08) 44.08% 44.17%, transparent 44.25%),
+    linear-gradient(23deg, transparent 0 71%, rgba(168, 85, 247, 0.08) 71.08% 71.16%, transparent 71.24%),
+    repeating-linear-gradient(0deg, rgba(151, 198, 255, 0.03) 0 1px, transparent 1px 6px),
+    radial-gradient(ellipse at 70% 50%, rgba(20, 10, 40, 0.6), transparent 70%),
+    linear-gradient(112deg, #02040b, #050b1a 58%, #080515);
+}
+
+.art {
+  z-index: -2;
+  left: auto;
+  width: min(64vw, 1050px);
+  opacity: 0.72;
+}
+
+.art::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, #02040b 2%, transparent 48%, rgba(2, 4, 11, 0.3)),
+    linear-gradient(0deg, #02040b 0%, transparent 35%);
+  content: "";
+}
+
+.shade {
+  z-index: -1;
+  background: radial-gradient(ellipse at 38% 52%, transparent 0 30%, rgba(2, 4, 11, 0.55) 68%, rgba(2, 3, 8, 0.95) 100%);
+}
+
+@media (max-width: 768px) {
+  .art {
+    top: 78px;
+    width: 112vw;
+    height: 62vh;
+    opacity: 0.32;
+  }
+}

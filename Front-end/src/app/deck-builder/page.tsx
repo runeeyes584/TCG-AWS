@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   Check,
   Crown,
   FilePlus2,
@@ -25,6 +24,7 @@ import {
 } from "../../libs/localDecks";
 import { listDecks, saveDeck } from "../../libs/api";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
+import { Button, LobbyButton } from "../../components/ui/button";
 
 type DeckCard = CardDefinition & {
   rarity?: string;
@@ -271,9 +271,7 @@ function DeckBuilderPageContent() {
       <GalleryPhaserBackdrop />
       <div className="deck-builder-grid-bg" aria-hidden="true" />
       <header className="deck-builder-header">
-        <button className="deck-builder-back" type="button" onClick={() => window.location.assign("/")}>
-          <ArrowLeft size={18} /> Lobby
-        </button>
+        <LobbyButton />
         <div className="deck-builder-title">
           <strong>Deck Builder</strong>
           <small>Kaleidoscope Arsenal</small>
@@ -312,9 +310,10 @@ function DeckBuilderPageContent() {
                   </>
                 )}
               </div>
-              <button
-                className="deck-inspector-action"
-                type="button"
+              <Button
+                variant="primary"
+                fullWidth
+                icon={<Layers3 size={17} />}
                 onClick={() => addCard(previewCard)}
                 disabled={
                   previewCopies >= 3 ||
@@ -322,9 +321,8 @@ function DeckBuilderPageContent() {
                   (previewCard.type === "champion" && championCount >= MAX_CHAMPIONS)
                 }
               >
-                <Layers3 size={17} />
                 {previewCopies >= 3 ? "Copy limit reached" : `Add copy (${previewCopies}/3)`}
-              </button>
+              </Button>
             </>
           ) : null}
         </aside>
@@ -343,12 +341,23 @@ function DeckBuilderPageContent() {
                 }}
               />
             </div>
-            <button className="deck-clear-button" type="button" onClick={clearDeck} disabled={deckCardIds.length === 0} title="Clear deck">
-              <Trash2 size={17} />
-            </button>
-            <button className="deck-clear-button" type="button" onClick={createNewDeck} title="Create another deck">
-              <FilePlus2 size={17} />
-            </button>
+            <Button
+              size="sm"
+              className="deck-toolbar-btn"
+              icon={<Trash2 size={17} />}
+              onClick={clearDeck}
+              disabled={deckCardIds.length === 0}
+              title="Clear deck"
+              aria-label="Clear deck"
+            />
+            <Button
+              size="sm"
+              className="deck-toolbar-btn"
+              icon={<FilePlus2 size={17} />}
+              onClick={createNewDeck}
+              title="Create another deck"
+              aria-label="Create another deck"
+            />
           </div>
 
           <div className="deck-main-meta">
@@ -386,10 +395,16 @@ function DeckBuilderPageContent() {
               {saveState === "saved" || saveState === "local" ? <Check size={15} /> : <span />}
               <p>{notice}</p>
             </div>
-            <button className="deck-save-button" type="button" onClick={handleSave} disabled={saveState === "saving"}>
-              <Save size={18} />
-              {saveState === "saving" ? "Saving" : "Save Deck"}
-            </button>
+            <Button
+              variant="primary"
+              className="deck-save-action"
+              icon={<Save size={18} />}
+              onClick={handleSave}
+              loading={saveState === "saving"}
+              loadingText="Saving"
+            >
+              Save Deck
+            </Button>
           </div>
         </section>
 
