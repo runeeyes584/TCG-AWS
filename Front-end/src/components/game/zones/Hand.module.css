@@ -60,6 +60,11 @@
   bottom: 12px;
 }
 
+.opponent .slot.inert {
+  /* No hover feedback on the opponent's hand outside the trial. */
+  pointer-events: none;
+}
+
 .opponent .empty {
   top: 8px;
   bottom: auto;

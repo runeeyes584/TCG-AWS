@@ -2,13 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, History, MinusCircle, RefreshCw, Swords, Trophy, User, XCircle } from "lucide-react";
+import { Clock, History, Layers, MinusCircle, RefreshCw, Swords, Trophy, User, XCircle } from "lucide-react";
 import { Button, LobbyButton } from "../../components/ui/button";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
 import { getMatchHistory, MatchHistory } from "../../libs/api";
 import { StatCard } from "../../components/ui/data";
 import { StatusPanel } from "../../components/ui/feedback";
+
+const END_REASON_LABELS: Record<MatchHistory["result"], Partial<Record<MatchHistory["end_reason"], string>>> = {
+  LOSS: {
+    NEXUS_DESTROYED: "Nexus destroyed",
+    DECK_EXHAUSTED: "Ran out of cards",
+    AFK_TIMEOUT: "AFK timeout",
+    SURRENDER: "Surrendered",
+  },
+  WIN: {
+    NEXUS_DESTROYED: "Opponent's Nexus destroyed",
+    DECK_EXHAUSTED: "Opponent ran out of cards",
+    AFK_TIMEOUT: "Opponent went AFK",
+    SURRENDER: "Opponent surrendered",
+  },
+  DRAW: {},
+};
+
+function endReasonLabel(match: MatchHistory): string {
+  if (match.end_reason === "DOUBLE_NEXUS_DESTROYED") return "Both Nexuses destroyed";
+  return END_REASON_LABELS[match.result]?.[match.end_reason] ?? "Reason not recorded";
+}
 
 function HistoryPageContent() {
   const [history, setHistory] = useState<MatchHistory[]>([]);
@@ -144,6 +165,19 @@ function HistoryPageContent() {
                     <span className="vs-tag">VS OPPONENT</span>
                     <strong className="opponent-name">{match.opponent_name ?? match.opponent_id}</strong>
                   </div>
+                </div>
+
+                <div className="card-details">
+                  <span className={`card-reason ${match.end_reason === "UNKNOWN_LEGACY" ? "is-unknown" : ""}`}>
+                    <span className="card-detail-label">{match.result === "LOSS" ? "Defeat cause" : "Result cause"}</span>
+                    <strong>{endReasonLabel(match)}</strong>
+                  </span>
+                  <span className={`card-deck ${match.deck_name ? "" : "is-unknown"}`}>
+                    <span className="card-detail-label">Deck used</span>
+                    <strong title={match.deck_name}>
+                      <Layers size={12} /> {match.deck_name ?? "Not recorded"}
+                    </strong>
+                  </span>
                 </div>
 
                 <div className="card-timestamp">
