@@ -1,114 +1,55 @@
 import type Phaser from "phaser";
+import type { Point, Quad, SlotGeometry } from "../config/arenaProjection";
+import { ARENA_HEX } from "../config/arenaTheme";
 
-export function drawCardLane(
-  graphics: Phaser.GameObjects.Graphics,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  color: number,
-  alpha: number,
-) {
-  const radius = Math.min(14, width * 0.12);
-  const left = x - width / 2;
-  const right = x + width / 2;
-  const top = y - height / 2;
-  const bottom = y + height / 2;
+/** Highlight for a socket that can receive a card (hover on an empty slot). */
+export function drawValidSlot(graphics: Phaser.GameObjects.Graphics, slot: SlotGeometry, pulse: number) {
+  const [a, b, c, d] = slot.quad;
+  const fill = (alpha: number, grow: number) => {
+    const cx = (a.x + b.x + c.x + d.x) / 4;
+    const cy = (a.y + b.y + c.y + d.y) / 4;
+    const p = (pt: Point) => ({ x: cx + (pt.x - cx) * grow, y: cy + (pt.y - cy) * grow });
+    const [pa, pb, pc, pd] = [p(a), p(b), p(c), p(d)];
+    graphics.fillStyle(ARENA_HEX.violetBright, alpha);
+    graphics.beginPath();
+    graphics.moveTo(pa.x, pa.y);
+    graphics.lineTo(pb.x, pb.y);
+    graphics.lineTo(pc.x, pc.y);
+    graphics.lineTo(pd.x, pd.y);
+    graphics.closePath();
+    graphics.fillPath();
+  };
+  fill(0.07 + pulse * 0.05, 1.22);
+  fill(0.12 + pulse * 0.06, 1.1);
+  fill(0.2 + pulse * 0.1, 1);
 
-  // Recessed card-shaped socket: the dark core keeps a placed card visually
-  // distinct while the coloured edge carries the player/team identity.
-  graphics.fillStyle(0x020914, 0.46 * alpha);
-  graphics.beginPath();
-  graphics.moveTo(left + radius, top);
-  graphics.lineTo(right, top);
-  graphics.lineTo(right, bottom - radius);
-  graphics.arc(right - radius, bottom - radius, radius, 0, Math.PI / 2, false);
-  graphics.lineTo(left, bottom);
-  graphics.lineTo(left, top + radius);
-  graphics.arc(left + radius, top + radius, radius, Math.PI, (3 * Math.PI) / 2, false);
-  graphics.closePath();
-  graphics.fillPath();
-
-  graphics.lineStyle(2.2, color, 0.1 * alpha);
-  graphics.strokePath();
-  graphics.lineStyle(1.25, color, 0.62 * alpha);
-  graphics.strokePath();
-
-  // Inner trim and a short, ritual-like bottom accent make the slot read as a
-  // physical card seat without competing with a placed card.
-  const innerRadius = Math.max(4, radius - 4);
-  const iLeft = left + 4;
-  const iRight = right - 4;
-  const iTop = top + 4;
-  const iBottom = bottom - 4;
-
-  graphics.lineStyle(1, color, 0.12 * alpha);
-  graphics.beginPath();
-  graphics.moveTo(iLeft + innerRadius, iTop);
-  graphics.lineTo(iRight, iTop);
-  graphics.lineTo(iRight, iBottom - innerRadius);
-  graphics.arc(iRight - innerRadius, iBottom - innerRadius, innerRadius, 0, Math.PI / 2, false);
-  graphics.lineTo(iLeft, iBottom);
-  graphics.lineTo(iLeft, top + innerRadius);
-  graphics.arc(iLeft + innerRadius, top + innerRadius, innerRadius, Math.PI, (3 * Math.PI) / 2, false);
-  graphics.closePath();
-  graphics.strokePath();
-  graphics.lineStyle(1.2, color, 0.42 * alpha);
-  graphics.lineBetween(x - width * 0.18, bottom - 5, x + width * 0.18, bottom - 5);
-}
-
-type Point = { x: number; y: number };
-
-/**
- * Generates perimeter points for the CardLane socket path:
- * 2 rounded corners (Top-Left & Bottom-Right) and 2 sharp corners (Top-Right & Bottom-Left).
- */
-function getCardLanePathPoints(
-  left: number,
-  top: number,
-  right: number,
-  bottom: number,
-  radius: number,
-  arcSegments = 8,
-): Point[] {
-  const points: Point[] = [];
-
-  // Top edge: (left + radius, top) -> (right, top)
-  points.push({ x: left + radius, y: top });
-  points.push({ x: right, y: top });
-
-  // Right edge: (right, top) -> (right, bottom - radius)
-  points.push({ x: right, y: bottom - radius });
-
-  // Bottom-right arc: center (right - radius, bottom - radius), from 0 to PI/2
-  const brCenterX = right - radius;
-  const brCenterY = bottom - radius;
-  for (let i = 1; i <= arcSegments; i += 1) {
-    const angle = (i / arcSegments) * (Math.PI / 2);
-    points.push({
-      x: brCenterX + radius * Math.cos(angle),
-      y: brCenterY + radius * Math.sin(angle),
-    });
+  // Light beam: a few stacked trapezoids fade upward from the socket.
+  const height = slot.width * 1.5;
+  for (let i = 0; i < 6; i += 1) {
+    const t0 = i / 6;
+    const t1 = (i + 1) / 6;
+    const inset = slot.width * 0.16;
+    const x0 = (v: number, edge: "l" | "r") => (edge === "l" ? slot.center.x - slot.width * 0.42 + inset * v : slot.center.x + slot.width * 0.42 - inset * v);
+    graphics.fillStyle(ARENA_HEX.violetGlow, (0.2 + pulse * 0.08) * (1 - t0) * 0.7);
+    graphics.beginPath();
+    graphics.moveTo(x0(t0, "l"), slot.center.y - height * t0);
+    graphics.lineTo(x0(t0, "r"), slot.center.y - height * t0);
+    graphics.lineTo(x0(t1, "r"), slot.center.y - height * t1);
+    graphics.lineTo(x0(t1, "l"), slot.center.y - height * t1);
+    graphics.closePath();
+    graphics.fillPath();
   }
 
-  // Bottom edge: (right - radius, bottom) -> (left, bottom)
-  points.push({ x: left, y: bottom });
-
-  // Left edge: (left, bottom) -> (left, top + radius)
-  points.push({ x: left, y: top + radius });
-
-  // Top-left arc: center (left + radius, top + radius), from PI to 3*PI/2
-  const tlCenterX = left + radius;
-  const tlCenterY = top + radius;
-  for (let i = 1; i <= arcSegments; i += 1) {
-    const angle = Math.PI + (i / arcSegments) * (Math.PI / 2);
-    points.push({
-      x: tlCenterX + radius * Math.cos(angle),
-      y: tlCenterY + radius * Math.sin(angle),
-    });
-  }
-
-  return points;
+  graphics.lineStyle(2, ARENA_HEX.violetGlow, 0.85 + pulse * 0.15);
+  graphics.beginPath();
+  graphics.moveTo(a.x, a.y);
+  graphics.lineTo(b.x, b.y);
+  graphics.lineTo(c.x, c.y);
+  graphics.lineTo(d.x, d.y);
+  graphics.closePath();
+  graphics.strokePath();
+  graphics.lineStyle(1.5, ARENA_HEX.violetGlow, 0.7);
+  graphics.strokeEllipse(slot.center.x, slot.center.y, slot.width * (0.72 + pulse * 0.06), slot.width * 0.2);
 }
 
 /**
@@ -181,49 +122,34 @@ function drawDashedPolygon(
 }
 
 /**
- * Defender lane warning highlight used during declare_block phase.
- * Features a thick, animated dashed outline around the exact 2-corner CardLane shape with no fill.
+ * Defender lane warning used during the block phase: an animated dashed outline
+ * around the projected socket (amber, so it reads apart from violet/blood).
  */
-export function drawDefendCardLane(
+export function drawDefendSlot(
   graphics: Phaser.GameObjects.Graphics,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
+  quad: Quad,
   breathAlpha: number,
   perspectiveScale: number,
 ) {
   const alpha = Math.min(Math.max(breathAlpha, 0), 1);
-  const scale = Math.min(Math.max(perspectiveScale, 0.7), 1.2);
-  const radius = Math.min(14, width * 0.12);
-  const left = x - width / 2;
-  const right = x + width / 2;
-  const top = y - height / 2;
-  const bottom = y + height / 2;
-
-  // Warning colors: high-visibility warning amber & orange
+  const scale = Math.min(Math.max(perspectiveScale, 0.6), 1.2);
   const amber = 0xfbbf24;
   const orange = 0xff6b35;
   const brightYellow = 0xfff59d;
 
-  // Extract dash animation progress (0 -> 1) from graphics object data
+  const cx = (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4;
+  const cy = (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4;
+  const points = quad.map((pt) => ({ x: cx + (pt.x - cx) * 1.12, y: cy + (pt.y - cy) * 1.12 }));
+
   const rawOffset = Number(graphics.getData("dashOffset") ?? 0);
   const dash = Math.max(10, 14 * scale);
   const gap = Math.max(6, 8 * scale);
-  const patternLength = dash + gap;
-  const dashOffset = rawOffset * patternLength;
+  const dashOffset = rawOffset * (dash + gap);
 
-  const points = getCardLanePathPoints(left, top, right, bottom, radius);
-
-  // 1. Soft outer warning under-glow (thick stroke)
   graphics.lineStyle(8.5 * scale, orange, 0.12 + alpha * 0.28);
   drawDashedPolygon(graphics, points, dash, gap, dashOffset);
-
-  // 2. Primary thick warning dashed border
   graphics.lineStyle(3.8 * scale, amber, 0.45 + alpha * 0.55);
   drawDashedPolygon(graphics, points, dash, gap, dashOffset);
-
-  // 3. Crisp inner bright core dash line
   graphics.lineStyle(1.8 * scale, brightYellow, 0.6 + alpha * 0.4);
   drawDashedPolygon(graphics, points, dash, gap, dashOffset);
 }

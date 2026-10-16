@@ -1,4 +1,4 @@
-import { DeleteCommand, GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import type { SaveDeckPayload, SavedDeck } from "../decks/deck.types";
 import { calculateElo } from "../matchmaking/elo";
@@ -8,9 +8,17 @@ import { buildLeaderboardProjection } from "../leaderboard/leaderboard";
 const tableName = process.env.USER_PROFILE_TABLE || "UserProfile";
 const deletionCooldownTable = process.env.ACCOUNT_DELETION_COOLDOWN_TABLE || "AccountDeletionCooldown";
 const DELETION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+// KEYS_ONLY GSIs keyed by the normalized (lower-case) lookup attributes.
+const usernameIndex = process.env.USERNAME_INDEX || "UsernameIndex";
+const emailIndex = process.env.EMAIL_INDEX || "EmailIndex";
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 const normalizeUsername = (username: string) => username.trim().toLowerCase();
+/** GSI key attributes may not be empty strings, so blank values are simply left out of the index. */
+const lookupKeys = (email: string, username: string) => ({
+  ...(normalizeEmail(email) ? { email_lower: normalizeEmail(email) } : {}),
+  ...(normalizeUsername(username) ? { username_lower: normalizeUsername(username) } : {})
+});
 
 function isLegacyUsername(username: string, userId: string): boolean {
   const value = username.trim();
@@ -40,6 +48,7 @@ function toProfile(user: User, existing: Record<string, any> = {}) {
     user_id: user.id,
     email: user.email,
     username: user.username,
+    ...lookupKeys(user.email, user.username),
     ...(user.avatar ? { avatar_url: user.avatar } : {}),
     ...(user.decks ? { decks: user.decks } : {}),
     stats: {
@@ -74,28 +83,88 @@ export async function getUsers(): Promise<User[]> {
   return users;
 }
 
-export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const target = normalizeEmail(email);
+type LookupField = "username" | "email";
+
+const lookupDefinitions: Record<LookupField, {
+  index: string;
+  keyAttribute: string;
+  normalize: (value: string) => string;
+}> = {
+  username: { index: usernameIndex, keyAttribute: "username_lower", normalize: normalizeUsername },
+  email: { index: emailIndex, keyAttribute: "email_lower", normalize: normalizeEmail }
+};
+
+function isMissingIndexError(error: unknown): boolean {
+  const candidate = error as { name?: string; message?: string } | undefined;
+  return candidate?.name === "ValidationException" && /index/i.test(candidate.message ?? "");
+}
+
+/** Legacy path used only until the lookup GSIs exist and are ACTIVE (see setupTables.ts). */
+async function scanUserIds(field: LookupField, target: string): Promise<string[]> {
+  const { normalize } = lookupDefinitions[field];
+  const userIds: string[] = [];
   let cursor: Record<string, unknown> | undefined;
   do {
-    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
-    const match = (result.Items || []).find((item) => normalizeEmail(String(item.email || "")) === target);
-    if (match) return fromProfile(match);
+    const result = await dynamoDb.send(new ScanCommand({
+      TableName: tableName,
+      ProjectionExpression: "user_id, username, email",
+      ExclusiveStartKey: cursor
+    }));
+    for (const item of result.Items || []) {
+      if (normalize(String(item[field] || "")) === target) userIds.push(String(item.user_id));
+    }
     cursor = result.LastEvaluatedKey;
   } while (cursor);
+  return userIds;
+}
+
+/**
+ * Finds profile ids by username/email with a single-partition Query instead of
+ * scanning the whole table. Falls back to a Scan while the index is missing or
+ * still backfilling so code can be deployed before the migration finishes.
+ */
+async function lookupUserIds(field: LookupField, value: string): Promise<string[]> {
+  const { index, keyAttribute, normalize } = lookupDefinitions[field];
+  const target = normalize(value);
+  if (!target) return [];
+
+  try {
+    const userIds: string[] = [];
+    let cursor: Record<string, unknown> | undefined;
+    do {
+      const result = await dynamoDb.send(new QueryCommand({
+        TableName: tableName,
+        IndexName: index,
+        KeyConditionExpression: "#key = :value",
+        ExpressionAttributeNames: { "#key": keyAttribute },
+        ExpressionAttributeValues: { ":value": target },
+        ExclusiveStartKey: cursor
+      }));
+      userIds.push(...(result.Items || []).map((item) => String(item.user_id)));
+      cursor = result.LastEvaluatedKey;
+    } while (cursor);
+    return userIds;
+  } catch (error) {
+    if (!isMissingIndexError(error)) throw error;
+    console.warn(`UserProfile index ${index} is unavailable; falling back to a table scan.`);
+    return scanUserIds(field, target);
+  }
+}
+
+async function findFirstUserById(userIds: string[]): Promise<User | undefined> {
+  for (const userId of userIds) {
+    const user = await getUserById(userId);
+    if (user) return user;
+  }
   return undefined;
 }
 
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+  return findFirstUserById(await lookupUserIds("email", email));
+}
+
 export async function findUserByUsername(username: string): Promise<User | null> {
-  const target = normalizeUsername(username);
-  let cursor: Record<string, unknown> | undefined;
-  do {
-    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
-    const match = (result.Items || []).find((item) => normalizeUsername(String(item.username || "")) === target);
-    if (match) return fromProfile(match);
-    cursor = result.LastEvaluatedKey;
-  } while (cursor);
-  return null;
+  return (await findFirstUserById(await lookupUserIds("username", username))) ?? null;
 }
 
 export async function isEmailInDeletionCooldown(email: string): Promise<{ inCooldown: boolean; availableAt?: number }> {
@@ -147,16 +216,9 @@ export async function ensureUserProfile(input: {
     return (await repairUserProfileIdentity(input)) || existing;
   }
 
-  let cursor: Record<string, unknown> | undefined;
-  do {
-    const result = await dynamoDb.send(new ScanCommand({ TableName: tableName, ExclusiveStartKey: cursor }));
-    for (const item of result.Items || []) {
-      if (String(item.user_id) !== input.id && normalizeEmail(String(item.email || "")) === normalizeEmail(input.email)) {
-        await deleteUserProfile(String(item.user_id));
-      }
-    }
-    cursor = result.LastEvaluatedKey;
-  } while (cursor);
+  for (const duplicateUserId of await lookupUserIds("email", input.email)) {
+    if (duplicateUserId !== input.id) await deleteUserProfile(duplicateUserId);
+  }
 
   const user: User = {
     id: input.id,
@@ -205,19 +267,29 @@ export async function repairUserProfileIdentity(input: {
   // stored value is a known legacy identity placeholder.
   const shouldRepairUsername = isLegacyUsername(currentUsername, input.id);
   const nextUsername = shouldRepairUsername ? normalizedUsername : currentUsername;
-  if (currentEmail === normalizedEmail && currentUsername === nextUsername) {
+  const keys = lookupKeys(normalizedEmail, nextUsername);
+  // Also repairs profiles created before the lookup GSIs (missing *_lower keys).
+  const lookupKeysCurrent =
+    existingResult.Item.email_lower === keys.email_lower &&
+    existingResult.Item.username_lower === keys.username_lower;
+  if (currentEmail === normalizedEmail && currentUsername === nextUsername && lookupKeysCurrent) {
     return fromProfile(existingResult.Item);
   }
 
   await dynamoDb.send(new UpdateCommand({
     TableName: tableName,
     Key: { user_id: input.id },
-    UpdateExpression: "SET email = :email, username = :username, updated_at = :updatedAt",
+    UpdateExpression:
+      "SET email = :email, username = :username, updated_at = :updatedAt" +
+      (keys.email_lower ? ", email_lower = :emailLower" : "") +
+      (keys.username_lower ? ", username_lower = :usernameLower" : ""),
     ConditionExpression: "attribute_exists(user_id)",
     ExpressionAttributeValues: {
       ":email": normalizedEmail,
       ":username": nextUsername,
-      ":updatedAt": Date.now()
+      ":updatedAt": Date.now(),
+      ...(keys.email_lower ? { ":emailLower": keys.email_lower } : {}),
+      ...(keys.username_lower ? { ":usernameLower": keys.username_lower } : {})
     }
   }));
 
@@ -246,6 +318,8 @@ export async function updateUser(user: User): Promise<void> {
       "leaderboard_sort = :sort, leaderboard_elo = :elo, " +
       "leaderboard_win_rate = :winRate, leaderboard_wins = :wins, " +
       "leaderboard_losses = :losses, leaderboard_projected_at = :projectedAt" +
+      (profile.email_lower ? ", email_lower = :emailLower" : "") +
+      (profile.username_lower ? ", username_lower = :usernameLower" : "") +
       (user.avatar ? ", avatar_url = :avatar" : ""),
     ConditionExpression: "attribute_exists(user_id)",
     ExpressionAttributeNames: { "#stats": "stats" },
@@ -261,6 +335,8 @@ export async function updateUser(user: User): Promise<void> {
       ":wins": profile.leaderboard_wins,
       ":losses": profile.leaderboard_losses,
       ":projectedAt": profile.leaderboard_projected_at,
+      ...(profile.email_lower ? { ":emailLower": profile.email_lower } : {}),
+      ...(profile.username_lower ? { ":usernameLower": profile.username_lower } : {}),
       ...(user.avatar ? { ":avatar": user.avatar } : {})
     }
   }));

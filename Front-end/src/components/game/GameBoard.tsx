@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Shield, Skull, Swords, Trophy, X, Zap } from "lucide-react";
+import { BookOpen, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Skull, Swords, Trophy, X, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
@@ -19,27 +19,37 @@ import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { GameCard } from "./cards/game-card";
 import { CardBack } from "./cards/card-back";
-import { CenterInfo } from "./zones/center-info";
+import { TurnRail } from "./zones/turn-rail";
 import { Hand } from "./zones/hand";
-import { NexusPanel } from "./hud/nexus-panel";
-import { PassButton } from "./hud/pass-button";
-import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
+import { NexusPanel } from "./hud/nexus/nexus-panel";
+import { PassButton } from "./hud/passButton/pass-button";
+import { ActionPrompt } from "./hud/action-prompt";
+import { deriveTurnRail } from "./hud/infoBoard/turnRail";
+import { getUnitAttack, getUnitHealth, isChampionCard } from "@backend/game/entities/cards";
 import { HoverProvider, useHover } from "../../contexts/HoverContext";
-import { DetailPanel } from "./hud/detail-panel";
+import { CardInspector } from "./hud/inspector/card-inspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { DeckPile, GraveyardPile } from "./hud/side-piles";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
+import { useTurnTickSound } from "../../hooks/useTurnTickSound";
+import { useTurnAnnouncement } from "../../hooks/useTurnAnnouncement";
+import { useGlobalAudio } from "../../contexts/AudioContext";
 import { DeveloperResourcesPanel } from "./DeveloperResourcesPanel";
 import type { RoomUpdate } from "@backend/shared/multiplayer";
 import { PhaserArenaCanvas } from "./phaser/PhaserArenaCanvas";
 import { arenaEventBus } from "../../libs/arenaEventBus";
+import { combatCues, cueSnapshot, type CueSnapshot } from "./phaser/config/combatCues";
 import { useGameStore } from "../../hooks/useGameStore";
 import { SpellEffectLayer } from "./spell-effect-layer";
 import { GiEvilEyes } from "react-icons/gi";
 import { FaEyeSlash } from "react-icons/fa";
 import { AnimatePresence } from "framer-motion";
-import { AfkToastNotification } from "./hud/AfkToastNotification";
+import { AfkToastNotification } from "./hud/afkNoti/AfkToastNotification";
+import { Button } from "../ui/button";
+import { BoardDialog, Modal } from "../ui/modal";
+import { playBlockReason, type PlayBlock, BLOCK_TEXT } from "./zones/playBlock";
+import { NoticeCard } from "../ui/feedback";
 
 const MATCH_RESULT_RETURN_SECONDS = 20;
 
@@ -68,19 +78,25 @@ interface GameBoardViewProps {
 }
 
 function PhaserHoverBridge({ gameState }: { gameState: ReturnType<typeof useLocalGame>["gameState"] }) {
-  const { setHoveredCard } = useHover();
+  const { setHoveredCard, selectCard } = useHover();
 
   useEffect(() => {
     const stopHover = arenaEventBus.on("HOVER_UNIT", (entity) => {
       const unit = entity
         ? gameState.players[entity.playerId].board.find((candidate) => candidate.instanceId === entity.unitId)
         : undefined;
-      setHoveredCard(undefined, unit);
+      setHoveredCard(undefined, unit, entity ? () => entity.anchor : undefined);
+    });
+    // A right click on a card of the table pins it, which opens its codex.
+    const stopInspect = arenaEventBus.on("INSPECT_UNIT", ({ playerId, unitId }) => {
+      const unit = gameState.players[playerId].board.find((candidate) => candidate.instanceId === unitId);
+      if (unit) selectCard(undefined, unit);
     });
     return () => {
       stopHover();
+      stopInspect();
     };
-  }, [gameState, setHoveredCard]);
+  }, [gameState, setHoveredCard, selectCard]);
 
   return null;
 }
@@ -108,6 +124,8 @@ export function GameBoardView({
   const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | undefined>();
   const [showExitTrialDialog, setShowExitTrialDialog] = useState(false);
   const [showSurrenderDialog, setShowSurrenderDialog] = useState(false);
+  // A champion is declared only after the player has confirmed it in a dialog of the game.
+  const [championConfirm, setChampionConfirm] = useState<{ playerId: PlayerId; card: CardInstance }>();
   const [resultReturnSeconds, setResultReturnSeconds] = useState(MATCH_RESULT_RETURN_SECONDS);
   const developerToolsEnabled = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
   const canEditDeveloperResources = developerToolsEnabled && Boolean(setDeveloperResources);
@@ -137,7 +155,8 @@ export function GameBoardView({
   }, []);
   const targetErrorTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const previousArenaUnitIdsRef = useRef<Set<string>>(new Set());
-  const previousAttackersRef = useRef<string>("");
+  const previousCueRef = useRef<CueSnapshot | undefined>(undefined);
+  const { playSfx } = useGlobalAudio();
 
   const showTargetError = (message: string) => {
     if (targetErrorTimeoutRef.current) {
@@ -197,11 +216,21 @@ export function GameBoardView({
     });
     previousArenaUnitIdsRef.current = unitIds;
 
-    const attackers = gameState.combat.attackers.map((lane) => lane.attackerId).join(":");
-    if (attackers && attackers !== previousAttackersRef.current) {
-      gameState.combat.attackers.forEach((lane) => arenaEventBus.emit("ATTACK_UNIT", { unitId: lane.attackerId }));
-    }
-    previousAttackersRef.current = attackers;
+    // Only the big moments shake the screen: a champion declared, the attack committed, the blocks committed.
+    const championIds = new Set(
+      (["P1", "P2"] as PlayerId[]).flatMap((playerId) =>
+        gameState.players[playerId].board
+          .filter((unit) => hasCard(unit.cardId) && getCardDefinition(unit.cardId).type === "champion")
+          .map((unit) => unit.instanceId)
+      )
+    );
+    const cueNow = cueSnapshot(gameState, (unitId) => championIds.has(unitId));
+    const cues = combatCues(previousCueRef.current, cueNow);
+    previousCueRef.current = cueNow;
+    cues.champions.forEach((unitId) => arenaEventBus.emit("CHAMPION_DECLARED", { unitId }));
+    if (cues.commit) arenaEventBus.emit("COMMIT_CUE", cues.commit);
+    if (cues.attackers.length > 0) playSfx("blade_draw");
+    if (cues.blockers.length > 0) playSfx("gate_lock");
 
     const stopSelect = arenaEventBus.on("SELECT_UNIT", ({ playerId, unitId }) => {
       const unit = gameState.players[playerId].board.find((candidate) => candidate.instanceId === unitId);
@@ -289,6 +318,19 @@ export function GameBoardView({
   const getPlayerName = (playerId: PlayerId) =>
     playerProfiles?.[playerId]?.username?.trim() || `Player ${playerId === "P1" ? "One" : "Two"}`;
   const getPlayerProfile = (playerId: PlayerId) => playerProfiles?.[playerId];
+  const turnRail = deriveTurnRail({
+    state: gameState,
+    viewerId: viewerPlayerId,
+    callsigns: { P1: getPlayerName("P1"), P2: getPlayerName("P2") },
+    remainingMs: timeRemainingMs
+  });
+  // Ticks only while the viewer can still act in the turn that is running out.
+  useTurnTickSound(
+    turnRail.owner === "you" && turnRail.started && !gameState.winnerId,
+    turnRail.urgency,
+    turnRail.seconds
+  );
+  useTurnAnnouncement(turnRail, Boolean(gameState.winnerId));
   const winnerId = gameState.winnerId;
   const isViewerWinner = Boolean(winnerId && winnerId === viewerPlayerId);
   const winnerName = winnerId ? getPlayerName(winnerId) : "";
@@ -472,13 +514,31 @@ export function GameBoardView({
     );
   }
 
+  /** Why a card that cannot be played is blocked (nothing for a card that can be). */
+  function playBlock(playerId: PlayerId, card: CardInstance): PlayBlock | undefined {
+    if (canPlay(playerId, card)) return undefined;
+    const player = gameState.players[playerId];
+    const definition = cardDef(card);
+    return playBlockReason({
+      controllable: canControl(playerId) && !shouldHideHand(playerId),
+      started: gameState.started,
+      over: Boolean(gameState.winnerId),
+      inAction: gameState.phase === "ACTION",
+      hasPriority: gameState.priorityPlayerId === playerId,
+      mana: player.mana,
+      spellMana: player.spellMana,
+      cost: definition.cost,
+      isSpell: definition.type === "spell"
+    });
+  }
+
   function surrender() {
     if (!localPlayerId) return;
     dispatch({ type: "SURRENDER", playerId: localPlayerId });
     setShowSurrenderDialog(false);
   }
 
-  function playCard(playerId: PlayerId, card: CardInstance) {
+  function playCard(playerId: PlayerId, card: CardInstance, championConfirmed = false) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
       return;
     }
@@ -492,10 +552,9 @@ export function GameBoardView({
       return;
     }
 
-    if (definition.supertype?.toLowerCase() === "champion") {
-      if (!window.confirm(`Are you sure you want to play Champion ${definition.name}?`)) {
-        return;
-      }
+    if ((isChampionCard(definition) || definition.supertype?.toLowerCase() === "champion") && !championConfirmed) {
+      setChampionConfirm({ playerId, card });
+      return;
     }
 
     if (definition.type === "spell") {
@@ -899,7 +958,7 @@ export function GameBoardView({
     if (started && gameState.phase === "ACTION") {
       return {
         label: "PASS",
-        sublabel: "Pass priority",
+        sublabel: "End action",
         mode: "idle",
         enabled: canControl(gameState.priorityPlayerId),
         onClick: passPriority
@@ -908,7 +967,7 @@ export function GameBoardView({
 
     return {
       label: "WAITING",
-      sublabel: `#${gameState.round}`,
+      sublabel: getPlayerName(gameState.priorityPlayerId),
       mode: "idle",
       enabled: false,
       onClick: () => { }
@@ -1176,129 +1235,130 @@ export function GameBoardView({
 
     if (!canControl(pendingChoice.playerId)) {
       return (
-        <div className="pending-choice-overlay" role="dialog" aria-modal="true">
-          <div className="pending-choice-panel">
-            <div className="pending-choice-header">
-              <strong>Opponent is choosing a target</strong>
-              <span>Please wait for the action to resolve.</span>
-            </div>
-          </div>
-        </div>
+        <BoardDialog badge="Opponent" title="Choosing a target" titleId="pending-wait-title" maxWidth={420}>
+          Please wait for the action to resolve.
+        </BoardDialog>
       );
     }
 
     const targetDefinition = pendingChoice.requiredTargets[0];
     const sourceName = getCardDefinition(pendingChoice.sourceCardId).name;
 
-    return (
-      <div
-        className="pending-choice-overlay"
-        role="dialog"
-        aria-modal="true"
-        onClick={cancelPendingChoice}
-      >
-        <div className="pending-choice-panel" onClick={(event) => event.stopPropagation()}>
-          <div className="pending-choice-header">
-            <strong>{sourceName}</strong>
-            <span>{describeAbilityTargetNeed(targetDefinition)}</span>
-          </div>
+    // A unit that has already been declared can have its ability skipped; a spell that has not been cast can be dropped.
+    const onTable = gameState.players[pendingChoice.playerId].board.some(
+      (unit) => unit.instanceId === pendingChoice.sourceInstanceId
+    );
 
-          {targetDefinition ? (
-            <div className="pending-choice-grid">
-              {getPendingTargetUnits(targetDefinition).map(({ playerId, unit }) => (
+    return (
+      <BoardDialog
+        badge={onTable ? "On play · choose a target" : "Choose a target"}
+        title={sourceName}
+        titleId="pending-choice-title"
+        maxWidth={760}
+        scrollBody
+        actions={
+          <Button chamfer size="md" tone="accent" onClick={cancelPendingChoice}>
+            {onTable ? "No activate buff/debuff" : "Cancel"}
+          </Button>
+        }
+      >
+        <p className="pending-choice-need">{describeAbilityTargetNeed(targetDefinition)}</p>
+
+        {targetDefinition ? (
+          <div className="pending-choice-grid">
+            {getPendingTargetUnits(targetDefinition).map(({ playerId, unit }) => (
+              <GameCard
+                key={unit.instanceId}
+                unit={unit}
+                compact
+                onClick={() =>
+                  submitPendingAbilityTarget(targetDefinition.id, {
+                    type: "UNIT",
+                    playerId,
+                    unitId: unit.instanceId
+                  })
+                }
+                visualEvents={[]}
+              />
+            ))}
+            {getPendingTargetDeckCards(targetDefinition).map(({ playerId, card }) => (
+              <div className="pending-choice-card" key={card.instanceId}>
+                <span className="pending-choice-zone-label">{playerId} Deck</span>
                 <GameCard
-                  key={unit.instanceId}
-                  unit={unit}
+                  card={card}
                   compact
                   onClick={() =>
                     submitPendingAbilityTarget(targetDefinition.id, {
-                      type: "UNIT",
+                      type: "DECK_CARD",
                       playerId,
-                      unitId: unit.instanceId
+                      cardInstanceId: card.instanceId
                     })
                   }
                   visualEvents={[]}
                 />
-              ))}
-              {getPendingTargetDeckCards(targetDefinition).map(({ playerId, card }) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <span className="pending-choice-zone-label">{playerId} Deck</span>
+              </div>
+            ))}
+            {getPendingTargetHandCards(targetDefinition).map(({ playerId, card }) => (
+              <div className="pending-choice-card" key={card.instanceId}>
+                <span className="pending-choice-zone-label">{playerId} Hand</span>
+                <GameCard
+                  card={card}
+                  compact
+                  onClick={() =>
+                    submitPendingAbilityTarget(targetDefinition.id, {
+                      type: "HAND_CARD",
+                      playerId,
+                      cardInstanceId: card.instanceId
+                    })
+                  }
+                  visualEvents={[]}
+                />
+              </div>
+            ))}
+            {getPendingTargetGraveyardCards(targetDefinition).map(({ playerId, entry }) => {
+              const canRevive = entry.type === "UNIT" || entry.type === "CHAMPION";
+              return (
+                <div
+                  className={`pending-choice-card ${canRevive ? "" : "is-disabled"}`}
+                  key={entry.id}
+                >
+                  <span className="pending-choice-zone-label">{playerId} Graveyard</span>
                   <GameCard
-                    card={card}
+                    card={{
+                      instanceId: entry.instanceId,
+                      cardId: entry.cardId,
+                      ownerId: entry.ownerId
+                    }}
                     compact
-                    onClick={() =>
-                      submitPendingAbilityTarget(targetDefinition.id, {
-                        type: "DECK_CARD",
-                        playerId,
-                        cardInstanceId: card.instanceId
-                      })
+                    onClick={
+                      canRevive
+                        ? () =>
+                          submitPendingAbilityTarget(targetDefinition.id, {
+                            type: "GRAVEYARD",
+                            playerId,
+                            cardInstanceId: entry.instanceId
+                          })
+                        : undefined
                     }
                     visualEvents={[]}
                   />
                 </div>
-              ))}
-              {getPendingTargetHandCards(targetDefinition).map(({ playerId, card }) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <span className="pending-choice-zone-label">{playerId} Hand</span>
-                  <GameCard
-                    card={card}
-                    compact
-                    onClick={() =>
-                      submitPendingAbilityTarget(targetDefinition.id, {
-                        type: "HAND_CARD",
-                        playerId,
-                        cardInstanceId: card.instanceId
-                      })
-                    }
-                    visualEvents={[]}
-                  />
-                </div>
-              ))}
-              {getPendingTargetGraveyardCards(targetDefinition).map(({ playerId, entry }) => {
-                const canRevive = entry.type === "UNIT" || entry.type === "CHAMPION";
-                return (
-                  <div
-                    className={`pending-choice-card ${canRevive ? "" : "is-disabled"}`}
-                    key={entry.id}
-                  >
-                    <span className="pending-choice-zone-label">{playerId} Graveyard</span>
-                    <GameCard
-                      card={{
-                        instanceId: entry.instanceId,
-                        cardId: entry.cardId,
-                        ownerId: entry.ownerId
-                      }}
-                      compact
-                      onClick={
-                        canRevive
-                          ? () =>
-                            submitPendingAbilityTarget(targetDefinition.id, {
-                              type: "GRAVEYARD",
-                              playerId,
-                              cardInstanceId: entry.instanceId
-                            })
-                          : undefined
-                      }
-                      visualEvents={[]}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
+              );
+            })}
+          </div>
+        ) : null}
 
-          {targetDefinition &&
-            getPendingTargetUnits(targetDefinition).length === 0 &&
-            getPendingTargetDeckCards(targetDefinition).length === 0 &&
-            getPendingTargetHandCards(targetDefinition).length === 0 &&
-            getPendingTargetGraveyardCards(targetDefinition).some(({ entry }) =>
-              entry.type === "UNIT" || entry.type === "CHAMPION"
-            ) === false ? (
-            <div className="empty-message">No valid targets.</div>
-          ) : null}
+        {targetDefinition &&
+          getPendingTargetUnits(targetDefinition).length === 0 &&
+          getPendingTargetDeckCards(targetDefinition).length === 0 &&
+          getPendingTargetHandCards(targetDefinition).length === 0 &&
+          getPendingTargetGraveyardCards(targetDefinition).some(({ entry }) =>
+            entry.type === "UNIT" || entry.type === "CHAMPION"
+          ) === false ? (
+          <div className="empty-message">No valid targets.</div>
+        ) : null}
 
-        </div>
-      </div>
+      </BoardDialog>
     );
   }
 
@@ -1314,7 +1374,7 @@ export function GameBoardView({
     const hidden = shouldHideHand(pendingDiscard.playerId);
 
     return (
-      <div className="pending-choice-overlay hand-limit-overlay" role="dialog" aria-modal="true">
+      <div className="pending-choice-overlay hand-limit-overlay" data-ui-shield="" role="dialog" aria-modal="true">
         <div className="pending-choice-panel hand-limit-panel">
           <div className="pending-choice-header">
             <strong>{getPlayerName(pendingDiscard.playerId)} Hand Limit</strong>
@@ -1359,27 +1419,24 @@ export function GameBoardView({
     }
 
     return (
-      <div
-        className="spell-confirmation-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Confirm spell"
-        onClick={clearSelectedCard}
-      >
-        <section className="spell-confirmation-panel" onClick={(event) => event.stopPropagation()}>
-          <div className="spell-confirmation-panel__header">
-            <span>Spell ready</span>
-            <strong>{cardDef(selectedSpell).name}</strong>
-            <p>Target: {describeSpellTarget(selectedSpellTarget, getPlayerName)}</p>
-          </div>
-          <div className="button-row">
-            <button type="button" onClick={clearSelectedCard}>Cancel</button>
-            <button type="button" className="spell-confirmation-panel__cast" onClick={castSelectedSpell}>
+      <BoardDialog
+        badge="Spell ready"
+        title={cardDef(selectedSpell).name}
+        titleId="spell-confirm-title"
+        onClose={clearSelectedCard}
+        actions={
+          <>
+            <Button chamfer size="md" tone="accent" onClick={clearSelectedCard}>
+              Cancel
+            </Button>
+            <Button chamfer size="md" variant="accent" onClick={castSelectedSpell}>
               Cast Spell
-            </button>
-          </div>
-        </section>
-      </div>
+            </Button>
+          </>
+        }
+      >
+        Target: {describeSpellTarget(selectedSpellTarget, getPlayerName)}
+      </BoardDialog>
     );
   }
 
@@ -1529,7 +1586,7 @@ export function GameBoardView({
   return (
     <HoverProvider>
       <PhaserHoverBridge gameState={gameState} />
-      <main className="app-shell board-layout bg-dungeon">
+      <main className="app-shell board-layout">
         <div className="utility-dock" aria-label="Utility panels">
           <button
             type="button"
@@ -1598,61 +1655,65 @@ export function GameBoardView({
         ) : null}
 
         {showExitTrialDialog && onExitTrial ? (
-          <div
-            className="trial-exit-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="trial-exit-title"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setShowExitTrialDialog(false);
-            }}
+          <Modal
+            bare
+            maxWidth={520}
+            zIndex={2600}
+            labelledBy="trial-exit-title"
+            onClose={() => setShowExitTrialDialog(false)}
           >
-            <section className="trial-exit-dialog">
-              <div className="trial-exit-dialog__icon" aria-hidden="true"><LogOut size={24} /></div>
-              <div className="trial-exit-dialog__copy">
-                <span>Trial session</span>
-                <h2 id="trial-exit-title">Leave the arena?</h2>
-                <p>Tiến trình thử nghiệm hiện tại sẽ bị hủy và bạn sẽ trở về Lobby.</p>
-              </div>
-              <div className="trial-exit-dialog__actions">
-                <button type="button" onClick={() => setShowExitTrialDialog(false)} autoFocus>
-                  Continue Trial
-                </button>
-                <button type="button" className="trial-exit-dialog__confirm" onClick={onExitTrial}>
-                  <LogOut size={16} aria-hidden="true" /> Exit to Lobby
-                </button>
-              </div>
-            </section>
-          </div>
+            <NoticeCard
+              size="lg"
+              tone="warning"
+              badge="TRIAL SESSION · EXIT REQUEST"
+              title="Leave the arena?"
+              titleId="trial-exit-title"
+              icon={<LogOut size={24} />}
+              actions={
+                <>
+                  <Button size="lg" tone="amber" fullWidth onClick={() => setShowExitTrialDialog(false)} autoFocus>
+                    Continue Trial
+                  </Button>
+                  <Button size="lg" variant="warning" fullWidth icon={<LogOut size={16} />} onClick={onExitTrial}>
+                    Exit to Lobby
+                  </Button>
+                </>
+              }
+            >
+              Tiến trình thử nghiệm hiện tại sẽ bị hủy và bạn sẽ trở về Lobby.
+            </NoticeCard>
+          </Modal>
         ) : null}
 
         {showSurrenderDialog && localPlayerId ? (
-          <div
-            className="trial-exit-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="surrender-title"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setShowSurrenderDialog(false);
-            }}
+          <Modal
+            bare
+            maxWidth={520}
+            zIndex={2600}
+            labelledBy="surrender-title"
+            onClose={() => setShowSurrenderDialog(false)}
           >
-            <section className="trial-exit-dialog surrender-dialog">
-              <div className="trial-exit-dialog__icon" aria-hidden="true"><Flag size={24} /></div>
-              <div className="trial-exit-dialog__copy">
-                <span>Match command</span>
-                <h2 id="surrender-title">Surrender duel?</h2>
-                <p>The opponent will be declared the winner, and the match result will be recorded immediately.</p>
-              </div>
-              <div className="trial-exit-dialog__actions">
-                <button type="button" onClick={() => setShowSurrenderDialog(false)} autoFocus>
-                  Continue Duel
-                </button>
-                <button type="button" className="trial-exit-dialog__confirm" onClick={surrender}>
-                  <Flag size={16} aria-hidden="true" /> Surrender
-                </button>
-              </div>
-            </section>
-          </div>
+            <NoticeCard
+              size="lg"
+              tone="danger"
+              badge="MATCH COMMAND · SURRENDER"
+              title="Surrender duel?"
+              titleId="surrender-title"
+              icon={<Flag size={24} />}
+              actions={
+                <>
+                  <Button size="lg" tone="red" fullWidth onClick={() => setShowSurrenderDialog(false)} autoFocus>
+                    Continue Duel
+                  </Button>
+                  <Button size="lg" variant="danger" fullWidth icon={<Flag size={16} />} onClick={surrender}>
+                    Surrender
+                  </Button>
+                </>
+              }
+            >
+              The opponent will be declared the winner, and the match result will be recorded immediately.
+            </NoticeCard>
+          </Modal>
         ) : null}
 
         {connectionStatus && !opponentConnected ? (
@@ -1821,9 +1882,41 @@ export function GameBoardView({
           ) : null}
         </AnimatePresence>
 
-        <section ref={battleTableRef} className="battle-table lor-table relative overflow-hidden" aria-label="Local battle board">
+        <section
+          ref={battleTableRef}
+          className="battle-table lor-table relative overflow-hidden"
+          aria-label="Local battle board"
+          data-urgency={turnRail.owner === "you" ? turnRail.urgency : "calm"}
+        >
           <PhaserArenaCanvas />
+          <div className="board-alarm" aria-hidden="true" />
           <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
+          <div className="turn-rail-anchor">
+            <TurnRail model={turnRail}>
+              <ActionPrompt
+                targeting={
+                  selectedSpell && !selectedSpellTarget && !viewingGraveyard
+                    ? {
+                        cardName: cardDef(selectedSpell).name,
+                        instruction: describeSelectedCardPrompt(selectedSpell, selectedCostTargets),
+                        onCancel: clearSelectedCard
+                      }
+                    : undefined
+                }
+                discard={
+                  gameState.pendingDiscard
+                    ? {
+                        playerName: getPlayerName(gameState.pendingDiscard.playerId),
+                        count: gameState.players[gameState.pendingDiscard.playerId].hand.length,
+                        limit: gameState.pendingDiscard.downTo
+                      }
+                    : undefined
+                }
+                attackerCount={gameState.phase === "BLOCK" ? attackerCount : 0}
+                blockerName={selectedBlocker ? unitDef(selectedBlocker).name : undefined}
+              />
+            </TurnRail>
+          </div>
           <Hand
             cards={gameState.players[opponentPlayerId].hand}
             side="opponent"
@@ -1844,56 +1937,7 @@ export function GameBoardView({
               {renderGraveyard(viewerPlayerId, "GY")}
             </div>
 
-            <div className="center-board phaser-arena-enabled">
-              <div className="phaser-center-info">
-                <CenterInfo
-                  state={gameState}
-                  timeRemainingMs={timeRemainingMs}
-                  playerNames={{ P1: getPlayerName("P1"), P2: getPlayerName("P2") }}
-                />
-                {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
-                  <div className="center-target-prompt">
-                    <div className="target-dots">
-                      <span className="target-dot" />
-                      <span className="target-dot" />
-                      <span className="target-dot" />
-                    </div>
-                    <div className="text-xs font-semibold text-cyan-200 tracking-wide drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]">
-                      <strong className="text-white uppercase tracking-wider font-bold mr-1">
-                        {cardDef(selectedSpell).name}:
-                      </strong>
-                      <span>
-                        {cardDef(selectedSpell).type === "unit" ||
-                        cardDef(selectedSpell).type === "champion" ||
-                        cardDef(selectedSpell).type === "spell"
-                          ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
-                          : selectedSpellTarget
-                            ? describeSpellTarget(selectedSpellTarget, getPlayerName)
-                            : describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearSelectedCard}
-                      className="ml-1 rounded-full border border-red-500/50 bg-red-950/70 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-300 transition-colors hover:bg-red-900/90 hover:text-white"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : null}
-                {gameState.pendingDiscard ? (
-                  <span className="stat-pill">
-                    Discard <strong>{getPlayerName(gameState.pendingDiscard.playerId)} {gameState.players[gameState.pendingDiscard.playerId].hand.length}/{gameState.pendingDiscard.downTo}</strong>
-                  </span>
-                ) : null}
-                {gameState.phase === "BLOCK" && attackerCount > 0 ? (
-                  <span className="stat-pill"><Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking</span>
-                ) : null}
-                {selectedBlocker ? (
-                  <span className="stat-pill"><Shield size={12} aria-hidden="true" /> <strong>{unitDef(selectedBlocker).name}</strong></span>
-                ) : null}
-              </div>
-            </div>
+            <div className="center-board phaser-arena-enabled" />
 
             <div className="status-column">
               <NexusPanel
@@ -1903,6 +1947,8 @@ export function GameBoardView({
                 playerName={getPlayerName(opponentPlayerId)}
                 playerAvatar={getPlayerProfile(opponentPlayerId)?.avatar}
                 playerElo={getPlayerProfile(opponentPlayerId)?.elo}
+                side="opponent"
+                round={gameState.round}
                 isAttacker={gameState.attackTokenPlayerId === opponentPlayerId}
                 hasPriority={gameState.priorityPlayerId === opponentPlayerId}
                 attackTokenAvailable={gameState.attackTokenAvailable}
@@ -1913,7 +1959,6 @@ export function GameBoardView({
                       ? getResourcePreview(opponentPlayerId, selectedSpell)
                   : { manaUsed: 0, spellManaUsed: 0 }
                 }
-                visualEvents={gameState.visualEvents}
               />
               {renderSpellStack("Spell")}
               {(() => {
@@ -1924,6 +1969,7 @@ export function GameBoardView({
                     label={action.label}
                     sublabel={action.sublabel}
                     enabled={action.enabled}
+                    urgency={turnRail.urgency}
                     onClick={action.onClick}
                   />
                 );
@@ -1936,7 +1982,8 @@ export function GameBoardView({
                 playerName={getPlayerName(viewerPlayerId)}
                 playerAvatar={getPlayerProfile(viewerPlayerId)?.avatar}
                 playerElo={getPlayerProfile(viewerPlayerId)?.elo}
-                bottomAligned
+                side="viewer"
+                round={gameState.round}
                 isAttacker={gameState.attackTokenPlayerId === viewerPlayerId}
                 hasPriority={gameState.priorityPlayerId === viewerPlayerId}
                 attackTokenAvailable={gameState.attackTokenAvailable}
@@ -1947,7 +1994,6 @@ export function GameBoardView({
                       ? getResourcePreview(viewerPlayerId, selectedSpell)
                   : { manaUsed: 0, spellManaUsed: 0 }
                 }
-                visualEvents={gameState.visualEvents}
               />
             </div>
           </div>
@@ -1959,6 +2005,7 @@ export function GameBoardView({
               selectedSpell?.ownerId === viewerPlayerId ? selectedSpell.instanceId : undefined
             }
             canPlay={(card) => canPlay(viewerPlayerId, card)}
+            blockReason={(card) => playBlock(viewerPlayerId, card)}
             onPlayCard={(card) => playCard(viewerPlayerId, card)}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
@@ -1967,14 +2014,57 @@ export function GameBoardView({
 
         </section>
 
-        <DetailPanel />
+        <CardInspector
+          play={{
+            isInHand: (card) => gameState.players[viewerPlayerId].hand.some((held) => held.instanceId === card.instanceId),
+            canPlay: (card) => canPlay(viewerPlayerId, card),
+            blocked: (card) => {
+              const reason = playBlock(viewerPlayerId, card);
+              return reason ? BLOCK_TEXT[reason] : undefined;
+            },
+            label: (card) =>
+              gameState.phase === "DISCARD" ? "Discard" : cardDef(card).type === "spell" ? "Cast" : "Declare",
+            onPlay: (card) => playCard(viewerPlayerId, card)
+          }}
+        />
 
         {renderPendingDiscard()}
         {renderPendingChoice()}
         {renderSpellConfirmation()}
+        {championConfirm ? (
+          <BoardDialog
+            tone="blood"
+            badge="Champion"
+            title={cardDef(championConfirm.card).name}
+            titleId="champion-confirm-title"
+            onClose={() => setChampionConfirm(undefined)}
+            actions={
+              <>
+                <Button chamfer size="md" tone="red" onClick={() => setChampionConfirm(undefined)} autoFocus>
+                  Cancel
+                </Button>
+                <Button
+                  chamfer
+                  size="md"
+                  variant="danger"
+                  onClick={() => {
+                    const { playerId, card } = championConfirm;
+                    setChampionConfirm(undefined);
+                    playCard(playerId, card, true);
+                  }}
+                >
+                  Declare Champion
+                </Button>
+              </>
+            }
+          >
+            Declare this champion for {cardDef(championConfirm.card).cost} mana? It joins the waiting row at once.
+          </BoardDialog>
+        ) : null}
         {winnerId ? (
           <div
             className={`match-result-overlay ${isViewerWinner ? "match-result-overlay--win" : "match-result-overlay--lose"}`}
+            data-ui-shield=""
             role="dialog"
             aria-modal="true"
             aria-label={isViewerWinner ? "Match won" : "Match lost"}
@@ -2013,12 +2103,12 @@ export function GameBoardView({
                 </div>
               ) : null}
               <div className="match-result-panel__actions">
-                <button type="button" className="match-result-panel__action match-result-panel__action--secondary" onClick={leaveToLobby}>
-                  <House size={17} aria-hidden="true" /> Lobby
-                </button>
-                <button type="button" className="match-result-panel__action" onClick={startAnotherDuel}>
-                  <Search size={17} aria-hidden="true" /> {localPlayerId ? "Find another match" : "New duel"}
-                </button>
+                <Button tone="accent" fullWidth icon={<House size={17} />} onClick={leaveToLobby}>
+                  Lobby
+                </Button>
+                <Button variant="accent" fullWidth icon={<Search size={17} />} onClick={startAnotherDuel}>
+                  {localPlayerId ? "Find another match" : "New duel"}
+                </Button>
               </div>
             </section>
           </div>

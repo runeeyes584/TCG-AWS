@@ -3,10 +3,26 @@ import {
   CreateTableCommandInput,
   DescribeTableCommand,
   UpdateTableCommand,
+  type GlobalSecondaryIndex,
 } from "@aws-sdk/client-dynamodb";
 import { dynamoDbClient } from "../config/dynamodb";
 
 // ─── Table Definitions ────────────────────────────────────────────────────────
+
+// KEYS_ONLY lookup indexes that replace full-table Scans for username/email
+// uniqueness checks (user.repository.ts falls back to Scan until they are ACTIVE).
+const userProfileLookupIndexes: GlobalSecondaryIndex[] = [
+  {
+    IndexName: "UsernameIndex",
+    KeySchema: [{ AttributeName: "username_lower", KeyType: "HASH" }],
+    Projection: { ProjectionType: "KEYS_ONLY" },
+  },
+  {
+    IndexName: "EmailIndex",
+    KeySchema: [{ AttributeName: "email_lower", KeyType: "HASH" }],
+    Projection: { ProjectionType: "KEYS_ONLY" },
+  },
+];
 
 const tables: CreateTableCommandInput[] = [
   {
@@ -16,15 +32,20 @@ const tables: CreateTableCommandInput[] = [
       { AttributeName: "user_id", AttributeType: "S" },
       { AttributeName: "leaderboard_scope", AttributeType: "S" },
       { AttributeName: "leaderboard_sort", AttributeType: "S" },
+      { AttributeName: "username_lower", AttributeType: "S" },
+      { AttributeName: "email_lower", AttributeType: "S" },
     ],
-    GlobalSecondaryIndexes: [{
-      IndexName: "LeaderboardIndex",
-      KeySchema: [
-        { AttributeName: "leaderboard_scope", KeyType: "HASH" },
-        { AttributeName: "leaderboard_sort", KeyType: "RANGE" },
-      ],
-      Projection: { ProjectionType: "ALL" },
-    }],
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: "LeaderboardIndex",
+        KeySchema: [
+          { AttributeName: "leaderboard_scope", KeyType: "HASH" },
+          { AttributeName: "leaderboard_sort", KeyType: "RANGE" },
+        ],
+        Projection: { ProjectionType: "ALL" },
+      },
+      ...userProfileLookupIndexes,
+    ],
     BillingMode: "PAY_PER_REQUEST",
   },
   {
@@ -124,6 +145,40 @@ async function ensureUserProfileLeaderboardIndex(): Promise<void> {
   console.log("Started creating LeaderboardIndex on UserProfile.");
 }
 
+// DynamoDB allows only one GSI to be created at a time, so this creates the
+// first missing lookup index and asks for a re-run once it is ACTIVE.
+async function ensureUserProfileLookupIndexes(): Promise<void> {
+  const description = await dynamoDbClient.send(
+    new DescribeTableCommand({ TableName: "UserProfile" })
+  );
+  const existingIndexes = description.Table?.GlobalSecondaryIndexes || [];
+  const missingIndex = userProfileLookupIndexes.find(
+    (lookupIndex) => !existingIndexes.some((index) => index.IndexName === lookupIndex.IndexName)
+  );
+  const buildingIndex = existingIndexes.find((index) => index.IndexStatus && index.IndexStatus !== "ACTIVE");
+
+  if (buildingIndex) {
+    console.log(`Index ${buildingIndex.IndexName} is ${buildingIndex.IndexStatus}; re-run db:setup once it is ACTIVE.`);
+    return;
+  }
+  if (!missingIndex) {
+    console.log("UserProfile lookup indexes already exist, skipping...");
+    return;
+  }
+  if (description.Table?.TableStatus !== "ACTIVE") {
+    throw new Error("UserProfile must be ACTIVE before lookup indexes can be created.");
+  }
+
+  await dynamoDbClient.send(new UpdateTableCommand({
+    TableName: "UserProfile",
+    AttributeDefinitions: [
+      { AttributeName: missingIndex.KeySchema![0].AttributeName, AttributeType: "S" },
+    ],
+    GlobalSecondaryIndexUpdates: [{ Create: missingIndex }],
+  }));
+  console.log(`Started creating ${missingIndex.IndexName} on UserProfile. Re-run db:setup after it is ACTIVE to create the next one.`);
+}
+
 // ─── Main: Create All Tables ──────────────────────────────────────────────────
 
 const createTables = async (): Promise<void> => {
@@ -151,6 +206,7 @@ const createTables = async (): Promise<void> => {
   // CreateTable definitions do not migrate an existing DynamoDB table.
   if (shouldMigrateUserProfileIndex) {
     await ensureUserProfileLeaderboardIndex();
+    await ensureUserProfileLookupIndexes();
   }
 
   console.log("\nHoàn tất khởi tạo tất cả các bảng!");

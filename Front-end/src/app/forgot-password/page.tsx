@@ -3,9 +3,11 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, KeyRound, Mail } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { forgotPassword } from "../../libs/api";
 import { AuthShell } from "../../components/auth/AuthShell";
+import { Button } from "../../components/ui/button";
+import { TextField, FormMessage } from "../../components/ui/form";
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
@@ -49,30 +51,25 @@ export default function ForgotPasswordPage() {
             footer={<>Remembered your password? <Link href="/login">Return to sign in</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
-                <label className="auth-field">
-                    <span>Email address</span>
-                    <div className="auth-input">
-                        <Mail size={17} aria-hidden="true" />
-                        <input
-                            type="email"
-                            placeholder="operative@kaleidoscope.gg"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            autoComplete="email"
-                            autoFocus
-                            required
-                        />
-                    </div>
-                </label>
+                <TextField
+                    label="Email address"
+                    icon={<Mail size={17} />}
+                    type="email"
+                    placeholder="operative@kaleidoscope.gg"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    autoFocus
+                    required
+                />
 
-                <p className="auth-form__hint">The verification code will be valid for a limited time.</p>
+                <FormMessage tone="hint">The verification code will be valid for a limited time.</FormMessage>
 
-                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+                {error ? <FormMessage>{error}</FormMessage> : null}
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                    <KeyRound size={18} />
-                    <span>{loading ? "Transmitting code..." : "Send verification code"}</span>
-                </button>
+                <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} loadingText={"Transmitting code..."} icon={<KeyRound size={18} />}>
+                    {"Send verification code"}
+                </Button>
             </form>
         </AuthShell>
     );

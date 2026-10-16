@@ -980,11 +980,22 @@ function submitOnPlayAbilityTargets(
   return state;
 }
 
-function cancelPendingChoice(state: GameState, _playerId: PlayerId): GameState {
+function cancelPendingChoice(state: GameState, playerId: PlayerId): GameState {
   const next = cloneState(state);
-  if (next.pendingChoice) {
-    next.phase = next.pendingChoice.returnPhase;
+  const pendingChoice = next.pendingChoice;
+  if (pendingChoice) {
+    next.phase = pendingChoice.returnPhase;
     next.pendingChoice = undefined;
+    // A unit that is already on the table was played, and playing it passed the priority on; the choice only
+    // lent it back to the caster. Skipping the ability gives it to the opponent again, exactly as choosing a
+    // target does, so the turn goes on. A spell that was not cast stays with the player who was casting it.
+    const onTable = next.players[pendingChoice.playerId].board.some(
+      (unit) => unit.instanceId === pendingChoice.sourceInstanceId
+    );
+    if (onTable) {
+      next.priorityPlayerId = opponentOf(playerId);
+      next.activePlayerId = opponentOf(playerId);
+    }
   }
   return next;
 }

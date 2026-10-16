@@ -1,0 +1,21 @@
+.status {
+  position: relative;
+  z-index: 4;
+  margin: auto;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.locked {
+  position: relative;
+  z-index: 4;
+  margin: auto;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}

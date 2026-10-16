@@ -1,6 +1,7 @@
 import type Phaser from "phaser";
 import type { PlayerId } from "@backend/game/types";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
+import { isShieldedPointer } from "../config/uiShield";
 
 /** Creates and owns board input targets. It never mutates game rules directly. */
 export class ArenaInputSystem {
@@ -25,12 +26,20 @@ export class ArenaInputSystem {
     y: number,
     width: number,
     height: number,
+    onHover?: (hovering: boolean) => void,
   ) {
     if (!this.scene?.sys?.isActive() || !this.scene?.add) return undefined;
     const target = this.scene.add.zone(x, y, width, height).setDepth(2);
     if (rowType === "active") {
       target.setInteractive({ useHandCursor: true });
-      target.on("pointerdown", () => arenaEventAdapter.emit("EMPTY_SLOT_CLICK", { playerId, index }));
+      target.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+        if (isShieldedPointer(pointer)) return;
+        arenaEventAdapter.emit("EMPTY_SLOT_CLICK", { playerId, index });
+      });
+      if (onHover) {
+        target.on("pointerover", () => onHover(true));
+        target.on("pointerout", () => onHover(false));
+      }
     }
     this.targets.set(`${playerId}:${rowType}:${index}`, target);
     return target;

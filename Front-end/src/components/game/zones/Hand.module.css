@@ -1,0 +1,66 @@
+/*
+ * Compact fanned hands (Figma "Obsidian Table" layout): the player's cards peek up
+ * from the bottom edge and rise to full size on hover; the opponent's hand is a
+ * small fan tucked behind the top edge. Neither covers the table any more.
+ */
+.fan {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.slot {
+  position: absolute;
+  left: 50%;
+  width: var(--hand-card-w);
+  height: calc(var(--hand-card-w) * 1.4);
+  margin-left: calc(var(--hand-card-w) / -2);
+  pointer-events: auto;
+  will-change: transform;
+}
+
+.player .slot {
+  /* About 70% of the card shows above the bottom edge: cost, name and art. */
+  bottom: calc(var(--hand-card-w) * -0.42);
+  transform-origin: 50% 100%;
+  /* The cards are only to be looked at: the pointer is taken by the fixed boxes (.hit) and by the Details seal. */
+  pointer-events: none;
+}
+
+/* The box that takes the pointer for one card of the hand. It never moves with the card; it is invisible. */
+.hit {
+  position: absolute;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.hitBlocked {
+  cursor: not-allowed;
+}
+
+.opponent .slot {
+  top: calc(var(--hand-card-w) * -0.62);
+  transform-origin: 50% 0%;
+}
+
+.empty {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  color: rgba(169, 156, 203, 0.6);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.player .empty {
+  bottom: 12px;
+}
+
+.opponent .empty {
+  top: 8px;
+  bottom: auto;
+}

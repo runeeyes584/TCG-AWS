@@ -1,0 +1,11 @@
+.portal {
+  position: fixed;
+  z-index: 9999;
+  right: 24px;
+  bottom: 95px;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: auto;
+  width: auto;
+  max-width: min(90vw, 360px);
+}

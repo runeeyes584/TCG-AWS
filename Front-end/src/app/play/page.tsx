@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowLeft,
   Radio,
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { LobbyButton } from "../../components/ui/button";
+import { PageShell } from "../../components/ui/layout";
 import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
@@ -42,7 +43,7 @@ import {
   setCachedPendingMatch,
   getCachedProfile,
 } from "../../libs/profileCache";
-import { AuthGuard } from "../../components/lobby/AuthGuard";
+import { AuthGuard, AuthGateLoadingState } from "../../components/lobby/AuthGuard";
 
 function OnlinePlayPageContent() {
   const router = useRouter();
@@ -233,63 +234,18 @@ function OnlinePlayPageContent() {
   }
 
   if (isResumeSession && !controller.roomCode && controller.status !== "Recovery failed") {
-    return (
-      <main className="matchmaking-shell" style={{ minHeight: "100vh" }}>
-        <div className="matchmaking-grid" aria-hidden="true" />
-        <div className="matchmaking-art" aria-hidden="true">
-          <PhaserSplash />
-        </div>
-        <div className="matchmaking-shade" aria-hidden="true" />
-
-        <div
-          style={{
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "16px",
-            zIndex: 10,
-            position: "relative",
-          }}
-        >
-          <p className="lobby-eyebrow" style={{ margin: 0 }}>
-            Verifying connection
-          </p>
-          <div className="leaderboard-state" style={{ minHeight: "auto" }}>
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
-      </main>
-    );
+    return <AuthGateLoadingState message="Verifying connection" animated />;
   }
 
   return (
-    <main
-      className={`matchmaking-shell ${
-        controller.searching ? "is-searching" : ""
-      } ${pendingMatch ? "is-pending-match" : ""}`}
+    <PageShell
+      art={<PhaserSplash />}
+      className={`${controller.searching ? "is-searching" : ""} ${pendingMatch ? "is-pending-match" : ""}`.trim()}
     >
-      <div className="matchmaking-grid" aria-hidden="true" />
-      <div className="matchmaking-art" aria-hidden="true">
-        <PhaserSplash />
-      </div>
-      <div className="matchmaking-shade" aria-hidden="true" />
 
       {/* Header Bar */}
       <header className="matchmaking-header">
-        <button
-          type="button"
-          className="matchmaking-back"
-          onClick={handleBackToLobby}
-          aria-label="Return to lobby"
-          title="Return to lobby"
-        >
-          <ArrowLeft size={16} />
-          <span>Lobby</span>
-        </button>
+        <LobbyButton onClick={handleBackToLobby} />
         <div className="matchmaking-title">
           <span>CHRONO GENESIS TCG</span>
           <small>RANKED CIRCUIT</small>
@@ -371,7 +327,7 @@ function OnlinePlayPageContent() {
           />
         ) : null}
       </AnimatePresence>
-    </main>
+    </PageShell>
   );
 }
 
@@ -475,19 +431,9 @@ export default function PlayPage() {
   return (
     <Suspense
       fallback={
-        <div
-          className="matchmaking-shell"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100vh",
-            background: "#02040b",
-            color: "#fff",
-          }}
-        >
+        <PageShell centered>
           <span>Loading Ranked Circuit...</span>
-        </div>
+        </PageShell>
       }
     >
       <AuthGuard animatedBackdrop={false}>

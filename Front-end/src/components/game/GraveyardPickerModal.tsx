@@ -35,7 +35,7 @@ export function GraveyardPickerModal({
   const titleId = `graveyard-title-${playerId}`;
 
   return (
-    <div className="graveyard-modal-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onClose}>
+    <div className="graveyard-modal-overlay" data-ui-shield="" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onClose}>
       <div className="graveyard-modal-content graveyard-modal-v2" onClick={(event) => event.stopPropagation()}>
         <header>
           <div className="graveyard-modal__heading">

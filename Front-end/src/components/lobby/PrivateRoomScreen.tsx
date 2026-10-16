@@ -19,6 +19,8 @@ import { GameBoardView } from "../game/GameBoard";
 import { PhaserSplash } from "./PhaserSplash";
 import { PendingMatchDialog } from "./PendingMatchDialog";
 import { CyberCodeSlotInput } from "../matchmaking/CyberCodeSlotInput";
+import { Button, LobbyButton } from "../ui/button";
+import { PageShell } from "../ui/layout";
 import {
   MatchFoundShowcase,
   type ShowcasePlayer,
@@ -46,6 +48,7 @@ import {
   getCachedProfile,
   setCachedProfile,
 } from "../../libs/profileCache";
+import { CornerBrackets } from "../ui/decor";
 
 type PrivateRoomMode = "create" | "join";
 
@@ -242,7 +245,7 @@ export function PrivateRoomScreen(props: {
           localPlayer={localShowcase}
           opponent={oppShowcase}
           onComplete={() => setShowcaseCompleted(true)}
-          durationSeconds={5}
+          durationSeconds={10}
         />
       );
     }
@@ -360,25 +363,15 @@ export function PrivateRoomScreen(props: {
   };
 
   return (
-    <main className="matchmaking-shell private-room-shell">
-      <div className="matchmaking-grid" aria-hidden="true" />
-      <div className="matchmaking-art" aria-hidden="true">
-        <PhaserSplash />
-      </div>
-      <div className="matchmaking-shade" aria-hidden="true" />
+    <PageShell art={<PhaserSplash />}>
 
       {/* Header Bar */}
       <header className="matchmaking-header">
-        <button
-          type="button"
-          className="matchmaking-back"
+        <LobbyButton
           onClick={leaveRoom}
-          aria-label="Return to lobby"
           disabled={leavingRoom}
-        >
-          <ArrowLeft size={16} />
-          <span>Lobby</span>
-        </button>
+          loading={leavingRoom}
+        />
         <div className="matchmaking-title">
           <span>CHRONO GENESIS TCG</span>
           <small>PRIVATE CIRCUIT // CUSTOM DUEL</small>
@@ -437,10 +430,7 @@ export function PrivateRoomScreen(props: {
               transition={{ duration: 0.45, delay: 0.1 }}
             >
               <div className="card-hazard-line" aria-hidden="true" />
-              <div className="card-corner top-left" aria-hidden="true" />
-              <div className="card-corner top-right" aria-hidden="true" />
-              <div className="card-corner bottom-left" aria-hidden="true" />
-              <div className="card-corner bottom-right" aria-hidden="true" />
+              <CornerBrackets />
 
               <div className="private-room-header-telemetry">
                 <span className="private-room-telemetry-tag">
@@ -504,25 +494,26 @@ export function PrivateRoomScreen(props: {
 
               {/* Quick Actions Grid (COPY ROOM CODE & ABORT/LEAVE ROOM on 1 row) */}
               <div className="private-room-actions-grid" style={{ marginTop: "16px" }}>
-                <button
-                  type="button"
-                  className={`btn-cyber-action ${copiedCode ? "is-success" : ""}`}
+                <Button
+                  size="lg"
+                  variant={copiedCode ? "success" : "ghost"}
+                  icon={copiedCode ? <Check size={16} /> : <Clipboard size={16} />}
                   onClick={copyRoomCode}
                   disabled={!roomCode}
                 >
-                  {copiedCode ? <Check size={16} /> : <Clipboard size={16} />}
-                  <span>{copiedCode ? "CODE COPIED!" : "COPY ROOM CODE"}</span>
-                </button>
+                  {copiedCode ? "CODE COPIED!" : "COPY ROOM CODE"}
+                </Button>
 
-                <button
-                  type="button"
-                  className="btn-cyber-action btn-leave-room"
+                <Button
+                  size="lg"
+                  variant="danger"
+                  icon={<X size={16} />}
                   onClick={leaveRoom}
-                  disabled={leavingRoom}
+                  loading={leavingRoom}
+                  loadingText="TERMINATING CIRCUIT..."
                 >
-                  <X size={16} />
-                  <span>{leavingRoom ? "TERMINATING CIRCUIT..." : "ABORT / LEAVE ROOM"}</span>
-                </button>
+                  ABORT / LEAVE ROOM
+                </Button>
               </div>
             </motion.div>
           ) : (
@@ -558,16 +549,17 @@ export function PrivateRoomScreen(props: {
 
               {/* Guest Return to Lobby Action */}
               <div style={{ marginTop: "4px", width: "100%" }}>
-                <button
-                  type="button"
-                  className="btn-cyber-action btn-leave-room"
+                <Button
+                  size="lg"
+                  variant="danger"
+                  fullWidth
+                  icon={<ArrowLeft size={16} />}
                   onClick={leaveRoom}
-                  disabled={leavingRoom}
-                  style={{ width: "100%" }}
+                  loading={leavingRoom}
+                  loadingText="RETURNING..."
                 >
-                  <ArrowLeft size={16} />
-                  <span>{leavingRoom ? "RETURNING..." : "RETURN TO LOBBY"}</span>
-                </button>
+                  RETURN TO LOBBY
+                </Button>
               </div>
             </motion.div>
           )}
@@ -584,6 +576,6 @@ export function PrivateRoomScreen(props: {
           />
         ) : null}
       </section>
-    </main>
+    </PageShell>
   );
 }

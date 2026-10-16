@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { LobbyButton } from "../ui/button";
 
 type AuthShellProps = {
   eyebrow: string;
@@ -32,9 +32,7 @@ export function AuthShell({ eyebrow, title, description, children, footer }: Aut
       </section>
 
       <section className="auth-terminal">
-        <Link href="/" className="auth-back">
-          <ArrowLeft size={17} /> Lobby
-        </Link>
+        <LobbyButton asLink href="/" className="auth-terminal__back" />
 
         <div className="auth-terminal__content">
           <div className="auth-heading">

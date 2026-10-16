@@ -14,6 +14,8 @@ import {
   setSelectedDeckId,
   type LocalDeck,
 } from "../../libs/localDecks";
+import { CornerBrackets } from "../ui/decor";
+import { Button } from "../ui/button";
 
 interface DeckSelectionPanelProps {
   className?: string;
@@ -99,10 +101,7 @@ export const DeckSelectionPanel = memo(function DeckSelectionPanel({
       transition={{ duration: 0.45, delay: 0.05 }}
       aria-label="Combat Loadout & Battle Deck Selection"
     >
-      <div className="card-corner top-left" aria-hidden="true" />
-      <div className="card-corner top-right" aria-hidden="true" />
-      <div className="card-corner bottom-left" aria-hidden="true" />
-      <div className="card-corner bottom-right" aria-hidden="true" />
+      <CornerBrackets />
 
       {/* Header */}
       <div className="loadout-card-header">
@@ -174,9 +173,10 @@ export const DeckSelectionPanel = memo(function DeckSelectionPanel({
               <small>Cards</small>
             </div>
 
-            <button
-              type="button"
-              className="loadout-forge-btn"
+            <Button
+              size="compact"
+              className="loadout-forge-action"
+              icon={<Layers size={15} />}
               disabled={disabled}
               onClick={() => {
                 if (typeof window !== "undefined") {
@@ -186,9 +186,8 @@ export const DeckSelectionPanel = memo(function DeckSelectionPanel({
               aria-label="Open Deck Builder"
               title="Open Deck Builder to edit cards"
             >
-              <Layers size={15} />
-              <span>Forge</span>
-            </button>
+              Forge
+            </Button>
           </div>
         </div>
       </div>

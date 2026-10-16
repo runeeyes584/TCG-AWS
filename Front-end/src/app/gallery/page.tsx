@@ -1,12 +1,13 @@
 "use client";
 
 import { memo, useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Crown, Gem, Search, Sparkles, Swords } from "lucide-react";
+import { Crown, Gem, Search, Sparkles, Swords } from "lucide-react";
 import type { CardDefinition, CardInstance, CardType } from "@backend/game/types";
 import { listCards } from "@backend/game/entities/cardRegistry";
 import { GameCard } from "../../components/game/cards/game-card";
 import { HoverProvider } from "../../contexts/HoverContext";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
+import { LobbyButton } from "../../components/ui/button";
 
 type GalleryCard = CardDefinition & {
   rarity?: "common" | "rare" | "epic" | "legendary" | "champion" | string;
@@ -96,13 +97,12 @@ export default function CardGalleryPage() {
         <div className="gallery-vignette" aria-hidden="true" />
 
         <header className="gallery-catalog-header">
-          <button className="gallery-back" onClick={() => window.location.assign("/")} aria-label="Return to lobby">
-            <ArrowLeft size={18} /> Lobby
-          </button>
+          <LobbyButton />
           <div className="gallery-catalog-title">
             <strong>Card Gallery</strong>
             <small>Kaleidoscope Archive</small>
           </div>
+          <div aria-hidden="true" />
         </header>
 
         <section className="gallery-console" aria-label="Card collection">

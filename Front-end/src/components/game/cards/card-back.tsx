@@ -8,8 +8,8 @@ export interface CardBackProps {
   onClick?: () => void;
   variant?: "default" | "hand";
   className?: string;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
+  onMouseEnter?: React.MouseEventHandler<HTMLElement>;
+  onMouseLeave?: React.MouseEventHandler<HTMLElement>;
 }
 
 /** Production card back with the v2 frame while preserving hidden-card interactions. */
