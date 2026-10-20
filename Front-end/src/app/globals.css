@@ -1323,42 +1323,9 @@ button svg { vertical-align: -2px; }
 }
 
 /* Graveyard Modal Styles */
-.graveyard-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-}
 
-.graveyard-modal-content {
-  background: linear-gradient(160deg, #0e1820 0%, #08100e 100%);
-  border: 1px solid var(--lor-border);
-  border-radius: 12px;
-  width: 90vw;
-  max-width: 800px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
 
-.graveyard-modal-content header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--lor-border-dim);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
-.graveyard-modal-content h2 {
-  margin: 0;
-  font-size: 18px;
-  color: var(--lor-gold);
-}
 
 /* ===== AUTH ACCESS TERMINAL ===== */
 .auth-shell {
@@ -1666,69 +1633,14 @@ button svg { vertical-align: -2px; }
   box-shadow: 0 0 16px rgba(238, 70, 70, 0.18);
 }
 
-.graveyard-modal__heading {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
 
-.graveyard-modal__heading small {
-  overflow: hidden;
-  color: #aab8c8;
-  font-size: 12px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-.graveyard-modal-content button {
-  background: transparent;
-  border: none;
-  color: #a0a0a0;
-  cursor: pointer;
-  padding: 4px;
-}
 
-.graveyard-modal-content button:hover {
-  color: #fff;
-}
 
-.graveyard-grid {
-  padding: 20px;
-  overflow-y: auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: center;
-}
 
-.graveyard-entry {
-  display: flex;
-  width: 104px;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
 
-.graveyard-entry.is-disabled {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.25);
-}
 
-.graveyard-empty-targets {
-  margin: 0 20px 20px;
-  color: var(--lor-muted);
-  text-align: center;
-}
 
-.cause-tag {
-  background: rgba(0, 0, 0, 0.6);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  color: #c0c0c0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
 
 /* ===== GAME-LIKE ARENA REFRESH ===== */
 body {
@@ -1805,8 +1717,7 @@ body {
   text-align: center;
 }
 
-.floating-utility-panel,
-.graveyard-modal-content {
+.floating-utility-panel {
   backdrop-filter: blur(18px);
   box-shadow:
     0 24px 80px rgba(0,0,0,0.58),
@@ -1870,51 +1781,11 @@ body {
   }
 }
 
-.pending-choice-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.68);
-}
 
-.hand-limit-overlay {
-  background: #05080d;
-}
 
-.pending-choice-panel {
-  width: min(720px, 92vw);
-  max-height: min(620px, 86vh);
-  overflow: auto;
-  padding: 16px;
-  border: 1px solid rgba(200, 144, 48, 0.45);
-  border-radius: 8px;
-  background: #12181f;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-}
 
-.pending-choice-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 14px;
-  color: var(--lor-text);
-}
 
-.pending-choice-header strong {
-  font-family: 'Cinzel', serif;
-  font-size: 18px;
-}
 
-.pending-choice-header span {
-  color: var(--lor-muted);
-  font-size: 13px;
-}
 
 .pending-choice-grid {
   --pending-card-width: 112px;
@@ -1931,9 +1802,38 @@ body {
 .pending-choice-card {
   position: relative;
   display: grid;
-  width: var(--pending-card-width);
+  width: calc(var(--pending-card-width) + 16px);
   justify-items: center;
   gap: 5px;
+  padding: 6px 8px 8px;
+  border: 1px solid transparent;
+}
+
+/* The whole tile (tag, margin and card) is the button; the card inside only shows. */
+.pending-choice-card .game-card-stable-wrapper,
+.pending-choice-card [data-card-ui] {
+  pointer-events: none;
+}
+
+.pending-choice-card.is-pickable {
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+
+.pending-choice-card.is-pickable:hover,
+.pending-choice-card.is-pickable:focus-visible {
+  border-color: rgba(196, 181, 253, 0.7);
+  background: rgba(124, 92, 220, 0.12);
+  box-shadow: 0 0 18px rgba(124, 92, 220, 0.35);
+  outline: none;
+}
+
+.pending-choice-card.is-pickable:focus-visible {
+  border-color: #e8c26a;
+}
+
+.pending-choice-card.is-pickable:active {
+  background: rgba(124, 92, 220, 0.22);
 }
 
 .pending-choice-grid > .game-card-stable-wrapper,
@@ -1949,9 +1849,58 @@ body {
   min-height: 0;
 }
 
-.pending-choice-card.is-disabled {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.25);
+
+/* A card in a picking dialog (targets of an ability, the graveyard) that cannot be chosen: it sinks into grey
+   and takes no click, and NOT TARGET lies across its middle in the red of the board. */
+.pending-choice-card__face {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.pending-choice-card.is-blocked .game-card-stable-wrapper {
+  opacity: 0.3;
+  filter: grayscale(1) saturate(0) brightness(0.7);
+}
+
+.pending-choice-card.is-blocked {
+  cursor: not-allowed;
+}
+
+.pending-choice-not-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  padding: 6px 9px;
+  background: linear-gradient(180deg, rgba(70, 14, 30, 0.97), rgba(24, 6, 14, 0.97));
+  box-shadow: inset 0 0 0 1px rgba(255, 92, 122, 0.6);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  color: #ff5c7a;
+  font-family: var(--font-rajdhani), "Rajdhani", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  pointer-events: none;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+
+/* The graveyard has room to scroll, so its cards are shown larger than the targets of an ability. */
+.pending-choice-grid.pending-choice-grid--large {
+  --pending-card-width: 136px;
+  --pending-card-height: 190px;
+}
+
+.pending-choice-grid.pending-choice-grid--large .game-card-stable-wrapper {
+  width: var(--pending-card-width);
+  height: var(--pending-card-height);
+}
+
+.pending-choice-card .pending-choice-zone-label {
+  max-width: 100%;
 }
 
 .pending-choice-zone-label {
@@ -1971,22 +1920,18 @@ body {
   white-space: nowrap;
 }
 
-.pending-choice-panel .empty-message {
+.empty-message {
   margin: 16px 0;
-  color: var(--lor-muted);
+  color: #8d83ad;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-align: center;
+  text-transform: uppercase;
 }
 
-.pending-choice-panel .button-row {
-  justify-content: flex-end;
-  margin-top: 14px;
-}
 
 @media (max-width: 600px) {
-  .pending-choice-overlay {
-    padding: 12px;
-  }
-
   .pending-choice-grid {
     --pending-card-width: 96px;
     --pending-card-height: 144px;
@@ -2266,16 +2211,7 @@ body {
   background-repeat: no-repeat;
   background-position: center;
 }
-/* Hand-limit discard prompt shown only when the attack token changes. */
-.hand-limit-panel {
-  border-color: rgba(238, 184, 89, 0.56);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.72), 0 0 34px rgba(238, 184, 89, 0.12);
-}
 
-.hand-limit-grid {
-  align-items: end;
-  min-height: 210px;
-}
 
 .pending-choice-need {
   margin: 0 0 12px;
@@ -2736,24 +2672,8 @@ button.hand-card--shake-1 {
   transform: translateX(-50%);
 }
 
-.graveyard-modal-v2 {
-  border-color: oklch(0.78 0.15 78 / 0.34);
-}
 
-.graveyard-modal-v2 .graveyard-modal__close {
-  display: grid;
-  width: 30px;
-  min-height: 30px;
-  place-items: center;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 50%;
-}
 
-.graveyard-modal-v2 .graveyard-modal__close:hover {
-  border-color: oklch(0.78 0.15 78 / 0.45);
-  color: var(--champion);
-}
 
 /* ===== COMPACT BLUE-NOIR BATTLEFIELD =====
    The player hand is deliberately anchored upward inside its dock so its
@@ -4489,11 +4409,6 @@ button.hand-card--shake-1 {
   height: 146px;
 }
 
-.graveyard-entry.is-disabled [data-card-ui],
-.pending-choice-card.is-disabled [data-card-ui] {
-  cursor: not-allowed;
-  pointer-events: none;
-}
 
 .phaser-arena-canvas canvas {
   display: block;

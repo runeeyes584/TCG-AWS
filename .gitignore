@@ -75,3 +75,4 @@ Front-end/out
 .log
 .plan
 .claude/*
+.tmp/*

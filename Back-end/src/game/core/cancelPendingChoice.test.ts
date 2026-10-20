@@ -30,15 +30,24 @@ describe("CANCEL_PENDING_CHOICE", () => {
     expect(state.pendingChoice).toBeDefined();
     expect(state.priorityPlayerId).toBe("P1");
     expect(state.players.P1.board.map((unit) => unit.instanceId)).toEqual(["sophia"]);
+    expect(state.players.P1.board[0].boardRow).toBe("WAITING");
+    expect(state.players.P1.mana).toBe(10 - getCardDefinition("silverkeep-unit-04").cost);
   });
 
   it("keeps the unit and passes the turn on when the ability is skipped", () => {
-    const state = applyAction(pendingOnPlay(), { type: "CANCEL_PENDING_CHOICE", playerId: "P1" });
+    const pending = pendingOnPlay();
+    const state = applyAction(pending, { type: "CANCEL_PENDING_CHOICE", playerId: "P1" });
     expect(state.pendingChoice).toBeUndefined();
     expect(state.players.P1.board.map((unit) => unit.instanceId)).toEqual(["sophia"]);
+    expect(state.players.P1.board[0].boardRow).toBe("WAITING");
+    expect(state.players.P1.hand).toHaveLength(0);
+    expect(state.players.P1.mana).toBe(pending.players.P1.mana);
     expect(state.players.P2.board[0].modifiers).toHaveLength(0);
     expect(state.priorityPlayerId).toBe("P2");
     expect(state.activePlayerId).toBe("P2");
+    state.players.P1.hand.push(createCardInstance(filler, "P1", "other"));
+    expect(() => applyAction(state, { type: "PLAY_UNIT", playerId: "P1", cardInstanceId: "other" }))
+      .toThrow("Player does not have priority.");
   });
 
   it("leaves the priority exactly where choosing a target would leave it", () => {
@@ -51,5 +60,32 @@ describe("CANCEL_PENDING_CHOICE", () => {
     expect(skipped.priorityPlayerId).toBe(chosen.priorityPlayerId);
     expect(skipped.activePlayerId).toBe(chosen.activePlayerId);
     expect(skipped.phase).toBe(chosen.phase);
+  });
+
+  it("cancels an unplayed spell without spending mana or passing priority", () => {
+    const targetedSpell: CardDefinition = {
+      id: "cancel-test-spell",
+      name: "Targeted Spell",
+      type: "spell",
+      cost: 2,
+      abilities: [{
+        id: "targeted-spell-cast",
+        targets: [{ id: "victim", kind: "ENEMY_UNIT", required: true }],
+        effects: [{ type: "DEAL_DAMAGE", amount: 1, target: "victim" }]
+      }]
+    };
+    let state = started();
+    state.players.P1.hand = [createCardInstance(targetedSpell, "P1", "spell")];
+    state.players.P1.mana = 3;
+    state = applyAction(state, {
+      type: "PLAY_SPELL", playerId: "P1", cardInstanceId: "spell",
+      target: { type: "SELF", playerId: "P1" }
+    });
+    expect(state.pendingChoice).toBeDefined();
+    state = applyAction(state, { type: "CANCEL_PENDING_CHOICE", playerId: "P1" });
+    expect(state.pendingChoice).toBeUndefined();
+    expect(state.players.P1.hand.map((card) => card.instanceId)).toEqual(["spell"]);
+    expect(state.players.P1.mana).toBe(3);
+    expect(state.priorityPlayerId).toBe("P1");
   });
 });

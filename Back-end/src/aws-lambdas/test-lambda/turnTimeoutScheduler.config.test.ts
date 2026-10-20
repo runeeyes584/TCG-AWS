@@ -10,16 +10,25 @@ vi.mock("@aws-sdk/client-scheduler", () => ({
   CreateScheduleCommand: class {
     constructor(public input: unknown) {}
   },
+  UpdateScheduleCommand: class {
+    constructor(public input: unknown) {}
+  },
   DeleteScheduleCommand: class {
     constructor(public input: unknown) {}
   }
 }));
 
 import {
+  cancelTurnTimeout,
   classifyTurnTimeoutError,
+  formatScheduleExpression,
   sanitizeScheduleName,
   scheduleTurnTimeout
 } from "../turnTimeoutScheduler";
+
+const awsError = (name: string) => Object.assign(new Error(name), { name });
+const sentCommands = () =>
+  mocks.schedulerSend.mock.calls.map(([command]) => ({ name: command.constructor.name, input: command.input }));
 
 function startedState() {
   const state = applyAction(createInitialGameState([], [], 1), {
@@ -52,18 +61,80 @@ describe("turn timeout Scheduler configuration", () => {
     });
 
     expect(mocks.schedulerSend).toHaveBeenCalledTimes(1);
-    const command = mocks.schedulerSend.mock.calls[0]?.[0] as { input: Record<string, any> };
-    expect(command.input.GroupName).toBe("default");
-    expect(command.input.Target.RoleArn).toBe(
+    const [{ input }] = sentCommands();
+    expect(input.GroupName).toBe("default");
+    expect(input.Target.RoleArn).toBe(
       "arn:aws:iam::977233000065:role/Amz_EB_Scheduler_TURN_TIMEOUT"
     );
-    expect(command.input.Target.Arn).toBe(
+    expect(input.Target.Arn).toBe(
       "arn:aws:lambda:ap-southeast-1:977233000065:function:HandleTimeout-function"
     );
-    expect(command.input.Target.RetryPolicy).toEqual({
+    expect(input.Target.RetryPolicy).toEqual({
       MaximumEventAgeInSeconds: 300,
       MaximumRetryAttempts: 2
     });
+  });
+
+  it("keeps one schedule for the whole match, which does not delete itself", async () => {
+    await scheduleTurnTimeout({ matchId: "match-config", state: startedState(), stateVersion: 1 });
+
+    const [{ name, input }] = sentCommands();
+    expect(name).toBe("UpdateScheduleCommand");
+    expect(input.Name).toBe("turn-match-config");
+    expect(input.ActionAfterCompletion).toBe("NONE");
+  });
+
+  it("creates the schedule only when the match has none yet", async () => {
+    mocks.schedulerSend.mockRejectedValueOnce(awsError("ResourceNotFoundException"));
+
+    await scheduleTurnTimeout({ matchId: "match-config", state: startedState(), stateVersion: 1 });
+
+    expect(sentCommands().map((call) => call.name)).toEqual(["UpdateScheduleCommand", "CreateScheduleCommand"]);
+  });
+
+  it("updates the schedule another writer created in the meantime", async () => {
+    mocks.schedulerSend
+      .mockRejectedValueOnce(awsError("ResourceNotFoundException"))
+      .mockRejectedValueOnce(awsError("ConflictException"));
+
+    await scheduleTurnTimeout({ matchId: "match-config", state: startedState(), stateVersion: 1 });
+
+    expect(sentCommands().map((call) => call.name)).toEqual([
+      "UpdateScheduleCommand",
+      "CreateScheduleCommand",
+      "UpdateScheduleCommand"
+    ]);
+  });
+
+  it("logs a failure with a fixed marker, and lets it reach the caller", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.schedulerSend.mockRejectedValue(awsError("AccessDeniedException"));
+
+    await expect(
+      scheduleTurnTimeout({ matchId: "match-config", state: startedState(), stateVersion: 1 })
+    ).rejects.toThrow();
+
+    expect(String(logged.mock.calls[0]?.[0])).toContain("TURN_TIMEOUT_SCHEDULE_FAILED");
+    logged.mockRestore();
+  });
+
+  it("sets nothing for a match that is over", async () => {
+    const state = startedState();
+    state.winnerId = "P1";
+
+    await scheduleTurnTimeout({ matchId: "match-config", state, stateVersion: 1 });
+
+    expect(mocks.schedulerSend).not.toHaveBeenCalled();
+  });
+
+  it("deletes the schedule of a match that is over, and does not mind that there was none", async () => {
+    await cancelTurnTimeout("match-config");
+    expect(sentCommands()).toEqual([
+      { name: "DeleteScheduleCommand", input: { Name: "turn-match-config", GroupName: "default" } }
+    ]);
+
+    mocks.schedulerSend.mockRejectedValueOnce(awsError("ResourceNotFoundException"));
+    await expect(cancelTurnTimeout("match-config")).resolves.toBeUndefined();
   });
 
   it("fails before the AWS call when a required ARN is missing or malformed", async () => {
@@ -95,12 +166,19 @@ describe("turn timeout Scheduler configuration", () => {
     })).toBe("IAM_DENIED");
   });
 
-  it("sanitizes long match IDs to always start with turn- and stay under 64 chars", () => {
+  it("names the schedule turn-<matchId>, within 64 characters", () => {
     const longMatchId = "MATCH_1788344944547_c7196c20-e189-47c7-a969-95fbcb0ca8d1";
-    const name = sanitizeScheduleName(longMatchId, 1);
+    const name = sanitizeScheduleName(longMatchId);
     expect(name.startsWith("turn-")).toBe(true);
-    expect(name.endsWith("-v1")).toBe(true);
     expect(name.length).toBeLessThanOrEqual(64);
     expect(/^[0-9a-zA-Z-_.]+$/.test(name)).toBe(true);
+    expect(sanitizeScheduleName("room 1/x")).toBe("turn-room-1-x");
+  });
+
+  it("never sets a time that is not in the future", () => {
+    const now = Date.UTC(2026, 0, 1, 0, 0, 0);
+    expect(formatScheduleExpression(now + 30_000, now)).toBe("at(2026-01-01T00:00:30)");
+    expect(formatScheduleExpression(now - 5_000, now)).toBe("at(2026-01-01T00:00:01)");
+    expect(formatScheduleExpression(now + 29_100, now)).toBe("at(2026-01-01T00:00:30)");
   });
 });

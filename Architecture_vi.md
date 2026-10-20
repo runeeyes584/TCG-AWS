@@ -247,7 +247,7 @@ Có hai vocabulary kiểu dữ liệu: engine hiện tại dùng camelCase (`eng
 - **Amazon DynamoDB:** toàn bộ state bền vững qua AWS SDK v3.
 - **API Gateway WebSocket:** event kết nối/route vào và Management API để gửi ra.
 - **SQS:** truyền kết quả trận với batch failure reporting.
-- **EventBridge Scheduler:** mỗi state version có một schedule timeout; target là `handleTimeout` qua IAM scheduler role.
+- **EventBridge Scheduler:** mỗi trận có một schedule timeout `turn-<matchId>`, được cập nhật sau mỗi lần ghi trạng thái thành công và xoá khi trận kết thúc; target là `handleTimeout` qua IAM scheduler role. Tầng 1 cho phép cả hai người chơi báo `TIME_OUT` (xem `.agents/plan/fix-error/watchdogEB.md`).
 - **Amplify:** chỉ xác minh được build/deploy frontend. Provisioning backend là **CHƯA XÁC ĐỊNH**.
 - **Secrets Manager / STS:** `config/dynamodb.ts` có đường credential tùy chọn; Lambda mặc định dùng execution role.
 

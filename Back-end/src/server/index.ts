@@ -5,6 +5,7 @@ import { applyAction, createInitialGameState } from "../game/core/engine";
 import { applyAuthoritativeAction } from "../game/core/authoritativeAction";
 import { validateDeck } from "../game/rules/deckRules";
 import { MAX_MANA, MAX_SPELL_MANA } from "../game/rules/gameRules";
+import { ACTION_LATE_TOLERANCE_MS, actionIsTooLate, holderMayReportTimeout, turnDeadline } from "../game/rules/turnClock";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
 import { MatchmakingService } from "../matchmaking/matchmaking.service";
 import type {
@@ -70,7 +71,6 @@ const socketRooms = new Map<string, string>();
 const roomTimers = new Map<string, NodeJS.Timeout>();
 const disconnectGraceTimers = new Map<string, NodeJS.Timeout>();
 const disconnectGracePeriodMs = 45_000;
-const CLOCK_SKEW_GRACE_MS = 2_000;
 // const onlinePlayers = new Map<string, OnlinePlayer>();
 
 const expressApp = express();
@@ -429,12 +429,12 @@ io.on("connection", (socket) => {
         replyError(socket, ack, "Only the priority player can time out.");
         return;
       }
-      if (!turnHasExpired(room.state)) {
+      if (!holderMayReportTimeout(room.state)) {
         replyError(socket, ack, "Turn has not yet expired.");
         return;
       }
       authoritativeAction = { type: "TIME_OUT", playerId };
-    } else if (action.type !== "SURRENDER" && turnHasExpired(room.state)) {
+    } else if (action.type !== "SURRENDER" && actionIsTooLate(room.state)) {
       replyError(socket, ack, "Turn has already timed out.");
       return;
     }
@@ -699,7 +699,7 @@ function refreshTimer(room: Room): void {
   const turnStartTime = room.state.turnStartTime;
   const delay = Math.max(
     0,
-    turnStartTime + room.state.turnDuration - Date.now() + CLOCK_SKEW_GRACE_MS
+    turnDeadline(room.state) - Date.now() + ACTION_LATE_TOLERANCE_MS
   );
   const timer = setTimeout(async () => {
     roomTimers.delete(room.code);
@@ -858,15 +858,6 @@ function canSubmitAction(playerId: PlayerId, action: GameAction) {
   }
 
   return true;
-}
-
-function turnHasExpired(state: GameState, now = Date.now()): boolean {
-  return state.started &&
-    !state.winnerId &&
-    Number.isFinite(state.turnStartTime) &&
-    Number.isFinite(state.turnDuration) &&
-    state.turnDuration > 0 &&
-    now + CLOCK_SKEW_GRACE_MS >= state.turnStartTime + state.turnDuration;
 }
 
 function areValidDeveloperResourceUpdates(

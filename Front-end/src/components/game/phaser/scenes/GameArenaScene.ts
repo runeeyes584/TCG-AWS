@@ -33,6 +33,8 @@ export class GameArenaScene extends Phaser.Scene {
   private nexus!: NexusCoreRenderer;
   private passSeal!: PassSealRenderer;
   private carryFx!: NexusCarryFx;
+  /** The card picked on the table, which is drawn with a ring round it. */
+  private pickedUnitId?: string;
   private uiShield?: UiShieldGuard;
   private turnBanner!: TurnBannerFx;
   private riftSigil!: RiftSigil;
@@ -92,6 +94,7 @@ export class GameArenaScene extends Phaser.Scene {
       this,
       (unitId) => this.cards.get(unitId),
       (unitId, kind) => this.cards.playEffect(unitId, kind),
+      (unitId, jolt) => this.cards.nudge(unitId, jolt),
       (playerId) => this.nexus.anchorFor(playerId as PlayerId, this.stateSystem.snapshot.viewerPlayerId),
     );
     this.stateSystem.start(() => this.renderArena());
@@ -113,6 +116,11 @@ export class GameArenaScene extends Phaser.Scene {
       arenaEventAdapter.on("DESTROY_UNIT", ({ unitId }) => {
         if (this.isSceneDestroyed) return;
         this.cards.playDestroy(unitId);
+      }),
+      arenaEventAdapter.on("UNIT_PICKED", ({ unitId }) => {
+        if (this.isSceneDestroyed || unitId === this.pickedUnitId) return;
+        this.pickedUnitId = unitId;
+        this.renderArena();
       }),
       arenaEventAdapter.on("TARGETING_CHANGED", ({ targetKind, playerId }) => {
         if (this.isSceneDestroyed) return;
@@ -286,6 +294,7 @@ export class GameArenaScene extends Phaser.Scene {
           this.cards.create(unit, playerId, proj.cardPlacement(slot), {
             isTargetable,
             targetType,
+            picked: unit.instanceId === this.pickedUnitId,
             inLane,
             role: inLane ? (playerId === gameState.attackTokenPlayerId ? 'attack' : 'defend') : undefined,
           });

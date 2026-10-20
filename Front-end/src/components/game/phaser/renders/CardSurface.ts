@@ -2,6 +2,7 @@ import type Phaser from "phaser";
 import type { Bounds, Point, Quad } from "../config/arenaProjection";
 import { perimeterPath } from "../config/declareMotion";
 import { densityOf } from "../config/arenaScale";
+import { growQuad } from "../config/pickedRing";
 import { acquireCanvasTexture } from "./canvasTexture";
 import { drawIntoQuad } from "./cardFace";
 
@@ -13,7 +14,12 @@ export interface CardLook {
   sweep?: { color: number; from: number; to: number };
   /** How strongly the pointer lights the edge, 0..1. */
   hover?: number;
+  /** A card the player has picked: a ring of soft violet light a little way out from the card, like a tile of a picking dialog under the pointer. */
+  ring?: boolean;
 }
+
+/** How far out from the card the ring of a picked card stands, in logical px. */
+const RING_MARGIN = 5;
 
 const rgba = (hex: number, alpha: number) => `rgba(${(hex >> 16) & 255},${(hex >> 8) & 255},${hex & 255},${alpha})`;
 
@@ -56,8 +62,22 @@ export class CardSurface {
 
     if (look.edge) this.strokeOutline(ctx, local, look.edge.color, look.edge.alpha, 1.6, 6 * density);
     if (look.hover && look.hover > 0.01) this.strokeOutline(ctx, local, 0xc4b5fd, 0.85 * look.hover, 1.4, 10 * look.hover * density);
+    if (look.ring) this.strokeRing(ctx, local, density);
     if (look.sweep) this.strokeSweep(ctx, local, look.sweep, density);
     texture.refresh();
+  }
+
+  /** A margin of faint violet round the card with a bright line along its edge. */
+  private strokeRing(ctx: CanvasRenderingContext2D, quad: Quad, density: number) {
+    const ring = growQuad(quad, RING_MARGIN);
+    ctx.save();
+    ctx.beginPath();
+    ring.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    ctx.closePath();
+    ctx.fillStyle = "rgba(124, 92, 220, 0.14)";
+    ctx.fill();
+    ctx.restore();
+    this.strokeOutline(ctx, ring, 0xc4b5fd, 0.95, 1.6, 12 * density);
   }
 
   private strokeOutline(ctx: CanvasRenderingContext2D, quad: Point[], color: number, alpha: number, width: number, blur: number) {

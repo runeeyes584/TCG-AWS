@@ -26,6 +26,8 @@ export type ArenaEventMap = {
   /** A card on the table was right-clicked: pin it, so the codex shows its full text. */
   INSPECT_UNIT: { playerId: PlayerId; unitId: string };
   EMPTY_SLOT_CLICK: { playerId: PlayerId; index: number };
+  /** The card the player has picked on the table to declare next (a blocker waiting for its lane); none when nothing is picked. */
+  UNIT_PICKED: { unitId?: string };
   TARGETING_CHANGED: {
     targetKind: Extract<SpellTargetKind, "ALLY_UNIT" | "ENEMY_UNIT"> | undefined;
     playerId?: PlayerId;

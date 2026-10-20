@@ -209,11 +209,13 @@ sequenceDiagram
   L->>L: write GameLogs, schedule next timeout, enqueue result if finished
 ```
 
-The turn timeout schedule is created in parallel with the DynamoDB commit, so a failed conditional write can leave an extra schedule that later no-ops through the version check.
+The turn timeout schedule is set only after the DynamoDB commit succeeds (in parallel with the state push), so a lost conditional write never touches it.
 
 ### Timeout (hybrid, two tiers)
 
-Tier 1: the client dispatches `TIME_OUT` when its countdown reaches zero and the server validates `turnHasExpired()`. Tier 2: EventBridge Scheduler (`at()` one-time schedule, name `turn-<matchId>-v<stateVersion>`, `ActionAfterCompletion: DELETE`, two retries, 300 s max event age) invokes `handleTimeout`, which checks `timeoutMessageMatches`. A `CLOCK_SKEW_GRACE_MS` of 2000 ms applies in both tiers.
+Tier 1: either player's client dispatches `TIME_OUT`. The holder of the turn does so when its countdown reaches zero (tier 1a); the opponent does so `OPPONENT_CLAIM_DELAY_MS` (1.5 s) after the deadline (tier 1b), which covers a holder who closed the tab. `processGameEngine` validates with `holderMayReportTimeout` for the holder (`TIMEOUT_EARLY_TOLERANCE_MS`, 500 ms early) and `opponentMayClaimTimeout` for the opponent (both in `game/rules/turnClock.ts`), always times out the player who holds the priority, and answers a refused or lost report with a silent `409`. Ordinary actions are never refused before the deadline and are refused by `actionIsTooLate` only after `ACTION_LATE_TOLERANCE_MS` (1.5 s) past it. Every message that carries state includes `serverTime`, from which the client derives `clockOffsetMs` and reads the turn clock in server time.
+
+Tier 2: one EventBridge Scheduler schedule per match (`at()` one-time, name `turn-<matchId>`, `ActionAfterCompletion: NONE`, two retries, 300 s max event age). Every committed state updates it to the new deadline (`UpdateSchedule`, or `CreateSchedule` when there is none), and a timeout that ends the match deletes it (a match ended by surrender leaves it to delete itself the next time it fires). It fires only when no client reported the timeout. `handleTimeout` deletes the schedule of a match that is over, times out the due player when the schedule matches the turn, and otherwise points the schedule at the turn the match is really in (a stale or early schedule). See `.agents/plan/fix-error/watchdogEB.md`.
 
 ### Reconnect / resume
 

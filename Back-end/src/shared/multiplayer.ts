@@ -57,5 +57,6 @@ export interface RoomUpdate {
   players: Partial<Record<PlayerId, MatchPlayerProfile>>;
   state: GameState;
   log: Array<{ id: number; message: string }>;
-
+  /** The server clock when the message was sent, so a browser can correct its own clock against it. */
+  serverTime?: number;
 }
