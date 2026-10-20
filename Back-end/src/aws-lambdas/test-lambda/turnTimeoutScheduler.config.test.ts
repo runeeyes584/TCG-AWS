@@ -75,6 +75,20 @@ describe("turn timeout Scheduler configuration", () => {
     });
   });
 
+  it("fires once the late allowance after the deadline has passed, while the payload keeps the deadline itself", async () => {
+    const now = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const state = startedState();
+    state.turnStartTime = now;
+    state.turnDuration = 30_000;
+
+    await scheduleTurnTimeout({ matchId: "match-config", state, stateVersion: 1, now });
+
+    const [{ input }] = sentCommands();
+    // Deadline 00:00:30, plus 1.5 s of late allowance, rounded up to the second.
+    expect(input.ScheduleExpression).toBe("at(2026-01-01T00:00:32)");
+    expect(JSON.parse(input.Target.Input).deadline).toBe(now + 30_000);
+  });
+
   it("keeps one schedule for the whole match, which does not delete itself", async () => {
     await scheduleTurnTimeout({ matchId: "match-config", state: startedState(), stateVersion: 1 });
 

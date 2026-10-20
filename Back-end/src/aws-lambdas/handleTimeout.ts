@@ -6,7 +6,7 @@ import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAction } from "../game/core/engine";
 import type { GameState, PlayerId } from "../game/types";
-import { holderMayReportTimeout, turnDeadline } from "../game/rules/turnClock";
+import { actionIsTooLate, turnDeadline } from "../game/rules/turnClock";
 import {
   cancelTurnTimeout,
   scheduleTurnTimeout,
@@ -74,8 +74,12 @@ export function normalizeTurnTimeoutMessage(event: any): TurnTimeoutMessage {
   return payload as TurnTimeoutMessage;
 }
 
+/**
+ * The server's own clock ends a turn only once actions are no longer accepted, so it never takes a turn from a
+ * late click that `processGameEngine` would still have played.
+ */
 export function duePlayer(match: MatchRecord, now = Date.now()): PlayerId | undefined {
-  return match.status === "IN_PROGRESS" && holderMayReportTimeout(match.engine_state, now)
+  return match.status === "IN_PROGRESS" && actionIsTooLate(match.engine_state, now)
     ? match.engine_state.priorityPlayerId
     : undefined;
 }

@@ -4,6 +4,7 @@ import {
   SchedulerClient,
   UpdateScheduleCommand
 } from "@aws-sdk/client-scheduler";
+import { ACTION_LATE_TOLERANCE_MS } from "../game/rules/turnClock";
 import type { GameState, PlayerId } from "../game/types";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
@@ -119,7 +120,8 @@ export function buildTurnTimeoutMessage(input: {
 }
 
 /**
- * Points the match's one schedule at the deadline of the turn that is running. The schedule is updated, and
+ * Points the match's one schedule at the deadline of the turn that is running, plus the late allowance during
+ * which a player's action still counts, so the safety net never ends a turn that a late click could still play. The schedule is updated, and
  * created only when the match has none yet. It does not delete itself once it has run (`NONE`): the next turn
  * reuses it, and `cancelTurnTimeout` removes it when the match is over. Call it only after the state of the turn
  * has been committed, never before.
@@ -138,7 +140,7 @@ export async function scheduleTurnTimeout(input: {
   const groupName = getSchedulerGroupName();
 
   const name = sanitizeScheduleName(input.matchId);
-  const scheduleExpression = formatScheduleExpression(timeout.message.deadline, input.now);
+  const scheduleExpression = formatScheduleExpression(timeout.message.deadline + ACTION_LATE_TOLERANCE_MS, input.now);
 
   const schedule = {
     Name: name,
