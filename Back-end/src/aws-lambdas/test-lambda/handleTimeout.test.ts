@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyAction, createInitialGameState } from "../../game/core/engine";
+import { ACTION_LATE_TOLERANCE_MS } from "../../game/rules/turnClock";
 import type { GameState } from "../../game/types";
 import {
+  duePlayer,
   handler,
   normalizeTurnTimeoutMessage,
   timeoutMessageMatches,
@@ -79,6 +81,15 @@ describe("handleTimeout EventBridge integration", () => {
     mocks.wsSend.mockResolvedValue({});
     mocks.schedulerSend.mockResolvedValue({});
     mocks.sqsSend.mockResolvedValue({});
+  });
+
+  it("ends a turn only once actions are no longer accepted, so a late click is not taken from the player", () => {
+    const match: MatchRecord = { match_id: "match-1", status: "IN_PROGRESS", engine_state: createStartedState(1_000) };
+    const deadline = 31_000;
+
+    expect(duePlayer(match, deadline)).toBeUndefined();
+    expect(duePlayer(match, deadline + ACTION_LATE_TOLERANCE_MS - 1)).toBeUndefined();
+    expect(duePlayer(match, deadline + ACTION_LATE_TOLERANCE_MS)).toBe("P1");
   });
 
   it("normalizes direct JSON event payload", () => {
