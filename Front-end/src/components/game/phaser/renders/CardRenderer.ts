@@ -32,6 +32,8 @@ const reducedMotion = () =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 export interface CardViewOptions {
+  /** The player has picked this card to declare next: it stays raised and ringed in violet until it is declared or dropped. */
+  picked?: boolean;
   isTargetable?: boolean;
   targetType?: "ally" | "enemy";
   /** The card is part of a combat lane (attacking or blocking). */
@@ -58,6 +60,8 @@ interface CardPose {
   /** In a combat lane. */
   base: boolean;
   role?: CardRole;
+  /** The player has picked it (a blocker waiting for its lane). */
+  picked: boolean;
   /** The pointer is over it. */
   hovered: boolean;
   /** How strongly the pointer lights its edge, 0..1. */
@@ -68,12 +72,26 @@ interface CardPose {
   glide: number;
   /** Where the card came from, while it glides. */
   glideFrom?: Point;
+  /** A one-shot jolt (a hit, a lunge) added to the card's place, so it never fights the glide; at rest it is 0. */
+  nudge: Point;
   /** How far the light has run round its edge, 0..1 (1 = done), and how many laps it makes. */
   sweep: number;
   sweepLaps: number;
   hoverTween?: Phaser.Tweens.Tween;
   glideTween?: Phaser.Tweens.Tween;
   sweepTween?: Phaser.Tweens.Tween;
+  nudgeTween?: Phaser.Tweens.Tween;
+}
+
+/** A short jolt of a card along one axis: it goes `from` to `to` (yoyo comes back) and always ends at rest. */
+export interface Jolt {
+  axis: "x" | "y";
+  from?: number;
+  to: number;
+  duration: number;
+  ease?: string;
+  yoyo?: boolean;
+  repeat?: number;
 }
 
 interface CardView {
@@ -173,10 +191,13 @@ export class CardRenderer {
   }
 
   private stopTweens(pose: CardPose) {
-    [pose.hoverTween, pose.glideTween, pose.sweepTween].forEach((tween) => tween?.stop());
+    [pose.hoverTween, pose.glideTween, pose.sweepTween, pose.nudgeTween].forEach((tween) => tween?.stop());
     pose.hoverTween = undefined;
     pose.glideTween = undefined;
     pose.sweepTween = undefined;
+    pose.nudgeTween = undefined;
+    // A jolt cut short by a redraw ends at rest; the card is drawn again from its place.
+    pose.nudge = { x: 0, y: 0 };
   }
 
   /** Drops the face, texture and pose of units that are no longer on the board. */
@@ -281,6 +302,7 @@ export class CardRenderer {
     const leavingRole = pose.role;
     pose.base = Boolean(options.inLane);
     pose.role = pose.base ? options.role : undefined;
+    pose.picked = Boolean(options.picked);
     pose.hovered = false;
     pose.hover = 0;
     pose.hoverTween?.stop();
@@ -307,7 +329,7 @@ export class CardRenderer {
       .setOrigin(0, 0)
       .setDisplaySize(shown.width, shown.height);
     const rest = { x: image.x, y: image.y, scaleX: image.scaleX, scaleY: image.scaleY };
-    const offset = this.glideOf(pose, center);
+    const offset = this.offsetOf(pose, center);
     const card = this.scene.add.container(center.x + offset.x, center.y + offset.y, [image]) as UnitView;
     card.unitId = unit.instanceId;
     card.setSize(flatBox.width, flatBox.height);
@@ -321,7 +343,7 @@ export class CardRenderer {
     this.interactions.bind(card, unit, playerId, hitArea, (hovering) => this.setHovered(view, hovering));
     this.animations.attach(card, isChampion, accent, options.isTargetable, options.targetType, hasBarrier);
     this.views.set(unit.instanceId, view);
-    this.glideTo(view, center);
+    this.glideTo(view);
     this.sweepTo(view);
     return card;
   }
@@ -329,7 +351,7 @@ export class CardRenderer {
   private poseOf(unitId: string): CardPose {
     let pose = this.poses.get(unitId);
     if (!pose) {
-      pose = { base: false, hovered: false, hover: 0, glide: 1, sweep: 1, sweepLaps: 1 };
+      pose = { base: false, picked: false, hovered: false, hover: 0, glide: 1, nudge: { x: 0, y: 0 }, sweep: 1, sweepLaps: 1 };
       this.poses.set(unitId, pose);
     }
     return pose;
@@ -345,7 +367,8 @@ export class CardRenderer {
     return {
       edge: color !== undefined ? { color, alpha: edgeAlpha } : undefined,
       sweep: color !== undefined && window ? { color, ...window } : undefined,
-      hover: pose.hover
+      hover: Math.max(pose.hover, pose.picked ? 1 : 0),
+      ring: pose.picked
     };
   }
 
@@ -388,7 +411,7 @@ export class CardRenderer {
   /** A card lifts under the pointer only when it is at rest: not gliding to its lane, not with the light running round it. */
   private liftOf(pose: CardPose) {
     const resting = !reducedMotion() && pose.glide >= 1 && pose.sweep >= 1;
-    return resting ? pose.hover : 0;
+    return resting ? Math.max(pose.hover, pose.picked ? 1 : 0) : 0;
   }
 
   /** Raises and grows the picture of the card by how strongly the pointer is on it; the card's box and hit area stay. */
@@ -456,11 +479,26 @@ export class CardRenderer {
     return pose.glide < 1 && pose.glideFrom ? glideOffset(pose.glideFrom, center, pose.glide) : { x: 0, y: 0 };
   }
 
+  /** How far the card is from the centre of its slot: still gliding to it, plus any jolt it is taking. */
+  private offsetOf(pose: CardPose, center: Point): Point {
+    const glide = this.glideOf(pose, center);
+    return { x: glide.x + pose.nudge.x, y: glide.y + pose.nudge.y };
+  }
+
+  /** Puts the card where its pose says: the one place that moves a card, so a glide and a jolt always agree. */
+  private settle(view: CardView) {
+    const { card, box, pose } = view;
+    if (!card.active) return;
+    const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const offset = this.offsetOf(pose, center);
+    card.setPosition(center.x + offset.x, center.y + offset.y);
+  }
+
   /**
    * Carries a card that was just declared from the slot it lay in to its slot in the lane. The progress
    * lives in the pose, so a redraw in the middle of the glide carries on from where it was.
    */
-  private glideTo(view: CardView, center: Point) {
+  private glideTo(view: CardView) {
     const { card, pose } = view;
     pose.glideTween?.stop();
     pose.glideTween = undefined;
@@ -472,8 +510,7 @@ export class CardRenderer {
       ease: "Linear",
       onUpdate: () => {
         if (!card.active) return;
-        const offset = this.glideOf(pose, center);
-        card.setPosition(center.x + offset.x, center.y + offset.y);
+        this.settle(view);
         // The edge of a card that is leaving its lane fades out with the glide.
         if (pose.leaving) this.paintView(view);
       },
@@ -484,7 +521,34 @@ export class CardRenderer {
           pose.leaving = undefined;
           this.paintView(view);
         }
-        if (card.active) card.setPosition(center.x, center.y);
+        this.settle(view);
+      },
+    });
+  }
+
+  /**
+   * A card takes a short jolt (it is hit, it lunges). The jolt is part of the card's pose, not a tween on the
+   * container: whatever else is moving the card (it may be gliding back to the waiting row) is kept, and the
+   * card always ends at its slot, never where it happened to be when the jolt began.
+   */
+  nudge(unitId: string, jolt: Jolt) {
+    const view = this.views.get(unitId);
+    if (!view) return;
+    const { pose } = view;
+    pose.nudgeTween?.stop();
+    pose.nudge = { x: 0, y: 0 };
+    pose.nudgeTween = this.scene.tweens.add({
+      targets: pose.nudge,
+      [jolt.axis]: jolt.from === undefined ? jolt.to : { from: jolt.from, to: jolt.to },
+      duration: jolt.duration,
+      ease: jolt.ease,
+      yoyo: jolt.yoyo,
+      repeat: jolt.repeat,
+      onUpdate: () => this.settle(view),
+      onComplete: () => {
+        pose.nudgeTween = undefined;
+        pose.nudge = { x: 0, y: 0 };
+        this.settle(view);
       },
     });
   }
@@ -557,15 +621,8 @@ export class CardRenderer {
   playAttack(unitId: string) {
     const view = this.get(unitId);
     if (view) {
-      const y = view.y;
       const riftY = (this.scene.registry.get("arenaRiftY") as number | undefined) ?? logicalSize(this.scene.scale).height / 2;
-      this.scene.tweens.add({
-        targets: view,
-        y: y + (y > riftY ? -38 : 38),
-        yoyo: true,
-        duration: 190,
-        ease: "Sine.Out"
-      });
+      this.nudge(unitId, { axis: "y", to: view.y > riftY ? -38 : 38, yoyo: true, duration: 190, ease: "Sine.Out" });
     }
   }
 

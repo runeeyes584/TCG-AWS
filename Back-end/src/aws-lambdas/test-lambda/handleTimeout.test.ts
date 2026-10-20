@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   sqsSend: vi.fn()
 }));
 
-vi.mock("../config/dynamodb", () => ({
+vi.mock("../../config/dynamodb", () => ({
   dynamoDb: { send: mocks.dynamoSend }
 }));
 
@@ -34,6 +34,9 @@ vi.mock("@aws-sdk/client-scheduler", () => ({
     send = mocks.schedulerSend;
   },
   CreateScheduleCommand: class {
+    constructor(public input: unknown) {}
+  },
+  UpdateScheduleCommand: class {
     constructor(public input: unknown) {}
   },
   DeleteScheduleCommand: class {
@@ -155,7 +158,6 @@ describe("handleTimeout EventBridge integration", () => {
       return {};
     });
 
-    const now = 32000;
     const result = await handler({
       matchId: "match-123",
       stateVersion: 1,
@@ -166,11 +168,91 @@ describe("handleTimeout EventBridge integration", () => {
     });
 
     expect(result.statusCode).toBe(200);
-    // Verified that DynamoDB was called for Get and Update
-    expect(mocks.dynamoSend).toHaveBeenCalled();
-    // Verified WebSocket broadcast was sent
-    expect(mocks.wsSend).toHaveBeenCalled();
-    // Verified next turn timeout was scheduled via EventBridge Scheduler
-    expect(mocks.schedulerSend).toHaveBeenCalled();
+    // The turn moved on: the state was written, both players were told, and the match's one schedule was
+    // pointed at the next turn (updated, not created).
+    const update = mocks.dynamoSend.mock.calls
+      .map(([command]) => command)
+      .find((command) => command?.input?.UpdateExpression) as any;
+    expect(update.input.ExpressionAttributeValues[":nextVersion"]).toBe(2);
+    expect(mocks.wsSend).toHaveBeenCalledTimes(2);
+    expect(mocks.schedulerSend).toHaveBeenCalledTimes(1);
+    const schedule = mocks.schedulerSend.mock.calls[0][0] as { constructor: { name: string }; input: any };
+    expect(schedule.input.Name).toBe("turn-match-123");
+    expect(JSON.parse(schedule.input.Target.Input).stateVersion).toBe(2);
+  });
+
+  const timedOutMatch = (patch: Partial<MatchRecord> = {}): MatchRecord => ({
+    match_id: "match-123",
+    status: "IN_PROGRESS",
+    state_version: 1,
+    engine_state: createStartedState(1000),
+    player_1: { connection_id: "conn-1", connected: true },
+    player_2: { connection_id: "conn-2", connected: true },
+    ...patch
+  });
+  const firedMessage = {
+    matchId: "match-123",
+    stateVersion: 1,
+    expectedPlayerId: "P1",
+    turnStartTime: 1000,
+    turnDuration: 30000,
+    deadline: 31000
+  };
+  const serve = (match?: MatchRecord) =>
+    mocks.dynamoSend.mockImplementation(async (command: any) =>
+      command?.input?.TableName === "GameState" && command?.input?.Key && !command?.input?.UpdateExpression
+        ? { Item: match }
+        : {}
+    );
+  const schedulerCalls = () =>
+    mocks.schedulerSend.mock.calls.map(([command]) => ({ name: command.constructor.name, input: command.input }));
+
+  it("sets the schedule again for the real turn when the one that fired is out of date", async () => {
+    // The match is on version 5, a later turn: the schedule that fired was set for version 1.
+    const match = timedOutMatch({ state_version: 5, engine_state: createStartedState(Date.now() + 20_000) });
+    serve(match);
+
+    const result = await handler(firedMessage);
+
+    expect(result.statusCode).toBe(200);
+    const wrote = mocks.dynamoSend.mock.calls.some(([command]) => command?.input?.UpdateExpression);
+    expect(wrote).toBe(false);
+    expect(mocks.wsSend).not.toHaveBeenCalled();
+    const [call] = schedulerCalls();
+    expect(call.name).toBe("UpdateScheduleCommand");
+    expect(JSON.parse(call.input.Target.Input).stateVersion).toBe(5);
+  });
+
+  it("removes the schedule of a match that is over, and does nothing else", async () => {
+    serve(timedOutMatch({ status: "FINISHED" }));
+
+    await handler(firedMessage);
+
+    expect(schedulerCalls().map((call) => call.name)).toEqual(["DeleteScheduleCommand"]);
+    expect(mocks.wsSend).not.toHaveBeenCalled();
+  });
+
+  it("removes the schedule of a match that no longer exists", async () => {
+    serve(undefined);
+
+    await handler(firedMessage);
+
+    expect(schedulerCalls().map((call) => call.name)).toEqual(["DeleteScheduleCommand"]);
+  });
+
+  it("sets no schedule when it lost the write to a player's report", async () => {
+    serve(timedOutMatch());
+    mocks.dynamoSend.mockImplementation(async (command: any) => {
+      if (command?.input?.UpdateExpression) {
+        throw Object.assign(new Error("changed"), { name: "ConditionalCheckFailedException" });
+      }
+      return { Item: timedOutMatch() };
+    });
+
+    const result = await handler(firedMessage);
+
+    expect(result.statusCode).toBe(200);
+    expect(mocks.schedulerSend).not.toHaveBeenCalled();
+    expect(mocks.wsSend).not.toHaveBeenCalled();
   });
 });

@@ -282,7 +282,8 @@ async function sendMessage(
   try {
     await wsClient.send(new PostToConnectionCommand({
       ConnectionId: connectionId,
-      Data: Buffer.from(JSON.stringify(payload))
+      // The browser corrects its clock against the server's with this stamp, so every message carries it.
+      Data: Buffer.from(JSON.stringify({ ...payload, serverTime: Date.now() }))
     }));
     return true;
   } catch (error) {
@@ -433,19 +434,6 @@ async function claimMatch(
   const currentVersion = match.state_version ?? 0;
   const nextVersion = currentVersion + 1;
 
-  // The first turn has no player action to schedule it. Register its deadline
-  // before claiming the match. We handle scheduling errors gracefully so
-  // matchmaking is never blocked if the scheduler experiences issues.
-  try {
-    await scheduleTurnTimeout({
-      matchId: match.match_id,
-      state: updatedEngineState,
-      stateVersion: nextVersion
-    });
-  } catch (scheduleError) {
-    console.warn("Could not schedule initial turn timeout on match start:", scheduleError);
-  }
-
   try {
     await dynamoDb.send(new UpdateCommand({
       TableName: gameStateTable,
@@ -478,6 +466,14 @@ async function claimMatch(
         ":expectedType": expectedType
       }
     }));
+    // The first turn has no player action to set its safety net, so it is set here, once the match is committed
+    // (a claim that lost the write above must not leave a schedule behind). A Scheduler problem never blocks
+    // matchmaking; it is already logged.
+    await scheduleTurnTimeout({
+      matchId: match.match_id,
+      state: updatedEngineState,
+      stateVersion: nextVersion
+    }).catch(() => undefined);
     return updatedEngineState;
   } catch (error: any) {
     if (error?.name === "ConditionalCheckFailedException") return undefined;

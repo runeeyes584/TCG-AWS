@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { clockOffset } from "../libs/serverClock";
 import type { GameController } from "../components/game/GameBoard";
 import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { createInitialGameState } from "@backend/game/core/engine";
@@ -54,6 +55,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   const [queueTime, setQueueTime] = useState(0);
   const [inGame, setInGame] = useState(false);
   const [gameState, setGameState] = useState<GameState>(initialState);
+  const [clockOffsetMs, setClockOffsetMs] = useState(0);
   const [roomCode, setRoomCode] = useState<string>();
   const [localPlayerId, setLocalPlayerId] = useState<PlayerId>();
   const [playerProfiles, setPlayerProfiles] = useState<RoomUpdate["players"]>({});
@@ -270,6 +272,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
           setPlayerProfiles((current) => mergePlayerProfiles(current, update.players!));
         }
         setGameState(update.state);
+        setClockOffsetMs(clockOffset(update.serverTime));
         if (update.log) setActionLog(update.log);
         if (update.state?.started) {
           setInGame(true);
@@ -283,6 +286,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         state?: GameState;
         opponentConnected?: boolean;
         players?: RoomUpdate["players"];
+        serverTime?: number;
       }) => {
         if (!message?.roomCode) {
           setError("The game server did not return a room code.");
@@ -291,7 +295,10 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         roomCodeRef.current = message.roomCode;
         setRoomCode(message.roomCode);
         setLocalPlayerId(message.playerId ?? "P1");
-        if (message.state) setGameState(message.state);
+        if (message.state) {
+          setGameState(message.state);
+          setClockOffsetMs(clockOffset(message.serverTime));
+        }
         if (message.players) {
           setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
         }
@@ -322,6 +329,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         playerId?: PlayerId;
         state?: GameState;
         players?: RoomUpdate["players"];
+        serverTime?: number;
       }) => {
       if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
       if (message?.roomCode) {
@@ -329,7 +337,10 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         setRoomCode(message.roomCode);
       }
       if (message?.playerId) setLocalPlayerId(message.playerId);
-      if (message?.state) setGameState(message.state);
+      if (message?.state) {
+        setGameState(message.state);
+        setClockOffsetMs(clockOffset(message.serverTime));
+      }
       if (message?.players) {
         setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
       }
@@ -497,6 +508,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       roomCode,
       localPlayerId,
       playerProfiles,
+      clockOffsetMs,
       opponentConnected,
       socketConnected,
       status,
@@ -510,7 +522,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       cancelMatchmaking,
       inGame
     }),
-    [actionLog, error, gameState, localPlayerId, playerProfiles, opponentConnected, roomCode, socketConnected, status, searching, queueTime, inGame, resumeRequired]
+    [actionLog, error, gameState, clockOffsetMs, localPlayerId, playerProfiles, opponentConnected, roomCode, socketConnected, status, searching, queueTime, inGame, resumeRequired]
   );
 
   return controller;

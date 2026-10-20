@@ -14,6 +14,7 @@ await build({
   entryPoints: ["Back-end/src/aws-lambdas/httpBackend.ts"],
   outfile: outputFile,
   bundle: true,
+  external: ["@aws-sdk/*"],
   platform: "node",
   target: "node24",
   format: "cjs",

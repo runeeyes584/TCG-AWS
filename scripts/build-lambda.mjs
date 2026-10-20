@@ -19,6 +19,7 @@ await build({
   entryPoints: [entryPoint],
   outfile: outputFile,
   bundle: true,
+  external: ["@aws-sdk/*"],
   platform: "node",
   target: "node24",
   format: "cjs",

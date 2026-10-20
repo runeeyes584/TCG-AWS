@@ -15,6 +15,7 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { authenticate } from "../auth/auth.middleware";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAction } from "../game/core/engine";
+import { cancelTurnTimeout } from "../aws-lambdas/turnTimeoutScheduler";
 import type { GameState, MatchEndReason, PlayerId } from "../game/types";
 import type { MatchHistory, UserProfile } from "../database/database.types";
 
@@ -261,7 +262,9 @@ router.post("/pending/forfeit", authenticate, async (req, res) => {
 
     await Promise.allSettled([
       removeConnectionMatch(match.player_1?.connection_id),
-      removeConnectionMatch(match.player_2?.connection_id)
+      removeConnectionMatch(match.player_2?.connection_id),
+      // The match is over: its turn schedule has nothing left to do.
+      cancelTurnTimeout(match.match_id)
     ]);
 
     const managementEndpoint = process.env.WS_MANAGEMENT_ENDPOINT;

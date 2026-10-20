@@ -2,6 +2,7 @@ import * as Phaser from "phaser";
 import { logicalSize } from "../config/arenaScale";
 import type { VisualEvent } from "@backend/game/types";
 import type { UnitView } from "../types/arenaTypes";
+import type { Jolt } from "../renders/CardRenderer";
 import { getEffectKind, getEffectTargetId, type SpellEffectKind } from "../../visualEffectSemantics";
 
 /** The shake of the big moments. */
@@ -13,6 +14,8 @@ export class CombatVFXSystem {
     private readonly scene: Phaser.Scene,
     private readonly resolveCard: (unitId: string) => UnitView | undefined,
     private readonly playCardEffect: (unitId: string, kind: SpellEffectKind) => void,
+    /** Shakes a card without taking over its position (it may be on its way back to the waiting row). */
+    private readonly joltCard: (unitId: string, jolt: Jolt) => void,
     /** Screen position of a player's Nexus altar (falls back to the old fixed spots). */
     private readonly getNexusAnchor?: (playerId: string) => { x: number; y: number } | undefined,
   ) {}
@@ -51,16 +54,7 @@ export class CombatVFXSystem {
     const isBuff = type === "BUFF";
     const sparkColor = isBuff ? 0x22c55e : 0xef4444;
 
-    const startX = card.x;
-    this.scene.tweens.add({
-      targets: card,
-      x: { from: startX - 2.5, to: startX + 2.5 },
-      duration: 45,
-      ease: "Sine.InOut",
-      yoyo: true,
-      repeat: 2,
-      onComplete: () => card.setX(startX),
-    });
+    this.joltCard(unitId, { axis: "x", from: -2.5, to: 2.5, duration: 45, ease: "Sine.InOut", yoyo: true, repeat: 2 });
 
     const ring = this.scene.add.circle(card.x, card.y, 16, sparkColor, 0.12)
       .setStrokeStyle(3, sparkColor, 0.95)
@@ -134,16 +128,7 @@ export class CombatVFXSystem {
     const x = card?.x ?? nexusAnchor?.x ?? logicalSize(this.scene.scale).width / 2;
     const y = card?.y ?? nexusAnchor?.y ?? (targetId === "P1" ? logicalSize(this.scene.scale).height * 0.12 : logicalSize(this.scene.scale).height * 0.88);
     this.playImpact(x, y, 0xff5d73, 0xef4444, isNexus ? 0.025 : 0.009);
-    if (card) {
-      this.scene.tweens.add({
-        targets: card,
-        x: { from: card.x - 5, to: card.x + 5 },
-        duration: 55,
-        yoyo: true,
-        repeat: 3,
-        onComplete: () => card.setPosition(x, y),
-      });
-    }
+    if (card) this.joltCard(targetId, { axis: "x", from: -5, to: 5, duration: 55, yoyo: true, repeat: 3 });
   }
 
   private nexusPlayerId(targetId: string) {

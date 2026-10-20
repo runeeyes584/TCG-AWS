@@ -10,7 +10,6 @@ import {
   PlayerId,
   SpellTarget,
   SpellTargetKind,
-  TargetDefinition,
   UnitInstance,
   VisualEvent
 } from "@backend/game/types";
@@ -18,7 +17,6 @@ import { useLocalGame } from "../../hooks/useLocalGame";
 import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { GameCard } from "./cards/game-card";
-import { CardBack } from "./cards/card-back";
 import { TurnRail } from "./zones/turn-rail";
 import { Hand } from "./zones/hand";
 import { NexusPanel } from "./hud/nexus/nexus-panel";
@@ -26,9 +24,14 @@ import { PassButton } from "./hud/passButton/pass-button";
 import { ActionPrompt } from "./hud/action-prompt";
 import { deriveTurnRail } from "./hud/infoBoard/turnRail";
 import { getUnitAttack, getUnitHealth, isChampionCard } from "@backend/game/entities/cards";
+import { OPPONENT_CLAIM_DELAY_MS, turnDeadline } from "@backend/game/rules/turnClock";
+import { serverNow } from "../../libs/serverClock";
+import { afkWarningKey } from "./hud/afkNoti/afkWarning";
 import { HoverProvider, useHover } from "../../contexts/HoverContext";
 import { CardInspector } from "./hud/inspector/card-inspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
+import { PendingAbilityTargetDialog } from "./PendingAbilityTargetDialog";
+import { PendingDiscardDialog } from "./PendingDiscardDialog";
 import { DeckPile, GraveyardPile } from "./hud/side-piles";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
@@ -66,6 +69,8 @@ export interface GameController {
   setDeveloperResources?: ReturnType<typeof useLocalGame>["setDeveloperResources"];
   runTrialCommand?: ReturnType<typeof useLocalGame>["runTrialCommand"];
   playerProfiles?: RoomUpdate["players"];
+  /** The server clock less the browser clock, so the turn timer reads the server's time. Zero when they agree. */
+  clockOffsetMs?: number;
 }
 
 interface GameBoardViewProps {
@@ -114,7 +119,7 @@ export function GameBoardView({
   trialMode = false,
   onExitTrial
 }: GameBoardViewProps) {
-  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles } = controller;
+  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles, clockOffsetMs } = controller;
   useBattleMusic(gameState);
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
@@ -140,12 +145,15 @@ export function GameBoardView({
   }>();
   const [timeRemainingMs, setTimeRemainingMs] = useState(0);
   const timeoutTurnKeyRef = useRef<string | undefined>(undefined);
+  const opponentTimeoutTurnKeyRef = useRef<string | undefined>(undefined);
+  const controllerRef = useRef(controller);
+  controllerRef.current = controller;
   const battleTableRef = useRef<HTMLElement>(null);
   const [afkNotice, setAfkNotice] = useState<{
     level: "warning" | "danger";
     message: string;
   }>();
-  const lastHandledAfkCountRef = useRef<number>(0);
+  const lastHandledAfkWarningRef = useRef<string | undefined>(undefined);
   const dismissAfkNotice = useCallback(() => {
     setAfkNotice(undefined);
   }, []);
@@ -283,6 +291,12 @@ export function GameBoardView({
     };
   }, [selectedSpell, selectedSpellTarget, viewingGraveyard]);
 
+  // The blocker the player has picked stays raised and ringed on the table until a lane takes it (or it is dropped).
+  useEffect(() => {
+    arenaEventBus.emit("UNIT_PICKED", { unitId: selectedBlockerId });
+  }, [selectedBlockerId]);
+  useEffect(() => () => arenaEventBus.emit("UNIT_PICKED", { unitId: undefined }), []);
+
   // A remote priority/phase transition invalidates any local targeting UI.
   // Do not leave a stale Phaser highlight active after the authoritative state
   // has moved on to BLOCK, DISCARD, or a finished match.
@@ -418,13 +432,13 @@ export function GameBoardView({
     const updateCountdown = () => {
       setTimeRemainingMs(Math.min(
         gameState.turnDuration,
-        Math.max(0, gameState.turnDuration - (Date.now() - gameState.turnStartTime))
+        Math.max(0, gameState.turnDuration - (serverNow(clockOffsetMs) - gameState.turnStartTime))
       ));
     };
     updateCountdown();
     const interval = window.setInterval(updateCountdown, 100);
     return () => window.clearInterval(interval);
-  }, [gameState.turnDuration, gameState.turnStartTime]);
+  }, [gameState.turnDuration, gameState.turnStartTime, clockOffsetMs]);
 
   useEffect(() => {
     // The local trial already owns its timer in useLocalGame. Online matches
@@ -444,7 +458,7 @@ export function GameBoardView({
     // timeRemainingMs starts at zero before the countdown effect's first tick;
     // the authoritative timestamp prevents an immediate false timeout when
     // the board mounts during the match-found/showcase handoff.
-    if (timeRemainingMs > 0 || Date.now() < deadline) return;
+    if (timeRemainingMs > 0 || serverNow(clockOffsetMs) < deadline) return;
 
     const turnKey = `${gameState.turnStartTime}:${gameState.turnDuration}:${gameState.priorityPlayerId}`;
     if (timeoutTurnKeyRef.current === turnKey) return;
@@ -457,7 +471,41 @@ export function GameBoardView({
       // represented by the same local state.
       timeoutTurnKeyRef.current = undefined;
     }
-  }, [controller, gameState, localPlayerId, timeRemainingMs, trialMode]);
+  }, [controller, gameState, localPlayerId, timeRemainingMs, trialMode, clockOffsetMs]);
+
+  useEffect(() => {
+    // Online matches only. When it is the opponent's turn and their clock has run out, they may have left, and
+    // then nobody else would report it: after a short delay (so that they are heard first if they are still
+    // here) this player reports it, once per turn. The server decides whether the turn really expired and who
+    // timed out; a refused report is silent.
+    if (
+      trialMode ||
+      !localPlayerId ||
+      !gameState.started ||
+      Boolean(gameState.winnerId) ||
+      gameState.priorityPlayerId === localPlayerId
+    ) {
+      return;
+    }
+
+    const turnKey = `${gameState.turnStartTime}:${gameState.turnDuration}:${gameState.priorityPlayerId}`;
+    const wait = turnDeadline(gameState) + OPPONENT_CLAIM_DELAY_MS - serverNow(clockOffsetMs);
+    const timer = window.setTimeout(() => {
+      if (opponentTimeoutTurnKeyRef.current === turnKey) return;
+      opponentTimeoutTurnKeyRef.current = turnKey;
+      controllerRef.current.dispatch({ type: "TIME_OUT", playerId: localPlayerId });
+    }, Math.max(0, wait));
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gameState.started,
+    gameState.winnerId,
+    gameState.priorityPlayerId,
+    gameState.turnStartTime,
+    gameState.turnDuration,
+    localPlayerId,
+    trialMode
+  ]);
 
   useEffect(() => {
     const warning = gameState.visualEvents.find(
@@ -468,10 +516,11 @@ export function GameBoardView({
       return;
     }
 
-    if (warning.afkCount === lastHandledAfkCountRef.current) {
+    const warningKey = afkWarningKey(gameState, warning.afkCount);
+    if (warningKey === lastHandledAfkWarningRef.current) {
       return;
     }
-    lastHandledAfkCountRef.current = warning.afkCount;
+    lastHandledAfkWarningRef.current = warningKey;
 
     setAfkNotice(
       warning.afkCount === 1
@@ -481,7 +530,7 @@ export function GameBoardView({
           message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
         }
     );
-  }, [gameState.visualEvents, localPlayerId]);
+  }, [gameState, localPlayerId]);
 
   function canPlay(playerId: PlayerId, card: CardInstance) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
@@ -1089,327 +1138,20 @@ export function GameBoardView({
     );
   }
 
-  function getPendingTargetUnits(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    unit: UnitInstance;
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const enemyPlayerId = opponentOf(sourcePlayerId);
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_UNIT"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ENEMY_UNIT"
-          ? [enemyPlayerId]
-          : targetDefinition.kind === "ANY_UNIT" || targetDefinition.kind === "ANY_TARGET"
-            ? ["P1", "P2"]
-            : [];
-
-    const chosenUnitIds = new Set(
-      Object.values(pendingChoice.chosenTargets)
-        .filter((target): target is Extract<SpellTarget, { type: "UNIT" }> => target.type === "UNIT")
-        .map((target) => `${target.playerId}:${target.unitId}`)
-    );
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].board
-        .filter((unit) => !chosenUnitIds.has(`${playerId}:${unit.instanceId}`))
-        .map((unit) => ({ playerId, unit }))
-    );
-  }
-
-  function getPendingTargetDeckCards(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    card: CardInstance;
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_DECK_CARD"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ANY_DECK_CARD"
-          ? ["P1", "P2"]
-          : [];
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].deck
-        .filter((card) => doesCardMatchTargetFilter(card, targetDefinition))
-        .map((card) => ({ playerId, card }))
-    );
-  }
-
-  function getPendingTargetHandCards(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    card: CardInstance;
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const enemyPlayerId = opponentOf(sourcePlayerId);
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_HAND_CARD"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ENEMY_HAND_CARD"
-          ? [enemyPlayerId]
-          : targetDefinition.kind === "ANY_HAND_CARD"
-            ? ["P1", "P2"]
-            : [];
-
-    const chosenCardIds = new Set(
-      Object.values(pendingChoice.chosenTargets)
-        .filter((target): target is Extract<SpellTarget, { type: "HAND_CARD" }> => target.type === "HAND_CARD")
-        .map((target) => `${target.playerId}:${target.cardInstanceId}`)
-    );
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].hand
-        .filter((card) => !chosenCardIds.has(`${playerId}:${card.instanceId}`))
-        .filter((card) => doesCardMatchTargetFilter(card, targetDefinition))
-        .map((card) => ({ playerId, card }))
-    );
-  }
-
-  function getPendingTargetGraveyardCards(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    entry: typeof gameState.players.P1.graveyard[number];
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_GRAVEYARD"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ENEMY_GRAVEYARD"
-          ? [opponentOf(sourcePlayerId)]
-          : targetDefinition.kind === "ANY_GRAVEYARD"
-            ? ["P1", "P2"]
-            : [];
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].graveyard.map((entry) => ({ playerId, entry }))
-    );
-  }
-
-  function doesCardMatchTargetFilter(
-    card: CardInstance,
-    targetDefinition: TargetDefinition
-  ): boolean {
-    if (!hasCard(card.cardId)) {
-      return false;
-    }
-    const filter = targetDefinition.filter;
-    if (!filter) {
-      return true;
-    }
-
-    const definition = cardDef(card);
-    return (
-      (!filter.archetype || definition.archetype === filter.archetype) &&
-      (!filter.cardType || definition.type === filter.cardType) &&
-      (!filter.cardTypes || filter.cardTypes.includes(definition.type)) &&
-      (!filter.spellSpeed || definition.spellSpeed === filter.spellSpeed) &&
-      (filter.maxCost === undefined || definition.cost <= filter.maxCost) &&
-      definition.level !== 2
-    );
-  }
-
-  function renderPendingChoice() {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return null;
-    }
-
-    if (!canControl(pendingChoice.playerId)) {
-      return (
-        <BoardDialog badge="Opponent" title="Choosing a target" titleId="pending-wait-title" maxWidth={420}>
-          Please wait for the action to resolve.
-        </BoardDialog>
-      );
-    }
-
-    const targetDefinition = pendingChoice.requiredTargets[0];
-    const sourceName = getCardDefinition(pendingChoice.sourceCardId).name;
-
-    // A unit that has already been declared can have its ability skipped; a spell that has not been cast can be dropped.
-    const onTable = gameState.players[pendingChoice.playerId].board.some(
-      (unit) => unit.instanceId === pendingChoice.sourceInstanceId
-    );
-
-    return (
-      <BoardDialog
-        badge={onTable ? "On play · choose a target" : "Choose a target"}
-        title={sourceName}
-        titleId="pending-choice-title"
-        maxWidth={760}
-        scrollBody
-        actions={
-          <Button chamfer size="md" tone="accent" onClick={cancelPendingChoice}>
-            {onTable ? "No activate buff/debuff" : "Cancel"}
-          </Button>
-        }
-      >
-        <p className="pending-choice-need">{describeAbilityTargetNeed(targetDefinition)}</p>
-
-        {targetDefinition ? (
-          <div className="pending-choice-grid">
-            {getPendingTargetUnits(targetDefinition).map(({ playerId, unit }) => (
-              <GameCard
-                key={unit.instanceId}
-                unit={unit}
-                compact
-                onClick={() =>
-                  submitPendingAbilityTarget(targetDefinition.id, {
-                    type: "UNIT",
-                    playerId,
-                    unitId: unit.instanceId
-                  })
-                }
-                visualEvents={[]}
-              />
-            ))}
-            {getPendingTargetDeckCards(targetDefinition).map(({ playerId, card }) => (
-              <div className="pending-choice-card" key={card.instanceId}>
-                <span className="pending-choice-zone-label">{playerId} Deck</span>
-                <GameCard
-                  card={card}
-                  compact
-                  onClick={() =>
-                    submitPendingAbilityTarget(targetDefinition.id, {
-                      type: "DECK_CARD",
-                      playerId,
-                      cardInstanceId: card.instanceId
-                    })
-                  }
-                  visualEvents={[]}
-                />
-              </div>
-            ))}
-            {getPendingTargetHandCards(targetDefinition).map(({ playerId, card }) => (
-              <div className="pending-choice-card" key={card.instanceId}>
-                <span className="pending-choice-zone-label">{playerId} Hand</span>
-                <GameCard
-                  card={card}
-                  compact
-                  onClick={() =>
-                    submitPendingAbilityTarget(targetDefinition.id, {
-                      type: "HAND_CARD",
-                      playerId,
-                      cardInstanceId: card.instanceId
-                    })
-                  }
-                  visualEvents={[]}
-                />
-              </div>
-            ))}
-            {getPendingTargetGraveyardCards(targetDefinition).map(({ playerId, entry }) => {
-              const canRevive = entry.type === "UNIT" || entry.type === "CHAMPION";
-              return (
-                <div
-                  className={`pending-choice-card ${canRevive ? "" : "is-disabled"}`}
-                  key={entry.id}
-                >
-                  <span className="pending-choice-zone-label">{playerId} Graveyard</span>
-                  <GameCard
-                    card={{
-                      instanceId: entry.instanceId,
-                      cardId: entry.cardId,
-                      ownerId: entry.ownerId
-                    }}
-                    compact
-                    onClick={
-                      canRevive
-                        ? () =>
-                          submitPendingAbilityTarget(targetDefinition.id, {
-                            type: "GRAVEYARD",
-                            playerId,
-                            cardInstanceId: entry.instanceId
-                          })
-                        : undefined
-                    }
-                    visualEvents={[]}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-
-        {targetDefinition &&
-          getPendingTargetUnits(targetDefinition).length === 0 &&
-          getPendingTargetDeckCards(targetDefinition).length === 0 &&
-          getPendingTargetHandCards(targetDefinition).length === 0 &&
-          getPendingTargetGraveyardCards(targetDefinition).some(({ entry }) =>
-            entry.type === "UNIT" || entry.type === "CHAMPION"
-          ) === false ? (
-          <div className="empty-message">No valid targets.</div>
-        ) : null}
-
-      </BoardDialog>
-    );
-  }
-
-
   function renderPendingDiscard() {
     const pendingDiscard = gameState.pendingDiscard;
     if (!pendingDiscard) {
       return null;
     }
 
-    const player = gameState.players[pendingDiscard.playerId];
-    const cardsToDiscard = Math.max(0, player.hand.length - pendingDiscard.downTo);
-    const hidden = shouldHideHand(pendingDiscard.playerId);
-
     return (
-      <div className="pending-choice-overlay hand-limit-overlay" data-ui-shield="" role="dialog" aria-modal="true">
-        <div className="pending-choice-panel hand-limit-panel">
-          <div className="pending-choice-header">
-            <strong>{getPlayerName(pendingDiscard.playerId)} Hand Limit</strong>
-            <span>
-              Attack token changed. Discard {cardsToDiscard} card
-              {cardsToDiscard === 1 ? "" : "s"} to keep {pendingDiscard.downTo}.
-            </span>
-          </div>
-
-          <div className="pending-choice-grid hand-limit-grid">
-            {hidden
-              ? player.hand.map((card, index) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <CardBack className="w-[112px] h-[168px]" />
-                </div>
-              ))
-              : player.hand.map((card) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <span className="pending-choice-zone-label">Discard</span>
-                  <GameCard
-                    card={card}
-                    compact
-                    onClick={() => playCard(pendingDiscard.playerId, card)}
-                    visualEvents={[]}
-                  />
-                </div>
-              ))}
-          </div>
-          {hidden ? (
-            <div className="empty-message">
-              Waiting for {getPlayerName(pendingDiscard.playerId)} to discard down to {pendingDiscard.downTo}.
-            </div>
-          ) : null}
-        </div>
-      </div>
+      <PendingDiscardDialog
+        playerName={getPlayerName(pendingDiscard.playerId)}
+        hand={gameState.players[pendingDiscard.playerId].hand}
+        downTo={pendingDiscard.downTo}
+        canControl={!shouldHideHand(pendingDiscard.playerId)}
+        onDiscard={(card) => playCard(pendingDiscard.playerId, card)}
+      />
     );
   }
 
@@ -2029,7 +1771,15 @@ export function GameBoardView({
         />
 
         {renderPendingDiscard()}
-        {renderPendingChoice()}
+        {gameState.pendingChoice ? (
+          <PendingAbilityTargetDialog
+            gameState={gameState}
+            pendingChoice={gameState.pendingChoice}
+            canControl={canControl(gameState.pendingChoice.playerId)}
+            onSelectTarget={submitPendingAbilityTarget}
+            onCancel={cancelPendingChoice}
+          />
+        ) : null}
         {renderSpellConfirmation()}
         {championConfirm ? (
           <BoardDialog
@@ -2153,44 +1903,6 @@ function describeSelectedCardPrompt(card: CardInstance, costTargets: SpellTarget
   }
 
   return describeNeededTarget(definition.effects?.[0]?.target as SpellTargetKind | undefined);
-}
-
-function describeAbilityTargetNeed(targetDefinition: TargetDefinition | undefined): string {
-  if (!targetDefinition) {
-    return "Resolve ability choice";
-  }
-
-  switch (targetDefinition.kind) {
-    case "ALLY_UNIT":
-      return "Choose an allied unit";
-    case "ENEMY_UNIT":
-      return "Choose an enemy unit";
-    case "ANY_UNIT":
-    case "ANY_TARGET":
-      return "Choose a unit";
-    case "ALLY_NEXUS":
-      return "Choose your nexus";
-    case "ENEMY_NEXUS":
-      return "Choose the enemy nexus";
-    case "SELF":
-      return "Choose self";
-    case "ALLY_DECK_CARD":
-      return "Choose a card from your deck";
-    case "ANY_DECK_CARD":
-      return "Choose a card from a deck";
-    case "ALLY_HAND_CARD":
-      return "Choose a card in your hand";
-    case "ENEMY_HAND_CARD":
-      return "Choose a card in enemy hand";
-    case "ANY_HAND_CARD":
-      return "Choose a hand card";
-    case "ALLY_GRAVEYARD":
-      return "Choose an allied unit or champion from the graveyard";
-    case "ENEMY_GRAVEYARD":
-      return "Choose an enemy unit or champion from the graveyard";
-    case "ANY_GRAVEYARD":
-      return "Choose a unit or champion from a graveyard";
-  }
 }
 
 function describeSpellTarget(

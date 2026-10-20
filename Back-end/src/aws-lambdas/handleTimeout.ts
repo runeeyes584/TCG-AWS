@@ -6,7 +6,9 @@ import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAction } from "../game/core/engine";
 import type { GameState, PlayerId } from "../game/types";
+import { holderMayReportTimeout, turnDeadline } from "../game/rules/turnClock";
 import {
+  cancelTurnTimeout,
   scheduleTurnTimeout,
   type TurnTimeoutMessage
 } from "./turnTimeoutScheduler";
@@ -72,23 +74,9 @@ export function normalizeTurnTimeoutMessage(event: any): TurnTimeoutMessage {
   return payload as TurnTimeoutMessage;
 }
 
-const CLOCK_SKEW_GRACE_MS = 2_000;
-
 export function duePlayer(match: MatchRecord, now = Date.now()): PlayerId | undefined {
-  const state = match.engine_state;
-  if (
-    match.status !== "IN_PROGRESS" ||
-    !state?.started ||
-    state.winnerId ||
-    !Number.isFinite(state.turnStartTime) ||
-    !Number.isFinite(state.turnDuration) ||
-    state.turnDuration <= 0
-  ) {
-    return undefined;
-  }
-
-  return (now + CLOCK_SKEW_GRACE_MS) >= (state.turnStartTime + state.turnDuration)
-    ? state.priorityPlayerId
+  return match.status === "IN_PROGRESS" && holderMayReportTimeout(match.engine_state, now)
+    ? match.engine_state.priorityPlayerId
     : undefined;
 }
 
@@ -103,7 +91,7 @@ export function timeoutMessageMatches(
     state.priorityPlayerId === message.expectedPlayerId &&
     state.turnStartTime === message.turnStartTime &&
     state.turnDuration === message.turnDuration &&
-    state.turnStartTime + state.turnDuration === message.deadline;
+    turnDeadline(state) === message.deadline;
 }
 
 function redactStateForPlayer(state: GameState, viewerId: PlayerId): GameState {
@@ -147,6 +135,7 @@ async function publishState(match: MatchRecord, state: GameState): Promise<void>
           roomCode: match.match_id,
           playerId,
           opponentConnected,
+          serverTime: Date.now(),
           state: redactStateForPlayer(state, playerId)
         }))
       }));
@@ -193,43 +182,41 @@ async function loadMatch(matchId: string): Promise<MatchRecord | undefined> {
   return response.Item as MatchRecord | undefined;
 }
 
+/**
+ * Points the match's one schedule at the turn that is really running (the stored state), whatever the schedule that
+ * has just fired said. It keeps the safety net of a match whose schedule came late, early, or out of order.
+ */
+async function rearm(match: MatchRecord): Promise<void> {
+  await scheduleTurnTimeout({
+    matchId: match.match_id,
+    state: match.engine_state,
+    stateVersion: match.state_version ?? 0
+  });
+}
+
 export async function processTimeout(message: TurnTimeoutMessage): Promise<void> {
   const match = await loadMatch(message.matchId);
 
-  // Missing/finished matches and stale turn tokens are successful no-ops.
-  if (!match || !timeoutMessageMatches(match, message)) return;
-
-  const originalState = match.engine_state;
-  const playerId = duePlayer(match);
-  if (!playerId) {
-    // Defensive clock-skew handling: put the same authoritative turn back with
-    // only its remaining delay instead of losing its timeout permanently.
-    await scheduleTurnTimeout({
-      matchId: match.match_id,
-      state: originalState,
-      stateVersion: match.state_version ?? 0
-    });
+  // A match that is gone or over needs no safety net: the schedule it left behind is cleaned up.
+  if (!match || match.status !== "IN_PROGRESS" || match.engine_state?.winnerId) {
+    await cancelTurnTimeout(message.matchId);
     return;
   }
 
+  // The turn has moved on since this schedule was set (it ran early, or two updates arrived out of order), or it
+  // has not run out after all (clock skew): the match is still being played, so it is set again for the real turn.
+  const playerId = timeoutMessageMatches(match, message) ? duePlayer(match) : undefined;
+  if (!playerId) {
+    await rearm(match);
+    return;
+  }
+
+  const originalState = match.engine_state;
   const nextState = applyAction(originalState, { type: "TIME_OUT", playerId });
   const finished = Boolean(nextState.winnerId);
   const endReason = nextState.endReason ?? "UNKNOWN_LEGACY";
   const currentVersion = match.state_version ?? 0;
   const nextVersion = currentVersion + 1;
-
-  // Start scheduling and the conditional state write concurrently.
-  // A losing CAS only creates a harmless stale timeout token.
-  const timeoutScheduling = scheduleTurnTimeout({
-    matchId: match.match_id,
-    state: nextState,
-    stateVersion: nextVersion
-  }).then(
-    () => undefined,
-    (error) => {
-      console.error("Could not schedule the next turn timeout:", error);
-    }
-  );
 
   try {
     await dynamoDb.send(new UpdateCommand({
@@ -266,25 +253,32 @@ export async function processTimeout(message: TurnTimeoutMessage): Promise<void>
       }
     }));
   } catch (error: any) {
-    if (error?.name === "ConditionalCheckFailedException") {
-      await timeoutScheduling;
-      return;
-    }
+    // Somebody else moved the turn on first (a player's report), and they set the schedule for what came next.
+    if (error?.name === "ConditionalCheckFailedException") return;
     throw error;
   }
 
   await publishState(match, nextState);
+  // The safety net of the next turn is set only now that this one is committed. It is already logged when it fails.
+  const turnTimeout = (finished
+    ? cancelTurnTimeout(match.match_id)
+    : scheduleTurnTimeout({
+        matchId: match.match_id,
+        state: nextState,
+        stateVersion: nextVersion
+      })
+  ).catch(() => undefined);
   const resultScheduling = nextState.winnerId
     ? enqueueMatchResult({
         match,
         winnerId: nextState.winnerId,
         reason: endReason
       })
-  : Promise.resolve(false);
+    : Promise.resolve(false);
 
   const results = await Promise.allSettled([
     writeTimeoutLog(match.match_id, playerId, nextState),
-    timeoutScheduling,
+    turnTimeout,
     resultScheduling
   ]);
   if (results[2].status === "rejected") {
