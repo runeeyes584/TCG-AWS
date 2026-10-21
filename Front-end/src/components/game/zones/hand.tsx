@@ -18,6 +18,8 @@ export interface HandProps {
   cards: CardInstance[];
   side: "player" | "opponent";
   hidden?: boolean;
+  /** Opponent hand only: cards react to the pointer (raise and preview). Off by default, on for the trial. */
+  opponentHover?: boolean;
   selectedCardId?: string;
   canPlay?: (card: CardInstance) => boolean;
   /** Why a card that cannot be played is blocked (for the line shown when it is clicked). */
@@ -48,6 +50,7 @@ export function Hand({
   cards,
   side,
   hidden = false,
+  opponentHover = false,
   selectedCardId,
   canPlay = () => false,
   blockReason,
@@ -63,10 +66,12 @@ export function Hand({
   const viewportWidth = useViewportWidth();
   const cardWidth = handCardWidth(side, viewportWidth);
   const isPlayer = side === "player";
+  const hoverEnabled = isPlayer || opponentHover;
 
   useEffect(() => () => window.clearTimeout(deniedTimer.current), []);
 
   const handlePreview = (card: CardInstance, index: number, previewing: boolean) => {
+    if (!hoverEnabled) return;
     const next = nextHovered(hoveredRef.current, index, previewing);
     if (next === hoveredRef.current) return;
     hoveredRef.current = next;
@@ -153,7 +158,7 @@ export function Hand({
 
                 return (
                   <motion.div
-                    className={`${styles.slot} hand-motion-card ${playable ? "is-playable" : ""}`}
+                    className={`${styles.slot} hand-motion-card ${playable ? "is-playable" : ""} ${hoverEnabled ? "" : styles.inert}`}
                     key={card.instanceId}
                     layout
                     initial={{ opacity: 0, scale: 0.82, y: base.y + (isPlayer ? 30 : -30) }}
@@ -172,6 +177,7 @@ export function Hand({
                       <CardBack
                         className="hand-card--motion"
                         variant="hand"
+                        square={!isPlayer}
                         onMouseEnter={() => handlePreview(card, index, true)}
                         onMouseLeave={() => handlePreview(card, index, false)}
                       />

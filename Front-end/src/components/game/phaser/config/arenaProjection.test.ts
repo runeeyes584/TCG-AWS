@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ARENA_COLUMNS, createArenaProjection, type ArenaRowKey } from "./arenaProjection";
+import { ARENA_COLUMNS, NEXUS_CORE_RADIUS, createArenaProjection, type ArenaRowKey } from "./arenaProjection";
 
 const ROWS: ArenaRowKey[] = ["meWaiting", "meActive", "oppActive", "oppWaiting"];
 const VIEWPORTS: Array<[number, number]> = [
@@ -111,7 +111,7 @@ describe("createArenaProjection", () => {
 
   it.each(VIEWPORTS)("stands the altars beside the table, not on it, at %ix%i", (width, height) => {
     const proj = createArenaProjection(width, height, 0.24, 1);
-    const ringHalfWidth = 150 * proj.nexus.scale;
+    const ringHalfWidth = NEXUS_CORE_RADIUS * proj.nexus.scale;
     const opponent = proj.nexus.opponent;
     const me = proj.nexus.me;
     // Table edges at the altar's own height (the edge slants, so test the nearer corner).
@@ -121,6 +121,19 @@ describe("createArenaProjection", () => {
     };
     expect(opponent.x - ringHalfWidth).toBeGreaterThan(proj.cx + edgeAt(opponent.y));
     expect(me.x + ringHalfWidth).toBeLessThan(proj.cx - edgeAt(me.y));
+  });
+
+  it.each(VIEWPORTS)("keeps both Nexus rings the same distance from the drawn slab edge at %ix%i", (width, height) => {
+    const proj = createArenaProjection(width, height, 0.24, 1);
+    const radius = NEXUS_CORE_RADIUS * proj.nexus.scale;
+    // The slab is drawn with straight edges between its corners.
+    const [nearLeft, , , farLeft] = proj.tableQuad;
+    const leftEdgeAt = (y: number) => nearLeft.x + ((nearLeft.y - y) / (nearLeft.y - farLeft.y)) * (farLeft.x - nearLeft.x);
+    const rightEdgeAt = (y: number) => 2 * proj.cx - leftEdgeAt(y);
+    const opponentGap = proj.nexus.opponent.x - radius - rightEdgeAt(proj.nexus.opponent.y);
+    const myGap = leftEdgeAt(proj.nexus.me.y) - (proj.nexus.me.x + radius);
+    expect(opponentGap).toBeGreaterThan(0);
+    expect(opponentGap).toBeCloseTo(myGap, 5);
   });
 
   it.each(VIEWPORTS)("reports the left table edge at the rift at %ix%i", (width, height) => {

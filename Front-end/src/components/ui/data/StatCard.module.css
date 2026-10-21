@@ -54,9 +54,9 @@
   align-items: center;
   gap: 8px;
   color: #86dced;
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 850;
+  font-family: var(--font-rajdhani);
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -64,17 +64,17 @@
 .profile .value {
   margin-top: 9px;
   color: #f0fbff;
-  font-family: var(--font-mono);
-  font-size: 25px;
-  font-weight: 900;
+  font-family: var(--font-rajdhani);
+  font-size: 32px;
+  font-weight: 700;
 }
 
 .profile .sub {
   margin-top: 4px;
   color: #567385;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
+  font-family: var(--font-rajdhani);
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -83,7 +83,7 @@
   top: 11px;
   right: 11px;
   color: rgba(88, 230, 255, 0.28);
-  font: 650 7px var(--font-mono);
+  font: 600 10px var(--font-rajdhani);
   letter-spacing: 0.12em;
 }
 
