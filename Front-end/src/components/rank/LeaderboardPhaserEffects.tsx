@@ -57,13 +57,10 @@ export function LeaderboardPhaserEffects() {
           const base = this.add.ellipse(0, 150, 190, 26, color, 0.18)
             .setStrokeStyle(2, color, 0.48)
             .setBlendMode(PhaserRuntime.BlendModes.ADD);
-          const halo = this.add.circle(0, -76, index === 1 ? 58 : 46, color, 0.025)
-            .setStrokeStyle(index === 1 ? 3 : 2, color, 0.65)
-            .setBlendMode(PhaserRuntime.BlendModes.ADD);
-          const innerHalo = this.add.circle(0, -76, index === 1 ? 39 : 31, color, 0)
-            .setStrokeStyle(1, 0xffffff, 0.38);
 
-          container.add([beam, base, halo, innerHalo]);
+          // The champion card has no glowing base ring under it.
+          if (index === 1) base.setVisible(false);
+          container.add([beam, base]);
           for (let particleIndex = 0; particleIndex < (index === 1 ? 16 : 10); particleIndex += 1) {
             const shard = this.add.rectangle(
               PhaserRuntime.Math.Between(-75, 75),
@@ -90,16 +87,6 @@ export function LeaderboardPhaserEffects() {
           }
 
           if (!this.reducedMotion) {
-            this.tweens.add({
-              targets: [halo, innerHalo],
-              scale: index === 1 ? 1.13 : 1.08,
-              alpha: 0.25,
-              duration: index === 1 ? 1400 : 1900,
-              delay: index * 180,
-              repeat: -1,
-              yoyo: true,
-              ease: "Sine.inOut"
-            });
             this.tweens.add({
               targets: base,
               scaleX: 1.1,

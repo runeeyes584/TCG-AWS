@@ -1,0 +1,173 @@
+/*
+ * Dropdown: same square, cyan-bordered language as ui/Button (Rajdhani, uppercase, 0.2s ease).
+ * Hovering a row lights it up: cyan wash, white text, left accent bar and a soft glow.
+ */
+.root {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.trigger {
+  display: flex;
+  width: 100%;
+  height: var(--dd-h, 36px);
+  min-height: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 12px;
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 0;
+  background: rgba(4, 12, 28, 0.78);
+  color: #dcefff;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trigger:hover:not(:disabled),
+.trigger.open {
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.25);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid #00f0ff;
+  outline-offset: 2px;
+}
+
+.trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: #8deaff;
+}
+
+.value {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: #8deaff;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.open .chevron {
+  transform: rotate(180deg);
+}
+
+.panel {
+  position: fixed;
+  z-index: 3000;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  border-radius: 0;
+  background: rgba(3, 10, 24, 0.98);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 22px rgba(0, 240, 255, 0.14);
+  list-style: none;
+  animation: dropdown-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 240, 255, 0.4) transparent;
+}
+
+.panel.up {
+  animation-name: dropdown-in-up;
+}
+
+.option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 12px;
+  color: #a9c5e8;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  /* Short on purpose: the row must light up the moment the pointer arrives. */
+  transition: background 0.08s linear, color 0.08s linear, box-shadow 0.08s linear;
+}
+
+.optionLabel {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * Same look as the trigger when hovered/open: a flat teal fill, a full cyan border and a
+ * soft outer glow. Pointer hover uses CSS :hover (instant); the keyboard highlight uses
+ * .active. The border is an inset shadow so the row does not change size.
+ */
+.option:hover:not(.optionDisabled),
+.option.active:not(.optionDisabled) {
+  background: rgba(0, 240, 255, 0.12);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #00f0ff, 0 0 14px rgba(0, 240, 255, 0.25);
+}
+
+.option:active:not(.optionDisabled) {
+  background: rgba(0, 240, 255, 0.2);
+}
+
+.option.selected {
+  color: #d7ff61;
+}
+
+.option.selected:hover:not(.optionDisabled),
+.option.selected.active:not(.optionDisabled) {
+  color: #f3ffc2;
+}
+
+.check {
+  flex: 0 0 auto;
+  color: #d7ff61;
+}
+
+.optionDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dropdown-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+  .trigger,
+  .option,
+  .chevron { transition: none; }
+}

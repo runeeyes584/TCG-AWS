@@ -20,6 +20,7 @@ import express from "express";
 import authRoutes from "../auth/auth.routes";
 import mathcesRoutes from "../http/matches.routes"
 import userRoute from "../http/user.route"
+import leaderboardRoutes from "../http/leaderboard.routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { verifyToken } from "@backend/auth/verifyToken";
@@ -93,6 +94,7 @@ expressApp.use(cookieParser());
 expressApp.use("/auth", authRoutes);
 expressApp.use("/matches", mathcesRoutes);
 expressApp.use("/user", userRoute);
+expressApp.use("/leaderboard", leaderboardRoutes);
 
 expressApp.post("/decks", authenticate, async (req, res) => {
   const userId = (req as { user?: { sub?: unknown } }).user?.sub;

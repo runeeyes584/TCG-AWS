@@ -4302,14 +4302,6 @@ button.hand-card--shake-1 {
 .leaderboard-podium-card__elo { margin-top: 3px; color: #8ee9ff; font: 800 10px var(--font-rajdhani); }
 .leaderboard-podium-card--1 .leaderboard-podium-card__elo { color: #ffe99a; }
 .leaderboard-podium-card__record { display: flex; gap: 8px; margin-top: 7px; color: #8ba3c1; font: 700 11px var(--font-rajdhani); }
-.leaderboard-podium-card__champion {
-  margin-top: 7px;
-  color: #f4d36b;
-  font: 900 10px var(--font-rajdhani);
-  letter-spacing: 0.15em;
-  text-shadow: 0 0 9px rgba(244, 211, 107, 0.6);
-}
-
 .leaderboard-list {
   min-height: 0;
   padding-right: 5px;
@@ -4872,6 +4864,241 @@ button.hand-card--shake-1 {
 .rank-page-board .leaderboard-podium-card--1::before { color: #f4d36b; }
 .rank-page-board .leaderboard-podium-card--2::before { color: #b7dfff; animation-delay: 0.2s; }
 .rank-page-board .leaderboard-podium-card--3::before { color: #d99766; animation-delay: 0.4s; }
+
+/* ===== TOP 3 PODIUM: metal frames, sheen, ringed avatars, champion sparks ===== */
+.rank-page-board .leaderboard-podium { min-height: 256px; }
+.rank-page-board .leaderboard-podium-card {
+  --metal-a: #dcefff;
+  --metal-b: #8fb8de;
+  --metal-glow: 169, 215, 255;
+  min-height: 178px;
+  padding-top: 14px;
+}
+.rank-page-board .leaderboard-podium-card--1 {
+  --metal-a: #fff3b8;
+  --metal-b: #e0a93a;
+  --metal-glow: 244, 211, 107;
+  min-height: 234px;
+  align-content: center;
+  padding-top: 18px;
+}
+.rank-page-board .leaderboard-podium-card--1 .leaderboard-podium-card__avatar { width: 80px; height: 80px; }
+.rank-page-board .leaderboard-podium-card--1 .leaderboard-podium-card__name { margin-top: 12px; font-size: 18px; }
+.rank-page-board .leaderboard-podium-card--1 .leaderboard-podium-card__record { margin-top: 10px; }
+.rank-page-board .leaderboard-podium-card--3 {
+  --metal-a: #f6c79d;
+  --metal-b: #b8693a;
+  --metal-glow: 217, 151, 102;
+}
+
+/* Metallic frame: a gradient border drawn over the card edge. */
+.rank-page-board .leaderboard-podium-card {
+  border-color: transparent;
+  background:
+    linear-gradient(180deg, rgba(var(--metal-glow), 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(21, 36, 66, 0.96), rgba(6, 12, 28, 0.98)) padding-box,
+    linear-gradient(145deg, var(--metal-a), var(--metal-b) 45%, var(--metal-a) 70%, var(--metal-b)) border-box;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 0 40px rgba(var(--metal-glow), 0.1),
+    0 0 26px rgba(var(--metal-glow), 0.22);
+}
+.rank-page-board .leaderboard-podium-card--1 {
+  background:
+    radial-gradient(circle at 50% 14%, rgba(255, 233, 150, 0.3), transparent 42%),
+    linear-gradient(180deg, rgba(88, 66, 18, 0.96), rgba(18, 18, 36, 0.98)) padding-box,
+    linear-gradient(145deg, var(--metal-a), var(--metal-b) 45%, var(--metal-a) 70%, var(--metal-b)) border-box;
+  box-shadow:
+    inset 0 1px rgba(255, 250, 210, 0.45),
+    inset 0 0 50px rgba(244, 211, 107, 0.16),
+    0 0 40px rgba(244, 211, 107, 0.38);
+}
+.rank-page-board .leaderboard-podium-card--2 {
+  background:
+    radial-gradient(circle at 50% 14%, rgba(183, 223, 255, 0.2), transparent 42%),
+    linear-gradient(180deg, rgba(30, 52, 86, 0.96), rgba(8, 15, 32, 0.98)) padding-box,
+    linear-gradient(145deg, var(--metal-a), var(--metal-b) 45%, var(--metal-a) 70%, var(--metal-b)) border-box;
+}
+.rank-page-board .leaderboard-podium-card--3 {
+  background:
+    radial-gradient(circle at 50% 14%, rgba(217, 151, 102, 0.22), transparent 42%),
+    linear-gradient(180deg, rgba(70, 40, 30, 0.96), rgba(14, 14, 30, 0.98)) padding-box,
+    linear-gradient(145deg, var(--metal-a), var(--metal-b) 45%, var(--metal-a) 70%, var(--metal-b)) border-box;
+}
+.rank-page-board .leaderboard-podium-card::after {
+  inset: auto 6% 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--metal-a), transparent);
+  box-shadow: 0 0 16px rgba(var(--metal-glow), 0.9);
+}
+
+/* No glowing line along the bottom edge of the champion card. */
+.rank-page-board .leaderboard-podium-card--1::after { display: none; }
+
+/* Diagonal sheen that crosses the card every few seconds. */
+.leaderboard-podium-card__shine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  z-index: 0;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: skewX(-18deg);
+  animation: podiumSheen 5.5s ease-in-out infinite;
+}
+.leaderboard-podium-card--2 .leaderboard-podium-card__shine { animation-delay: 1.6s; }
+.leaderboard-podium-card--3 .leaderboard-podium-card__shine { animation-delay: 3.2s; }
+.leaderboard-podium-card > * { position: relative; z-index: 1; }
+.leaderboard-podium-card > .leaderboard-podium-card__shine,
+.leaderboard-podium-card > .leaderboard-podium-card__trim,
+.leaderboard-podium-card > .leaderboard-podium-card__sparks,
+.leaderboard-podium-card > .leaderboard-podium-card__rank { position: absolute; }
+
+/* Winner badges (components/rank/PodiumBadge). */
+.rank-page-board .leaderboard-podium-card__rank { top: 14px; left: 12px; }
+.podium-badge {
+  display: block;
+  width: 48px;
+  height: 56px;
+  overflow: visible;
+  will-change: transform, filter;
+  filter: drop-shadow(0 0 7px rgba(var(--metal-glow), 0.75)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+}
+.leaderboard-podium-card--1 .podium-badge {
+  width: 58px;
+  height: 68px;
+}
+/* All three badges bob and breathe a glow in their own metal colour; the delays stagger them. */
+.podium-badge {
+  animation: podiumCrownFloat 2.4s ease-in-out infinite, podiumBadgePulse 2.6s ease-in-out infinite;
+}
+.leaderboard-podium-card--2 .podium-badge { animation-delay: 0.4s, 0.4s; }
+.leaderboard-podium-card--3 .podium-badge { animation-delay: 0.8s, 0.8s; }
+.podium-badge__shine { animation: podiumBadgeShine 4.2s ease-in-out infinite; }
+.leaderboard-podium-card--2 .podium-badge__shine { animation-delay: 1.4s; }
+.leaderboard-podium-card--3 .podium-badge__shine { animation-delay: 2.8s; }
+@keyframes podiumBadgeShine {
+  0%, 55% { transform: translateX(0); }
+  100% { transform: translateX(60px); }
+}
+@keyframes podiumBadgePulse {
+  0%, 100% { filter: drop-shadow(0 0 7px rgba(var(--metal-glow), 0.7)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5)); }
+  50% { filter: drop-shadow(0 0 14px rgba(var(--metal-glow), 1)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5)); }
+}
+
+/* Metal trims on the top corners, echoing the cut corners of the card. */
+.leaderboard-podium-card__trim {
+  top: 0;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  pointer-events: none;
+  border-top: 2px solid var(--metal-a);
+  filter: drop-shadow(0 0 5px rgba(var(--metal-glow), 0.8));
+}
+.leaderboard-podium-card__trim--left { left: 0; border-left: 2px solid var(--metal-a); }
+.leaderboard-podium-card__trim--right { right: 0; border-right: 2px solid var(--metal-a); }
+
+.leaderboard-podium-card__title {
+  margin-top: 2px;
+  color: var(--metal-a);
+  font: 800 10px var(--font-rajdhani);
+  letter-spacing: 0.24em;
+  text-shadow: 0 0 10px rgba(var(--metal-glow), 0.7);
+  text-transform: uppercase;
+}
+
+/* Avatar with a slowly turning conic ring. */
+.leaderboard-podium-card__avatar-wrap {
+  position: relative;
+  display: grid;
+  margin-top: 6px;
+  place-items: center;
+}
+.leaderboard-podium-card__ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--metal-a), transparent 25%, var(--metal-b) 50%, transparent 75%, var(--metal-a));
+  filter: drop-shadow(0 0 8px rgba(var(--metal-glow), 0.9));
+  animation: podiumRingSpin 6s linear infinite;
+  -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
+  mask: radial-gradient(circle, transparent 62%, #000 64%);
+}
+.rank-page-board .leaderboard-podium-card__avatar {
+  margin-top: 0;
+  border-color: var(--metal-a);
+  box-shadow: 0 0 22px rgba(var(--metal-glow), 0.55);
+}
+.leaderboard-podium-card--1 .leaderboard-podium-card__avatar-wrap { margin-top: 8px; }
+.leaderboard-podium-card--1 .leaderboard-podium-card__ring { inset: -7px; animation-duration: 4s; }
+
+.rank-page-board .leaderboard-podium-card__name {
+  margin-top: 9px;
+  background: linear-gradient(180deg, #fff, var(--metal-a));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 16px;
+}
+.rank-page-board .leaderboard-podium-card__elo {
+  margin-top: 3px;
+  color: var(--metal-a);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 12px rgba(var(--metal-glow), 0.7);
+}
+.leaderboard-podium-card--1 .leaderboard-podium-card__elo { font-size: 15px; }
+.rank-page-board .leaderboard-podium-card__rank strong {
+  font-size: 15px;
+  text-shadow: 0 0 10px rgba(var(--metal-glow), 0.8);
+}
+/* Golden sparks rising behind the champion. */
+.leaderboard-podium-card__sparks { inset: 0; z-index: 0; pointer-events: none; }
+.leaderboard-podium-card__sparks i {
+  position: absolute;
+  bottom: 8%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffe99a;
+  box-shadow: 0 0 8px #f4d36b;
+  opacity: 0;
+  animation: podiumSpark 3.4s ease-in infinite;
+}
+.leaderboard-podium-card__sparks i:nth-child(1) { left: 12%; animation-delay: 0s; }
+.leaderboard-podium-card__sparks i:nth-child(2) { left: 26%; animation-delay: 0.7s; }
+.leaderboard-podium-card__sparks i:nth-child(3) { left: 40%; animation-delay: 1.5s; }
+.leaderboard-podium-card__sparks i:nth-child(4) { left: 54%; animation-delay: 0.3s; }
+.leaderboard-podium-card__sparks i:nth-child(5) { left: 68%; animation-delay: 1.9s; }
+.leaderboard-podium-card__sparks i:nth-child(6) { left: 82%; animation-delay: 1.1s; }
+.leaderboard-podium-card__sparks i:nth-child(7) { left: 90%; animation-delay: 2.5s; }
+
+@keyframes podiumSheen {
+  0%, 55% { left: -60%; }
+  100% { left: 140%; }
+}
+@keyframes podiumRingSpin { to { transform: rotate(360deg); } }
+@keyframes podiumCrownFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes podiumSpark {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-120px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-podium-card__shine,
+  .leaderboard-podium-card__ring,
+  .leaderboard-podium-card__sparks i,
+  .leaderboard-podium-card--1 .leaderboard-podium-card__rank svg { animation: none; }
+  .podium-badge,
+  .podium-badge__shine { animation: none; }
+  .leaderboard-podium-card__sparks { display: none; }
+}
 
 .rank-page-footer {
   position: absolute;
@@ -5528,28 +5755,6 @@ button.hand-card--shake-1 {
   border-bottom: 1px solid rgba(112, 205, 255, 0.14);
 }
 
-.deck-library-filters label {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 5px;
-  color: #8deaff;
-}
-
-.deck-library-filters select {
-  width: 100%;
-  min-width: 0;
-  height: 30px;
-  border: 0;
-  outline: 0;
-  background: #071731;
-  color: #cad9ea;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
 .deck-library-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -6042,8 +6247,7 @@ button.hand-card--shake-1 {
   left: 0;
   right: 0;
   height: 2px;
-  /* Solid cyan, the same family as the card border and the corner brackets. */
-  background: rgba(0, 240, 255, 0.55);
+  background: linear-gradient(90deg, #00f0ff, #a855f7 45%, #ff0055 85%, #ffd700);
 }
 
 /* ===== MODULE 1: GLADIATOR DOSSIER CARD ===== */
@@ -6392,26 +6596,6 @@ button.hand-card--shake-1 {
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-
-.loadout-select-wrapper select {
-  width: 100%;
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid rgba(0, 240, 255, 0.35);
-  background: #06152e;
-  color: #edf7ff;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  outline: 0;
-  text-transform: uppercase;
-  transition: border-color 0.2s;
-}
-
-.loadout-select-wrapper select:focus {
-  border-color: #00f0ff;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
 }
 
 .loadout-meta-row {
@@ -7601,13 +7785,14 @@ button.hand-card--shake-1 {
 }
 
 .gallery-result-count strong {
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 15px;
 }
 
 .gallery-result-count span {
   color: #a8bdd5;
-  font-size: 9px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -7680,7 +7865,7 @@ button.hand-card--shake-1 {
 
 .gallery-card-meta strong {
   color: #f4f9ff;
-  font-family: var(--font-serif);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 12px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -7688,7 +7873,8 @@ button.hand-card--shake-1 {
 
 .gallery-card-meta small {
   color: #8da7c8;
-  font-size: 8px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -7771,7 +7957,8 @@ button.hand-card--shake-1 {
 
 .gallery-catalog-title small {
   color: #90a9c9;
-  font-size: 8px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -7796,12 +7983,14 @@ button.hand-card--shake-1 {
   border: 2px solid #1c82ff;
   border-radius: 999px;
   color: #73b7ff;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.04em;
 }
 
 .gallery-format-chip strong {
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 18px;
   font-weight: 800;
 }
@@ -7845,6 +8034,7 @@ button.hand-card--shake-1 {
   background: rgba(18, 56, 78, 0.82);
   color: #c6d6e4;
   clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 3px), 0 calc(100% - 3px), 0 18px);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 13px;
   letter-spacing: 0.04em;
 }
@@ -7877,7 +8067,7 @@ button.hand-card--shake-1 {
 
 .gallery-catalog-tabs button small {
   color: inherit;
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 12px;
   font-weight: 900;
 }
@@ -7909,13 +8099,14 @@ button.hand-card--shake-1 {
 }
 
 .gallery-index-total strong {
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 16px;
 }
 
 .gallery-index-total span {
   color: #9db2ce;
-  font-size: 8px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -7965,7 +8156,7 @@ button.hand-card--shake-1 {
   place-items: center;
   padding: 0 6px;
   color: #fff;
-  font: 900 12px/1 var(--font-mono);
+  font: 900 12px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
   letter-spacing: 0.04em;
   transform: skewX(-15deg);
 }
@@ -8029,7 +8220,8 @@ button.hand-card--shake-1 {
 
   .gallery-format-chip span {
     width: 72px;
-    font-size: 10px;
+    font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+    font-size: 12px;
   }
 
   .gallery-format-chip strong {
@@ -8076,7 +8268,7 @@ button.hand-card--shake-1 {
 }
 
 .gallery-shell--catalog .gallery-toolbar {
-  grid-template-columns: minmax(280px, 1fr) minmax(160px, 220px) minmax(132px, 170px) auto auto;
+  grid-template-columns: minmax(240px, 1fr) auto minmax(190px, 230px) minmax(150px, 190px) auto;
   gap: 10px;
 }
 
@@ -8086,30 +8278,12 @@ button.hand-card--shake-1 {
   min-width: 0;
 }
 
-.gallery-inline-filter span {
-  color: #83a3c9;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-
-.gallery-inline-filter select {
-  width: 100%;
-  min-height: 36px;
-  border: 1px solid rgba(90, 169, 221, 0.42);
-  background: #071733;
-  color: #e8f4ff;
-  font: 900 10px/1 var(--font-sans);
-  outline: 0;
-  padding: 0 9px;
-  text-transform: uppercase;
-}
-
 .gallery-shell--catalog .gallery-result-count,
 .gallery-shell--catalog .gallery-index-total {
-  min-height: 38px;
-  align-self: end;
+  height: 44px; /* exactly the search field's height; content height must not stretch the box */
+  min-height: 44px;
+  align-self: center;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -8180,7 +8354,8 @@ button.hand-card--shake-1 {
   height: 100%;
   place-items: center;
   color: #7187a6;
-  font-size: 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -8194,7 +8369,8 @@ button.hand-card--shake-1 {
 
 .gallery-preview-copy small {
   color: #8deaff;
-  font-size: 8px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -8202,7 +8378,7 @@ button.hand-card--shake-1 {
 
 .gallery-preview-copy strong {
   color: #f6fbff;
-  font-family: var(--font-serif);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: clamp(22px, 2.1vw, 34px);
   line-height: 0.98;
   text-transform: uppercase;
@@ -8211,6 +8387,7 @@ button.hand-card--shake-1 {
 .gallery-preview-copy p {
   margin: 0;
   color: #b1c3dc;
+  font-family: var(--font-sans);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -8234,7 +8411,7 @@ button.hand-card--shake-1 {
 .gallery-preview-stats b {
   overflow: hidden;
   color: #d7ff61;
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 17px;
   line-height: 1;
   text-overflow: ellipsis;
@@ -8243,7 +8420,8 @@ button.hand-card--shake-1 {
 
 .gallery-preview-stats small {
   color: #829cbd;
-  font-size: 7px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 10px;
 }
 
 .gallery-shell--catalog .gallery-card-grid {
