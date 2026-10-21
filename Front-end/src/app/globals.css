@@ -5015,7 +5015,8 @@ button.hand-card--shake-1 {
 
 .deck-builder-title small {
   color: #83a4ca;
-  font-size: 7px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -5035,7 +5036,8 @@ button.hand-card--shake-1 {
   padding: 6px 10px;
   border: 2px solid #2d8eff;
   color: #76baff;
-  font-size: 10px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -5043,7 +5045,7 @@ button.hand-card--shake-1 {
 .deck-builder-format strong {
   min-width: 55px;
   color: #d8ff57;
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 16px;
 }
 
@@ -5111,7 +5113,8 @@ button.hand-card--shake-1 {
   height: 100%;
   place-items: center;
   color: #7187a6;
-  font-size: 9px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -5128,7 +5131,7 @@ button.hand-card--shake-1 {
   border-radius: 50%;
   background: rgba(4, 35, 52, 0.94);
   color: #89efff;
-  font: 900 16px/1 var(--font-mono);
+  font: 900 16px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
   box-shadow: 0 0 15px rgba(31, 213, 255, 0.52);
 }
 
@@ -5139,7 +5142,8 @@ button.hand-card--shake-1 {
 
 .deck-inspector-copy small {
   color: #8deaff;
-  font-size: 8px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -5160,7 +5164,8 @@ button.hand-card--shake-1 {
 .deck-inspector-copy p {
   margin: 0;
   color: #b7c8dc;
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -5182,7 +5187,7 @@ button.hand-card--shake-1 {
 .deck-inspector-stats b {
   overflow: hidden;
   color: #d9ff5c;
-  font: 900 16px/1 var(--font-mono);
+  font: 900 16px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -5190,7 +5195,8 @@ button.hand-card--shake-1 {
 
 .deck-inspector-stats small {
   color: #7994b5;
-  font-size: 7px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -5228,7 +5234,7 @@ button.hand-card--shake-1 {
   outline: 0;
   background: transparent;
   color: #f4f8ff;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 800;
   letter-spacing: 0;
@@ -5245,13 +5251,14 @@ button.hand-card--shake-1 {
 }
 
 .deck-main-meta > strong {
-  font-size: 11px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 13px;
   text-transform: uppercase;
 }
 
 .deck-main-meta > span {
   color: #d9ff5c;
-  font: 900 14px/1 var(--font-mono);
+  font: 900 14px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
 .deck-type-tally {
@@ -5265,7 +5272,7 @@ button.hand-card--shake-1 {
   align-items: center;
   gap: 4px;
   color: #8da9ca;
-  font: 800 9px/1 var(--font-mono);
+  font: 800 12px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
 .deck-slot-grid,
@@ -5293,7 +5300,7 @@ button.hand-card--shake-1 {
   border: 1px dashed rgba(111, 191, 236, 0.17);
   background: rgba(4, 14, 29, 0.34);
   color: rgba(116, 157, 194, 0.24);
-  font: 900 11px/1 var(--font-mono);
+  font: 900 13px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
 .deck-card-tile {
@@ -5345,14 +5352,14 @@ button.hand-card--shake-1 {
   place-items: center;
   background: rgba(2, 27, 43, 0.8);
   color: #63e9ff;
-  font: 900 10px/1 var(--font-mono);
+  font: 900 10px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
 .deck-card-tile__head strong {
   overflow: hidden;
   padding: 0 5px;
-  font-family: var(--font-serif);
-  font-size: 7px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 9px;
   letter-spacing: 0;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -5385,13 +5392,13 @@ button.hand-card--shake-1 {
 
 .deck-card-tile__foot small {
   color: #8aa3c0;
-  font: 900 7px/1 var(--font-mono);
+  font: 900 9px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
 .deck-card-tile__foot b {
   overflow: hidden;
   color: #d9ff63;
-  font: 900 8px/1 var(--font-mono);
+  font: 900 10px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -5408,7 +5415,7 @@ button.hand-card--shake-1 {
   border: 1px solid #d9ff63;
   background: rgba(63, 92, 13, 0.95);
   color: #efffc1;
-  font: 900 8px/1 var(--font-mono);
+  font: 900 10px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
 .deck-card-tile.is-included:not(:hover) {
@@ -5444,7 +5451,8 @@ button.hand-card--shake-1 {
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  font-size: 9px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5475,12 +5483,13 @@ button.hand-card--shake-1 {
 
 .deck-library-heading strong {
   flex: 1;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   font-size: 13px;
   text-transform: uppercase;
 }
 
 .deck-library-heading span {
-  font: 900 12px/1 var(--font-mono);
+  font: 900 12px/1 var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
 .deck-library-search {
@@ -5501,7 +5510,8 @@ button.hand-card--shake-1 {
   outline: 0;
   background: transparent;
   color: #f3f8ff;
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -5534,7 +5544,8 @@ button.hand-card--shake-1 {
   outline: 0;
   background: #071731;
   color: #cad9ea;
-  font-size: 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -5561,7 +5572,8 @@ button.hand-card--shake-1 {
 
 .deck-library-tabs button span {
   overflow: hidden;
-  font-size: 7px;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 10px;
   font-weight: 900;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -5669,11 +5681,13 @@ button.hand-card--shake-1 {
   }
 
   .deck-inspector-copy h1 {
+    font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
     font-size: 19px;
   }
 
   .deck-inspector-copy p {
-    font-size: 9px;
+    font-family: var(--font-sans);
+    font-size: 12px;
   }
 
   .deck-inspector-stats {
@@ -6028,7 +6042,8 @@ button.hand-card--shake-1 {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #00f0ff, #a855f7 45%, #ff0055 85%, #ffd700);
+  /* Solid cyan, the same family as the card border and the corner brackets. */
+  background: rgba(0, 240, 255, 0.55);
 }
 
 /* ===== MODULE 1: GLADIATOR DOSSIER CARD ===== */
@@ -6722,10 +6737,10 @@ button.hand-card--shake-1 {
 }
 
 .cta-text-wrap strong {
-  font-family: var(--font-serif);
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 0.18em;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   color: #e6fbff;
   text-shadow: 0 0 10px rgba(0, 200, 255, 0.45);
   transition: all 0.45s ease;
@@ -6739,8 +6754,9 @@ button.hand-card--shake-1 {
 
 .cta-text-wrap small {
   color: #9bdff5;
-  font-size: 7.5px;
-  font-weight: 800;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.2em;
   margin-top: 2px;
   transition: color 0.45s ease;
