@@ -112,6 +112,8 @@ export interface MatchHistory {
   rank_point_change: number;
   elo_change?: number;
   duration?: number;
+  /** Name of the deck the player used. Absent for matches recorded before decks were stored. */
+  deck_name?: string;
 }
 
 function parseLeaderboardPlayer(value: unknown): LeaderboardPlayer | null {

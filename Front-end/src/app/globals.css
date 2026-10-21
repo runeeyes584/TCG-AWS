@@ -310,7 +310,7 @@ button svg { vertical-align: -2px; }
   backdrop-filter: blur(12px);
 }
 
-.utility-dock button,
+.utility-dock button:not([data-ui-btn]),
 .panel-close {
   width: 34px;
   height: 34px;
@@ -324,24 +324,26 @@ button svg { vertical-align: -2px; }
   cursor: pointer;
 }
 
-.utility-dock button:hover,
-.utility-dock button.is-active,
+.utility-dock button:not([data-ui-btn]):hover,
+.utility-dock button:not([data-ui-btn]).is-active,
 .panel-close:hover {
   border-color: var(--lor-teal);
   color: #fff;
   background: rgba(28, 200, 200, 0.12);
 }
 
-.utility-dock .utility-dock__surrender {
-  width: auto;
-  padding: 0 10px;
-  border-color: rgba(244, 97, 97, 0.54);
-  color: #ffd4d4;
+.utility-dock--bare {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
-.utility-dock .utility-dock__surrender:hover:not(:disabled) {
-  border-color: #ff8b8b;
-  background: rgba(201, 54, 54, 0.28);
+/* Same rounded corners and height as the other dock buttons; hover, glow and colours come from ui/Button. */
+.utility-dock .utility-dock__surrender {
+  min-height: 34px;
+  border-radius: 6px;
 }
 
 .opponent-disconnected-notice {
@@ -1573,11 +1575,17 @@ button svg { vertical-align: -2px; }
   .auth-status { display: none; }
 }
 
-.trial-console {
+.trial-dock {
   position: fixed;
   top: 64px;
   left: 14px;
   z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trial-console {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1615,9 +1623,27 @@ button svg { vertical-align: -2px; }
   cursor: pointer;
 }
 
-.trial-console button:hover {
+.trial-console button {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Same hover language as ui/Button: bright border, white text, family-coloured glow.
+   :not(:disabled) outranks the global gold `button:hover`. */
+.trial-console button:hover:not(:disabled) {
   border-color: #d7ff61;
-  color: #f5ffd4;
+  background: rgba(190, 255, 64, 0.12);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(190, 255, 64, 0.35);
+}
+
+.trial-console button:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 0 8px rgba(190, 255, 64, 0.25);
+}
+
+.trial-console button:focus-visible {
+  outline: 2px solid #d7ff61;
+  outline-offset: 2px;
 }
 
 .trial-console .trial-console__exit {
@@ -1627,10 +1653,19 @@ button svg { vertical-align: -2px; }
   color: #ffb6b6;
 }
 
-.trial-console .trial-console__exit:hover {
+.trial-console .trial-console__exit:hover:not(:disabled) {
   border-color: #ff7777;
-  color: #fff0f0;
-  box-shadow: 0 0 16px rgba(238, 70, 70, 0.18);
+  background: rgba(238, 70, 70, 0.2);
+  color: #fff;
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.45);
+}
+
+.trial-console .trial-console__exit:active:not(:disabled) {
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.3);
+}
+
+.trial-console .trial-console__exit:focus-visible {
+  outline-color: #ff7777;
 }
 
 
@@ -4220,7 +4255,7 @@ button.hand-card--shake-1 {
 }
 .leaderboard-podium-card--1 .leaderboard-podium-card__rank { color: #f4d36b; }
 .leaderboard-podium-card--3 .leaderboard-podium-card__rank { color: #d99766; }
-.leaderboard-podium-card__rank strong { font: 850 12px var(--font-mono); }
+.leaderboard-podium-card__rank strong { font: 850 12px var(--font-rajdhani); }
 .leaderboard-podium-card__avatar {
   position: relative;
   display: grid;
@@ -4234,7 +4269,7 @@ button.hand-card--shake-1 {
   background: radial-gradient(circle at 35% 25%, #d8f5ff, #4468ba 50%, #141a43);
   box-shadow: 0 0 18px rgba(169, 215, 255, 0.4);
   color: #07142d;
-  font: 900 14px var(--font-serif);
+  font: 900 14px var(--font-rajdhani);
 }
 .leaderboard-podium-card--1 .leaderboard-podium-card__avatar {
   width: 68px;
@@ -4264,13 +4299,13 @@ button.hand-card--shake-1 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.leaderboard-podium-card__elo { margin-top: 3px; color: #8ee9ff; font: 800 10px var(--font-mono); }
+.leaderboard-podium-card__elo { margin-top: 3px; color: #8ee9ff; font: 800 10px var(--font-rajdhani); }
 .leaderboard-podium-card--1 .leaderboard-podium-card__elo { color: #ffe99a; }
-.leaderboard-podium-card__record { display: flex; gap: 8px; margin-top: 7px; color: #8ba3c1; font: 700 8px var(--font-mono); }
+.leaderboard-podium-card__record { display: flex; gap: 8px; margin-top: 7px; color: #8ba3c1; font: 700 11px var(--font-rajdhani); }
 .leaderboard-podium-card__champion {
   margin-top: 7px;
   color: #f4d36b;
-  font: 900 7px var(--font-mono);
+  font: 900 10px var(--font-rajdhani);
   letter-spacing: 0.15em;
   text-shadow: 0 0 9px rgba(244, 211, 107, 0.6);
 }
@@ -4298,7 +4333,7 @@ button.hand-card--shake-1 {
   border-color: rgba(199, 241, 75, 0.38);
   background: linear-gradient(90deg, rgba(39, 65, 43, 0.78), rgba(9, 24, 38, 0.84));
 }
-.leaderboard-row__rank { color: #9ddfff; font: 850 12px var(--font-mono); text-align: center; }
+.leaderboard-row__rank { color: #9ddfff; font: 850 12px var(--font-rajdhani); text-align: center; }
 .leaderboard-row__avatar {
   display: grid;
   width: 32px;
@@ -4309,23 +4344,23 @@ button.hand-card--shake-1 {
   border-radius: 50%;
   background: #142744;
   color: #8ee9ff;
-  font: 850 8px var(--font-mono);
+  font: 850 11px var(--font-rajdhani);
 }
 .leaderboard-row__identity { min-width: 0; }
 .leaderboard-row__identity strong,
 .leaderboard-row__identity small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.leaderboard-row__identity strong { color: #edf5ff; font-size: 11px; }
+.leaderboard-row__identity strong { color: #edf5ff; font-family: var(--font-rajdhani); font-size: 11px; }
 .leaderboard-row__identity small,
-.leaderboard-row > span small { color: #7189aa; font-size: 7px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.leaderboard-row > span small { color: #7189aa; font-family: var(--font-rajdhani); font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
 .leaderboard-row > span { display: grid; gap: 3px; }
-.leaderboard-row > span b { color: #dceeff; font: 750 10px var(--font-mono); }
-.leaderboard-row__record { color: #92a8c4; font: 700 9px var(--font-mono); }
+.leaderboard-row > span b { color: #dceeff; font: 750 10px var(--font-rajdhani); }
+.leaderboard-row__record { color: #92a8c4; font: 700 12px var(--font-rajdhani); }
 .leaderboard-row i {
   position: absolute;
   right: 4px;
   bottom: 2px;
   color: #d3ff54;
-  font: 700 6px var(--font-mono);
+  font: 700 11px var(--font-rajdhani);
   text-transform: uppercase;
 }
 
@@ -4508,9 +4543,9 @@ button.hand-card--shake-1 {
   .trial-mode-panel .lobby-cta { grid-column: 1 / -1; width: 100%; }
   .custom-match-panel { gap: 9px; margin-top: 20px; padding: 9px; }
   .custom-room-field input { min-height: 44px; font-size: 18px; }
-  .trial-console { right: 12px; left: 12px; overflow-x: auto; }
-  .trial-console > strong { display: none; }
-  .trial-console button { flex: 1 0 auto; }
+  .trial-dock { right: 12px; left: 12px; }
+  .trial-console { min-width: 0; overflow-x: auto; }
+    .trial-console button { flex: 1 0 auto; }
   .lobby-footer { right: 16px; bottom: 12px; left: 16px; font-size: 7px; }
 }
 
@@ -4678,13 +4713,14 @@ button.hand-card--shake-1 {
 .rank-page-brand > div { display: grid; justify-items: center; gap: 2px; }
 .rank-page-brand strong {
   color: #f3f8ff;
-  font: 700 13px var(--font-serif);
+  font: 700 16px var(--font-rajdhani);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 .rank-page-brand small {
   color: #718aa9;
-  font-size: 7px;
+  font-family: var(--font-rajdhani);
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -4696,7 +4732,8 @@ button.hand-card--shake-1 {
   align-items: center;
   gap: 7px;
   color: #9db4cc;
-  font-size: 8px;
+  font-family: var(--font-rajdhani);
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -4720,7 +4757,8 @@ button.hand-card--shake-1 {
   gap: 8px;
   margin: 0 0 6px;
   color: #8ee9ff;
-  font-size: 8px;
+  font-family: var(--font-rajdhani);
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -4754,7 +4792,8 @@ button.hand-card--shake-1 {
   display: block;
   margin-top: 8px;
   color: #7089a8;
-  font-size: 9px;
+  font-family: var(--font-rajdhani);
+  font-size: 12px;
 }
 
 .rank-page-board {
@@ -4768,6 +4807,9 @@ button.hand-card--shake-1 {
 }
 .rank-page-board > .rank-leaderboard-content,
 .rank-page-board > .rank-leaderboard-locked .rank-locked-action { margin-top: 24px; }
+/* Bound the grid to the board so the list (1fr row) scrolls instead of overflowing the clipped shell. */
+.rank-page-board > .rank-leaderboard-content { height: calc(100% - 24px); }
+.rank-leaderboard-content > .leaderboard-list { overscroll-behavior: contain; }
 
 .rank-leaderboard-locked { height: 100%; }
 
@@ -4840,7 +4882,8 @@ button.hand-card--shake-1 {
   display: flex;
   justify-content: space-between;
   color: #526a89;
-  font-size: 7px;
+  font-family: var(--font-rajdhani);
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -8354,7 +8397,7 @@ button.hand-card--shake-1 {
   border-radius: 0;
   background: rgba(5, 18, 40, 0.76);
   color: #a9cce5;
-  font: 850 9px var(--font-sans);
+  font: 700 12px var(--font-rajdhani);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
@@ -8395,14 +8438,15 @@ button.hand-card--shake-1 {
 
 .history-page-brand strong {
   color: #f3f8ff;
-  font: 700 13px var(--font-serif);
+  font: 700 16px var(--font-rajdhani);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .history-page-brand small {
   color: #718aa9;
-  font-size: 7px;
+  font-family: var(--font-rajdhani);
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -8414,7 +8458,8 @@ button.hand-card--shake-1 {
   align-items: center;
   gap: 7px;
   color: #9db4cc;
-  font-size: 8px;
+  font-family: var(--font-rajdhani);
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -8434,7 +8479,8 @@ button.hand-card--shake-1 {
   gap: 7px;
   margin-bottom: 8px;
   color: #74d7ff;
-  font-size: 9px;
+  font-family: var(--font-rajdhani);
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -8475,6 +8521,7 @@ button.hand-card--shake-1 {
   display: block;
   margin-top: 6px;
   color: #809bbd;
+  font-family: var(--font-rajdhani);
   font-size: 11px;
 }
 
@@ -8504,6 +8551,7 @@ button.hand-card--shake-1 {
 
 .stat-divider {
   opacity: 0.4;
+  font-family: var(--font-rajdhani);
   font-size: 12px;
 }
 
@@ -8521,7 +8569,7 @@ button.hand-card--shake-1 {
 .history-item-card {
   position: relative;
   display: grid;
-  grid-template-columns: 100px 1fr 140px 90px;
+  grid-template-columns: 100px minmax(150px, 1fr) minmax(220px, 1.4fr) 150px 90px;
   align-items: center;
   gap: 16px;
   padding: 14px 20px;
@@ -8540,6 +8588,63 @@ button.hand-card--shake-1 {
     padding: 12px;
   }
 }
+
+@media (max-width: 1100px) and (min-width: 641px) {
+  .history-item-card {
+    grid-template-columns: 90px minmax(130px, 1fr) minmax(180px, 1.3fr) 80px;
+  }
+  .history-item-card .card-timestamp { display: none; }
+}
+
+.card-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .history-item-card .card-details {
+    grid-column: 1 / -1;
+    order: 5;
+    padding-top: 8px;
+    border-top: 1px solid rgba(104, 205, 255, 0.12);
+  }
+}
+.card-reason,
+.card-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.card-detail-label {
+  color: #6d88ab;
+  font-family: var(--font-rajdhani);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.card-reason strong,
+.card-deck strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: #dceeff;
+  font-family: var(--font-rajdhani);
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-deck strong svg { flex: 0 0 auto; color: #74d7ff; }
+.result-LOSS .card-reason strong { color: #f9a3a3; }
+.result-WIN .card-reason strong { color: #e4ff8f; }
+.result-DRAW .card-reason strong { color: #fde68a; }
+.card-reason.is-unknown strong,
+.card-deck.is-unknown strong { color: #6d88ab; font-weight: 600; }
+.card-deck.is-unknown strong svg { color: #4d6585; }
 
 .history-item-card:hover {
   transform: translateY(-2px);
@@ -8562,6 +8667,7 @@ button.hand-card--shake-1 {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-rajdhani);
   font-size: 11px;
   font-weight: 850;
   letter-spacing: 0.05em;
@@ -8604,12 +8710,14 @@ button.hand-card--shake-1 {
   flex-direction: column;
 }
 .vs-tag {
-  font-size: 7px;
+  font-family: var(--font-rajdhani);
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.1em;
   color: #6d88ab;
 }
 .opponent-name {
+  font-family: var(--font-rajdhani);
   font-size: 14px;
   color: #f3f8ff;
   font-weight: 700;
@@ -8620,6 +8728,7 @@ button.hand-card--shake-1 {
   align-items: center;
   gap: 6px;
   color: #7f9bbc;
+  font-family: var(--font-rajdhani);
   font-size: 11px;
 }
 .card-timestamp small {
@@ -8630,14 +8739,15 @@ button.hand-card--shake-1 {
   display: flex;
   align-items: baseline;
   justify-content: flex-end;
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani);
   font-size: 17px;
   font-weight: 900;
 }
 .card-elo-change.is-up { color: #d8ff5c; }
 .card-elo-change.is-down { color: #f87171; }
 .card-elo-change small {
-  font-size: 9px;
+  font-family: var(--font-rajdhani);
+  font-size: 12px;
   margin-left: 3px;
   font-weight: 700;
   text-transform: uppercase;
@@ -8760,15 +8870,16 @@ button.hand-card--shake-1 {
 
 .user-page-brand strong {
   color: #fff8e7;
-  font: 700 13px var(--font-serif);
+  font: 700 16px var(--font-rajdhani);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .user-page-brand small {
   color: #d1b880;
-  font-size: 7px;
-  font-weight: 850;
+  font-family: var(--font-rajdhani);
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -8787,7 +8898,7 @@ button.hand-card--shake-1 {
   border: 1px solid;
   border-radius: 4px;
   background: rgba(10, 15, 25, 0.8);
-  font: 850 9px var(--font-sans);
+  font: 700 12px var(--font-rajdhani);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -8806,8 +8917,9 @@ button.hand-card--shake-1 {
   gap: 7px;
   margin-bottom: 8px;
   color: #ffd700;
-  font-size: 9px;
-  font-weight: 900;
+  font-family: var(--font-rajdhani);
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -8822,7 +8934,7 @@ button.hand-card--shake-1 {
 .user-page-heading-row h1 {
   margin: 0;
   color: #fff8e7;
-  font-family: var(--font-serif);
+  font-family: var(--font-rajdhani);
   font-size: clamp(26px, 3.2vw, 42px);
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -8840,7 +8952,8 @@ button.hand-card--shake-1 {
   display: block;
   margin-top: 6px;
   color: #bfa87a;
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 13px;
 }
 
 .user-page-board {
@@ -8904,7 +9017,7 @@ button.hand-card--shake-1 {
 }
 
 .avatar-initial {
-  font-family: var(--font-serif);
+  font-family: var(--font-rajdhani);
   font-size: 36px;
   font-weight: 900;
   color: #101424;
@@ -8953,7 +9066,7 @@ button.hand-card--shake-1 {
 .username-display-box h2 {
   margin: 0;
   color: #fff8e7;
-  font-family: var(--font-serif);
+  font-family: var(--font-rajdhani);
   font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -8971,7 +9084,7 @@ button.hand-card--shake-1 {
   border-radius: 4px;
   background: #0d121f;
   color: #fff;
-  font-family: var(--font-serif);
+  font-family: var(--font-rajdhani);
   font-size: 18px;
   outline: none;
 }
@@ -8996,8 +9109,9 @@ button.hand-card--shake-1 {
   border-radius: 20px;
   background: rgba(10, 14, 24, 0.6);
   color: #bfa87a;
-  font-size: 11px;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .user-meta-pill.highlight {
@@ -9029,7 +9143,7 @@ button.hand-card--shake-1 {
 .user-details-panel h3 {
   margin: 0 0 16px;
   color: #ffd700;
-  font-family: var(--font-serif);
+  font-family: var(--font-rajdhani);
   font-size: 14px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -9058,13 +9172,14 @@ button.hand-card--shake-1 {
 
 .detail-label {
   color: #8c9bb0;
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
 }
 
 .detail-value {
   color: #f3f8ff;
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani);
   font-size: 12px;
 }
 
@@ -9080,7 +9195,7 @@ button.hand-card--shake-1 {
   height: 100vh;
   gap: 16px;
   color: #ffd700;
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani);
   font-size: 14px;
 }
 
@@ -9221,6 +9336,7 @@ button.hand-card--shake-1 {
 }
 
 .user-page-brand strong {
+  font-size: 16px;
   color: #edfbff;
 }
 
@@ -9237,7 +9353,7 @@ button.hand-card--shake-1 {
   align-items: center;
   gap: 7px;
   color: #79a3b7;
-  font: 800 8px var(--font-mono);
+  font: 800 12px var(--font-rajdhani);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -9267,7 +9383,7 @@ button.hand-card--shake-1 {
 .user-page-intro > p {
   margin-bottom: 10px;
   color: var(--profile-cyan);
-  font-family: var(--font-mono);
+  font-family: var(--font-rajdhani);
 }
 
 .user-page-intro > p i {
@@ -9354,7 +9470,7 @@ button.hand-card--shake-1 {
   top: 12px;
   right: 36px;
   color: rgba(var(--profile-cyan-rgb), 0.45);
-  font: 700 8px var(--font-mono);
+  font: 700 10px var(--font-rajdhani);
   letter-spacing: 0.16em;
 }
 
@@ -9418,9 +9534,10 @@ button.hand-card--shake-1 {
 }
 
 .identity-eyebrow {
-  color: #668da2;
-  font: 750 8px var(--font-mono);
-  letter-spacing: 0.17em;
+  color: var(--profile-cyan);
+  font: 700 12px var(--font-rajdhani);
+  letter-spacing: 0.18em;
+  -webkit-text-stroke: 0.5px currentColor;
   text-transform: uppercase;
 }
 
@@ -9461,7 +9578,7 @@ button.hand-card--shake-1 {
   justify-content: space-between;
   margin-bottom: 5px;
   color: #6e94a7;
-  font: 750 8px var(--font-mono);
+  font: 750 10px var(--font-rajdhani);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -9511,7 +9628,7 @@ button.hand-card--shake-1 {
 
 .details-panel-heading span {
   color: #557487;
-  font: 700 7px var(--font-mono);
+  font: 700 10px var(--font-rajdhani);
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -9519,7 +9636,7 @@ button.hand-card--shake-1 {
 .user-details-panel h3 {
   margin: 3px 0 0;
   color: #cdeff7;
-  font-size: 12px;
+  font-size: 18px;
 }
 
 .details-grid {
@@ -9536,14 +9653,16 @@ button.hand-card--shake-1 {
 
 .detail-label {
   color: #638094;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .detail-value {
   max-width: 60%;
   overflow: hidden;
   color: #d9f3fa;
-  font-size: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9811,7 +9930,7 @@ button.hand-card--shake-1 {
 .profile-toast__content strong {
   display: block;
   color: #baf4ff;
-  font: 800 10px var(--font-mono);
+  font: 800 12px var(--font-rajdhani);
   letter-spacing: 0.14em;
 }
 .profile-toast--success .profile-toast__content strong { color: #9cf8bf; }
@@ -9859,14 +9978,14 @@ button.hand-card--shake-1 {
   align-items: center;
   gap: 7px;
   color: var(--profile-cyan);
-  font: 800 9px var(--font-mono);
+  font: 800 11px var(--font-rajdhani);
   letter-spacing: 0.16em;
 }
 
 .username-edit-modal h2 { margin: 10px 0 13px; color: #effcff; font-size: 1.25rem; letter-spacing: 0.08em; }
 .username-edit-modal__warning { margin: 0; padding: 12px 13px; border-left: 2px solid #ffd166; background: rgba(255, 209, 102, 0.07); color: #f9e2a1; font-size: 0.85rem; line-height: 1.55; }
 .username-edit-modal__field { display: block; margin-top: 18px; }
-.username-edit-modal__field span { display: block; margin-bottom: 7px; color: #79a3b7; font: 800 9px var(--font-mono); letter-spacing: 0.13em; text-transform: uppercase; }
+.username-edit-modal__field span { display: block; margin-bottom: 7px; color: #79a3b7; font: 800 11px var(--font-rajdhani); letter-spacing: 0.13em; text-transform: uppercase; }
 .username-edit-modal__field .username-input { width: 100%; box-sizing: border-box; }
 .username-edit-modal__hint { margin: 8px 0 0; color: #6f8a9b; font-size: 0.76rem; }
 .username-edit-modal__actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 21px; }
@@ -9905,7 +10024,7 @@ button.hand-card--shake-1 {
     0 0 18px rgba(255, 64, 104, 0.14),
     inset 0 0 14px rgba(255, 64, 104, 0.08);
   clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
-  font: 800 9px var(--font-mono);
+  font: 800 11px var(--font-rajdhani);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
