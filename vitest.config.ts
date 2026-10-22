@@ -8,6 +8,8 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "node"
+    environment: "node",
+    // The CDK app has its own dependencies and tests (cd cdk && npm test).
+    exclude: ["**/node_modules/**", "**/dist/**", "cdk/**"]
   }
 });

@@ -1,0 +1,10 @@
+{
+  "app": "npx tsx bin/chrono.ts",
+  "versionReporting": false,
+  "watch": {
+    "include": ["bin/**/*.ts", "lib/**/*.ts"]
+  },
+  "context": {
+    "@aws-cdk/core:target-partitions": ["aws"]
+  }
+}
