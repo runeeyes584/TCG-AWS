@@ -25,6 +25,7 @@ import {
 import { listDecks, saveDeck } from "../../libs/api";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
 import { Button, LobbyButton } from "../../components/ui/button";
+import { Dropdown } from "../../components/ui/dropdown";
 
 type DeckCard = CardDefinition & {
   rarity?: string;
@@ -421,20 +422,28 @@ function DeckBuilderPageContent() {
           </label>
 
           <div className="deck-library-filters">
-            <label>
-              <SlidersHorizontal size={15} />
-              <select value={archetypeFilter} onChange={(event) => setArchetypeFilter(event.target.value)} aria-label="Filter archetype">
-                <option value="all">All archetypes</option>
-                {archetypes.map((archetype) => <option key={archetype} value={archetype}>{archetype}</option>)}
-              </select>
-            </label>
-            <label>
-              <select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)} aria-label="Sort cards">
-                <option value="cost">Sort: Mana</option>
-                <option value="name">Sort: Name</option>
-                <option value="archetype">Sort: Archetype</option>
-              </select>
-            </label>
+            <Dropdown
+              aria-label="Filter archetype"
+              height={32}
+              icon={<SlidersHorizontal size={15} />}
+              value={archetypeFilter}
+              onChange={setArchetypeFilter}
+              options={[
+                { value: "all", label: "All archetypes" },
+                ...archetypes.map((archetype) => ({ value: archetype, label: archetype })),
+              ]}
+            />
+            <Dropdown
+              aria-label="Sort cards"
+              height={32}
+              value={sortMode}
+              onChange={(next) => setSortMode(next as SortMode)}
+              options={[
+                { value: "cost", label: "Sort: Mana" },
+                { value: "name", label: "Sort: Name" },
+                { value: "archetype", label: "Sort: Archetype" },
+              ]}
+            />
           </div>
 
           <div className="deck-library-tabs" aria-label="Filter by card type">

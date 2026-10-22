@@ -3,8 +3,6 @@
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Crown,
-  Medal,
   ShieldCheck,
   Trophy
 } from "lucide-react";
@@ -12,6 +10,7 @@ import {
   type LeaderboardPlayer
 } from "../../libs/api";
 import { LeaderboardPhaserEffects } from "./LeaderboardPhaserEffects";
+import { PodiumBadge } from "./PodiumBadge";
 import { Eyebrow, Lede } from "../ui/layout";
 import { StatusPanel } from "../ui/feedback";
 import { Button } from "../ui/button";
@@ -51,6 +50,8 @@ function avatar(player: LeaderboardPlayer) {
   );
 }
 
+const PODIUM_TITLE: Record<number, string> = { 1: "Champion", 2: "Runner-up", 3: "Third place" };
+
 function PodiumCard({ player, rank }: { player: LeaderboardPlayer; rank: number }) {
   return (
     <motion.article
@@ -59,18 +60,29 @@ function PodiumCard({ player, rank }: { player: LeaderboardPlayer; rank: number 
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 180, damping: 18, delay: rank === 1 ? 0.05 : rank * 0.08 }}
     >
+      {/* Decorative layers: a moving sheen, metal corner trims and, for the champion, rising sparks. */}
+      <span className="leaderboard-podium-card__shine" aria-hidden="true" />
+      <span className="leaderboard-podium-card__trim leaderboard-podium-card__trim--left" aria-hidden="true" />
+      <span className="leaderboard-podium-card__trim leaderboard-podium-card__trim--right" aria-hidden="true" />
+      {rank === 1 ? (
+        <span className="leaderboard-podium-card__sparks" aria-hidden="true">
+          {Array.from({ length: 7 }, (_, index) => <i key={index} />)}
+        </span>
+      ) : null}
       <div className="leaderboard-podium-card__rank">
-        {rank === 1 ? <Crown size={24} /> : <Medal size={21} />}
-        <strong>#{rank}</strong>
+        <PodiumBadge rank={rank as 1 | 2 | 3} />
       </div>
-      <div className="leaderboard-podium-card__avatar">{avatar(player)}</div>
+      <span className="leaderboard-podium-card__title">{PODIUM_TITLE[rank]}</span>
+      <div className="leaderboard-podium-card__avatar-wrap">
+        <span className="leaderboard-podium-card__ring" aria-hidden="true" />
+        <div className="leaderboard-podium-card__avatar">{avatar(player)}</div>
+      </div>
       <strong className="leaderboard-podium-card__name">{player.username}</strong>
       <span className="leaderboard-podium-card__elo">{Math.round(player.elo).toLocaleString()} ELO</span>
       <div className="leaderboard-podium-card__record">
         <span>{formatWinRate(player)} WR</span>
         <span>{player.wins}W · {player.losses}L</span>
       </div>
-      {rank === 1 ? <span className="leaderboard-podium-card__champion">PRISM CHAMPION</span> : null}
     </motion.article>
   );
 }

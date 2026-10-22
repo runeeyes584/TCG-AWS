@@ -16,6 +16,7 @@ import {
 } from "../../libs/localDecks";
 import { CornerBrackets } from "../ui/decor";
 import { Button } from "../ui/button";
+import { Dropdown } from "../ui/dropdown";
 
 interface DeckSelectionPanelProps {
   className?: string;
@@ -148,24 +149,20 @@ export const DeckSelectionPanel = memo(function DeckSelectionPanel({
 
         {/* Deck details & selector */}
         <div className="loadout-controls-col">
-          <label className="loadout-select-group">
+          <div className="loadout-select-group">
             <span className="loadout-label">Active battle deck</span>
-            <div className="loadout-select-wrapper">
-              <select
-                value={selectedDeck?.deckId ?? DEFAULT_DECK_ID}
-                disabled={disabled}
-                onChange={(event) => chooseDeck(event.target.value)}
-                aria-label="Select active battle deck"
-              >
-                {decks.map((deck) => (
-                  <option value={deck.deckId} key={deck.deckId}>
-                    {deck.deckName}
-                    {deck.isDefault ? " [Default]" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </label>
+            <Dropdown
+              aria-label="Select active battle deck"
+              height={32}
+              disabled={disabled}
+              value={selectedDeck?.deckId ?? DEFAULT_DECK_ID}
+              onChange={chooseDeck}
+              options={decks.map((deck) => ({
+                value: deck.deckId,
+                label: `${deck.deckName}${deck.isDefault ? " [Default]" : ""}`,
+              }))}
+            />
+          </div>
 
           <div className="loadout-meta-row">
             <div className="loadout-capacity-badge">
