@@ -28,6 +28,12 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (name === "EmailDeletionCooldownError" || message.includes("recently deleted") || message.includes("deleted recently") || message.includes("wait 24 hours")) {
     return { status: 429, code: "EMAIL_DELETION_COOLDOWN", message: rawMessage || "This email belongs to an account deleted recently. You cannot register with this email for 24 hours." };
   }
+  if (name === "PasswordResetRequiredException") {
+    return { status: 409, code: "PASSWORD_RESET_REQUIRED", message: "Your account was moved to a new sign-in system. Please reset your password to continue." };
+  }
+  if (name === "ProfileEmailConflictError") {
+    return { status: 409, code: "PROFILE_EMAIL_CONFLICT", message: rawMessage };
+  }
   if (name === "UserNotConfirmedException" || message.includes("not verified")) {
     return { status: 403, code: "ACCOUNT_UNCONFIRMED", message: "This account is not verified. Please complete registration or sign up again." };
   }

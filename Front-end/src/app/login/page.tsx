@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole, LogIn, Mail, ShieldAlert } from "lucide-react";
-import { login } from "../../libs/api";
+import { login, type ApiError } from "../../libs/api";
 import { clearCachedProfile, warmupUserSession } from "../../libs/profileCache";
 import { AuthShell } from "../../components/auth/AuthShell";
 import { Button } from "../../components/ui/button";
@@ -52,6 +52,10 @@ export default function LoginPage() {
             window.location.replace("/");
 
         } catch (err: unknown) {
+            if ((err as ApiError | undefined)?.code === "PASSWORD_RESET_REQUIRED") {
+                router.push(`/forgot-password?email=${encodeURIComponent(normalizedEmail)}&reason=reset-required`);
+                return;
+            }
             const msg = err instanceof Error ? err.message : "Could not log in. Please try again.";
             setError(msg);
             if (/not verified|incomplete|xác thực/i.test(msg)) {

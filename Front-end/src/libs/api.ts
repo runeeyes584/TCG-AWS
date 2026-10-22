@@ -231,6 +231,28 @@ export async function getMyRank(): Promise<{
     };
 }
 
+/** An error answered by the API, with the HTTP status it came with. */
+export type ApiError = Error & { code?: string; status?: number };
+
+/** The session is no longer valid: the only case in which a client should drop it. */
+export function isAuthError(error: unknown): boolean {
+    const status = (error as ApiError | undefined)?.status;
+    return status === 401 || status === 403;
+}
+
+/**
+ * The server did not answer the request properly (it failed, timed out while starting up, or could not be reached),
+ * so the same request may well succeed a moment later. Says nothing about the session.
+ */
+export function isServerUnavailable(error: unknown): boolean {
+    if (error instanceof TypeError) return true; // fetch could not reach the server
+    const status = (error as ApiError | undefined)?.status;
+    return typeof status === "number" && status >= 500;
+}
+
+const SERVER_UNAVAILABLE_MESSAGE = "The server is starting up. Please try again in a few seconds.";
+const LOGIN_RETRY_DELAY_MS = 1_000;
+
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
@@ -262,19 +284,22 @@ async function request<T = any>(
             data = JSON.parse(rawBody);
         } catch {
             const isHtml = /^\s*(?:<!doctype|<html)/i.test(rawBody);
-            throw new Error(
+            const parseError = new Error(
                 isHtml
                     ? "The API returned an HTML page instead of JSON. Check that NEXT_PUBLIC_API_URL points to the HTTP API Gateway invoke URL and includes the correct stage."
                     : `The API returned invalid JSON (HTTP ${response.status}).`
-            );
+            ) as ApiError;
+            parseError.status = response.status;
+            throw parseError;
         }
     }
 
     if (!response.ok) {
         const apiError = new Error(
             data?.error?.message || data?.message || `Request failed (HTTP ${response.status}).`
-        ) as Error & { code?: string };
+        ) as ApiError;
         apiError.code = data?.error?.code || data?.code;
+        apiError.status = response.status;
         throw apiError;
     }
 
@@ -346,13 +371,27 @@ export async function login(
         window.localStorage.removeItem("refreshToken");
     }
 
-    return request<LoginResponse>("/auth/login", {
+    const attempt = () => request<LoginResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify({
             email,
             password
         })
     });
+
+    // A server that is starting up may fail the first request; signing in again is harmless, so it is tried once more.
+    try {
+        return await attempt();
+    } catch (error) {
+        if (!isServerUnavailable(error)) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOGIN_RETRY_DELAY_MS));
+    try {
+        return await attempt();
+    } catch (error) {
+        if (isServerUnavailable(error)) throw new Error(SERVER_UNAVAILABLE_MESSAGE);
+        throw error;
+    }
 }
 
 export async function logout() {

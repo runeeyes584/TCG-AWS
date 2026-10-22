@@ -28,7 +28,10 @@ await build({
 });
 
 if (process.platform === "win32") {
-  execFileSync("tar", ["-a", "-c", "-f", "index.zip", "index.js"], {
+  // Windows' own bsdtar writes a real zip with -a; the GNU tar of Git Bash, often first on PATH, writes a tar
+  // archive under the .zip name, which Lambda rejects.
+  const windowsTar = path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe");
+  execFileSync(windowsTar, ["-a", "-c", "-f", "index.zip", "index.js"], {
     cwd: outputDirectory,
     stdio: "inherit"
   });

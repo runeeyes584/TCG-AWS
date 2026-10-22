@@ -24,7 +24,10 @@ import {
 import {
   forfeitPendingMatch,
   getPendingMatch,
+  isAuthError,
+  isServerUnavailable,
   me,
+  type ApiError,
   type PendingMatch,
   type PlayerProfile
 } from "../libs/api";
@@ -123,7 +126,9 @@ export default function Home() {
 
     const handleAuthError = (error: unknown) => {
       const msg = error instanceof Error ? error.message : String(error);
-      const isAuthErr =
+      // An API answer is judged by its status alone; the wording is only a fallback for errors raised in the client.
+      const hasStatus = typeof (error as ApiError | undefined)?.status === "number";
+      const isAuthErr = hasStatus ? isAuthError(error) :
         msg.includes("expired") ||
         msg.includes("hash") ||
         msg.includes("Unauthorized") ||
@@ -143,7 +148,11 @@ export default function Home() {
         setLosses(0);
         setPendingMatchError("Your session has expired. Please sign in again.");
       } else {
-        setPendingMatchError(msg || "Unable to check your active match.");
+        setPendingMatchError(
+          isServerUnavailable(error)
+            ? "The server is starting up. Please try again in a few seconds."
+            : msg || "Unable to check your active match."
+        );
       }
     };
 

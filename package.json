@@ -30,7 +30,7 @@
     "build:lambda:disconnect": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/disconnectHandler.ts disconnectHandler",
     "build:lambda:handle-timeout": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/handleTimeout.ts handleTimeout",
     "build:lambda:start-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/startMatch.ts startMatch",
-    "build:lambda:end-match":"node scripts/build-lambda.mjs Back-end/src/aws-lambdas/endMatch.ts endMatch",
+    "build:lambda:end-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/endMatch.ts endMatch",
     "build:lambda:process-engine": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/processGameEngine.ts processGameEngine",
     "build:lambda:http": "node scripts/build-http-lambda.mjs",
     "build:lambda:post-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/postMatchWorker.ts postMatchWorker",
@@ -47,6 +47,7 @@
     "@aws-sdk/client-scheduler": "^3.1121.0",
     "@aws-sdk/client-secrets-manager": "^3.1091.0",
     "@aws-sdk/client-sqs": "^3.1091.0",
+    "@aws-sdk/client-ssm": "^3.1155.0",
     "@aws-sdk/credential-providers": "^3.1091.0",
     "@aws-sdk/lib-dynamodb": "^3.1090.0",
     "@base-ui/react": "^1.6.0",
@@ -88,6 +89,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@aws-sdk/client-lambda": "^3.1155.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.1",

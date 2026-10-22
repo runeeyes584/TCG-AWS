@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KeyRound, Mail } from "lucide-react";
@@ -16,6 +16,15 @@ export default function ForgotPasswordPage() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [resetRequired, setResetRequired] = useState(false);
+
+    // Sign-in sends a player here when their account was moved and needs a new password.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const prefilledEmail = params.get("email");
+        if (prefilledEmail) setEmail(prefilledEmail);
+        setResetRequired(params.get("reason") === "reset-required");
+    }, []);
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -62,6 +71,12 @@ export default function ForgotPasswordPage() {
                     autoFocus
                     required
                 />
+
+                {resetRequired ? (
+                    <FormMessage tone="hint">
+                        Your account was moved to our new sign-in system. Please set a new password to continue; your profile and progress are kept.
+                    </FormMessage>
+                ) : null}
 
                 <FormMessage tone="hint">The verification code will be valid for a limited time.</FormMessage>
 

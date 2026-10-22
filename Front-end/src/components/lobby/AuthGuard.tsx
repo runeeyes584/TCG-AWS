@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, LogIn, ArrowLeft } from "lucide-react";
+import { ShieldCheck, LogIn, ArrowLeft, RotateCcw } from "lucide-react";
 import { PhaserSplash } from "./PhaserSplash";
-import { me } from "../../libs/api";
+import { isAuthError, me } from "../../libs/api";
 import { PageShell, Eyebrow, Lede } from "../ui/layout";
 import { StatusPanel } from "../ui/feedback";
 import styles from "./AuthGuard.module.css";
@@ -25,7 +25,8 @@ export function AuthGuard({
   animatedBackdrop = true,
 }: AuthGuardProps) {
   const router = useRouter();
-  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated" | "unavailable">("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -60,16 +61,22 @@ export function AuthGuard({
           setStatus("unauthenticated");
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!mounted) return;
-        clearCachedProfile();
-        setStatus("unauthenticated");
+        // Only a rejected session is dropped. A server that failed or is starting up says nothing about the
+        // session: a player with a cached profile carries on, one without it is offered to try again.
+        if (isAuthError(error)) {
+          clearCachedProfile();
+          setStatus("unauthenticated");
+        } else if (!cached) {
+          setStatus("unavailable");
+        }
       });
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [attempt]);
 
   if (status === "loading") {
     if (loadingComponent) {
@@ -80,6 +87,36 @@ export function AuthGuard({
         message={loadingMessage || "Verifying connection"}
         animated={animatedBackdrop}
       />
+    );
+  }
+
+  if (status === "unavailable") {
+    return (
+      <PageShell centered art={animatedBackdrop ? <PhaserSplash /> : undefined}>
+        <div className={`rank-leaderboard-locked ${styles.locked}`}>
+          <ShieldCheck size={38} />
+          <Eyebrow line>Connection Delayed</Eyebrow>
+          <h1>Server<br /><em>Starting Up</em></h1>
+          <Lede snug>
+            The server did not answer in time. Your session is still valid; please try again in a few seconds.
+          </Lede>
+          <div className={styles.actions}>
+            <Button icon={<ArrowLeft size={16} />} onClick={() => router.push("/")}>
+              Return to Lobby
+            </Button>
+            <Button
+              variant="primary"
+              icon={<RotateCcw size={16} />}
+              onClick={() => {
+                setStatus("loading");
+                setAttempt((value) => value + 1);
+              }}
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </PageShell>
     );
   }
 

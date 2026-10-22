@@ -4,6 +4,7 @@ import type { SaveDeckPayload, SavedDeck } from "../decks/deck.types";
 import { calculateElo } from "../matchmaking/elo";
 import type { User } from "./user.types";
 import { buildLeaderboardProjection } from "../leaderboard/leaderboard";
+import { adoptLegacyProfile, moveLegacyMatchHistory } from "./legacyAccount";
 
 const tableName = process.env.USER_PROFILE_TABLE || "UserProfile";
 const deletionCooldownTable = process.env.ACCOUNT_DELETION_COOLDOWN_TABLE || "AccountDeletionCooldown";
@@ -190,13 +191,18 @@ export async function recordAccountDeletionCooldown(email: string): Promise<void
   }));
 }
 
-export async function getUserById(id: string): Promise<User | undefined> {
+async function getProfileItem(id: string): Promise<Record<string, any> | undefined> {
   const result = await dynamoDb.send(new GetCommand({
     TableName: tableName,
     Key: { user_id: id },
     ConsistentRead: true
   }));
-  return result.Item ? fromProfile(result.Item) : undefined;
+  return result.Item;
+}
+
+export async function getUserById(id: string): Promise<User | undefined> {
+  const item = await getProfileItem(id);
+  return item ? fromProfile(item) : undefined;
 }
 
 export async function deleteUserProfile(id: string): Promise<void> {
@@ -206,18 +212,40 @@ export async function deleteUserProfile(id: string): Promise<void> {
   }));
 }
 
+/** Another profile already holds this email, and nothing says it is the same player's. */
+export class ProfileEmailConflictError extends Error {
+  constructor() {
+    super("This account could not be linked to its player profile. Please contact support.");
+    this.name = "ProfileEmailConflictError";
+  }
+}
+
+/**
+ * Returns the player's profile, creating it on first sign-in. A player moved from the old Cognito user pool has a
+ * new id and carries the old one (`legacyId`): their profile and history are moved to the new id, never recreated.
+ * A profile is never deleted here; one that shares the email without that link is reported as a conflict.
+ */
 export async function ensureUserProfile(input: {
   id: string;
   email: string;
   username: string;
+  legacyId?: string;
 }): Promise<User> {
-  const existing = await getUserById(input.id);
-  if (existing) {
-    return (await repairUserProfileIdentity(input)) || existing;
+  let item = await getProfileItem(input.id);
+  if (!item && input.legacyId && await adoptLegacyProfile(input.id, input.legacyId)) {
+    item = await getProfileItem(input.id);
+  }
+  if (item) {
+    if (item.legacy_user_id && !item.legacy_history_moved_at) {
+      await moveLegacyMatchHistory(input.id, String(item.legacy_user_id));
+    }
+    return (await repairUserProfileIdentity(input)) || fromProfile(item);
   }
 
-  for (const duplicateUserId of await lookupUserIds("email", input.email)) {
-    if (duplicateUserId !== input.id) await deleteUserProfile(duplicateUserId);
+  const conflicting = (await lookupUserIds("email", input.email)).filter((userId) => userId !== input.id);
+  if (conflicting.length > 0) {
+    console.error("PROFILE_EMAIL_CONFLICT", { userId: input.id, conflictingUserIds: conflicting });
+    throw new ProfileEmailConflictError();
   }
 
   const user: User = {

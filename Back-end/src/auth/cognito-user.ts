@@ -9,6 +9,8 @@ export interface CognitoIdentity {
   id: string;
   email: string;
   username: string;
+  /** The id the player had in the old user pool, set when they were moved to the new one. */
+  legacyId?: string;
 }
 
 function getAttribute(
@@ -36,7 +38,8 @@ export async function getCognitoIdentityByAccessToken(
     throw new Error("Cognito user attributes are incomplete; email and callsign are required.");
   }
 
-  return { id, email: email.toLowerCase(), username };
+  const legacyId = getAttribute(result.UserAttributes, "custom:legacy_sub");
+  return { id, email: email.toLowerCase(), username, ...(legacyId ? { legacyId } : {}) };
 }
 
 export async function deleteCognitoUserWithAccessToken(accessToken: string): Promise<boolean> {

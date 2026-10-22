@@ -14,6 +14,7 @@ import {
     InvalidParameterException,
     UserNotFoundException,
     AliasExistsException,
+    UserLambdaValidationException,
 } from "@aws-sdk/client-cognito-identity-provider";
 
 import { cognito } from "./cognito";
@@ -23,7 +24,7 @@ import { validateRegister } from "./validators";
 import { LoginRequest, RegisterRequest, VerifyRequest } from "./types";
 import { normalizeConfirmationCode } from "./confirmationCode";
 import { ensureUserProfile, findUserByUsername, getUserByEmail, isEmailInDeletionCooldown } from "../user/user.repository";
-import { getCognitoIdentityByAccessToken } from "./cognito-user";
+import { getCognitoIdentityByAccessToken, type CognitoIdentity } from "./cognito-user";
 import { verifyIdToken } from "./verifyToken";
 
 async function signUpNewUser(email: string, username: string, password: string) {
@@ -32,7 +33,7 @@ async function signUpNewUser(email: string, username: string, password: string) 
             ClientId: env.clientId,
             Username: email,
             Password: password,
-            ...secretHashField(email),
+            ...(await secretHashField(email)),
             UserAttributes: [
                 { Name: "email", Value: email },
                 { Name: "preferred_username", Value: username },
@@ -45,7 +46,7 @@ async function resendConfirmationForEmail(email: string): Promise<void> {
     await cognito.send(new ResendConfirmationCodeCommand({
         ClientId: env.clientId,
         Username: email,
-        ...secretHashField(email),
+        ...(await secretHashField(email)),
     }));
 }
 
@@ -148,7 +149,7 @@ export async function verify(data: VerifyRequest) {
 
             ConfirmationCode: code,
 
-            ...secretHashField(email)
+            ...(await secretHashField(email))
 
         });
 
@@ -195,7 +196,7 @@ export async function login(data: LoginRequest) {
 
                 PASSWORD: password,
 
-                ...secretHashAuthParameters(email)
+                ...(await secretHashAuthParameters(email))
 
             }
 
@@ -212,15 +213,21 @@ export async function login(data: LoginRequest) {
         // ID-token claims are verified locally and contain the attributes that
         // were submitted during registration. GetUser is the public Cognito
         // fallback when an app client does not expose all claims in the ID token.
-        let identity: { id: string; email: string; username: string } | undefined;
+        let identity: CognitoIdentity | undefined;
         if (idToken) {
             try {
                 const claims = await verifyIdToken(idToken);
                 const claimId = typeof claims.sub === "string" ? claims.sub : undefined;
                 const claimEmail = typeof claims.email === "string" ? claims.email.trim().toLowerCase() : undefined;
                 const claimUsername = typeof claims.preferred_username === "string" ? claims.preferred_username.trim() : undefined;
+                const claimLegacyId = typeof claims["custom:legacy_sub"] === "string" ? claims["custom:legacy_sub"].trim() : "";
                 if (claimId && claimEmail && claimUsername) {
-                    identity = { id: claimId, email: claimEmail, username: claimUsername };
+                    identity = {
+                        id: claimId,
+                        email: claimEmail,
+                        username: claimUsername,
+                        ...(claimLegacyId ? { legacyId: claimLegacyId } : {})
+                    };
                 }
             } catch {
                 // GetUser below remains the public fallback for this case.
@@ -253,7 +260,13 @@ export async function login(data: LoginRequest) {
             throw new Error("Account is not verified. Please complete registration or sign up again.");
         }
 
-        if (error instanceof NotAuthorizedException) {
+        // The user-migration trigger refuses an unknown account or a wrong password of the old user pool; to the
+        // player that is the same as a wrong password.
+        if (
+            error instanceof NotAuthorizedException ||
+            error instanceof UserNotFoundException ||
+            error instanceof UserLambdaValidationException
+        ) {
 
             throw new Error("Invalid email or password.");
 
@@ -280,7 +293,7 @@ export async function refresh(
 
             REFRESH_TOKEN: refreshToken,
 
-            ...secretHashAuthParameters(email)
+            ...(await secretHashAuthParameters(email))
 
         }
 
@@ -312,7 +325,7 @@ export async function forgotPassword(email: string) {
     const command = new ForgotPasswordCommand({
         ClientId: env.clientId,
         Username: email,
-        ...secretHashField(email)
+        ...(await secretHashField(email))
     });
 
     await cognito.send(command);
@@ -335,7 +348,7 @@ export async function resetPassword(
         Username: email,
         ConfirmationCode: normalizedCode,
         Password: password,
-        ...secretHashField(email)
+        ...(await secretHashField(email))
     });
 
     await cognito.send(command);
