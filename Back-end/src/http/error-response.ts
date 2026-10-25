@@ -64,6 +64,8 @@ export function getApiError(error: unknown, fallback = "Request could not be com
 
 export function sendApiError(res: Response, error: unknown, fallback: string) {
   const details = getApiError(error, fallback);
+  // A server-side failure must leave a trace: the client only sees the generic message.
+  if (details.status >= 500) console.error(`API ${details.code}:`, error);
   return res.status(details.status).json({
     success: false,
     code: details.code,

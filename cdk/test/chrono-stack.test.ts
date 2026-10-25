@@ -125,6 +125,13 @@ describe("managed template", () => {
     });
   });
 
+  it("lets the HTTP backend re-key a moved player's match history (it writes MatchHistory, not only reads it)", () => {
+    const statements = statementsOf(template, "chrono-http-backend");
+    const historyWrites = statements.filter((statement) =>
+      actionsOf([statement]).includes("dynamodb:PutItem") && JSON.stringify(statement.Resource).includes("DataMatchHistory"));
+    expect(historyWrites).not.toEqual([]);
+  });
+
   it("lets the HTTP backend delete a turn-timeout schedule when a match is forfeited, and nothing more", () => {
     const actions = actionsOf(statementsOf(template, "chrono-http-backend"));
     expect(actions).toContain("scheduler:DeleteSchedule");

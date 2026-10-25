@@ -53,7 +53,8 @@ export const FUNCTION_SPECS: readonly FunctionSpec[] = [
       gameState: "readWrite",
       gameLogs: "readWrite",
       connections: "readWrite",
-      matchHistory: "read"
+      // Written when a player moved from the old user pool signs in: their history is re-keyed (legacyAccount.ts).
+      matchHistory: "readWrite"
     },
     pushesToWebSocket: true,
     // Forfeiting a pending match ends it here, so its schedule is removed here too.
