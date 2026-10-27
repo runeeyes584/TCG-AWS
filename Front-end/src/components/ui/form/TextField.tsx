@@ -20,23 +20,33 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   /** Adds a show/hide button; the caller owns the `visible` state and the input `type`. */
   passwordToggle?: PasswordToggle;
   invalid?: boolean;
+  /** Keeps the label for screen readers only (inline inputs such as chat). */
+  hideLabel?: boolean;
+  /** Shorter box for inline inputs. */
+  compact?: boolean;
 }
 
 /**
  * Labelled text input in the tactical HUD style. All native input props are forwarded.
  */
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
-  { label, icon, variant = "default", passwordToggle, invalid = false, className, ...inputProps },
+  { label, icon, variant = "default", passwordToggle, invalid = false, hideLabel = false, compact = false, className, ...inputProps },
   ref
 ) {
   const isOtp = variant === "otp";
-  const boxClass = [styles.box, isOtp ? styles.otp : "", invalid ? styles.invalid : ""]
+  const boxClass = [
+    styles.box,
+    isOtp ? styles.otp : "",
+    !isOtp && !icon ? styles.noIcon : "",
+    compact ? styles.compact : "",
+    invalid ? styles.invalid : ""
+  ]
     .filter(Boolean)
     .join(" ");
 
   return (
     <label className={styles.field}>
-      <span className={styles.label}>{label}</span>
+      <span className={hideLabel ? styles.srOnly : styles.label}>{label}</span>
       <div className={boxClass}>
         {!isOtp && icon ? <span aria-hidden="true" style={{ display: "inline-flex" }}>{icon}</span> : null}
         <input

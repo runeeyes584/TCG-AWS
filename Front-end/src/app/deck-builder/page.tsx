@@ -18,6 +18,7 @@ import { listCards } from "@backend/game/entities/cardRegistry";
 import {
   getSelectedDeckId,
   loadLocalDecks,
+  type LocalDeck,
   mergeCloudDecks,
   saveLocalDeck,
   setSelectedDeckId
@@ -49,6 +50,21 @@ const typeFilters: Array<{ value: TypeFilter; label: string; icon: typeof Swords
 
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 
+/** Keeps only known cards, at most three copies each and at most MAX_DECK_SIZE cards (same rules as the initial load). */
+function sanitizeDeckCardIds(cardIds: string[] | undefined, known: Map<string, unknown>): string[] {
+  if (!Array.isArray(cardIds)) return [];
+  const copyCounts = new Map<string, number>();
+  return cardIds
+    .filter((cardId) => {
+      if (!known.has(cardId)) return false;
+      const nextCount = (copyCounts.get(cardId) ?? 0) + 1;
+      if (nextCount > 3) return false;
+      copyCounts.set(cardId, nextCount);
+      return true;
+    })
+    .slice(0, MAX_DECK_SIZE);
+}
+
 function DeckBuilderPageContent() {
   const cards = useMemo(
     () =>
@@ -76,6 +92,7 @@ function DeckBuilderPageContent() {
   const [previewCardId, setPreviewCardId] = useState(cards[0]?.id ?? "");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [notice, setNotice] = useState("Select a card to add it to the deck.");
+  const [savedDecks, setSavedDecks] = useState<LocalDeck[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -87,6 +104,7 @@ function DeckBuilderPageContent() {
         availableDecks = mergeCloudDecks(result.decks);
       }
       if (!mounted) return;
+      setSavedDecks(availableDecks.filter((deck) => !deck.isDefault));
       const selectedDeck = availableDecks.find(
         (deck) => !deck.isDefault && deck.deckId === getSelectedDeckId()
       ) ?? availableDecks.find((deck) => !deck.isDefault);
@@ -211,6 +229,17 @@ function DeckBuilderPageContent() {
     setNotice("Deck cleared.");
   }
 
+  function switchDeck(nextDeckId: string) {
+    if (nextDeckId === deckId) return;
+    const target = savedDecks.find((deck) => deck.deckId === nextDeckId);
+    if (!target) return;
+    setDeckId(target.deckId);
+    setDeckName(target.deckName || "New Kaleidoscope Deck");
+    setDeckCardIds(sanitizeDeckCardIds(target.cardIds, cardById));
+    setSaveState("idle");
+    setNotice(`Loaded "${target.deckName}". Save to select it for matchmaking.`);
+  }
+
   function createNewDeck() {
     setDeckId(createDeckId());
     setDeckName("New Kaleidoscope Deck");
@@ -236,6 +265,7 @@ function DeckBuilderPageContent() {
 
     try {
       saveLocalDeck(payload);
+      setSavedDecks(loadLocalDecks().filter((deck) => !deck.isDefault));
       const signedIn = Boolean(window.localStorage.getItem("accessToken"));
       if (!signedIn) {
         setSelectedDeckId(deckId);
@@ -340,6 +370,21 @@ function DeckBuilderPageContent() {
                   setDeckName(event.target.value);
                   setSaveState("idle");
                 }}
+              />
+            </div>
+            <div className="deck-switcher">
+              <Dropdown
+                aria-label="Switch deck"
+                height={34}
+                placeholder="My decks"
+                value={deckId}
+                onChange={switchDeck}
+                options={[
+                  ...(savedDecks.some((deck) => deck.deckId === deckId)
+                    ? []
+                    : [{ value: deckId, label: `${deckName.trim() || "New deck"} (unsaved)`, disabled: true }]),
+                  ...savedDecks.map((deck) => ({ value: deck.deckId, label: deck.deckName || deck.deckId })),
+                ]}
               />
             </div>
             <Button

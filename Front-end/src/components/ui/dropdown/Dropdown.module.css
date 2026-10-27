@@ -59,6 +59,9 @@
 .value {
   min-width: 0;
   flex: 1 1 auto;
+  /* Room above and below for stacked diacritics (e.g. Vietnamese capitals); overflow:hidden would clip them. */
+  padding: 4px 0;
+  line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -116,6 +119,8 @@
 .optionLabel {
   min-width: 0;
   flex: 1 1 auto;
+  padding: 4px 0;
+  line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
 }

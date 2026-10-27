@@ -4780,7 +4780,7 @@ button.hand-card--shake-1 {
   gap: 24px;
 }
 .rank-page-heading-row > div { min-width: 0; }
-.rank-page-heading-row span {
+.rank-page-heading-row > div > span {
   display: block;
   margin-top: 8px;
   color: #7089a8;
@@ -5142,7 +5142,7 @@ button.hand-card--shake-1 {
   .rank-page-intro { top: 76px; right: 16px; left: 16px; }
   .rank-page-intro h1 { font-size: 34px; }
   .rank-page-heading-row { gap: 10px; }
-  .rank-page-heading-row span { display: none; }
+  .rank-page-heading-row > div > span { display: none; }
   .rank-page-heading-row .rank-refresh { min-height: 32px; padding: 0 9px; }
   .rank-page-board { top: 148px; right: 10px; bottom: 34px; left: 10px; }
   .rank-leaderboard-locked { padding: 20px; }
@@ -5452,6 +5452,16 @@ button.hand-card--shake-1 {
   gap: 9px;
   padding: 0 14px;
   color: #a8eaff;
+}
+
+/* Deck switcher (ui/Dropdown) between the name field and the toolbar buttons. */
+.deck-switcher {
+  flex: 0 0 clamp(150px, 24%, 230px);
+  min-width: 0;
+  margin-right: 9px;
+}
+@media (max-width: 640px) {
+  .deck-switcher { flex-basis: 112px; margin-right: 6px; }
 }
 
 .deck-name-field input {
@@ -8711,7 +8721,7 @@ button.hand-card--shake-1 {
   font-style: normal;
 }
 
-.history-page-heading-row span {
+.history-page-heading-row > div > span {
   display: block;
   margin-top: 6px;
   color: #809bbd;

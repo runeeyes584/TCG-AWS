@@ -6,6 +6,7 @@ import type { GameController } from "../components/game/GameBoard";
 import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { createInitialGameState } from "@backend/game/core/engine";
 import type { GameAction, GameState, PlayerId } from "@backend/game/types";
+import type { ChatMessage } from "@backend/shared/chat";
 import type { DeveloperResourceUpdate, MatchmakingDeckSelection, RoomUpdate } from "@backend/shared/multiplayer";
 import { accessTokenNeedsRefresh, refreshToken } from "../libs/api";
 import { socketManager } from "../libs/socket";
@@ -64,6 +65,8 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string>();
   const [resumeRequired, setResumeRequired] = useState<SocketGameController["resumeRequired"]>();
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatError, setChatError] = useState<string>();
   const roomCodeRef = useRef<string | undefined>(resumeRoomCode);
   const resumeAttemptsRef = useRef(0);
   const [actionLog, setActionLog] = useState<Array<{ id: number; message: string }>>([
@@ -303,6 +306,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
           setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
         }
         setOpponentConnected(message.opponentConnected ?? false);
+        setChatMessages([]);
         setSearching(false);
         setQueueTime(0);
         setInGame(false);
@@ -345,12 +349,20 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
       }
       setOpponentConnected(true);
+      setChatMessages([]);
       setSearching(false);
       setQueueTime(0);
       setStatus("Match Found!");
       setError(undefined);
       setResumeRequired(undefined);
       setInGame(true);
+      });
+
+      socket.on("chat:message", (message: ChatMessage) => {
+        setChatError(undefined);
+        setChatMessages((current) =>
+          current.some((existing) => existing.id === message.id) ? current : [...current, message].slice(-100)
+        );
       });
 
       socket.on("match:ended", (message?: { state?: GameState }) => {
@@ -376,6 +388,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       socket?.off("matchmaking:searching");
       socket?.off("matchmaking:cancelled");
       socket?.off("matchmaking:found");
+      socket?.off("chat:message");
       socket?.off("match:ended");
       socketManager.disconnect();
     };
@@ -490,6 +503,13 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     });
   }
 
+  function sendChatMessage(text: string) {
+    setChatError(undefined);
+    socketManager.sendChatMessage(text, (response: any) => {
+      if (!response.ok) setChatError(response.error);
+    });
+  }
+
   function cancelMatchmaking() {
     socketManager.cancelMatchmaking();
     setSearching(false);
@@ -520,9 +540,12 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       queueTime,
       startMatchmaking,
       cancelMatchmaking,
-      inGame
+      inGame,
+      chat: socketManager.supportsChat()
+        ? { messages: chatMessages, send: sendChatMessage, error: chatError }
+        : undefined
     }),
-    [actionLog, error, gameState, clockOffsetMs, localPlayerId, playerProfiles, opponentConnected, roomCode, socketConnected, status, searching, queueTime, inGame, resumeRequired]
+    [chatMessages, chatError, actionLog, error, gameState, clockOffsetMs, localPlayerId, playerProfiles, opponentConnected, roomCode, socketConnected, status, searching, queueTime, inGame, resumeRequired]
   );
 
   return controller;

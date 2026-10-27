@@ -1,0 +1,209 @@
+/*
+ * Chat frame. The surface, font and colors follow the shared modal panel and
+ * ui/Button (dark navy, cyan border, Rajdhani); buttons and the input come from
+ * ui/Button and ui/form/TextField, so only layout and bubbles live here.
+ */
+.panel {
+  position: fixed;
+  left: 14px;
+  top: 62px;
+  z-index: 1190;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, calc(100vw - 28px));
+  height: min(480px, calc(100dvh - 80px));
+  padding: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 0;
+  background: linear-gradient(165deg, rgba(8, 14, 28, 0.8) 0%, rgba(4, 7, 16, 0.86) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.7), 0 0 28px rgba(56, 189, 248, 0.16);
+  color: #f1f5f9;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  animation: slideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  color: #b8f4ff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 4px 8px 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.4) transparent;
+}
+
+.empty {
+  margin: auto;
+  color: #51657f;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 82%;
+}
+
+.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.theirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.sender {
+  padding: 0 4px;
+  color: #a8bcd5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bubble {
+  padding: 8px 12px;
+  border: 1px solid rgba(105, 170, 224, 0.3);
+  border-radius: 16px;
+  background: rgba(3, 13, 29, 0.78);
+  color: #edf7ff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mine .bubble {
+  border-color: #00f0ff;
+  border-bottom-right-radius: 4px;
+  background: linear-gradient(180deg, #0b4566, #062238);
+  color: #b8f4ff;
+}
+
+.theirs .bubble {
+  border-bottom-left-radius: 4px;
+}
+
+.bigEmoji {
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+.time {
+  padding: 0 4px;
+  color: #51657f;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.reactions,
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.emojiButton {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.activeTab {
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.14);
+}
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(105, 170, 224, 0.3);
+  background: rgba(3, 13, 29, 0.78);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 132px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.emojiCell {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.emojiCell:hover {
+  background: rgba(0, 240, 255, 0.16);
+  transform: scale(1.18);
+}
+
+.composer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconButton {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+  .emojiCell { transition: none; }
+}

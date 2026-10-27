@@ -130,6 +130,19 @@ class SocketManager {
     // the local transport contract.
   }
 
+  /** Chat is relayed by the Socket.IO server only; the API Gateway stack has no chat route yet. */
+  public supportsChat(): boolean {
+    return !process.env.NEXT_PUBLIC_WS_URL;
+  }
+
+  public sendChatMessage(text: string, callback: Callback): void {
+    if (this.socket instanceof ApiGatewaySocket || !this.socket) {
+      callback({ ok: false, error: "Chat is not available on this server." });
+      return;
+    }
+    this.socket.emit("chat:send", text, callback);
+  }
+
   public cancelMatchmaking(): void {
     if (this.socket instanceof ApiGatewaySocket) {
       this.socket.send("matchfinding-cancel");

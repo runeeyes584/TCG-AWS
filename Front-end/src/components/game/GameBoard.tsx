@@ -16,6 +16,10 @@ import {
 import { useLocalGame } from "../../hooks/useLocalGame";
 import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
+import { ChatPanel } from "./chat/ChatPanel";
+import { ChatToggle } from "./chat/ChatToggle";
+import type { ChatController } from "./chat/chatTypes";
+import { useChatUnread } from "./chat/useChatUnread";
 import { GameCard } from "./cards/game-card";
 import { TurnRail } from "./zones/turn-rail";
 import { Hand } from "./zones/hand";
@@ -69,6 +73,8 @@ export interface GameController {
   setDeveloperResources?: ReturnType<typeof useLocalGame>["setDeveloperResources"];
   runTrialCommand?: ReturnType<typeof useLocalGame>["runTrialCommand"];
   playerProfiles?: RoomUpdate["players"];
+  /** Present in online matches (duel, custom room); the chat button is hidden without it. */
+  chat?: ChatController;
   /** The server clock less the browser clock, so the turn timer reads the server's time. Zero when they agree. */
   clockOffsetMs?: number;
 }
@@ -119,14 +125,15 @@ export function GameBoardView({
   trialMode = false,
   onExitTrial
 }: GameBoardViewProps) {
-  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles, clockOffsetMs } = controller;
+  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles, clockOffsetMs, chat } = controller;
   useBattleMusic(gameState);
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
   const [selectedSpellTarget, setSelectedSpellTarget] = useState<SpellTarget>();
   const [selectedCostTargets, setSelectedCostTargets] = useState<SpellTarget[]>([]);
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
-  const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | undefined>();
+  const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | "chat" | undefined>();
+  const chatUnread = useChatUnread(chat?.messages ?? [], localPlayerId, openPanel === "chat");
   const [showExitTrialDialog, setShowExitTrialDialog] = useState(false);
   const [trialConsoleOpen, setTrialConsoleOpen] = useState(true);
   const [showSurrenderDialog, setShowSurrenderDialog] = useState(false);
@@ -1349,6 +1356,13 @@ export function GameBoardView({
               <List size={18} aria-hidden="true" />
             </button>
           )}
+          {chat && localPlayerId ? (
+            <ChatToggle
+              open={openPanel === "chat"}
+              unread={chatUnread}
+              onToggle={() => setOpenPanel(openPanel === "chat" ? undefined : "chat")}
+            />
+          ) : null}
           {developerToolsEnabled ? (
             <button
               type="button"
@@ -1493,7 +1507,16 @@ export function GameBoardView({
           </div>
         ) : null}
 
-        {openPanel ? (
+        {chat && openPanel === "chat" ? (
+          <ChatPanel
+            chat={chat}
+            localPlayerId={localPlayerId}
+            opponentName={playerProfiles?.[localPlayerId === "P1" ? "P2" : "P1"]?.username}
+            onClose={() => setOpenPanel(undefined)}
+          />
+        ) : null}
+
+        {openPanel && openPanel !== "chat" ? (
           <aside className="floating-utility-panel" aria-label={openPanel === "log" ? "Action log" : openPanel === "resources" ? "Resource developer tools" : "Developer controls"}>
             <button
               type="button"

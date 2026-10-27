@@ -24,6 +24,29 @@
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
+/* no leading icon: the input takes the first column */
+.noIcon {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.compact {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.compact .input {
+  height: 38px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .box:focus-within {
   border-color: rgba(127, 226, 255, 0.8);
   background: rgba(5, 20, 42, 0.9);

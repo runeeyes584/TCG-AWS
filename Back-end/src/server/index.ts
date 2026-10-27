@@ -8,6 +8,7 @@ import { MAX_MANA, MAX_SPELL_MANA } from "../game/rules/gameRules";
 import { ACTION_LATE_TOLERANCE_MS, actionIsTooLate, holderMayReportTimeout, turnDeadline } from "../game/rules/turnClock";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
 import { MatchmakingService } from "../matchmaking/matchmaking.service";
+import { createChatRateLimiter, normalizeChatText } from "../shared/chat";
 import type {
   ActionAck,
   ClientToServerEvents,
@@ -72,6 +73,7 @@ const socketRooms = new Map<string, string>();
 const roomTimers = new Map<string, NodeJS.Timeout>();
 const disconnectGraceTimers = new Map<string, NodeJS.Timeout>();
 const disconnectGracePeriodMs = 45_000;
+const chatRateLimiter = createChatRateLimiter();
 // const onlinePlayers = new Map<string, OnlinePlayer>();
 
 const expressApp = express();
@@ -502,9 +504,41 @@ io.on("connection", (socket) => {
     broadcastRoom(room);
   });
 
+  socket.on("chat:send", (text, ack) => {
+    const room = getSocketRoom(socket);
+    const player = room?.players.find((candidate) => candidate.socketId === socket.id);
+    if (!room || !player) {
+      ack?.({ ok: false, error: "You are not in a match." });
+      return;
+    }
+    if (room.players.length < 2) {
+      ack?.({ ok: false, error: "Chat opens once an opponent has joined." });
+      return;
+    }
+    const message = normalizeChatText(text);
+    if (!message) {
+      ack?.({ ok: false, error: "Messages must be between 1 and 300 characters." });
+      return;
+    }
+    if (!chatRateLimiter.allow(socket.id)) {
+      ack?.({ ok: false, error: "You are sending messages too fast." });
+      return;
+    }
+
+    io.to(room.code).emit("chat:message", {
+      id: `${room.code}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      senderId: player.playerId,
+      username: player.profile.username,
+      text: message,
+      sentAt: Date.now()
+    });
+    ack?.({ ok: true });
+  });
+
   socket.on("disconnect", () => {
     MatchmakingService.remove(socket.id);
     OnlinePlayerManager.remove(socket.id);
+    chatRateLimiter.forget(socket.id);
 
     const roomCode = socketRooms.get(socket.id);
     if (!roomCode) {

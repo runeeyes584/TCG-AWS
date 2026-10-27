@@ -1,4 +1,5 @@
 import type { GameAction, GameState, PlayerId } from "../game/types";
+import type { ChatMessage } from "./chat";
 
 export interface ClientToServerEvents {
   "room:create": (selection: MatchmakingDeckSelection | undefined, ack: RoomAck) => void;
@@ -8,6 +9,7 @@ export interface ClientToServerEvents {
   "developer:resources": (updates: DeveloperResourceUpdate[], ack?: ActionAck) => void;
   "matchmaking:start": (selection?: MatchmakingDeckSelection) => void;
   "matchmaking:cancel": () => void;
+  "chat:send": (text: string, ack?: ActionAck) => void;
 }
 
 export interface MatchmakingDeckSelection {
@@ -28,6 +30,7 @@ export interface ServerToClientEvents {
   "matchmaking:searching": () => void;
   "matchmaking:cancelled": () => void;
   "matchmaking:found": (payload?: Partial<RoomUpdate>) => void;
+  "chat:message": (message: ChatMessage) => void;
 }
 
 export interface RoomAckPayload {
