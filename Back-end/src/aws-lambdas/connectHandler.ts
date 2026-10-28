@@ -3,6 +3,8 @@ import type { APIGatewayProxyResult, APIGatewayProxyWebsocketEventV2 } from "aws
 import { verifyToken } from "../auth/verifyToken";
 import { dynamoDb } from "../config/dynamodb";
 import { env } from "../config/env";
+import { isCurrentSession, sessionIdOf, SESSION_REPLACED } from "../session/activeSession";
+import { evictConnections, findPlayerConnections, replacedReason } from "../session/connectionEviction";
 
 const connectionsTable = process.env.CONNECTIONS_TABLE || "Connections";
 const gameStateTable = process.env.GAME_STATE_TABLE || "GameState";
@@ -35,12 +37,14 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
   if (!token) return { statusCode: 401, body: "Unauthorized: Missing token." };
 
   let userId: string;
+  let sessionId: string | undefined;
   let username = event.queryStringParameters?.username || "Player";
   try {
     // The shared verifier checks issuer, client ID and token_use=access.
     const payload = await verifyToken(token);
     if (!payload.sub) return { statusCode: 401, body: "Unauthorized: Invalid token claims." };
     userId = payload.sub;
+    sessionId = sessionIdOf(payload);
     username = String(payload.preferred_username || payload.username || username);
   } catch (error) {
     console.error("Token verification failed:", error);
@@ -57,6 +61,13 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
       if (typeof profileResult.Item?.username === "string" && profileResult.Item.username.trim()) {
         username = profileResult.Item.username.trim();
       }
+      const activeSession = typeof profileResult.Item?.active_session === "string"
+        ? profileResult.Item.active_session
+        : undefined;
+      // A later sign-in replaced this session: it may not connect (and so cannot take the match back).
+      if (!isCurrentSession(activeSession, sessionId)) {
+        return { statusCode: 401, body: SESSION_REPLACED };
+      }
     } catch (error) {
       // startMatch also resolves the authoritative profile. Keep connection
       // establishment available if this Lambda has not received profile-table
@@ -66,7 +77,13 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
 
     await dynamoDb.send(new PutCommand({
       TableName: connectionsTable,
-      Item: { connection_id: connectionId, user_id: userId, username, connected_at: Date.now() }
+      Item: {
+        connection_id: connectionId,
+        user_id: userId,
+        username,
+        connected_at: Date.now(),
+        ...(sessionId ? { session_id: sessionId } : {})
+      }
     }));
 
     // Rebind the ephemeral connection ID, but keep the player disconnected
@@ -156,9 +173,26 @@ export const handler = async (event: ConnectEvent): Promise<APIGatewayProxyResul
         console.warn("Failed to rebind waiting private match connection:", err);
       }
     }
+    // Only now, with the match already bound to this connection, are the player's other connections pushed out:
+    // their $disconnect then finds the match no longer theirs and does not report the player as gone.
+    await pushOutOtherConnections(event, userId, sessionId);
     return { statusCode: 200, body: "Connected successfully." };
   } catch (error: any) {
     console.error("Connect Lambda Error:", error);
     return { statusCode: 500, body: "Unable to register WebSocket connection." };
   }
 };
+
+/**
+ * The latest place wins: the player's other connections are told why and closed. Another tab of the same sign-in is
+ * told `tab`; a connection of an earlier sign-in, `device`. Best effort: a failure must not refuse this connection.
+ */
+async function pushOutOtherConnections(event: ConnectEvent, userId: string, sessionId: string | undefined): Promise<void> {
+  try {
+    const { connectionId, domainName, stage } = event.requestContext;
+    const others = (await findPlayerConnections(userId)).filter((connection) => connection.connectionId !== connectionId);
+    await evictConnections(`https://${domainName}/${stage}`, others, replacedReason(sessionId));
+  } catch (error) {
+    console.warn("Could not push out the player's other connections:", error);
+  }
+}

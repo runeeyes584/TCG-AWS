@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "./verifyToken";
+import { assertActiveSession } from "../session/activeSession";
+import { sendApiError } from "../http/error-response";
 
 export async function authenticate(
     req: Request,
@@ -21,7 +23,19 @@ export async function authenticate(
             });
         }
 
-        const payload = await verifyToken(token);
+        let payload: Awaited<ReturnType<typeof verifyToken>>;
+        try {
+            payload = await verifyToken(token);
+        } catch (error) {
+            return res.status(401).json({
+                success: false,
+                message: error instanceof Error ? error.message : "Invalid token."
+            });
+        }
+
+        // A valid token from a session that a later sign-in replaced is refused (401 SESSION_REPLACED).
+        await assertActiveSession(payload);
+
         (req as any).user = payload;
         (req as any).accessToken = token;
 
@@ -29,9 +43,6 @@ export async function authenticate(
 
     }
     catch (error) {
-        return res.status(401).json({
-            success: false,
-            message: error instanceof Error ? error.message : "Invalid token."
-        });
+        return sendApiError(res, error, "Unable to verify the session.");
     }
 }

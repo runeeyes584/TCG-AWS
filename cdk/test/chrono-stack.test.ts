@@ -143,7 +143,17 @@ describe("managed template", () => {
   it("lets the HTTP backend push to WebSocket connections: it is invoked by the HTTP API but notifies players", () => {
     expect(environmentOf(template, "chrono-http-backend")).toHaveProperty("WS_MANAGEMENT_ENDPOINT");
     expect(actionsOf(statementsOf(template, "chrono-http-backend"))).toContain("execute-api:ManageConnections");
-    expect(environmentOf(template, "ConnectHandler-function")).not.toHaveProperty("WS_MANAGEMENT_ENDPOINT");
+  });
+
+  it("lets the connect handler push the player's other connections out, found through the Connections user index", () => {
+    expect(actionsOf(statementsOf(template, "ConnectHandler-function"))).toContain("execute-api:ManageConnections");
+    template.hasResourceProperties("AWS::DynamoDB::Table", {
+      TableName: "Connections",
+      GlobalSecondaryIndexes: [Match.objectLike({
+        IndexName: "UserIndex",
+        KeySchema: [{ AttributeName: "user_id", KeyType: "HASH" }]
+      })]
+    });
   });
 
   it("keeps the tables as they are: keys, indexes, TTL, on demand, retained and protected", () => {

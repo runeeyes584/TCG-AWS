@@ -25,7 +25,9 @@ import { LoginRequest, RegisterRequest, VerifyRequest } from "./types";
 import { normalizeConfirmationCode } from "./confirmationCode";
 import { ensureUserProfile, findUserByUsername, getUserByEmail, isEmailInDeletionCooldown } from "../user/user.repository";
 import { getCognitoIdentityByAccessToken, type CognitoIdentity } from "./cognito-user";
-import { verifyIdToken } from "./verifyToken";
+import { verifyIdToken, verifyToken } from "./verifyToken";
+import { activateSession, assertActiveSession, endSession, sessionIdOf } from "../session/activeSession";
+import { evictConnections, findPlayerConnections } from "../session/connectionEviction";
 
 async function signUpNewUser(email: string, username: string, password: string) {
     return cognito.send(
@@ -177,6 +179,27 @@ export async function verify(data: VerifyRequest) {
     }
 }
 
+/**
+ * Makes this sign-in the player's only active one (the latest sign-in wins), then pushes the WebSocket connections of
+ * earlier sign-ins out. Pushing out is best effort: the earlier session is refused anyway on its next request.
+ */
+async function startSession(userId: string, accessToken: string): Promise<void> {
+    const sessionId = sessionIdOf(await verifyToken(accessToken));
+    if (!sessionId) {
+        console.warn("The access token has no origin_jti; single-session sign-in is not enforced for it.");
+        return;
+    }
+    await activateSession(userId, sessionId);
+
+    const endpoint = process.env.WS_MANAGEMENT_ENDPOINT;
+    if (!endpoint) return;
+    try {
+        await evictConnections(endpoint, await findPlayerConnections(userId), () => "device");
+    } catch (error) {
+        console.warn("Could not push out the connections of the replaced session:", error);
+    }
+}
+
 export async function login(data: LoginRequest) {
 
     const email = data.email.trim().toLowerCase();
@@ -238,6 +261,7 @@ export async function login(data: LoginRequest) {
             identity = publicUser;
         }
         await ensureUserProfile(identity);
+        await startSession(identity.id, accessToken);
 
         return {
 
@@ -300,8 +324,11 @@ export async function refresh(
     });
 
     const response = await cognito.send(command);
+    const accessToken = response.AuthenticationResult?.AccessToken;
+    // A refresh keeps the session of the sign-in it came from: a session that a later sign-in replaced gets nothing.
+    if (accessToken) await assertActiveSession(await verifyToken(accessToken));
     return {
-        accessToken: response.AuthenticationResult?.AccessToken,
+        accessToken,
         idToken: response.AuthenticationResult?.IdToken,
         expiresIn: response.AuthenticationResult?.ExpiresIn
     };
@@ -310,6 +337,12 @@ export async function refresh(
 export async function logout(
     accessToken: string
 ) {
+
+    const claims = await verifyToken(accessToken).catch(() => undefined);
+    const sessionId = claims ? sessionIdOf(claims) : undefined;
+    if (typeof claims?.sub === "string" && sessionId) {
+        await endSession(claims.sub, sessionId).catch((error) => console.warn("Could not end the session:", error));
+    }
 
     const command = new GlobalSignOutCommand({
 

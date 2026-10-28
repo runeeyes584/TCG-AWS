@@ -7,6 +7,8 @@ import type {
   ServerToClientEvents,
 } from "@backend/shared/multiplayer";
 import { ApiGatewaySocket, type RealtimeSocket } from "./apiGatewaySocket";
+import { verifySession } from "./api";
+import { reportSessionReplaced, sessionReplacement, type SessionReplacedReason } from "./session/sessionEvents";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 type Callback = (response: { ok: true } | { ok: false; error: string }) => void;
@@ -17,8 +19,14 @@ class SocketManager {
     || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "");
 
   public connect(token: string, username: string): RealtimeSocket {
+    // A tab whose place was taken must not connect again: it would push the tab that replaced it back out.
+    if (sessionReplacement()) throw new Error("This session is active somewhere else.");
+
     if (process.env.NEXT_PUBLIC_WS_URL) {
-      if (!(this.socket instanceof ApiGatewaySocket)) this.socket = new ApiGatewaySocket();
+      if (!(this.socket instanceof ApiGatewaySocket)) {
+        this.socket = new ApiGatewaySocket();
+        this.watchSession(this.socket);
+      }
       return this.socket.connect(token, username);
     }
 
@@ -31,6 +39,7 @@ class SocketManager {
         transports: ["websocket", "polling"],
         auth: { token, email: username },
       });
+      this.watchSession(this.socket as unknown as RealtimeSocket);
     }
     const socket = this.socket as GameSocket;
     socket.auth = { token, email: username };
@@ -41,6 +50,26 @@ class SocketManager {
   public disconnect(): void {
     this.socket?.disconnect();
     this.socket = null;
+  }
+
+  /**
+   * The server pushes a connection out when the player plays from somewhere else (`session:replaced`). The socket is
+   * then closed for good, not reconnected. API Gateway refuses a replaced session at connect without saying why, so a
+   * failed connection asks the API; the local server says it in the connect error.
+   */
+  private watchSession(socket: RealtimeSocket): void {
+    socket.on("session:replaced", (payload?: { reason?: SessionReplacedReason }) => {
+      reportSessionReplaced(payload?.reason === "tab" ? "tab" : "device");
+      if (this.socket === (socket as unknown)) this.disconnect();
+    });
+    socket.on("connect_error", (error?: { message?: string }) => {
+      if (error?.message === "SESSION_REPLACED") {
+        reportSessionReplaced("device");
+        if (this.socket === (socket as unknown)) this.disconnect();
+      } else if (socket instanceof ApiGatewaySocket) {
+        void verifySession();
+      }
+    });
   }
 
   public getSocket(): RealtimeSocket | null {
@@ -119,15 +148,16 @@ class SocketManager {
 
   /** Resume is intentionally distinct from matchmaking: it represents the
    * player's explicit choice in the unfinished-match dialog. */
-  public resumeMatch(matchId: string): void {
+  public resumeMatch(matchId: string, callback?: Callback): void {
     if (this.socket instanceof ApiGatewaySocket) {
       const route = process.env.NEXT_PUBLIC_MATCHMAKING_ROUTE || "matchfinding-start";
       this.socket.send(route, { resume: true, matchId });
       return;
     }
-    // The local Socket.IO server owns room reattachment on connect. Keep this
-    // method a no-op there so the production-only safety protocol cannot alter
-    // the local transport contract.
+    // The local Socket.IO server does not look for an unfinished match when a socket connects: it reattaches a player
+    // who is already in the room when they join it again. Joining the room by its code is therefore how a local match
+    // is resumed; the server finds the player by user id and answers with the room state.
+    this.socket?.emit("room:join", matchId, undefined, callback ?? (() => undefined));
   }
 
   public cancelMatchmaking(): void {

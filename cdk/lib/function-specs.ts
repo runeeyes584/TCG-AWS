@@ -80,6 +80,8 @@ export const FUNCTION_SPECS: readonly FunctionSpec[] = [
     memorySize: 128,
     timeoutSeconds: 15,
     tables: { connections: "readWrite", gameState: "readWrite", userProfile: "read" },
+    // Pushes the player's other connections out (session:replaced) when they connect from somewhere else.
+    pushesToWebSocket: true,
     cognito: "verifier"
   },
   {

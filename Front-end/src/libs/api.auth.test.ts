@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isAuthError, isServerUnavailable, login } from "./api";
+import { isAuthError, isServerUnavailable, login, me } from "./api";
+import { resetSessionReplacement, sessionReplacement } from "./session/sessionEvents";
 
 // The API base URL is read when the module loads.
 vi.hoisted(() => {
@@ -68,3 +69,25 @@ describe("login", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("a session ended by a sign-in elsewhere", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetSessionReplacement();
+  });
+
+  it("is reported when the API answers 401 SESSION_REPLACED", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => answer(401, { code: "SESSION_REPLACED", message: "Signed in elsewhere." })));
+
+    await expect(me()).rejects.toMatchObject({ code: "SESSION_REPLACED", status: 401 });
+    expect(sessionReplacement()).toBe("device");
+  });
+
+  it("is not reported for an ordinary 401 (an expired token is refreshed, not a replaced session)", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => answer(401, { message: "JWT expired" })));
+
+    await expect(me()).rejects.toMatchObject({ status: 401 });
+    expect(sessionReplacement()).toBeUndefined();
+  });
+});
+
