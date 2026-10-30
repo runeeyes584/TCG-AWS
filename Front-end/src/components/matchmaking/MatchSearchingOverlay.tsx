@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { AlertOctagon, Compass, Disc3, Radio, X } from "lucide-react";
 import { PhaserSearchingVortex } from "./PhaserSearchingVortex";
 
@@ -30,6 +30,7 @@ export function MatchSearchingOverlay({
   onCancel,
 }: MatchSearchingOverlayProps) {
   const [phraseIndex, setPhraseIndex] = useState(0);
+  const radarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -50,13 +51,14 @@ export function MatchSearchingOverlay({
       {/* Abyssal Sinkhole Background Shading & Vortex Canvas */}
       <div className="searching-vignette" aria-hidden="true" />
       <div className="searching-art" aria-hidden="true">
-        <PhaserSearchingVortex />
+        <PhaserSearchingVortex anchorRef={radarRef} />
       </div>
       <div className="searching-grid-ambient" aria-hidden="true" />
 
       {/* Central Tactical Telemetry Scope */}
       <div className="searching-content">
         <motion.div
+          ref={radarRef}
           className="searching-radar-hud"
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -76,9 +78,28 @@ export function MatchSearchingOverlay({
               <strong className="radar-timer-val">{formatTime(queueTime)}</strong>
             </div>
 
-            <div className="radar-status-pill">
-              <span className="status-ping" />
-              <span className="status-phrase">{searchingPhrases[phraseIndex]}</span>
+            <div className="radar-status-pill" role="status" aria-live="polite">
+              <span className="status-bracket status-bracket--start" aria-hidden="true" />
+              <span className="status-bracket status-bracket--end" aria-hidden="true" />
+              <span className="status-bars" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={phraseIndex}
+                  className="status-phrase"
+                  initial={{ opacity: 0, y: 7, filter: "blur(3px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -7, filter: "blur(3px)" }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                >
+                  {searchingPhrases[phraseIndex]}
+                </motion.span>
+              </AnimatePresence>
+              {/* Fills over the time a phrase stays, then starts again with the next one. */}
+              <span key={phraseIndex} className="status-progress" aria-hidden="true" />
             </div>
           </div>
         </motion.div>

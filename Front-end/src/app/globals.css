@@ -7130,7 +7130,7 @@ button.pile-hit:active:not(:disabled) {
   inset: 0;
   border-radius: 50%;
   border: 1.5px dashed rgba(0, 240, 255, 0.4);
-  animation: matchSpin 8s linear infinite;
+  animation: matchSpin 12s linear infinite;
 }
 
 .radar-ring-spin-ccw {
@@ -7138,7 +7138,7 @@ button.pile-hit:active:not(:disabled) {
   inset: 14px;
   border-radius: 50%;
   border: 1px dashed rgba(168, 85, 247, 0.5);
-  animation: matchSpin 5s linear infinite reverse;
+  animation: matchSpin 12s linear infinite reverse;
 }
 
 .radar-core-telemetry {
@@ -7182,30 +7182,128 @@ button.pile-hit:active:not(:disabled) {
   margin-top: 3px;
 }
 
+/* The readout under the timer: a plate with HUD brackets at two corners, three bars that dance like a signal meter, the
+   phrase (it changes every 2.8 s, the bar along the foot fills over that time), and a light that sweeps across it. Its
+   width is fixed, so a longer phrase never moves it, and it is square cornered like the rest of the HUD. */
 .radar-status-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  background: rgba(0, 240, 255, 0.12);
-  border: 1px solid rgba(0, 240, 255, 0.3);
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 244px;
+  min-height: 30px;
+  padding: 7px 14px 9px;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(0, 240, 255, 0.04), rgba(0, 240, 255, 0.2) 50%, rgba(168, 85, 247, 0.1)),
+    rgba(2, 10, 24, 0.82);
+  border: 1px solid rgba(0, 240, 255, 0.32);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.22), inset 0 0 14px rgba(0, 240, 255, 0.1);
 }
 
-.status-ping {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #00f0ff;
-  box-shadow: 0 0 8px #00f0ff;
-  animation: dangerBlink 1.2s infinite;
+/* The light that sweeps across the plate. */
+.radar-status-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 38%, rgba(190, 250, 255, 0.34) 50%, transparent 62%);
+  transform: translateX(-120%);
+  animation: statusSweep 2.8s ease-in-out infinite;
+  pointer-events: none;
 }
+
+.status-bracket {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #00f0ff;
+  filter: drop-shadow(0 0 4px #00f0ff);
+  pointer-events: none;
+}
+
+.status-bracket--start {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.status-bracket--end {
+  right: -1px;
+  bottom: -1px;
+  border-left: none;
+  border-top: none;
+  border-color: #a855f7;
+  filter: drop-shadow(0 0 4px #a855f7);
+}
+
+.status-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+  flex: none;
+}
+
+.status-bars i {
+  display: block;
+  width: 2px;
+  height: 100%;
+  background: #00f0ff;
+  box-shadow: 0 0 6px #00f0ff;
+  transform-origin: bottom;
+  animation: statusBars 0.9s ease-in-out infinite;
+}
+
+.status-bars i:nth-child(2) { animation-delay: 0.15s; }
+.status-bars i:nth-child(3) { animation-delay: 0.3s; }
 
 .status-phrase {
-  color: #c9f5ff;
+  position: relative;
+  display: block;
+  min-width: 0;
+  color: #d8f8ff;
+  font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.7);
+  white-space: nowrap;
+}
+
+.status-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, #00f0ff, #a855f7);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
+  transform-origin: left;
+  animation: statusFill 2.8s linear forwards;
+}
+
+@keyframes statusSweep {
+  0% { transform: translateX(-120%); }
+  55%, 100% { transform: translateX(120%); }
+}
+
+@keyframes statusBars {
+  0%, 100% { transform: scaleY(0.3); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes statusFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radar-status-pill::before,
+  .status-bars i { animation: none; }
+  .status-progress { animation: none; transform: none; opacity: 0.6; }
 }
 
 .searching-telemetry-row {
@@ -7317,8 +7415,9 @@ button.pile-hit:active:not(:disabled) {
   position: relative;
   z-index: 10;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  /* The middle column has a fixed width: its text changes (the last two seconds say more) and must never push the cards. */
+  grid-template-columns: minmax(0, 1fr) 224px minmax(0, 1fr);
+  align-items: stretch;
   width: min(94vw, 980px);
   gap: 24px;
 }
@@ -7327,6 +7426,9 @@ button.pile-hit:active:not(:disabled) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* From the top, so both cards line up row by row even when one of them wraps a line more than the other. */
+  justify-content: flex-start;
+  min-width: 0;
   text-align: center;
   padding: 28px 20px;
   border: 1px solid rgba(0, 240, 255, 0.3);
@@ -7410,9 +7512,10 @@ button.pile-hit:active:not(:disabled) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  min-width: 0;
   text-align: center;
-  padding: 0 12px;
 }
 
 .vs-emblem {
@@ -7588,8 +7691,10 @@ button.pile-hit:active:not(:disabled) {
 
 .cyborg-telemetry-badge {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 4px 8px;
   margin-top: 14px;
   padding: 4px 10px;
   border-radius: 2px;
@@ -7639,6 +7744,14 @@ button.pile-hit:active:not(:disabled) {
 }
 
 .clash-subtext.cyborg-subtext {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Two lines tall in both states, so the text changing never changes the height of the column either. */
+  width: 100%;
+  min-height: 3em;
+  line-height: 1.5;
+  text-wrap: balance;
   font-family: var(--font-mono);
   font-size: 9.5px;
   letter-spacing: 0.18em;
@@ -7696,7 +7809,9 @@ button.pile-hit:active:not(:disabled) {
   .matchmaking-title small { font-size: 6px; }
   .matchmaking-content { width: calc(100% - 32px); margin: 0 16px 36px; padding-top: 70px; }
   .matchmaking-content h1 { font-size: clamp(34px, 11vw, 52px); }
-  .showcase-arena { grid-template-columns: 1fr; gap: 16px; }
+  /* Stacked, the showcase is taller than the screen: it scrolls from the top instead of being cut off at both ends. */
+  .match-found-showcase { justify-content: flex-start; overflow-y: auto; padding: 88px 0 32px; }
+  .showcase-arena { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .showcase-center-clash { order: -1; }
 }
 

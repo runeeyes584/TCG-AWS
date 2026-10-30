@@ -92,6 +92,9 @@ export function MatchFoundShowcase({
 }: MatchFoundShowcaseProps) {
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const emblemRef = useRef<HTMLDivElement>(null);
+  const leftCardRef = useRef<HTMLDivElement>(null);
+  const rightCardRef = useRef<HTMLDivElement>(null);
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -150,10 +153,32 @@ export function MatchFoundShowcase({
       const PhaserRuntime = (mod as any).default || mod;
       if (disposed || !canvasRef.current) return;
 
+      /**
+       * Where the clash happens, in the canvas' own px: the centre of the VS emblem, and the inner edges of the two
+       * player cards the lightning runs between. Measured from the DOM so the effect stays on the layout at any size.
+       */
+      const measureClash = () => {
+        const host = canvasRef.current;
+        const emblem = emblemRef.current;
+        if (!host || !emblem) return undefined;
+        const hostBox = host.getBoundingClientRect();
+        const emblemBox = emblem.getBoundingClientRect();
+        const left = leftCardRef.current?.getBoundingClientRect();
+        const right = rightCardRef.current?.getBoundingClientRect();
+        const cy = emblemBox.top + emblemBox.height / 2 - hostBox.top;
+        return {
+          cx: emblemBox.left + emblemBox.width / 2 - hostBox.left,
+          cy,
+          leftX: left ? left.right - hostBox.left : hostBox.width * 0.25,
+          rightX: right ? right.left - hostBox.left : hostBox.width * 0.75,
+        };
+      };
+
       class ClashVfxScene extends PhaserRuntime.Scene {
         private energyGraphics!: Phaser.GameObjects.Graphics;
         private shockwaves: Phaser.GameObjects.Arc[] = [];
         private lightningTimer?: Phaser.Time.TimerEvent;
+        private clash = { cx: 0, cy: 0, leftX: 0, rightX: 0 };
 
         constructor() {
           super("match-clash-vfx");
@@ -161,6 +186,7 @@ export function MatchFoundShowcase({
 
         create() {
           this.energyGraphics = this.add.graphics().setBlendMode(PhaserRuntime.BlendModes.ADD);
+          this.syncClash();
           this.createClashShockwave();
 
           this.lightningTimer = this.time.addEvent({
@@ -173,34 +199,52 @@ export function MatchFoundShowcase({
           this.scale.on("resize", this.handleResize, this);
         }
 
+        /** Re-reads where the emblem and the cards are; true when something moved. */
+        private syncClash() {
+          const next = measureClash();
+          if (!next) return false;
+          const moved = Object.keys(next).some(
+            (key) => Math.abs(next[key as keyof typeof next] - this.clash[key as keyof typeof next]) > 1.5
+          );
+          if (moved) this.clash = next;
+          return moved;
+        }
+
+        update() {
+          // The cards slide in and the window can be resized: the rings follow the emblem.
+          if (this.syncClash()) {
+            this.shockwaves.forEach((wave) => wave.setPosition(this.clash.cx, this.clash.cy));
+          }
+        }
+
+        /** Three rings, one after the other at the same spacing in time, all growing out of the emblem. */
         private createClashShockwave() {
           const { width, height } = this.scale;
-          const cx = width / 2;
-          const cy = height / 2;
+          const { cx, cy } = this.clash;
+          const duration = 2400;
+          const rings = 3;
 
-          for (let i = 0; i < 3; i += 1) {
-            const wave = this.add.circle(cx, cy, 30, i % 2 === 0 ? 0x00f0ff : 0xff0055, 0)
-              .setStrokeStyle(2, i % 2 === 0 ? 0x00f0ff : 0xff0055, 0.8)
+          for (let i = 0; i < rings; i += 1) {
+            const color = i % 2 === 0 ? 0x00f0ff : 0xff0055;
+            const wave = this.add.circle(cx, cy, 30, color, 0)
+              .setStrokeStyle(2, color, 0.8)
               .setBlendMode(PhaserRuntime.BlendModes.ADD);
             this.shockwaves.push(wave);
 
             this.tweens.add({
               targets: wave,
               radius: Math.min(width, height) * 0.7,
-              alpha: 0,
-              duration: 1800,
-              delay: i * 350,
+              alpha: { from: 1, to: 0 },
+              duration,
+              delay: (duration / rings) * i,
               repeat: -1,
-              ease: "Cubic.out",
+              ease: "Sine.out",
             });
           }
         }
 
         private spawnClashLightning() {
-          const { width, height } = this.scale;
-          const leftX = width * 0.25;
-          const rightX = width * 0.75;
-          const cy = height * 0.5;
+          const { leftX, rightX, cy } = this.clash;
 
           let step = 0;
           this.time.addEvent({
@@ -304,6 +348,7 @@ export function MatchFoundShowcase({
       <div className="showcase-arena">
         {/* Left Side: Local Player (Cyan) */}
         <motion.div
+          ref={leftCardRef}
           className="showcase-gladiator gladiator-left cyborg-card"
           initial={{ x: -80, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -352,7 +397,7 @@ export function MatchFoundShowcase({
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.45, delay: 0.1, type: "spring", stiffness: 220 }}
         >
-          <div className={`vs-emblem cyborg-vs-emblem ${isUrgent ? "is-urgent-glitch" : ""}`}>
+          <div ref={emblemRef} className={`vs-emblem cyborg-vs-emblem ${isUrgent ? "is-urgent-glitch" : ""}`}>
             <Swords size={36} className="vs-swords-icon" />
             <span className="vs-text">VS</span>
             <div className="vs-energy-ring" aria-hidden="true" />
@@ -395,6 +440,7 @@ export function MatchFoundShowcase({
 
         {/* Right Side: Opponent (Crimson / Violet) */}
         <motion.div
+          ref={rightCardRef}
           className="showcase-gladiator gladiator-right cyborg-card"
           initial={{ x: 80, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
