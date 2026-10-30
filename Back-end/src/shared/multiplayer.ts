@@ -31,6 +31,11 @@ export interface ServerToClientEvents {
   "matchmaking:cancelled": () => void;
   "matchmaking:found": (payload?: Partial<RoomUpdate>) => void;
   "chat:message": (message: ChatMessage) => void;
+  /**
+   * A refused chat message, told to its sender only. Sent by the API Gateway stack, whose routes have no
+   * acknowledgement; the Socket.IO server answers through the `chat:send` ack instead.
+   */
+  "chat:error"?: (payload: { message: string }) => void;
 }
 
 export interface RoomAckPayload {

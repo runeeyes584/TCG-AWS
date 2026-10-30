@@ -8,7 +8,7 @@ import { MAX_MANA, MAX_SPELL_MANA } from "../game/rules/gameRules";
 import { ACTION_LATE_TOLERANCE_MS, actionIsTooLate, holderMayReportTimeout, turnDeadline } from "../game/rules/turnClock";
 import { GameAction, GameState, GameValidationError, PlayerId } from "../game/types";
 import { MatchmakingService } from "../matchmaking/matchmaking.service";
-import { createChatRateLimiter, normalizeChatText } from "../shared/chat";
+import { CHAT_ERRORS, createChatMessage, createChatRateLimiter, normalizeChatText } from "../shared/chat";
 import type {
   ActionAck,
   ClientToServerEvents,
@@ -508,30 +508,29 @@ io.on("connection", (socket) => {
     const room = getSocketRoom(socket);
     const player = room?.players.find((candidate) => candidate.socketId === socket.id);
     if (!room || !player) {
-      ack?.({ ok: false, error: "You are not in a match." });
+      ack?.({ ok: false, error: CHAT_ERRORS.notInMatch });
       return;
     }
     if (room.players.length < 2) {
-      ack?.({ ok: false, error: "Chat opens once an opponent has joined." });
+      ack?.({ ok: false, error: CHAT_ERRORS.waitingForOpponent });
       return;
     }
     const message = normalizeChatText(text);
     if (!message) {
-      ack?.({ ok: false, error: "Messages must be between 1 and 300 characters." });
+      ack?.({ ok: false, error: CHAT_ERRORS.invalidText });
       return;
     }
     if (!chatRateLimiter.allow(socket.id)) {
-      ack?.({ ok: false, error: "You are sending messages too fast." });
+      ack?.({ ok: false, error: CHAT_ERRORS.tooFast });
       return;
     }
 
-    io.to(room.code).emit("chat:message", {
-      id: `${room.code}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    io.to(room.code).emit("chat:message", createChatMessage({
+      matchId: room.code,
       senderId: player.playerId,
       username: player.profile.username,
-      text: message,
-      sentAt: Date.now()
-    });
+      text: message
+    }));
     ack?.({ ok: true });
   });
 

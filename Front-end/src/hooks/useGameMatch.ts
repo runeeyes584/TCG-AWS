@@ -365,6 +365,11 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         );
       });
 
+      // Only the API Gateway stack sends this: its routes cannot answer through the send callback.
+      socket.on("chat:error", (payload?: { message?: string }) => {
+        setChatError(payload?.message || "Your message could not be sent.");
+      });
+
       socket.on("match:ended", (message?: { state?: GameState }) => {
         if (message?.state) setGameState(message.state);
         setSearching(false);
@@ -389,6 +394,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       socket?.off("matchmaking:cancelled");
       socket?.off("matchmaking:found");
       socket?.off("chat:message");
+      socket?.off("chat:error");
       socket?.off("match:ended");
       socketManager.disconnect();
     };
@@ -505,7 +511,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
   function sendChatMessage(text: string) {
     setChatError(undefined);
-    socketManager.sendChatMessage(text, (response: any) => {
+    socketManager.sendChatMessage(roomCodeRef.current, text, (response: any) => {
       if (!response.ok) setChatError(response.error);
     });
   }
@@ -541,9 +547,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       startMatchmaking,
       cancelMatchmaking,
       inGame,
-      chat: socketManager.supportsChat()
-        ? { messages: chatMessages, send: sendChatMessage, error: chatError }
-        : undefined
+      chat: { messages: chatMessages, send: sendChatMessage, error: chatError }
     }),
     [chatMessages, chatError, actionLog, error, gameState, clockOffsetMs, localPlayerId, playerProfiles, opponentConnected, roomCode, socketConnected, status, searching, queueTime, inGame, resumeRequired]
   );

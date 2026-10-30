@@ -32,6 +32,7 @@
     "build:lambda:start-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/startMatch.ts startMatch",
     "build:lambda:end-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/endMatch.ts endMatch",
     "build:lambda:process-engine": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/processGameEngine.ts processGameEngine",
+    "build:lambda:match-chat": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/matchChat.ts matchChat",
     "build:lambda:http": "node scripts/build-http-lambda.mjs",
     "build:lambda:post-match": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/postMatchWorker.ts postMatchWorker",
     "build:lambda:rebuild-leaderboard": "node scripts/build-lambda.mjs Back-end/src/aws-lambdas/rebuildLeaderboardRanks.ts rebuildLeaderboardRanks",

@@ -1,6 +1,6 @@
 import { Stack, type StackProps } from "aws-cdk-lib";
 import type { ITable } from "aws-cdk-lib/aws-dynamodb";
-import { PolicyStatement, Role, type IRole } from "aws-cdk-lib/aws-iam";
+import { PolicyStatement, Role, ServicePrincipal, type IRole } from "aws-cdk-lib/aws-iam";
 import type { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import type { IQueue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
@@ -65,7 +65,9 @@ export class ChronoStack extends Stack {
 
     const shared: SharedResources | undefined = scheduler ? { tables, matchResults, scheduler } : undefined;
     const functions: Record<string, NodejsFunction> = {};
-    for (const spec of props.specs ?? FUNCTION_SPECS) {
+    // An import may only take over what exists, so the adoption template leaves out the functions this stack creates.
+    const specs = (props.specs ?? FUNCTION_SPECS).filter((spec) => !(adopt && spec.createdByStack));
+    for (const spec of specs) {
       const fn = new GameFunction(this, spec.id, {
         spec,
         repoRoot: props.repoRoot,
@@ -89,12 +91,18 @@ export class ChronoStack extends Stack {
     if (spec.consumesMatchResults) matchResults.grantConsumeMessages(fn);
     if (spec.turnTimeouts === "manage") scheduler.grantScheduling(fn);
     if (spec.turnTimeouts === "cancel") scheduler.grantCancelling(fn);
+    const { apiId, stage } = EXISTING.webSocket;
     if (spec.pushesToWebSocket) {
-      const { apiId, stage } = EXISTING.webSocket;
       fn.addToRolePolicy(new PolicyStatement({
         actions: ["execute-api:ManageConnections"],
         resources: [`arn:aws:execute-api:${this.region}:${this.account}:${apiId}/${stage}/*/@connections/*`]
       }));
+    }
+    for (const route of spec.webSocketRoutes ?? []) {
+      fn.addPermission(`WebSocketRoute-${route}`, {
+        principal: new ServicePrincipal("apigateway.amazonaws.com"),
+        sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${apiId}/${stage}/${route}`
+      });
     }
     if (spec.cognito === "client") {
       fn.addToRolePolicy(new PolicyStatement({

@@ -35,11 +35,19 @@ export interface FunctionSpec {
   readonly cognito?: "verifier" | "client";
   /** Allowed browser origins (`FRONTEND_ORIGINS`). */
   readonly frontendOrigins?: boolean;
+  /**
+   * The WebSocket routes that invoke the function, each allowed to by its own resource policy. Only for functions
+   * whose routes are added after the stack took the functions over: the routes made by hand before then still
+   * invoke theirs through permissions made by hand, until the WebSocket API itself is adopted.
+   */
+  readonly webSocketRoutes?: readonly string[];
+  /** Created by this stack rather than made by hand and adopted, so it has no place in the adoption template. */
+  readonly createdByStack?: boolean;
 }
 
 export const HANDLE_TIMEOUT_FUNCTION_NAME = "HandleTimeout-function";
 
-/** The ten game functions, with the memory and timeout they run with today. */
+/** The game functions, with the memory and timeout they run with today. */
 export const FUNCTION_SPECS: readonly FunctionSpec[] = [
   {
     id: "HttpBackend",
@@ -150,5 +158,17 @@ export const FUNCTION_SPECS: readonly FunctionSpec[] = [
     timeoutSeconds: 300,
     tables: { userProfile: "readWrite", connections: "read" },
     pushesToWebSocket: true
+  },
+  {
+    id: "MatchChat",
+    functionName: "MatchChat-function",
+    entry: "matchChat.ts",
+    memorySize: 128,
+    timeoutSeconds: 5,
+    // Reads who plays the match; counts each connection's messages on its own record.
+    tables: { gameState: "read", connections: "readWrite" },
+    pushesToWebSocket: true,
+    webSocketRoutes: ["chat-send"],
+    createdByStack: true
   }
 ];

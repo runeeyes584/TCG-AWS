@@ -97,4 +97,39 @@ describe("API Gateway private-room socket routes", () => {
       }
     });
   });
+
+  it("sends a chat message to the match through the chat-send route", () => {
+    socketManager.connect("token", "player");
+    const socket = FakeWebSocket.latest!;
+    socket.open();
+    const callback = vi.fn();
+
+    socketManager.sendChatMessage("MATCH-123", "gg wp", callback);
+
+    expect(JSON.parse(socket.sent[0])).toEqual({ route: "chat-send", matchId: "MATCH-123", text: "gg wp" });
+    expect(callback).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it("sends no chat message without a match to send it to", () => {
+    socketManager.connect("token", "player");
+    const socket = FakeWebSocket.latest!;
+    socket.open();
+    const callback = vi.fn();
+
+    socketManager.sendChatMessage(undefined, "hello", callback);
+
+    expect(socket.sent).toEqual([]);
+    expect(callback).toHaveBeenCalledWith({ ok: false, error: "No active match was found." });
+  });
+
+  it("passes a refused chat message on to the chat:error listeners", () => {
+    const socket = socketManager.connect("token", "player");
+    const listener = vi.fn();
+    socket.on("chat:error", listener);
+    FakeWebSocket.latest!.open();
+
+    FakeWebSocket.latest!.onmessage?.({ data: JSON.stringify({ event: "chat:error", message: "You are sending messages too fast." }) });
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ message: "You are sending messages too fast." }));
+  });
 });

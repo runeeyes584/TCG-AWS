@@ -130,14 +130,22 @@ class SocketManager {
     // the local transport contract.
   }
 
-  /** Chat is relayed by the Socket.IO server only; the API Gateway stack has no chat route yet. */
-  public supportsChat(): boolean {
-    return !process.env.NEXT_PUBLIC_WS_URL;
-  }
-
-  public sendChatMessage(text: string, callback: Callback): void {
-    if (this.socket instanceof ApiGatewaySocket || !this.socket) {
-      callback({ ok: false, error: "Chat is not available on this server." });
+  /**
+   * The API Gateway route has no acknowledgement: the callback only says the message left, and a refusal comes
+   * back as `chat:error`. The Socket.IO server answers through the callback.
+   */
+  public sendChatMessage(matchId: string | undefined, text: string, callback: Callback): void {
+    if (this.socket instanceof ApiGatewaySocket) {
+      const resolvedMatchId = matchId || this.socket.getRoomCode();
+      if (!resolvedMatchId) {
+        callback({ ok: false, error: "No active match was found." });
+        return;
+      }
+      this.socket.send("chat-send", { matchId: resolvedMatchId, text }, callback);
+      return;
+    }
+    if (!this.socket) {
+      callback({ ok: false, error: "Not connected to the game server." });
       return;
     }
     this.socket.emit("chat:send", text, callback);

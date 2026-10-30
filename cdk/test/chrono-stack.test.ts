@@ -29,6 +29,9 @@ function statementsOf(template: Template, functionName: string): any[] {
     .flatMap((policy) => policy.Properties.PolicyDocument.Statement);
 }
 
+/** The functions that existed before the stack: the only ones an import takes over. */
+const ADOPTED_SPECS = FUNCTION_SPECS.filter((spec) => !spec.createdByStack);
+
 const actionsOf = (statements: any[]) => statements.flatMap((statement) => [statement.Action].flat());
 const environmentOf = (template: Template, functionName: string): Record<string, unknown> =>
   Object.values(resourcesOf(template)).find((resource) => resource.Properties.FunctionName === functionName)!
@@ -41,7 +44,7 @@ describe("adoption template (cdk import)", () => {
   it("holds nothing but the existing tables, queue and functions", () => {
     const types = new Set(resources.map((resource) => resource.Type));
     expect([...types].sort()).toEqual(["AWS::DynamoDB::Table", "AWS::Lambda::Function", "AWS::SQS::Queue"]);
-    expect(resources).toHaveLength(6 + 1 + FUNCTION_SPECS.length);
+    expect(resources).toHaveLength(6 + 1 + ADOPTED_SPECS.length);
   });
 
   it("retains every resource, so an import or a rollback never deletes one", () => {
@@ -53,7 +56,8 @@ describe("adoption template (cdk import)", () => {
       resources.filter((resource) => resource.Type === type).map((resource) => resource.Properties[property]).sort();
     expect(names("AWS::DynamoDB::Table", "TableName")).toEqual(Object.values(TABLE_NAMES).sort());
     expect(names("AWS::SQS::Queue", "QueueName")).toEqual([MATCH_RESULTS_QUEUE_NAME]);
-    expect(names("AWS::Lambda::Function", "FunctionName")).toEqual(FUNCTION_SPECS.map((spec) => spec.functionName).sort());
+    expect(names("AWS::Lambda::Function", "FunctionName")).toEqual(ADOPTED_SPECS.map((spec) => spec.functionName).sort());
+    expect(names("AWS::Lambda::Function", "FunctionName")).not.toContain("MatchChat-function");
   });
 
   it("keeps the functions on the role they share today", () => {
@@ -144,6 +148,35 @@ describe("managed template", () => {
     expect(environmentOf(template, "chrono-http-backend")).toHaveProperty("WS_MANAGEMENT_ENDPOINT");
     expect(actionsOf(statementsOf(template, "chrono-http-backend"))).toContain("execute-api:ManageConnections");
     expect(environmentOf(template, "ConnectHandler-function")).not.toHaveProperty("WS_MANAGEMENT_ENDPOINT");
+  });
+
+  it("lets the chat-send route, and only that route of the game socket, invoke the chat function", () => {
+    const permissions = Object.values(resourcesOf(template)).filter((resource) => resource.Type === "AWS::Lambda::Permission");
+    expect(permissions).toHaveLength(1);
+    expect(permissions[0].Properties).toMatchObject({
+      Action: "lambda:InvokeFunction",
+      Principal: "apigateway.amazonaws.com",
+      SourceArn: "arn:aws:execute-api:ap-southeast-1:977233000065:r953911p86/dev/chat-send"
+    });
+    const chatFunctionId = Object.entries(resourcesOf(template))
+      .find(([, resource]) => resource.Properties.FunctionName === "MatchChat-function")![0];
+    expect(permissions[0].Properties.FunctionName).toEqual({ "Fn::GetAtt": [chatFunctionId, "Arn"] });
+  });
+
+  it("lets the chat function read matches, count messages on connections and push to players, and nothing more", () => {
+    const statements = statementsOf(template, "MatchChat-function");
+    const tablesOf = (action: string) => statements
+      .filter((statement) => actionsOf([statement]).includes(action))
+      .map((statement) => JSON.stringify(statement.Resource));
+    expect(tablesOf("dynamodb:GetItem").join()).toMatch(/DataGameState/);
+    expect(tablesOf("dynamodb:GetItem").join()).toMatch(/DataConnections/);
+    expect(tablesOf("dynamodb:UpdateItem").join()).toMatch(/DataConnections/);
+    expect(tablesOf("dynamodb:UpdateItem").join()).not.toMatch(/DataGameState/);
+    expect(actionsOf(statements)).toContain("execute-api:ManageConnections");
+    expect(actionsOf(statements).filter((action) => /^(sqs|scheduler|ssm|iam):/.test(action))).toEqual([]);
+    expect(environmentOf(template, "MatchChat-function")).toEqual({
+      WS_MANAGEMENT_ENDPOINT: "https://r953911p86.execute-api.ap-southeast-1.amazonaws.com/dev"
+    });
   });
 
   it("keeps the tables as they are: keys, indexes, TTL, on demand, retained and protected", () => {
