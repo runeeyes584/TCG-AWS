@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { io, verifySession } = vi.hoisted(() => {
+  // The socket manager reads the local server address once, when the module loads.
+  process.env.NEXT_PUBLIC_SOCKET_URL = "http://localhost:5000";
+  return { io: vi.fn(), verifySession: vi.fn(async () => undefined) };
+});
+vi.mock("socket.io-client", () => ({ io }));
+vi.mock("./api", () => ({ verifySession }));
+
 import { socketManager } from "./socket";
+import { resetSessionReplacement, sessionReplacement } from "./session/sessionEvents";
 
 class FakeWebSocket {
   static readonly CONNECTING = 0;
@@ -133,3 +143,128 @@ describe("API Gateway private-room socket routes", () => {
     expect(listener).toHaveBeenCalledWith(expect.objectContaining({ message: "You are sending messages too fast." }));
   });
 });
+
+describe("local Socket.IO resume", () => {
+  const emit = vi.fn();
+
+  beforeEach(() => {
+    delete process.env.NEXT_PUBLIC_WS_URL;
+    emit.mockClear();
+    io.mockReturnValue({ emit, on: vi.fn(), off: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), connected: true });
+    socketManager.connect("token", "player");
+  });
+
+  afterEach(() => {
+    socketManager.disconnect();
+  });
+
+  it("joins the room by its code, which is how the local server reattaches a player who left", () => {
+    const callback = vi.fn();
+
+    socketManager.resumeMatch("ABC234", callback);
+
+    expect(emit).toHaveBeenCalledWith("room:join", "ABC234", undefined, callback);
+  });
+
+  it("does not need a callback", () => {
+    socketManager.resumeMatch("ABC234");
+
+    expect(emit).toHaveBeenCalledWith("room:join", "ABC234", undefined, expect.any(Function));
+  });
+});
+
+describe("a connection pushed out because the player plays from somewhere else", () => {
+  beforeEach(() => {
+    resetSessionReplacement();
+    verifySession.mockClear();
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    process.env.NEXT_PUBLIC_WS_URL = "wss://example.test/dev";
+  });
+
+  afterEach(() => {
+    socketManager.disconnect();
+    vi.unstubAllGlobals();
+    delete process.env.NEXT_PUBLIC_WS_URL;
+    FakeWebSocket.latest = undefined;
+    resetSessionReplacement();
+  });
+
+  const receive = (socket: FakeWebSocket, message: unknown) => socket.onmessage?.({ data: JSON.stringify(message) });
+
+  it("reports why and closes the socket for good, so it cannot push the new tab back out", () => {
+    socketManager.connect("token", "player");
+    const socket = FakeWebSocket.latest!;
+    socket.open();
+
+    receive(socket, { event: "session:replaced", reason: "tab" });
+
+    expect(sessionReplacement()).toBe("tab");
+    expect(socketManager.getSocket()).toBeNull();
+  });
+
+  it("treats an unknown reason as a session that ended elsewhere", () => {
+    socketManager.connect("token", "player");
+    const socket = FakeWebSocket.latest!;
+    socket.open();
+
+    receive(socket, { event: "session:replaced" });
+
+    expect(sessionReplacement()).toBe("device");
+  });
+
+  it("refuses to connect again once replaced", () => {
+    socketManager.connect("token", "player");
+    receive(FakeWebSocket.latest!, { event: "session:replaced", reason: "device" });
+
+    expect(() => socketManager.connect("token", "player")).toThrow("active somewhere else");
+  });
+
+  it("asks the server why when API Gateway refuses the connection", () => {
+    socketManager.connect("token", "player");
+
+    FakeWebSocket.latest!.onerror?.();
+
+    expect(verifySession).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the local server refusing a replaced session", () => {
+  const handlers = new Map<string, (...args: any[]) => void>();
+
+  beforeEach(() => {
+    resetSessionReplacement();
+    delete process.env.NEXT_PUBLIC_WS_URL;
+    handlers.clear();
+    io.mockReturnValue({
+      emit: vi.fn(),
+      on: vi.fn((event: string, handler: (...args: any[]) => void) => handlers.set(event, handler)),
+      off: vi.fn(),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      connected: false
+    });
+  });
+
+  afterEach(() => {
+    socketManager.disconnect();
+    resetSessionReplacement();
+  });
+
+  it("reports a session that ended elsewhere from the connect error", () => {
+    socketManager.connect("token", "player");
+
+    handlers.get("connect_error")?.(new Error("SESSION_REPLACED"));
+
+    expect(sessionReplacement()).toBe("device");
+    expect(socketManager.getSocket()).toBeNull();
+  });
+
+  it("leaves any other connect error to the page", () => {
+    socketManager.connect("token", "player");
+
+    handlers.get("connect_error")?.(new Error("Unauthorized: invalid access token."));
+
+    expect(sessionReplacement()).toBeUndefined();
+  });
+});
+

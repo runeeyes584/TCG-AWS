@@ -20,6 +20,7 @@ import type {
 import express from "express";
 import authRoutes from "../auth/auth.routes";
 import mathcesRoutes from "../http/matches.routes"
+import { createPendingMatchRouter, mountMatchRoutes } from "./pendingMatchRoutes";
 import userRoute from "../http/user.route"
 import leaderboardRoutes from "../http/leaderboard.routes";
 import cookieParser from "cookie-parser";
@@ -29,6 +30,7 @@ import { getUserById, listUserDecks, recordMatchResult, saveUserDeck } from "@ba
 import { OnlinePlayerManager } from "@backend/matchmaking/onlinePlayers";
 import { authenticate } from "@backend/auth/auth.middleware";
 import { validateSaveDeckPayload } from "@backend/decks/deck.types";
+import { isCurrentSession, readActiveSession, sessionIdOf, SESSION_REPLACED } from "@backend/session/activeSession";
 
 interface RoomPlayer {
   socketId: string;
@@ -94,7 +96,21 @@ expressApp.use(express.json());
 expressApp.use(cookieParser());
 
 expressApp.use("/auth", authRoutes);
-expressApp.use("/matches", mathcesRoutes);
+mountMatchRoutes(
+  expressApp,
+  createPendingMatchRouter({
+    authenticate,
+    findPendingRoomForUser,
+    findWaitingRoomOwnedBy,
+    forfeitPlayer,
+    removeRoom: (roomCode) => {
+      clearRoomTimer(roomCode);
+      clearDisconnectGraceTimer(roomCode);
+      rooms.delete(roomCode);
+    }
+  }),
+  mathcesRoutes
+);
 expressApp.use("/user", userRoute);
 expressApp.use("/leaderboard", leaderboardRoutes);
 
@@ -139,61 +155,6 @@ expressApp.get("/decks", authenticate, async (req, res) => {
       message: notFound ? "User profile not found." : "Could not load decks."
     });
   }
-});
-
-expressApp.get("/matches/pending", authenticate, (req, res) => {
-  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
-  if (typeof userId !== "string") {
-    return res.status(401).json({ success: false, message: "Unauthorized." });
-  }
-
-  const room = findPendingRoomForUser(userId);
-  const player = room?.players.find((candidate) => candidate.userId === userId);
-  const opponent = room?.players.find((candidate) => candidate.userId !== userId);
-  return res.json({
-    success: true,
-    match: room && player ? {
-      roomCode: room.code,
-      status: room.state.started ? "IN_PROGRESS" : "WAITING",
-      playerId: player.playerId,
-      opponentConnected: opponent?.connected !== false
-    } : null
-  });
-});
-
-expressApp.post("/matches/pending/forfeit", authenticate, async (req, res) => {
-  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
-  if (typeof userId !== "string") {
-    return res.status(401).json({ success: false, message: "Unauthorized." });
-  }
-
-  const room = findPendingRoomForUser(userId);
-  const player = room?.players.find((candidate) => candidate.userId === userId);
-  if (!room || !player) {
-    return res.status(404).json({ success: false, message: "No active match found." });
-  }
-
-  await forfeitPlayer(room, player.playerId, "left the match from the lobby.");
-  return res.json({ success: true });
-});
-
-// Mirrors the production HTTP endpoint used by /room-create.  A room that has
-// not started is not a match and must be removed without awarding a win/loss.
-expressApp.post("/matches/pending/cancel", authenticate, (req, res) => {
-  const userId = (req as { user?: { sub?: unknown } }).user?.sub;
-  if (typeof userId !== "string") {
-    return res.status(401).json({ success: false, message: "Unauthorized." });
-  }
-
-  const room = findWaitingRoomOwnedBy(userId);
-  if (!room) {
-    return res.status(404).json({ success: false, message: "No waiting room was found." });
-  }
-
-  clearRoomTimer(room.code);
-  clearDisconnectGraceTimer(room.code);
-  rooms.delete(room.code);
-  return res.json({ success: true, message: "Waiting room cancelled." });
 });
 
 const httpServer = createServer(expressApp);
@@ -241,6 +202,13 @@ io.use(async (socket, next) => {
       return next(new Error("Unauthorized: user not found."));
     }
 
+    // A later sign-in replaced this session: it may not connect (the client shows why and signs out).
+    const sessionId = sessionIdOf(payload);
+    if (!isCurrentSession(await readActiveSession(user.id), sessionId)) {
+      return next(new Error(SESSION_REPLACED));
+    }
+    socket.data.sessionId = sessionId;
+
     OnlinePlayerManager.add({
       socketId: socket.id,
       user,
@@ -271,6 +239,8 @@ io.use(async (socket, next) => {
 });
 
 io.on("connection", (socket) => {
+  pushOutOtherSockets(socket);
+
   socket.on("room:create", async (selection, ack) => {
     try {
       await setSocketDeckSelection(socket, selection);
@@ -1005,4 +975,18 @@ function describeVisualEvent(event: GameState["visualEvents"][number]): string {
 function replyError(socket: GameSocket, ack: ActionAck | undefined, error: string) {
   ack?.({ ok: false, error });
   socket.emit("game:error", error);
+}
+
+/**
+ * The latest place wins, as in AWS (session/connectionEviction.ts): the player's other sockets are told why and
+ * disconnected. Another tab of the same sign-in is told `tab`; a socket of an earlier sign-in, `device`.
+ */
+function pushOutOtherSockets(socket: GameSocket): void {
+  const userId = getSocketUserId(socket);
+  const sessionId = socket.data.sessionId as string | undefined;
+  for (const other of io.sockets.sockets.values()) {
+    if (other.id === socket.id || other.data.userId !== userId) continue;
+    other.emit("session:replaced", { reason: sessionId && other.data.sessionId === sessionId ? "tab" : "device" });
+    other.disconnect(true);
+  }
 }

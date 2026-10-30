@@ -218,6 +218,12 @@ export async function refresh(
 
     } catch (error) {
 
+        if (error instanceof Error && error.name === "SessionReplacedError") {
+            res.clearCookie("access_token", authCookieOptions);
+            res.clearCookie("refresh_token", authCookieOptions);
+            return sendApiError(res, error, "Refresh failed.");
+        }
+
         return res.status(401).json({
 
             success: false,

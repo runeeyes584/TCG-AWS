@@ -47,6 +47,17 @@ export class DataTables extends Construct {
       projectionType: ProjectionType.ALL
     });
 
+    const connections = table("Connections", {
+      tableName: TABLE_NAMES.connections,
+      partitionKey: { name: "connection_id", type: AttributeType.STRING }
+    });
+    // Finds a player's connections, to push the older ones out when they play from somewhere else.
+    connections.addGlobalSecondaryIndex({
+      indexName: "UserIndex",
+      partitionKey: { name: "user_id", type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL
+    });
+
     this.tables = {
       userProfile,
       gameState: table("GameState", {
@@ -59,10 +70,7 @@ export class DataTables extends Construct {
         partitionKey: { name: "match_id", type: AttributeType.STRING },
         sortKey: { name: "action_sequence", type: AttributeType.NUMBER }
       }),
-      connections: table("Connections", {
-        tableName: TABLE_NAMES.connections,
-        partitionKey: { name: "connection_id", type: AttributeType.STRING }
-      }),
+      connections,
       matchHistory: table("MatchHistory", {
         tableName: TABLE_NAMES.matchHistory,
         partitionKey: { name: "user_id", type: AttributeType.STRING },

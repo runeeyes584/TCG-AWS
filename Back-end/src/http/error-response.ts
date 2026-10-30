@@ -28,6 +28,9 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (name === "EmailDeletionCooldownError" || message.includes("recently deleted") || message.includes("deleted recently") || message.includes("wait 24 hours")) {
     return { status: 429, code: "EMAIL_DELETION_COOLDOWN", message: rawMessage || "This email belongs to an account deleted recently. You cannot register with this email for 24 hours." };
   }
+  if (name === "SessionReplacedError") {
+    return { status: 401, code: "SESSION_REPLACED", message: rawMessage };
+  }
   if (name === "PasswordResetRequiredException") {
     return { status: 409, code: "PASSWORD_RESET_REQUIRED", message: "Your account was moved to a new sign-in system. Please reset your password to continue." };
   }

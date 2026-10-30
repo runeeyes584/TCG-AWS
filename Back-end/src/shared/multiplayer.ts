@@ -23,10 +23,21 @@ export interface DeveloperResourceUpdate {
   spellMana: number;
 }
 
+/**
+ * Why a connection is pushed out: `tab` when the same sign-in is now used from another tab or window, `device` when
+ * a later sign-in on another browser or device replaced it (see session/connectionEviction.ts).
+ */
+export type SessionReplacedReason = "tab" | "device";
+
+export interface SessionReplacedPayload {
+  reason: SessionReplacedReason;
+}
+
 export interface ServerToClientEvents {
   "room:update": (payload: RoomUpdate) => void;
   "room:created"?: (payload: Partial<RoomUpdate>) => void;
   "game:error": (message: string) => void;
+  "session:replaced": (payload: SessionReplacedPayload) => void;
   "matchmaking:searching": () => void;
   "matchmaking:cancelled": () => void;
   "matchmaking:found": (payload?: Partial<RoomUpdate>) => void;

@@ -150,7 +150,13 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         resumeAttemptsRef.current += 1;
         setStatus("Restoring match...");
         setError(undefined);
-        socketManager.resumeMatch(resumeRoomCode);
+        socketManager.resumeMatch(resumeRoomCode, (response) => {
+          // Only the local server answers here (API Gateway reports through events): the room is gone, for
+          // instance because the server restarted, so there is nothing left to restore.
+          if (response.ok || !active) return;
+          setStatus("Recovery failed");
+          setError(response.error);
+        });
       };
 
       const retryResume = () => {

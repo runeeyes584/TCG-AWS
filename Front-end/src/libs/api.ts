@@ -1,5 +1,6 @@
 import type { SaveDeckPayload, SavedDeck } from "@backend/decks/deck.types";
 import type { MatchEndReason } from "@backend/game/types";
+import { reportSessionReplaced } from "./session/sessionEvents";
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const API_URL = (
@@ -300,6 +301,8 @@ async function request<T = any>(
         ) as ApiError;
         apiError.code = data?.error?.code || data?.code;
         apiError.status = response.status;
+        // A sign-in on another device or browser ended this session.
+        if (response.status === 401 && apiError.code === "SESSION_REPLACED") reportSessionReplaced("device");
         throw apiError;
     }
 
@@ -441,6 +444,14 @@ export function accessTokenNeedsRefresh(token: string, minimumValidityMs = 60_00
     } catch {
         return true;
     }
+}
+
+/**
+ * Asks the server whether this session is still the active one. A WebSocket refused at connect gives the browser no
+ * reason; this request does (401 SESSION_REPLACED is reported by `request`). Other failures are left to the caller.
+ */
+export async function verifySession(): Promise<void> {
+    await me().catch(() => undefined);
 }
 
 export async function me(): Promise<ApiResponse<PlayerProfile>> {
