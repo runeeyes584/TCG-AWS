@@ -31,12 +31,8 @@ export class CombatVFXSystem {
     if (event.type === "HEAL" && event.isNexus) {
       this.playNexusImpact(this.nexusPlayerId(event.targetId), 0x4ade80, 0x22c55e, false);
     }
-    if (event.type === "BANISH") {
-      this.playBanish(event.playerId);
-    }
-    if (event.type === "GRAVEYARD_RESTORE") {
-      this.playGraveyardRestore(event.playerId, event.mode);
-    }
+    // The graveyards have their own effect on the pile where it really is (GraveyardFx); BANISH and
+    // GRAVEYARD_RESTORE have no card on the table to mark, so they end at the graveyard check below.
 
     if (!targetId || targetId.startsWith("nexus-")) return;
     if (targetId.startsWith("graveyard-")) return;
@@ -166,64 +162,6 @@ export class CombatVFXSystem {
       onComplete: () => sigil.destroy(),
     });
     this.playSparks(x, y, edgeColor, damage ? 28 : 18, depth + 1);
-  }
-
-  private playBanish(playerId: string) {
-    const x = logicalSize(this.scene.scale).width * 0.08;
-    const y = playerId === "P1" ? logicalSize(this.scene.scale).height * 0.82 : logicalSize(this.scene.scale).height * 0.18;
-    const vortex = this.scene.add.graphics().setDepth(1000);
-    const phase = { value: 0 };
-    const drawVortex = () => {
-      vortex.clear();
-      vortex.lineStyle(2.5, 0x8b5cf6, 0.86);
-      vortex.beginPath();
-      for (let index = 0; index < 28; index += 1) {
-        const t = phase.value + index * 0.34;
-        const radius = 5 + index * 1.35;
-        const pointX = x + Math.cos(t) * radius;
-        const pointY = y + Math.sin(t) * radius * 0.62;
-        if (index === 0) vortex.moveTo(pointX, pointY);
-        else vortex.lineTo(pointX, pointY);
-      }
-      vortex.strokePath();
-    };
-    drawVortex();
-    this.scene.tweens.add({
-      targets: phase,
-      value: Math.PI * 5,
-      duration: 760,
-      ease: "Cubic.In",
-      onUpdate: drawVortex,
-      onComplete: () => vortex.destroy(),
-    });
-    this.playSparks(x, y, 0xa78bfa, 18, 1001);
-  }
-
-  private playGraveyardRestore(playerId: string, mode: "REVIVE" | "REBIRTH") {
-    const x = logicalSize(this.scene.scale).width * 0.08;
-    const y = playerId === "P1" ? logicalSize(this.scene.scale).height * 0.82 : logicalSize(this.scene.scale).height * 0.18;
-    const color = mode === "REVIVE" ? 0xfbbf24 : 0x67e8f9;
-    const accent = mode === "REVIVE" ? 0x86efac : 0xa78bfa;
-    const altar = this.scene.add.container(x, y).setDepth(1000);
-    const glow = this.scene.add.circle(0, 0, 11, color, 0.1).setStrokeStyle(2.5, color, 0.95);
-    const core = this.scene.add.circle(0, 0, 4, accent, 0.8);
-    const rays = this.scene.add.graphics();
-    rays.lineStyle(1.5, color, 0.76);
-    for (let index = 0; index < 6; index += 1) {
-      const angle = (Math.PI * 2 * index) / 6;
-      rays.lineBetween(Math.cos(angle) * 9, Math.sin(angle) * 9, Math.cos(angle) * 34, Math.sin(angle) * 34);
-    }
-    altar.add([rays, glow, core]);
-    this.scene.tweens.add({
-      targets: altar,
-      scale: mode === "REVIVE" ? 2.65 : 2.15,
-      alpha: 0,
-      angle: mode === "REVIVE" ? 24 : -24,
-      duration: mode === "REVIVE" ? 850 : 700,
-      ease: "Cubic.Out",
-      onComplete: () => altar.destroy(),
-    });
-    this.playSparks(x, y, color, mode === "REVIVE" ? 26 : 18, 1001);
   }
 
   private playImpact(x: number, y: number, coreColor: number, sparkColor: number, shakeIntensity: number) {

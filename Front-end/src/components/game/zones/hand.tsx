@@ -7,7 +7,7 @@ import { CardBack } from "../cards/card-back";
 import type { CardInstance } from "@backend/game/types";
 import { useHover } from "../../../contexts/HoverContext";
 import { fanTransform, raisedHitBox, raisedY, restHitBox, RAISE_SCALE } from "./handLayout";
-import { nextHovered } from "./handHover";
+import { heldHover, nextHovered } from "./handHover";
 import { BLOCK_TEXT, type PlayBlock } from "./playBlock";
 import styles from "./Hand.module.css";
 
@@ -57,9 +57,13 @@ export function Hand({
   onPlayCard,
   onPreviewCard
 }: HandProps) {
-  const [hoveredIndex, setHoveredIndex] = useState<number>();
+  // The hover belongs to a card, not to a place in the fan: the card that slides into a played card's place
+  // must not inherit it.
+  const [hoveredId, setHoveredId] = useState<string>();
   // What the cards last reported, so that a late leave or blur of another card is not mistaken for this one.
-  const hoveredRef = useRef<number | undefined>(undefined);
+  const hoveredRef = useRef<string | undefined>(undefined);
+  const previewRef = useRef(onPreviewCard);
+  previewRef.current = onPreviewCard;
   const [denied, setDenied] = useState<{ id: string; text: string; shake: 0 | 1 }>();
   const deniedTimer = useRef<number | undefined>(undefined);
   const { selectCard } = useHover();
@@ -70,14 +74,26 @@ export function Hand({
 
   useEffect(() => () => window.clearTimeout(deniedTimer.current), []);
 
-  const handlePreview = (card: CardInstance, index: number, previewing: boolean) => {
+  // A card that leaves the hand while it is hovered (it was played) never reports that it was left: its
+  // hover, and the mana it previews, end with it.
+  useEffect(() => {
+    if (hoveredRef.current === undefined || heldHover(hoveredRef.current, cards) !== undefined) return;
+    hoveredRef.current = undefined;
+    setHoveredId(undefined);
+    previewRef.current?.(undefined);
+  }, [cards]);
+
+  const handlePreview = (card: CardInstance, previewing: boolean) => {
     if (!hoverEnabled) return;
-    const next = nextHovered(hoveredRef.current, index, previewing);
+    const next = nextHovered(hoveredRef.current, card.instanceId, previewing);
     if (next === hoveredRef.current) return;
     hoveredRef.current = next;
-    setHoveredIndex(next);
+    setHoveredId(next);
     onPreviewCard?.(next === undefined ? undefined : card);
   };
+
+  const hoveredAt = cards.findIndex((card) => card.instanceId === hoveredId);
+  const hoveredIndex = hoveredAt === -1 ? undefined : hoveredAt;
 
   // A card that cannot be played shakes, its mana turns red and a short line says why.
   const flashDenied = useCallback(
@@ -129,12 +145,12 @@ export function Hand({
                         height: `${box.height}px`,
                         zIndex: isHovered ? -1 : -2
                       }}
-                      onMouseEnter={() => handlePreview(card, index, true)}
+                      onMouseEnter={() => handlePreview(card, true)}
                       onMouseLeave={(event) => {
                         // Going up to the Details seal of this card is still being on the card.
                         const to = event.relatedTarget;
                         if (to instanceof Element && to.closest(".hand-card__detail")) return;
-                        handlePreview(card, index, false);
+                        handlePreview(card, false);
                       }}
                       onClick={() => activate(card)}
                       onContextMenu={(event) => {
@@ -178,8 +194,8 @@ export function Hand({
                         className="hand-card--motion"
                         variant="hand"
                         square={!isPlayer}
-                        onMouseEnter={() => handlePreview(card, index, true)}
-                        onMouseLeave={() => handlePreview(card, index, false)}
+                        onMouseEnter={() => handlePreview(card, true)}
+                        onMouseLeave={() => handlePreview(card, false)}
                       />
                     ) : (
                       <HandCard
@@ -190,7 +206,7 @@ export function Hand({
                         playable={playable}
                         denied={denied?.id === card.instanceId ? denied : undefined}
                         onClick={() => activate(card)}
-                        onPreviewChange={(previewing) => handlePreview(card, index, previewing)}
+                        onPreviewChange={(previewing) => handlePreview(card, previewing)}
                       />
                     )}
                   </motion.div>

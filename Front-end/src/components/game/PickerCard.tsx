@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties, ReactNode } from "react";
 import type { CardInstance, UnitInstance } from "@backend/game/types";
 import { GameCard } from "./cards/game-card";
 
@@ -14,6 +15,11 @@ interface PickerCardProps {
   selected?: boolean;
   /** What a click does. A card that is only to be looked at passes nothing. */
   onClick?: () => void;
+  /** For a dialog that styles its own tiles (the graveyard); the default tile is unchanged without them. */
+  className?: string;
+  style?: CSSProperties;
+  /** Shown over the card in place of the plain text of `label`. */
+  tag?: ReactNode;
 }
 
 const doNothing = () => undefined;
@@ -23,12 +29,13 @@ const doNothing = () => undefined;
  * It is shown whole, at the size of the grid it stands in, and says plainly when it cannot be chosen. The whole
  * tile (the tag, the margin round the card, the card) is one button, so the click does not depend on hitting the picture.
  */
-export function PickerCard({ card, unit, label, blocked = false, selected = false, onClick }: PickerCardProps) {
+export function PickerCard({ card, unit, label, blocked = false, selected = false, onClick, className, style, tag }: PickerCardProps) {
   const pickable = !blocked && onClick !== undefined;
 
   return (
     <div
-      className={`pending-choice-card ${blocked ? "is-blocked" : ""} ${pickable ? "is-pickable" : ""}`}
+      className={`pending-choice-card ${blocked ? "is-blocked" : ""} ${pickable ? "is-pickable" : ""} ${className ?? ""}`}
+      style={style}
       role={pickable ? "button" : undefined}
       tabIndex={pickable ? 0 : undefined}
       aria-disabled={blocked || undefined}
@@ -44,7 +51,7 @@ export function PickerCard({ card, unit, label, blocked = false, selected = fals
           : undefined
       }
     >
-      <span className="pending-choice-zone-label">{label}</span>
+      {tag ?? <span className="pending-choice-zone-label">{label}</span>}
       <div className="pending-choice-card__face">
         {/* The card itself takes no click (the tile does); a handler keeps it from being pinned to the inspector behind the dialog. */}
         <GameCard card={card} unit={unit} compact selected={selected} onClick={doNothing} visualEvents={[]} />

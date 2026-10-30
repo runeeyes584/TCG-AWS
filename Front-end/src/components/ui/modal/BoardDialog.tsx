@@ -17,8 +17,8 @@ export interface BoardDialogProps {
   onClose?: () => void;
   /** Max width of the panel, in px. */
   maxWidth?: number;
-  /** violet for a choice, blood for something that spends or cannot be taken back. */
-  tone?: "violet" | "blood";
+  /** violet for a choice, blood for something that spends or cannot be taken back, crypt for the graveyard. */
+  tone?: "violet" | "blood" | "crypt";
   /** The body scrolls when it is taller than the window (e.g. a grid of cards). */
   scrollBody?: boolean;
 }

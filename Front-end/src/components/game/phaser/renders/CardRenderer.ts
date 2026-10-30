@@ -181,7 +181,9 @@ export class CardRenderer {
     }
   }
 
+  /** Takes every card off the table before a redraw; the hovered unit is carried over to its new card. */
   clear() {
+    this.interactions.beginRedraw();
     this.animations.clear();
     this.views.forEach((view) => {
       this.stopTweens(view.pose);
@@ -214,8 +216,14 @@ export class CardRenderer {
     });
   }
 
+  /** The redraw is over: ends a hover that no new card took back (its unit has left the table). */
+  settleHover() {
+    this.interactions.endRedraw();
+  }
+
   destroy() {
     this.clear();
+    this.settleHover();
     this.prune(new Set());
     this.textures.destroy();
   }
@@ -340,7 +348,7 @@ export class CardRenderer {
     const view: CardView = { card, image, rest, surface, renderFace, placement, box: flatBox, pose };
     card.setData("anchorRect", () => this.anchorOf(view));
     const hitArea = new Phaser.Geom.Polygon(this.hitPoints(view));
-    this.interactions.bind(card, unit, playerId, hitArea, (hovering) => this.setHovered(view, hovering));
+    this.interactions.bind(card, unit, playerId, hitArea, (hovering) => this.setHovered(view, hovering), () => pose.glide < 1);
     this.animations.attach(card, isChampion, accent, options.isTargetable, options.targetType, hasBarrier);
     this.views.set(unit.instanceId, view);
     this.glideTo(view);

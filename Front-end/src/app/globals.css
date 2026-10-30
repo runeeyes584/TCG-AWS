@@ -1146,14 +1146,7 @@ button svg { vertical-align: -2px; }
 }
 
 /* ===== SIDE COUNTERS ===== */
-.side-counters {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 2px 0;
-}
+/* An empty spacer that keeps the width of the column at the left of the table: the piles stand in .pile-dock. */
 
 /* ===== CENTER BOARD ===== */
 .center-board {
@@ -1325,8 +1318,6 @@ button svg { vertical-align: -2px; }
 }
 
 /* Graveyard Modal Styles */
-
-
 
 
 /* ===== AUTH ACCESS TERMINAL ===== */
@@ -1669,14 +1660,6 @@ button svg { vertical-align: -2px; }
 }
 
 
-
-
-
-
-
-
-
-
 /* ===== GAME-LIKE ARENA REFRESH ===== */
 body {
   overflow: hidden;
@@ -1815,11 +1798,6 @@ body {
     margin-top: -50px;
   }
 }
-
-
-
-
-
 
 
 .pending-choice-grid {
@@ -2577,137 +2555,215 @@ button.hand-card--shake-1 {
   white-space: nowrap;
 }
 
-/* ===== SIDE PILES ===== */
-.side-pile {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+/* With less motion the pile does not rise, shake or knock: it only lights up for a moment. */
+/* ===== PILE DOCK ===== */
+/* The decks and graveyards are painted by Phaser (PilesRenderer). These four buttons are only their hit areas: invisible,
+   square, exactly as large as the pile. Where they stand is set by the arena (pileLayout) through the variables below,
+   which it sets on .lor-table; before it has, they wait off screen. */
+.pile-dock {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.pile-hit {
+  position: absolute;
+  left: var(--pile-x, -9999px);
+  width: var(--pile-w, 0);
+  height: var(--pile-h, 0);
   padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
-  color: var(--muted-foreground);
-  cursor: default;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-.side-pile:disabled {
-  opacity: 0.58;
-  cursor: default;
-}
-
-.side-pile--interactive:not(:disabled) {
   cursor: pointer;
+  pointer-events: auto;
 }
 
-.side-pile__label {
-  color: var(--muted-foreground);
-  font-family: var(--font-sans);
-  font-size: 9px;
+.pile-hit:disabled {
+  cursor: default;
+}
+
+/* The global button rules (a gold edge and glow on hover, a nudge on press) must not touch the hit area: the piles
+   are painted by Phaser, and a glowing or moving box over them would be a second, older look on top of it. */
+button.pile-hit:hover:not(:disabled),
+button.pile-hit:active:not(:disabled) {
+  border: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+/* The focus ring is a plain square round the card, like the card. */
+.pile-hit:focus-visible {
+  outline: 2px solid #e8c26a;
+  outline-offset: 3px;
+}
+
+.pile-hit[data-pile="opponentGraveyard"] { top: var(--pile-y-opp-gy, 0); }
+.pile-hit[data-pile="opponentDeck"] { top: var(--pile-y-opp-deck, 0); }
+.pile-hit[data-pile="viewerDeck"] { top: var(--pile-y-you-deck, 0); }
+.pile-hit[data-pile="viewerGraveyard"] { top: var(--pile-y-you-gy, 0); }
+
+/* ===== GRAVEYARD CRYPT (the dialog) ===== */
+/* Scoped to .gy-vault: the target dialog and the discard dialog share .pending-choice-* and are not touched. The
+   cards themselves are never dimmed or tinted here; the dark is in the frame, so a card can always be read. */
+.gy-vault {
+  display: grid;
+  gap: 14px;
+}
+
+.gy-vault__need {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 2px solid #e8c26a;
+  background: linear-gradient(90deg, rgba(232, 194, 106, 0.16), transparent);
+  color: #f3e6b8;
+}
+
+.gy-vault__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gy-vault__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid rgba(196, 181, 253, 0.26);
+  background: rgba(8, 5, 15, 0.62);
+  color: #b4acd0;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  cursor: pointer;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+}
+
+.gy-vault__filter b {
+  color: #8d83ad;
   font-weight: 700;
-  letter-spacing: 0.2em;
-  line-height: 1;
+}
+
+.gy-vault__filter:hover {
+  border-color: rgba(196, 181, 253, 0.6);
+  color: #ece7ff;
+}
+
+.gy-vault__filter:focus-visible {
+  outline: 1px solid #e8c26a;
+  outline-offset: 1px;
+}
+
+.gy-vault__filter.is-on {
+  border-color: #c4b5fd;
+  background: rgba(124, 92, 220, 0.26);
+  color: #ece7ff;
+}
+
+.gy-vault__filter.is-on b {
+  color: #e8c26a;
+}
+
+.gy-vault__empty {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 34px 0 26px;
+  color: #8d83ad;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
-.side-pile__visual {
-  position: relative;
-  display: block;
-  width: 48px;
-  height: 68px;
+.gy-vault__empty svg {
+  color: #c4b5fd;
+  filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.7));
+  opacity: 0.55;
 }
 
-.side-pile__deck-layer,
-.side-pile__deck-top,
-.side-pile__graveyard-layer,
-.side-pile__graveyard-top,
-.side-pile__graveyard-empty {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: 0.75rem 0 0.75rem 0;
+/* Each card lies on a slab of its own, square cornered like the card, and the slabs appear from the newest, one after the other. */
+.gy-vault .gy-tile {
+  border: 1px solid rgba(196, 181, 253, 0.16);
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(43, 34, 71, 0.5), rgba(8, 5, 15, 0.72));
+  animation: gy-tile-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--gy-i, 0) * 30ms);
 }
 
-.side-pile__deck-layer {
-  border: 1px solid oklch(0.62 0.19 300 / 0.42);
-  background: #140f1f;
+.gy-vault .gy-tile.is-eligible {
+  border-color: rgba(232, 194, 106, 0.62);
+  box-shadow: 0 0 0 1px rgba(232, 194, 106, 0.16), 0 0 16px rgba(232, 194, 106, 0.2);
+  animation:
+    gy-tile-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both,
+    gy-eligible 2.2s ease-in-out 0.5s infinite;
+  animation-delay: calc(var(--gy-i, 0) * 30ms), 0.5s;
 }
 
-.side-pile__deck-top {
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
+.gy-vault .gy-tile.is-eligible.is-pickable:hover,
+.gy-vault .gy-tile.is-eligible.is-pickable:focus-visible {
+  border-color: #f3cf72;
+  background: rgba(232, 194, 106, 0.12);
+  box-shadow: 0 0 22px rgba(243, 207, 114, 0.45);
+}
+
+/* How the card came to lie here. */
+.gy-tag {
+  --tag: #c4b5fd;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border: 1px solid oklch(0.62 0.19 300 / 0.55);
-  background: oklch(0.14 0.02 285 / 0.66);
-  color: var(--foreground);
-  backdrop-filter: blur(1px);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.side-pile__deck-top strong {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  line-height: 1;
-}
-
-.side-pile--interactive:hover .side-pile__deck-top--interactive {
-  border-color: var(--primary);
-  box-shadow: 0 0 14px oklch(0.62 0.19 300 / 0.5);
-}
-
-.side-pile__graveyard-empty {
-  display: grid;
-  place-items: center;
-  border: 1px dashed var(--border);
-  color: oklch(0.68 0.02 285 / 0.5);
-}
-
-.side-pile__graveyard-layer {
-  border: 1px solid var(--border);
-  background: var(--card);
-}
-
-.side-pile__graveyard-top {
-  z-index: 5;
-  border: 1px solid oklch(0.4 0.04 290 / 0.7);
-  background:
-    linear-gradient(180deg, rgba(8,10,16,0.05), rgba(8,10,16,0.45)),
-    linear-gradient(155deg, #273249, #10141c);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  filter: grayscale(0.4) saturate(0.78);
-  transform: rotate(-2deg);
-  transition: filter 0.18s ease, border-color 0.18s ease;
-}
-
-.side-pile--interactive:hover .side-pile__graveyard-top {
-  border-color: var(--champion);
-  filter: grayscale(0.08) saturate(1.04);
-}
-
-.side-pile__count {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  z-index: 8;
-  min-width: 20px;
-  padding: 1px 5px;
-  border: 1px solid var(--border);
+  gap: 4px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--tag) 55%, transparent);
   border-radius: 999px;
-  background: oklch(0.16 0.018 285 / 0.92);
-  color: var(--foreground);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.2;
-  transform: translateX(-50%);
+  background: rgba(8, 5, 15, 0.82);
+  color: var(--tag);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
+.gy-tag b {
+  font-weight: 700;
+}
 
+.gy-tag i {
+  padding-left: 5px;
+  border-left: 1px solid color-mix(in srgb, var(--tag) 45%, transparent);
+  font-style: normal;
+  opacity: 0.75;
+}
+
+.gy-tag--blood { --tag: #ff5c7a; }
+.gy-tag--violet { --tag: #c4b5fd; }
+.gy-tag--lilac { --tag: #b4acd0; }
+.gy-tag--gold { --tag: #e8c26a; }
+
+@keyframes gy-tile-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes gy-eligible {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(232, 194, 106, 0.16), 0 0 12px rgba(232, 194, 106, 0.16); }
+  50% { box-shadow: 0 0 0 1px rgba(232, 194, 106, 0.3), 0 0 22px rgba(232, 194, 106, 0.34); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gy-vault .gy-tile,
+  .gy-vault .gy-tile.is-eligible {
+    animation: none;
+  }
+}
 
 
 /* ===== COMPACT BLUE-NOIR BATTLEFIELD =====
@@ -2767,24 +2823,11 @@ button.hand-card--shake-1 {
   margin: 0;
 }
 
-/* Slightly larger side piles, aligned inside equal-width side columns. */
+/* Equal-width side columns. */
 .side-counters,
 .status-column {
   width: 112px;
   justify-self: center;
-}
-
-.side-pile__visual {
-  width: 62px;
-  height: 88px;
-}
-
-.side-pile__label {
-  font-size: 10px;
-}
-
-.side-pile__deck-top strong {
-  font-size: 21px;
 }
 
 @media (max-height: 820px) {
@@ -2839,10 +2882,6 @@ button.hand-card--shake-1 {
 .status-column {
   height: 100%;
   min-height: 0;
-}
-
-.side-counters {
-  justify-content: space-between;
 }
 
 .status-column {
@@ -4424,7 +4463,7 @@ button.hand-card--shake-1 {
   pointer-events: none;
 }
 
-.arena-grid > .side-counters,
+/* The left column is only a spacer now (the piles stand in .pile-dock), so it takes no pointer. */
 .arena-grid > .status-column {
   pointer-events: auto;
 }
@@ -11264,19 +11303,26 @@ button.hand-card--shake-1 {
 /* Reading a card has two tiers. The whisper is the small label above the card under the pointer
    (positioned by script, never takes the pointer). The codex is the drawer with the full text that
    opens when a card is pinned, from the edge of the screen opposite the card. */
+/* A step lighter than the table and the obsidian frames, in their violet, so it reads clearly over the floor:
+   a lit top edge and a violet accent on the left, as on the turn rail's frames. */
 .card-whisper {
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1180;
   display: grid;
-  gap: 4px;
+  gap: 5px;
   width: max-content;
-  max-width: 260px;
-  padding: 8px 12px 9px;
-  border: 1px solid rgba(196, 181, 253, 0.28);
-  background: linear-gradient(180deg, rgba(22, 14, 40, 0.96), rgba(8, 5, 15, 0.96));
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(196, 181, 253, 0.08);
+  max-width: 300px;
+  padding: 9px 13px 10px 15px;
+  border: 1px solid rgba(196, 181, 253, 0.45);
+  background:
+    linear-gradient(90deg, rgba(167, 139, 250, 0.9) 0 2px, transparent 2px),
+    linear-gradient(180deg, rgba(43, 34, 71, 0.97), rgba(28, 22, 49, 0.97));
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(8, 5, 15, 0.7),
+    inset 0 1px 0 rgba(221, 214, 254, 0.22);
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
   color: #f4f0ff;
   pointer-events: none;
@@ -11297,7 +11343,7 @@ button.hand-card--shake-1 {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
-  color: #8d83ad;
+  color: #b3a8d9;
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: 10px;
   letter-spacing: 0.12em;
@@ -11305,7 +11351,7 @@ button.hand-card--shake-1 {
 }
 
 .card-whisper__meta b {
-  color: #c4b5fd;
+  color: #ddd6fe;
   font-weight: 600;
 }
 
@@ -11332,14 +11378,12 @@ button.hand-card--shake-1 {
   text-transform: uppercase;
 }
 
+/* The whole text: a card is read from its label, not guessed from its first line. */
 .card-whisper__text {
-  display: -webkit-box;
-  overflow: hidden;
-  color: #cfc8e6;
+  color: #ece7ff;
   font-size: 12px;
-  line-height: 1.35;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 @keyframes card-whisper-in {

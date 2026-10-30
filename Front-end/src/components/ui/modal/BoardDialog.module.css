@@ -33,6 +33,13 @@
   --ui-btn-accent: #ff7a96;
 }
 
+/* The graveyard: the same slab, deeper, its edge going from violet to the red of embers, with rings cut faintly into it. */
+.crypt {
+  --edge: linear-gradient(135deg, rgba(196, 181, 253, 0.8), rgba(255, 46, 99, 0.5) 62%, rgba(124, 92, 220, 0.5));
+  --glow: rgba(124, 58, 237, 0.34);
+  --ui-btn-accent: #c4b5fd;
+}
+
 .face {
   display: grid;
   gap: 14px;
@@ -47,6 +54,14 @@
     0 calc(var(--cut) - 0.5px)
   );
   color: #f4f0ff;
+}
+
+.crypt .face {
+  position: relative;
+  background:
+    radial-gradient(circle at 92% 12%, transparent 0 38px, rgba(196, 181, 253, 0.07) 39px 40px, transparent 41px 60px, rgba(196, 181, 253, 0.05) 61px 62px, transparent 63px),
+    radial-gradient(120% 60% at 50% 112%, rgba(150, 24, 70, 0.3), transparent 64%),
+    linear-gradient(160deg, rgba(24, 14, 46, 0.995), rgba(6, 3, 12, 0.995));
 }
 
 .badge {

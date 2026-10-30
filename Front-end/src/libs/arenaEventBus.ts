@@ -1,5 +1,7 @@
-import type { GameState, PlayerId, SpellTargetKind } from "@backend/game/types";
+import type { GameState, GraveyardCause, PlayerId, SpellTargetKind } from "@backend/game/types";
+import type { GraveyardChangeKind } from "../components/game/hud/graveyard/graveyardChanges";
 import type { PassSealState } from "../components/game/hud/passButton/passSeal";
+import type { PilesState } from "../components/game/hud/piles/pileState";
 
 /** A rectangle in viewport (client) pixels. */
 export interface ScreenRect {
@@ -46,6 +48,26 @@ export type ArenaEventMap = {
    * `flash` is the quiet version for turns that change in quick succession.
    */
   TURN_BANNER: { owner: "you" | "opponent"; mode: "full" | "flash" };
+  /**
+   * The four piles (the decks and the graveyards): what each holds and whether the pointer is on it. The DOM buttons
+   * take the pointer and report this; Phaser paints the piles where `pileLayout` puts them. `undefined` hides them.
+   */
+  PILES_STATE: PilesState | undefined;
+  /**
+   * Something happened to a graveyard: a card fell in (`ENTER`), returned to the table (`REVIVE`) or to the hand
+   * (`REBIRTH`) or was exiled (`BANISH`). The DOM knows where the pile and the hand are (`pile`, `hand`); Phaser draws
+   * the soul between them, or to the card of the revived unit (`unitId`), `delayMs` after the event.
+   */
+  GRAVEYARD_FX: {
+    kind: GraveyardChangeKind;
+    /** Whose graveyard it is, as seen from here: the player's own, or the opponent's. */
+    tone: "viewer" | "opponent";
+    pile: ScreenRect;
+    cause?: GraveyardCause;
+    unitId?: string;
+    hand?: ScreenRect;
+    delayMs: number;
+  };
   /**
    * Left-over mana turns into spell mana at the start of a round: each `store` step flies a gem
    * from the mana track to a spell shard, a `dissolve` step turns a gem that no longer fits to dust.

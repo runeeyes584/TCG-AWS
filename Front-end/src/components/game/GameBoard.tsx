@@ -10,17 +10,14 @@ import {
   PlayerId,
   SpellTarget,
   SpellTargetKind,
-  UnitInstance,
-  VisualEvent
+  UnitInstance
 } from "@backend/game/types";
 import { useLocalGame } from "../../hooks/useLocalGame";
-import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
 import { ChatPanel } from "./chat/ChatPanel";
 import { ChatToggle } from "./chat/ChatToggle";
 import type { ChatController } from "./chat/chatTypes";
 import { useChatUnread } from "./chat/useChatUnread";
-import { GameCard } from "./cards/game-card";
 import { TurnRail } from "./zones/turn-rail";
 import { Hand } from "./zones/hand";
 import { NexusPanel } from "./hud/nexus/nexus-panel";
@@ -36,7 +33,8 @@ import { CardInspector } from "./hud/inspector/card-inspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
 import { PendingAbilityTargetDialog } from "./PendingAbilityTargetDialog";
 import { PendingDiscardDialog } from "./PendingDiscardDialog";
-import { DeckPile, GraveyardPile } from "./hud/side-piles";
+import { PileDock, type PileSpecs } from "./hud/piles/pile-dock";
+import { useGraveyardFx } from "./hud/graveyard/useGraveyardFx";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
 import { useTurnTickSound } from "../../hooks/useTurnTickSound";
@@ -49,8 +47,6 @@ import { arenaEventBus } from "../../libs/arenaEventBus";
 import { combatCues, cueSnapshot, type CueSnapshot } from "./phaser/config/combatCues";
 import { useGameStore } from "../../hooks/useGameStore";
 import { SpellEffectLayer } from "./spell-effect-layer";
-import { GiEvilEyes } from "react-icons/gi";
-import { FaEyeSlash } from "react-icons/fa";
 import { AnimatePresence } from "framer-motion";
 import { AfkToastNotification } from "./hud/afkNoti/AfkToastNotification";
 import { Button } from "../ui/button";
@@ -125,7 +121,7 @@ export function GameBoardView({
   trialMode = false,
   onExitTrial
 }: GameBoardViewProps) {
-  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles, clockOffsetMs, chat } = controller;
+  const { gameState, actionLog, dispatch, resetGame, setDeveloperResources, runTrialCommand, playerProfiles, clockOffsetMs, chat } = controller;
   useBattleMusic(gameState);
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
@@ -208,6 +204,7 @@ export function GameBoardView({
   }, [showExitTrialDialog, showSurrenderDialog]);
   const viewerPlayerId: PlayerId = localPlayerId ?? "P1";
   const opponentPlayerId = opponentOf(viewerPlayerId);
+  useGraveyardFx(gameState, viewerPlayerId, battleTableRef);
 
   // The bridge mirrors only presentation data. The existing controller remains
   // the single source of truth for websocket updates and game actions.
@@ -283,11 +280,6 @@ export function GameBoardView({
         : undefined;
     const unitTargetKind =
       targetKind === "ALLY_UNIT" || targetKind === "ENEMY_UNIT" ? targetKind : undefined;
-    
-    // Calculate target color based on target kind
-    const targetColor = unitTargetKind === "ALLY_UNIT" ? "ALLY" as const 
-      : unitTargetKind === "ENEMY_UNIT" ? "ENEMY" as const 
-      : undefined;
 
     arenaEventBus.emit("TARGETING_CHANGED", {
       targetKind: unitTargetKind,
@@ -325,13 +317,9 @@ export function GameBoardView({
       (unit) => unit.instanceId === selectedBlockerId
     )
     : undefined;
-  const attackerIds = gameState.combat.attackers.map((lane) => lane.attackerId);
   const assignedBlockerIds = gameState.combat.attackers
     .map((lane) => lane.blockerId)
     .filter((blockerId): blockerId is string => Boolean(blockerId));
-  const selectedCostUnitIds = selectedCostTargets
-    .filter((target): target is Extract<SpellTarget, { type: "UNIT" }> => target.type === "UNIT")
-    .map((target) => target.unitId);
 
   const cardDef = (card: CardInstance) => getCardDefinition(card.cardId);
   const unitDef = (unit: UnitInstance) => getCardDefinition(unit.cardId);
@@ -1211,38 +1199,48 @@ export function GameBoardView({
     };
   }
 
-  function renderDeckStack(playerId: PlayerId, label: string) {
-    const player = gameState.players[playerId];
-    const canDraw =
-      gameState.started &&
-      !gameState.winnerId &&
-      gameState.priorityPlayerId === playerId &&
-      player.deck.length > 0 &&
-      canControl(playerId);
-
-    return (
-      <DeckPile
-        count={player.deck.length}
-        label={label}
-        interactive={canDraw}
-        onDraw={
-          canDraw
-            ? () => dispatch({ type: "DRAW_CARD", playerId }, `${playerId} drew a card.`)
-            : undefined
-        }
-      />
-    );
-  }
-
-  function renderGraveyard(playerId: PlayerId, label: string) {
-    return (
-      <GraveyardPile
-        entries={gameState.players[playerId].graveyard}
-        playerId={playerId}
-        label={label}
-        onOpen={() => setViewingGraveyard(playerId)}
-      />
-    );
+  /**
+   * The decks and graveyards of the table, for the dock that takes the pointer. The rules are the ones they always were:
+   * a graveyard always opens, and a deck draws only on its player's priority, while the match runs, if the player has
+   * cards left and is the one controlling this screen.
+   */
+  function pileSpecs(): PileSpecs {
+    const names = (playerId: PlayerId) => (playerId === viewerPlayerId ? "Your" : "Opponent's");
+    const deck = (playerId: PlayerId) => {
+      const player = gameState.players[playerId];
+      const canDraw =
+        gameState.started &&
+        !gameState.winnerId &&
+        gameState.priorityPlayerId === playerId &&
+        player.deck.length > 0 &&
+        canControl(playerId);
+      return {
+        kind: "deck" as const,
+        playerId,
+        name: `${names(playerId)} deck`,
+        count: player.deck.length,
+        onActivate: canDraw
+          ? () => dispatch({ type: "DRAW_CARD", playerId }, `${playerId} drew a card.`)
+          : undefined
+      };
+    };
+    const graveyard = (playerId: PlayerId) => {
+      const entries = gameState.players[playerId].graveyard;
+      return {
+        kind: "graveyard" as const,
+        playerId,
+        name: `${names(playerId)} graveyard`,
+        count: entries.length,
+        topCardId: entries.at(-1)?.cardId,
+        onActivate: () => setViewingGraveyard(playerId)
+      };
+    };
+    return {
+      opponentGraveyard: graveyard(opponentPlayerId),
+      opponentDeck: deck(opponentPlayerId),
+      viewerDeck: deck(viewerPlayerId),
+      viewerGraveyard: graveyard(viewerPlayerId)
+    };
   }
 
   function renderSpellStack(label: string) {
@@ -1271,68 +1269,6 @@ export function GameBoardView({
     );
   }
 
-  /* Board units are rendered by PhaserArenaCanvas.
-  function renderActiveUnitLegacy(playerId: PlayerId, unit: UnitInstance, _index: number) {
-    const lane = gameState.combat.attackers.find(
-      (candidate) => candidate.blockerId === unit.instanceId
-    );
-    const canToggleAttacker =
-      playerId === attackPlayerId &&
-      gameState.phase === "ACTION" &&
-      gameState.priorityPlayerId === attackPlayerId &&
-      gameState.attackTokenAvailable;
-    const canSelectDefender =
-      playerId === defenderId &&
-      gameState.phase === "BLOCK" &&
-      gameState.priorityPlayerId === defenderId;
-    const canSelectForSpell = canSelectSpellUnit(playerId);
-
-    return (
-      <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
-        <GameCard
-          unit={unit}
-          compact
-          board
-          selected={
-            unit.instanceId === selectedBlockerId ||
-            attackerIds.includes(unit.instanceId) ||
-            assignedBlockerIds.includes(unit.instanceId) ||
-            selectedCostUnitIds.includes(unit.instanceId)
-          }
-          onClick={
-            canToggleAttacker || canSelectDefender || canSelectForSpell
-              ? () => selectBoardUnit(playerId, unit)
-              : undefined
-          }
-          visualEvents={gameState.visualEvents.filter(
-            (event) =>
-              (event as any).targetId === unit.instanceId ||
-              (event as any).sourceId === unit.instanceId
-          )}
-        />
-        {playerId === defenderId && lane ? (
-          <div className="damage-preview">
-            {(() => {
-              const attacker = gameState.players[attackPlayerId].board.find(
-                (candidate) => candidate.instanceId === lane.attackerId
-              );
-              if (!attacker) {
-                return "No damage";
-              }
-              const preview = getDamagePreview(attacker, unit);
-              const parts = [];
-              if (preview.attackerTakes > 0) parts.push(`Atk ${preview.attackerTakes}`);
-              if (preview.blockerTakes > 0) parts.push(`Blk ${preview.blockerTakes}`);
-              if (preview.nexusTakes > 0) parts.push(`Nexus ${preview.nexusTakes}`);
-              return parts.length > 0 ? parts.join(" · ") : "No damage";
-            })()}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  */
   return (
     <HoverProvider>
       <PhaserHoverBridge gameState={gameState} />
@@ -1685,6 +1621,7 @@ export function GameBoardView({
           <PhaserArenaCanvas />
           <div className="board-alarm" aria-hidden="true" />
           <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
+          <PileDock piles={pileSpecs()} />
           <div className="turn-rail-anchor">
             <TurnRail model={turnRail}>
               <ActionPrompt
@@ -1725,12 +1662,8 @@ export function GameBoardView({
           />
 
           <div className="arena-grid">
-            <div className="side-counters">
-              {renderGraveyard(opponentPlayerId, "GY")}
-              {renderDeckStack(opponentPlayerId, "Deck")}
-              {renderDeckStack(viewerPlayerId, "Deck")}
-              {renderGraveyard(viewerPlayerId, "GY")}
-            </div>
+            {/* Only keeps the width of the column; the piles stand in the dock below. */}
+            <div className="side-counters" aria-hidden="true" />
 
             <div className="center-board phaser-arena-enabled" />
 

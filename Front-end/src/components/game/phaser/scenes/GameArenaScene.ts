@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import type { GameState, PlayerId, SpellTargetKind, UnitInstance, VisualEvent } from "@backend/game/types";
+import type { GameState, PlayerId, SpellTargetKind, VisualEvent } from "@backend/game/types";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
 import { NEXUS_CORE_RADIUS, boundsOf, createArenaProjection, rowKeyFor, type ArenaProjection, type ArenaRowKey, type SlotGeometry } from "../config/arenaProjection";
@@ -8,6 +8,9 @@ import { NexusCoreRenderer } from "../renders/NexusCoreRenderer";
 import { ArenaTableRenderer } from "../renders/ArenaTableRenderer";
 import { PassSealRenderer } from "../renders/PassSealRenderer";
 import { NexusCarryFx } from "../renders/NexusCarryFx";
+import { GraveyardFx } from "../renders/GraveyardFx";
+import { PilesRenderer } from "../renders/PilesRenderer";
+import { pileLayout, railLeftEdge } from "../config/pileLayout";
 import { TurnBannerFx } from "../renders/TurnBannerFx";
 import { RiftSigil } from "../renders/RiftSigil";
 import { GLIDE_MS } from "../config/declareMotion";
@@ -33,6 +36,8 @@ export class GameArenaScene extends Phaser.Scene {
   private nexus!: NexusCoreRenderer;
   private passSeal!: PassSealRenderer;
   private carryFx!: NexusCarryFx;
+  private graveyardFx!: GraveyardFx;
+  private piles!: PilesRenderer;
   /** The card picked on the table, which is drawn with a ring round it. */
   private pickedUnitId?: string;
   private uiShield?: UiShieldGuard;
@@ -81,6 +86,11 @@ export class GameArenaScene extends Phaser.Scene {
     this.shards = new ArenaShards(this);
     this.passSeal = new PassSealRenderer(this);
     this.carryFx = new NexusCarryFx(this);
+    this.piles = new PilesRenderer(this);
+    this.graveyardFx = new GraveyardFx(this, (unitId) => {
+      const card = this.cards?.get(unitId);
+      return card ? { x: card.x, y: card.y } : undefined;
+    });
     this.turnBanner = new TurnBannerFx(this);
     this.riftSigil = new RiftSigil(this);
     this.slots = this.add.graphics().setDepth(1);
@@ -144,6 +154,8 @@ export class GameArenaScene extends Phaser.Scene {
     this.shards.tick(delta);
     this.passSeal.tick(delta);
     this.carryFx.tick(delta);
+    this.piles.tick(delta);
+    this.graveyardFx.tick(delta);
     this.turnBanner.tick(delta);
     this.riftSigil.tick(delta);
     this.declareFx.tick(delta);
@@ -178,6 +190,8 @@ export class GameArenaScene extends Phaser.Scene {
     this.shards?.destroy();
     this.passSeal?.destroy();
     this.carryFx?.destroy();
+    this.graveyardFx?.destroy();
+    this.piles?.destroy();
     this.turnBanner?.destroy();
     this.riftSigil?.destroy();
     this.declareFx?.destroy();
@@ -218,6 +232,7 @@ export class GameArenaScene extends Phaser.Scene {
     const proj = createArenaProjection(width, height, camera.tilt, camera.zoom);
     this.projection = proj;
     this.publishRift(proj);
+    this.placePiles(proj);
     const signature = `${width}x${height}:${camera.tilt}:${camera.zoom}`;
     this.atmosphere.render(proj, signature);
     this.table.render(proj, signature);
@@ -308,6 +323,7 @@ export class GameArenaScene extends Phaser.Scene {
 
     this.barrierUnitIds.clear();
     currentBarrierIds.forEach((id) => this.barrierUnitIds.add(id));
+    this.cards.settleHover();
     this.cards.prune(renderedUnitIds);
 
     const isChampion = (unitId: string) =>
@@ -333,6 +349,36 @@ export class GameArenaScene extends Phaser.Scene {
     table?.style.setProperty("--arena-rift-y", `${proj.riftY.toFixed(1)}px`);
     table?.style.setProperty("--arena-table-left-at-rift", `${proj.riftEdge.left.toFixed(1)}px`);
     table?.style.setProperty("--arena-edge-skew", `${(Math.atan(proj.riftEdge.slope) * 180 / Math.PI).toFixed(2)}deg`);
+  }
+
+  /**
+   * The decks and graveyards stand in a column beside the Turn Rail. This is the one place that knows where: it places the
+   * piles that Phaser paints and sets the variables that put the DOM buttons over them (`.pile-hit`).
+   */
+  private placePiles(proj: ArenaProjection) {
+    const table = this.game.canvas?.closest<HTMLElement>(".lor-table");
+    if (!table) return;
+    const tableBox = table.getBoundingClientRect();
+    const grid = table.querySelector<HTMLElement>(".arena-grid")?.getBoundingClientRect();
+    // The free area is the grid's box; before the grid is laid out, a band of the table stands in for it.
+    const zone = grid
+      ? { left: grid.left - tableBox.left, top: grid.top - tableBox.top, bottom: grid.bottom - tableBox.top }
+      : { left: 18, top: proj.height * 0.14, bottom: proj.height * 0.86 };
+    const ring = proj.nexus.me.x - NEXUS_CORE_RADIUS * proj.nexus.scale - 6;
+    const rail = railLeftEdge(proj.riftEdge.left, proj.riftEdge.slope, window.innerWidth);
+    // The piles reach the far edge of the table and the bottom of its slab, each side's outer plate level with it.
+    const tableEdges = { top: proj.tableQuad[3].y, bottom: proj.tableQuad[0].y + proj.tableThickness };
+    const layout = pileLayout({ zone, table: tableEdges, keepClearLeft: [rail, ring] });
+
+    this.piles.layout(layout);
+    const { x, y: opponentGraveyardY } = layout.slots.opponentGraveyard;
+    table.style.setProperty("--pile-x", `${x}px`);
+    table.style.setProperty("--pile-w", `${layout.cardWidth}px`);
+    table.style.setProperty("--pile-h", `${layout.cardHeight}px`);
+    table.style.setProperty("--pile-y-opp-gy", `${opponentGraveyardY}px`);
+    table.style.setProperty("--pile-y-opp-deck", `${layout.slots.opponentDeck.y}px`);
+    table.style.setProperty("--pile-y-you-deck", `${layout.slots.viewerDeck.y}px`);
+    table.style.setProperty("--pile-y-you-gy", `${layout.slots.viewerGraveyard.y}px`);
   }
 
   private renderDefendSlots(gameState: GameState, viewerPlayerId: PlayerId, proj: ArenaProjection) {
