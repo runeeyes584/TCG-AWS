@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type Phaser from "phaser";
 import { arenaEventBus } from "../../../libs/arenaEventBus";
 import { useGameStore } from "../../../hooks/useGameStore";
-import { arenaDpr, backingSize } from "./config/arenaScale";
+import { arenaDpr, backingSize } from "./config/geometry/arenaScale";
 
 export function PhaserArenaCanvas() {
   const hostRef = useRef<HTMLDivElement>(null);

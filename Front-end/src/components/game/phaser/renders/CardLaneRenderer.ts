@@ -1,6 +1,6 @@
 import type Phaser from "phaser";
-import type { Point, Quad, SlotGeometry } from "../config/arenaProjection";
-import { ARENA_HEX } from "../config/arenaTheme";
+import type { Point, Quad, SlotGeometry } from "../config/geometry/arenaProjection";
+import { ARENA_HEX } from "../config/presentation/arenaTheme";
 
 /** Highlight for a socket that can receive a card (hover on an empty slot). */
 export function drawValidSlot(graphics: Phaser.GameObjects.Graphics, slot: SlotGeometry, pulse: number) {

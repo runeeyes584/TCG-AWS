@@ -104,32 +104,34 @@ export function MatchSearchingOverlay({
           </div>
         </motion.div>
 
-        {/* Ambient telemetry indicators */}
-        <div className="searching-telemetry-row">
-          <div className="telemetry-chip">
-            <Radio size={13} className="text-cyan" />
-            <span>CHANNEL: SECURE // ELO MATCH 1.0</span>
+        <div className="searching-actions">
+          {/* Ambient telemetry indicators */}
+          <div className="searching-telemetry-row">
+            <div className="telemetry-chip">
+              <Radio size={13} className="text-cyan" />
+              <span>CHANNEL: SECURE // ELO MATCH 1.0</span>
+            </div>
+            <div className="telemetry-chip">
+              <Compass size={13} className="text-purple" />
+              <span>LATENCY: OPTIMAL (&lt; 25ms)</span>
+            </div>
           </div>
-          <div className="telemetry-chip">
-            <Compass size={13} className="text-purple" />
-            <span>LATENCY: OPTIMAL (&lt; 25ms)</span>
-          </div>
-        </div>
 
-        {/* Emergency Abort Button */}
-        <motion.button
-          type="button"
-          className="abort-search-btn"
-          onClick={onCancel}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          aria-label="Cancel matchmaking search"
-        >
-          <div className="abort-btn-hazard-lines" aria-hidden="true" />
-          <X size={18} />
-          <span>ABORT SEARCH SEQUENCE</span>
-          <AlertOctagon size={16} />
-        </motion.button>
+          {/* Emergency Abort Button */}
+          <motion.button
+            type="button"
+            className="abort-search-btn"
+            onClick={onCancel}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            aria-label="Cancel matchmaking search"
+          >
+            <div className="abort-btn-hazard-lines" aria-hidden="true" />
+            <X size={18} />
+            <span>ABORT SEARCH SEQUENCE</span>
+            <AlertOctagon size={16} />
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );

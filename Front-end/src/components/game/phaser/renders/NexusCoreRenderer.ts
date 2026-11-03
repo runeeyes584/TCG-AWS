@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
 import type { PlayerId } from "@backend/game/types";
-import { NEXUS_CORE_RADIUS, type ArenaProjection, type Point } from "../config/arenaProjection";
+import { NEXUS_CORE_RADIUS, type ArenaProjection, type Point } from "../config/geometry/arenaProjection";
 import {
   NEXUS_SEGMENTS,
   changedSegments,
@@ -8,7 +8,7 @@ import {
   segmentArc,
   type NexusCoreStyle,
   type NexusSide
-} from "../config/nexusCore";
+} from "../config/presentation/nexusCore";
 
 const PLAYERS: PlayerId[] = ["P1", "P2"];
 

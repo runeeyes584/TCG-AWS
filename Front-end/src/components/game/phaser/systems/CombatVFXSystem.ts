@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { logicalSize } from "../config/arenaScale";
+import { logicalSize } from "../config/geometry/arenaScale";
 import type { VisualEvent } from "@backend/game/types";
 import type { UnitView } from "../types/arenaTypes";
 import type { Jolt } from "../renders/CardRenderer";

@@ -1,5 +1,5 @@
 import type { GraveyardCause } from "@backend/game/types";
-import type { GraveyardChangeKind } from "../../hud/graveyard/graveyardChanges";
+import type { GraveyardChangeKind } from "../../../hud/graveyard/graveyardChanges";
 
 /**
  * The paths and timings of the graveyard effects (`GraveyardFx`), as plain functions of time so that they can be

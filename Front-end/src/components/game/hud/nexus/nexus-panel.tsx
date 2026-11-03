@@ -1,8 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import type { PlayerId, PlayerState, UnitInstance } from "@backend/game/types";
+import type { PlayerId, PlayerState } from "@backend/game/types";
 import { arenaEventBus, type ScreenRect } from "../../../../libs/arenaEventBus";
-import { ReserveStrip } from "./reserve-strip";
 import {
   MAX_MANA,
   MAX_SPELL_MANA,
@@ -30,8 +29,6 @@ export interface NexusPanelProps {
   hasPriority: boolean;
   attackTokenAvailable: boolean;
   resourcePreview: { manaUsed: number; spellManaUsed: number };
-  /** The units in this player's waiting row, listed under the resources (shown for the opponent). */
-  reserve?: UnitInstance[];
 }
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -168,8 +165,7 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
   isAttacker,
   hasPriority,
   attackTokenAvailable,
-  resourcePreview,
-  reserve
+  resourcePreview
 }) => {
   const gemsRef = useRef<HTMLDivElement>(null);
   const shardsRef = useRef<HTMLDivElement>(null);
@@ -253,7 +249,6 @@ export const NexusPanel: React.FC<NexusPanelProps> = ({
         </div>
         <span className="nx-count">{spellCount(display.spellMana)}</span>
       </div>
-      {reserve ? <ReserveStrip units={reserve} /> : null}
     </section>
   );
 };

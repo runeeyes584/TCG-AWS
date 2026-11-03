@@ -278,13 +278,13 @@ function DeckBuilderPageContent() {
         await saveDeck(payload);
         setSelectedDeckId(deckId);
         setSaveState("saved");
-        setNotice("Deck saved locally, synced to your account, and selected for matchmaking.");
+        setNotice("Deck saved, synced to your account, and selected for matchmaking.");
       } catch (cloudError) {
         setSaveState("local");
         setNotice(
           cloudError instanceof Error
-            ? `Saved locally but not selected for online play. Cloud sync failed: ${cloudError.message}`
-            : "Saved locally but not selected for online play. Cloud sync failed."
+            ? `Saved but not selected for online play. Cloud sync failed: ${cloudError.message}`
+            : "Saved but not selected for online play. Cloud sync failed."
         );
       }
     } catch (error) {

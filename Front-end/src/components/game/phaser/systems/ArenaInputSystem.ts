@@ -1,7 +1,7 @@
 import type Phaser from "phaser";
 import type { PlayerId } from "@backend/game/types";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
-import { isShieldedPointer } from "../config/uiShield";
+import { isShieldedPointer } from "../config/interaction/uiShield";
 
 /** Creates and owns board input targets. It never mutates game rules directly. */
 export class ArenaInputSystem {

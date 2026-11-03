@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { PlayerId } from "@backend/game/types";
 import { arenaEventBus } from "../../../../libs/arenaEventBus";
-import { PILE_IDS, type PileId } from "../../phaser/config/pileLayout";
+import { PILE_IDS, type PileId } from "../../phaser/config/geometry/pileLayout";
 import type { PileKind } from "./pileLook";
 import type { PilesState } from "./pileState";
 

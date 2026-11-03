@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
-import type { ArenaProjection, Point } from "../config/arenaProjection";
-import { ARENA_HEX } from "../config/arenaTheme";
+import type { ArenaProjection, Point } from "../config/geometry/arenaProjection";
+import { ARENA_HEX } from "../config/presentation/arenaTheme";
 
 type Phase = "wait" | "in" | "hold" | "out";
 

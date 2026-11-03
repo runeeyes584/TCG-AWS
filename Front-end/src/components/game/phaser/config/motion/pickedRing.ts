@@ -1,4 +1,4 @@
-import type { Point, Quad } from "./arenaProjection";
+import type { Point, Quad } from "../geometry/arenaProjection";
 
 /**
  * The outline of a card that has been picked, a little way out from the card: each corner is moved away from the

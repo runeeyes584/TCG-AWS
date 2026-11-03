@@ -1,4 +1,4 @@
-import type { PileId } from "../../phaser/config/pileLayout";
+import type { PileId } from "../../phaser/config/geometry/pileLayout";
 import type { PileKind } from "./pileLook";
 
 /** What the DOM buttons of the piles tell the arena, which paints them. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Quad } from "./arenaProjection";
+import type { Quad } from "../geometry/arenaProjection";
 import { growQuad } from "./pickedRing";
 
 const square: Quad = [

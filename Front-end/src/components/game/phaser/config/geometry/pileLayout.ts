@@ -1,4 +1,4 @@
-import { CARD_RATIO } from "../../zones/handLayout";
+import { CARD_RATIO } from "../../../zones/handLayout";
 
 /**
  * Where the four piles stand: the decks and graveyards of both players, in a column to the left of the table,

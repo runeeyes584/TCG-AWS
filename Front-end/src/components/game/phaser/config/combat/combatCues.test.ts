@@ -12,7 +12,7 @@ const snap = (over: Partial<CueSnapshot> = {}): CueSnapshot => ({
 
 const quiet = { champions: [], attackers: [], blockers: [] };
 
-describe("combatCues", () => {
+describe("./combatCues", () => {
   it("cues nothing on the first reading", () => {
     expect(combatCues(undefined, snap({ phase: "BLOCK", attackerIds: ["a"] }))).toEqual(quiet);
   });

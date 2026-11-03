@@ -6,10 +6,10 @@ import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
 import type { PlayerId, UnitInstance } from "@backend/game/types";
 import type { UnitView } from "../types/arenaTypes";
-import { boundsOf, padBounds, type Bounds, type CardPlacement, type Point, type Quad } from "../config/arenaProjection";
-import { logicalSize } from "../config/arenaScale";
-import { hoverPose, liftedRect } from "../config/hoverLift";
-import { GLIDE_MS, SWEEP_MS, glideOffset, isNewlyDeclared, isRetreating, sweepWindow } from "../config/declareMotion";
+import { boundsOf, padBounds, type Bounds, type CardPlacement, type Point, type Quad } from "../config/geometry/arenaProjection";
+import { logicalSize } from "../config/geometry/arenaScale";
+import { hoverPose, liftedRect } from "../config/motion/hoverLift";
+import { GLIDE_MS, SWEEP_MS, glideOffset, isNewlyDeclared, isRetreating, sweepWindow } from "../config/motion/declareMotion";
 import { TextureLoader } from "../systems/TextureLoader";
 import { CardInteractionSystem } from "../systems/CardInteractionSystem";
 import { CardAnimationManager } from "../systems/CardAnimationManager";
@@ -224,6 +224,7 @@ export class CardRenderer {
   destroy() {
     this.clear();
     this.settleHover();
+    this.interactions.destroy();
     this.prune(new Set());
     this.textures.destroy();
   }

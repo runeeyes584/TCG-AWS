@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
-import { GLIDE_MS } from "../config/declareMotion";
-import type { Point } from "../config/arenaProjection";
+import { GLIDE_MS } from "../config/motion/declareMotion";
+import type { Point } from "../config/geometry/arenaProjection";
 import { ROLE_COLOR, type DeclareInfo } from "./CardRenderer";
 
 /** Under every card (they start at depth 10), over the table and the glow of the crack. */

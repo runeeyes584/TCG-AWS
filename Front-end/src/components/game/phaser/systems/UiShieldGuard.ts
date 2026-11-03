@@ -1,4 +1,4 @@
-import { isShielded } from "../config/uiShield";
+import { isShielded } from "../config/interaction/uiShield";
 
 /**
  * Keeps a click on a DOM control (a card of the hand, the details seal, the codex, a dialog) away from Phaser.

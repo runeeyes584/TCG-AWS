@@ -4144,22 +4144,24 @@ button.pile-hit:active:not(:disabled) {
 
 .lobby-placeholder { max-width: 580px; }
 .lobby-placeholder h1 { white-space: pre-line; }
-.lobby-custom-match { max-width: 560px; }
-.lobby-trial-mode { max-width: 650px; }
-.custom-match-panel {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: stretch;
-  gap: 14px;
+/* One size for every mode screen (heading, lede, loadout, action panel): a new mode reuses these two classes. */
+.lobby-mode { max-width: 560px; }
+.lobby-mode-panel {
   width: min(100%, 560px);
   margin-top: 28px;
-  padding: 12px;
   border: 1px solid rgba(83, 230, 255, 0.22);
   border-left: 3px solid #53e6ff;
   background: rgba(4, 9, 22, 0.58);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 0 24px rgba(83, 230, 255, 0.05);
+}
+.custom-match-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  gap: 14px;
+  padding: 12px;
 }
 /* Placement hooks for <Button>; appearance lives in components/ui/button */
 .trial-mode-panel .lobby-cta { grid-column: 1 / -1; justify-self: stretch; width: auto; margin: 11px; }
@@ -4168,16 +4170,8 @@ button.pile-hit:active:not(:disabled) {
 
 .trial-mode-panel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
-  width: min(100%, 650px);
-  margin-top: 28px;
-  border: 1px solid rgba(83, 230, 255, 0.22);
-  border-left: 3px solid #53e6ff;
-  background: rgba(4, 9, 22, 0.58);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 0 24px rgba(83, 230, 255, 0.05);
 }
 
 .trial-mode-panel > span {
@@ -7110,19 +7104,35 @@ button.pile-hit:active:not(:disabled) {
   position: relative;
   z-index: 10;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
+  justify-content: center;
   width: min(92vw, 480px);
   text-align: center;
 }
 
+/* The radar alone is centred on the screen, so the rings the vortex draws around it are centred too; the chips and the
+   abort button hang below it instead of pulling the radar up. */
+.searching-actions {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Wide enough that the status plate (244 px) sits inside the inner ring. Flex, not grid: whatever overflows the box
+   overflows evenly on both sides instead of only to the right. */
 .searching-radar-hud {
   position: relative;
-  width: 220px;
-  height: 220px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 300px;
+  height: 300px;
 }
 
 .radar-ring-spin-cw {
@@ -7146,6 +7156,7 @@ button.pile-hit:active:not(:disabled) {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .radar-icon-pulse {
@@ -12140,96 +12151,6 @@ button.card-codex__play:disabled {
   animation: nx-fresh 0.9s ease-out;
 }
 
-/* The opponent's waiting row, listed where nothing can stand in front of it. */
-.nx-reserve {
-  display: grid;
-  gap: 0.5em;
-  padding-top: 0.7em;
-  border-top: 1px solid transparent;
-  border-image: var(--nx-hairline) 1;
-}
-
-.nx-reserve__list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35em 0.9em;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nx-reserve__list:empty::after {
-  color: var(--nx-label);
-  content: "—";
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-}
-
-.nx-chip {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #f4f0ff;
-  cursor: default;
-  font: inherit;
-  letter-spacing: normal;
-  text-align: left;
-  text-shadow: inherit;
-  text-transform: none;
-}
-
-.nx-chip__gem {
-  flex: none;
-  width: 0.55em;
-  height: 0.55em;
-  background: var(--nx-tone);
-  box-shadow: 0 0 0.6em var(--nx-tone-deep);
-  transform: rotate(45deg);
-}
-
-.nx-chip__name {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  font-size: 1.05em;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.nx-chip__stats,
-.nx-chip__marks {
-  flex: none;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 0.82em;
-}
-
-.nx-chip__stats {
-  color: var(--nx-label);
-}
-
-.nx-chip__marks {
-  color: var(--nx-tone);
-  font-style: normal;
-  letter-spacing: 0.1em;
-}
-
-.nx-chip:hover .nx-chip__name,
-.nx-chip:focus-visible .nx-chip__name {
-  color: var(--nx-tone);
-}
-
-.nx-chip:focus-visible {
-  outline: 1px dashed var(--nx-tone);
-  outline-offset: 2px;
-}
-
 @keyframes nx-sweep {
   0% { opacity: 0.35; transform: scaleX(0.35); }
   50% { opacity: 1; transform: scaleX(1); }
@@ -12273,17 +12194,6 @@ button.card-codex__play:disabled {
   .nx-hp__delta {
     animation-duration: 0.01s;
     opacity: 1;
-  }
-}
-
-/* A short window: tighten the rhythm so the two HUDs and the Pass still fit. */
-@media (max-height: 820px) {
-  .nx-chip__name {
-    display: none;
-  }
-
-  .nx-reserve__list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

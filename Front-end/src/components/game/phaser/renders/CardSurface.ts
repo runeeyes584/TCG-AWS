@@ -1,8 +1,8 @@
 import type Phaser from "phaser";
-import type { Bounds, Point, Quad } from "../config/arenaProjection";
-import { perimeterPath } from "../config/declareMotion";
-import { densityOf } from "../config/arenaScale";
-import { growQuad } from "../config/pickedRing";
+import type { Bounds, Point, Quad } from "../config/geometry/arenaProjection";
+import { perimeterPath } from "../config/motion/declareMotion";
+import { densityOf } from "../config/geometry/arenaScale";
+import { growQuad } from "../config/motion/pickedRing";
 import { acquireCanvasTexture } from "./canvasTexture";
 import { drawIntoQuad } from "./cardFace";
 

@@ -1,4 +1,4 @@
-import type { ArenaRowKey, Point } from "./arenaProjection";
+import type { ArenaRowKey, Point } from "../geometry/arenaProjection";
 
 export type TurnOwner = "you" | "opponent";
 

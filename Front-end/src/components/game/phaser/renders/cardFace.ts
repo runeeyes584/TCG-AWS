@@ -1,5 +1,5 @@
 import type { SpellSpeed } from "@backend/game/types";
-import type { Quad } from "../config/arenaProjection";
+import type { Quad } from "../config/geometry/arenaProjection";
 import type { Trend } from "../../cards/cardStats";
 import { SPEED_STYLE } from "../../cards/spellSpeed";
 

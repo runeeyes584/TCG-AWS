@@ -1,5 +1,5 @@
-import type { ArenaProjection, Point } from "./arenaProjection";
-import { seededRandom } from "./arenaTheme";
+import type { ArenaProjection, Point } from "../geometry/arenaProjection";
+import { seededRandom } from "../presentation/arenaTheme";
 
 const SEGMENTS = 22;
 const SEED = 1337;

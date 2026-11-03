@@ -5,7 +5,7 @@ import { laneLinks } from "./laneLinks";
 const state = (attackTokenPlayerId: "P1" | "P2", attackers: Array<{ attackerId: string; blockerId?: string }>) =>
   ({ attackTokenPlayerId, combat: { attackers } }) as unknown as GameState;
 
-describe("laneLinks", () => {
+describe("./laneLinks", () => {
   it("has no lanes outside a combat", () => {
     expect(laneLinks(state("P1", []), "P1", () => false)).toEqual([]);
   });

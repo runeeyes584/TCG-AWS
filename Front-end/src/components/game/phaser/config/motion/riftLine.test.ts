@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createArenaProjection } from "./arenaProjection";
+import { createArenaProjection } from "../geometry/arenaProjection";
 import { RIFT_AMPLITUDE, crackYAt, riftPolyline } from "./riftLine";
 
 const proj = createArenaProjection(1920, 1080, 0.24, 1);

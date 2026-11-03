@@ -3,7 +3,7 @@ import type { ArenaEventMap } from "../../../../libs/arenaEventBus";
 import { sealPlacement } from "../../hud/passButton/passSeal";
 import type { GraveyardChangeKind } from "../../hud/graveyard/graveyardChanges";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
-import { logicalSize } from "../config/arenaScale";
+import { logicalSize } from "../config/geometry/arenaScale";
 import { CARD_RATIO } from "../../zones/handLayout";
 import {
   CAUSE_COLOR,
@@ -23,7 +23,7 @@ import {
   spiralPoint,
   stage,
   type Point
-} from "../config/graveyardFxMotion";
+} from "../config/motion/graveyardFxMotion";
 
 type Fx = ArenaEventMap["GRAVEYARD_FX"];
 

@@ -2,7 +2,7 @@ import * as Phaser from "phaser";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
 import { fitSealText, passSealStyle, sealPlacement, type PassSealStyle } from "../../hud/passButton/passSeal";
 import type { ArenaEventMap } from "../../../../libs/arenaEventBus";
-import { logicalSize } from "../config/arenaScale";
+import { logicalSize } from "../config/geometry/arenaScale";
 import { acquireCanvasTexture } from "./canvasTexture";
 import { fontFamily } from "./cardFace";
 

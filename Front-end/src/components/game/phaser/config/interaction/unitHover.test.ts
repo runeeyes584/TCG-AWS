@@ -74,6 +74,51 @@ describe("UnitHoverTracker", () => {
     expect(hide).toHaveBeenCalledTimes(1);
   });
 
+  describe("release (the pointer left the table for a control above it)", () => {
+    it("ends the hover once and hands back the card that held it", () => {
+      const { hover, hide } = tracker();
+      const card = cardOf("u1");
+      hover.enter(card);
+
+      expect(hover.release()).toBe(card);
+      expect(hide).toHaveBeenCalledTimes(1);
+    });
+
+    it("does nothing when nothing is hovered, however often it is called", () => {
+      const { hover, hide } = tracker();
+
+      expect(hover.release()).toBeUndefined();
+      expect(hover.release()).toBeUndefined();
+      expect(hide).not.toHaveBeenCalled();
+    });
+
+    it("leaves a card that is entered afterwards to hold the hover again", () => {
+      const { hover, shown, hide } = tracker();
+      hover.enter(cardOf("u1"));
+      hover.release();
+
+      const back = cardOf("u1");
+      hover.enter(back);
+
+      expect(shown).toEqual(["u1", "u1"]);
+      hover.leave(back);
+      expect(hide).toHaveBeenCalledTimes(2);
+    });
+
+    it("forgets the card waited for during a redraw, so that the new card does not take the hover back", () => {
+      const { hover, shown, hide } = tracker();
+      hover.enter(cardOf("u1"));
+      hover.carry();
+
+      hover.release();
+      hover.adopt(cardOf("u1"), true);
+      hover.settle();
+
+      expect(shown).toEqual(["u1"]);
+      expect(hide).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("does nothing on a redraw while nothing is hovered", () => {
     const { hover, shown, hide } = tracker();
 

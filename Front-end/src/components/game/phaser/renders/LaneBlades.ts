@@ -1,7 +1,7 @@
 import * as Phaser from "phaser";
-import { rowKeyFor, type ArenaProjection, type Point } from "../config/arenaProjection";
-import type { LaneLink } from "../config/laneLinks";
-import { crackYAt, riftPolyline } from "../config/riftLine";
+import { rowKeyFor, type ArenaProjection, type Point } from "../config/geometry/arenaProjection";
+import type { LaneLink } from "../config/geometry/laneLinks";
+import { crackYAt, riftPolyline } from "../config/motion/riftLine";
 import { ROLE_COLOR } from "./CardRenderer";
 
 /** Under the cards (which start at depth 10), over the crack's glow (2,5) and the shards (2,4). */

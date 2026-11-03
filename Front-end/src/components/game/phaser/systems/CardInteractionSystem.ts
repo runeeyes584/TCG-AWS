@@ -1,9 +1,9 @@
 import * as Phaser from "phaser";
 import type { PlayerId, UnitInstance } from "@backend/game/types";
 import { toScreenRect } from "../../hud/inspector/inspectorPlacement";
-import { logicalSize } from "../config/arenaScale";
-import { isShielded, isShieldedPointer } from "../config/uiShield";
-import { UnitHoverTracker } from "../config/unitHover";
+import { logicalSize } from "../config/geometry/arenaScale";
+import { isShielded, isShieldedPointer } from "../config/interaction/uiShield";
+import { UnitHoverTracker } from "../config/interaction/unitHover";
 import type { ScreenRect } from "../../../../libs/arenaEventBus";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
 import { arenaStoreAdapter } from "../adapters/arenaStoreAdapter";
@@ -52,6 +52,46 @@ export class CardInteractionSystem {
     }
   });
 
+  /** Every card that can be hovered now. A card leaves the set when it is destroyed. */
+  private readonly cards = new Set<Phaser.GameObjects.Container>();
+  private watching?: Phaser.Scene;
+
+  /**
+   * The pointer left the table: it went onto a control drawn above the canvas (the Pass seal, a pile, a dialog, the
+   * hand) or out of the page. Phaser listens for the pointer on the canvas only, and when the
+   * pointer leaves it says `gameout` and nothing to the cards, so no `pointerout` would ever come and the hover (and the
+   * label of the card) would stay up. Nothing is hovered now; the card is lowered, and Phaser is made to forget that it was
+   * over the card (`disable` takes it off Phaser's list of what is under the pointer without an event, `enable` turns it
+   * back on), so that the pointer coming back to the same card is a new `pointerover`.
+   */
+  private readonly release = () => {
+    this.hover.release()?.onHover(false);
+    const input = this.watching?.input;
+    if (!input) return;
+    for (const card of this.cards) {
+      if (!card.active) continue;
+      input.disable(card);
+      input.enable(card);
+    }
+  };
+
+  private watch(scene: Phaser.Scene) {
+    if (this.watching === scene) return;
+    this.unwatch();
+    this.watching = scene;
+    scene.input.on(Phaser.Input.Events.GAME_OUT, this.release);
+  }
+
+  private unwatch() {
+    this.watching?.input?.off(Phaser.Input.Events.GAME_OUT, this.release);
+    this.watching = undefined;
+  }
+
+  destroy() {
+    this.unwatch();
+    this.cards.clear();
+  }
+
   /** Every card is about to be redrawn: the hovered unit is carried over to its new card. */
   beginRedraw() {
     this.hover.carry();
@@ -79,6 +119,8 @@ export class CardInteractionSystem {
   ) {
     card.setInteractive({ hitArea, hitAreaCallback: Phaser.Geom.Polygon.Contains, useHandCursor: true });
     const target: HoveredCard = { unitId: unit.instanceId, playerId, card, onHover };
+    this.cards.add(card);
+    this.watch(card.scene);
     card.on("pointerover", () => {
       if (!moving()) this.hover.enter(target);
     });
@@ -87,7 +129,10 @@ export class CardInteractionSystem {
       onHover(false);
     });
     // Phaser never reports that the pointer left a destroyed card.
-    card.once(Phaser.GameObjects.Events.DESTROY, () => this.hover.leave(target));
+    card.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.cards.delete(card);
+      this.hover.leave(target);
+    });
     // A card drawn again under a pointer that has not moved gets no pointerover: it takes the hover back here.
     this.hover.adopt(target, !moving() && isUnderPointer(card));
     card.on("pointerdown", (pointer: Phaser.Input.Pointer) => {

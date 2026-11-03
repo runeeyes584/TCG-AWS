@@ -1,8 +1,8 @@
 import * as Phaser from "phaser";
-import { ARENA_COLUMNS, type ArenaProjection, type ArenaRowKey, type Point, type Quad } from "../config/arenaProjection";
-import { ARENA_COLORS as C, rgba } from "../config/arenaTheme";
-import { riftPolyline } from "../config/riftLine";
-import { densityOf } from "../config/arenaScale";
+import { ARENA_COLUMNS, type ArenaProjection, type ArenaRowKey, type Point, type Quad } from "../config/geometry/arenaProjection";
+import { ARENA_COLORS as C, rgba } from "../config/presentation/arenaTheme";
+import { riftPolyline } from "../config/motion/riftLine";
+import { densityOf } from "../config/geometry/arenaScale";
 import { acquireCanvasTexture } from "./canvasTexture";
 
 const TEXTURE_KEY = "arena-table-texture";

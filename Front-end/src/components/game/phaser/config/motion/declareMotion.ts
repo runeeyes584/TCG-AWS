@@ -1,4 +1,4 @@
-import type { Point, Quad } from "./arenaProjection";
+import type { Point, Quad } from "../geometry/arenaProjection";
 
 /** A declared card glides from its slot in the waiting row to its slot in the active row. */
 export const GLIDE_MS = 320;

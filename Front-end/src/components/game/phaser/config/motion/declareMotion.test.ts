@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Quad } from "./arenaProjection";
+import type { Quad } from "../geometry/arenaProjection";
 import { GLIDE_MS, SWEEP_MS, glideOffset, isNewlyDeclared, isRetreating, perimeterPath, sweepWindow } from "./declareMotion";
 
 const square: Quad = [

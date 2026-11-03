@@ -1,8 +1,8 @@
 import * as Phaser from "phaser";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
-import type { ArenaProjection, Point } from "../config/arenaProjection";
-import { riftPolyline } from "../config/riftLine";
-import { BANNER, actorDirection, easeOutCubic, lensPoints, phaseProgress, sampleTargets } from "../config/riftMotion";
+import type { ArenaProjection, Point } from "../config/geometry/arenaProjection";
+import { riftPolyline } from "../config/motion/riftLine";
+import { BANNER, actorDirection, easeOutCubic, lensPoints, phaseProgress, sampleTargets } from "../config/motion/riftMotion";
 import type { ArenaEventMap } from "../../../../libs/arenaEventBus";
 import { acquireCanvasTexture } from "./canvasTexture";
 import { fontFamily } from "./cardFace";

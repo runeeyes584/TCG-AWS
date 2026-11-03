@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { logicalSize } from "../config/arenaScale";
+import { logicalSize } from "../config/geometry/arenaScale";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
 import { sealPlacement } from "../../hud/passButton/passSeal";
 import type { ArenaEventMap } from "../../../../libs/arenaEventBus";

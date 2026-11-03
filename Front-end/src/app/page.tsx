@@ -454,14 +454,14 @@ export default function Home() {
             </div>
           </>
         ) : activeTab === "custom" ? (
-          <div className="lobby-custom-match">
+          <div className="lobby-mode">
             <Eyebrow>Private Room<EyebrowRule />Friendly Duel</Eyebrow>
             <h1>Custom<br /><em>Match</em></h1>
             <Lede>Create a room for a friend or enter their room ID to jump straight into a private duel.</Lede>
 
             <DeckSelectionPanel className="lobby-deck-selection" />
 
-            <div className="custom-match-panel">
+            <div className="lobby-mode-panel custom-match-panel">
               <Button className="lobby-cta" variant="primary" size="lg" fullWidth icon={<Swords size={20} />} onClick={createCustomMatch}>
                 {isSignedIn ? "Create room" : "Sign in to create"}
               </Button>
@@ -472,14 +472,14 @@ export default function Home() {
             </div>
           </div>
         ) : activeTab === "trial" ? (
-          <div className="lobby-trial-mode">
+          <div className="lobby-mode">
             <Eyebrow>Local Sandbox<EyebrowRule />Solo Training</Eyebrow>
             <h1>Trial<br /><em>Mode</em></h1>
             <Lede>Test cards and combos without matchmaking. Refill mana, draw cards, and refresh your attack token whenever you need.</Lede>
 
             <DeckSelectionPanel className="lobby-deck-selection" />
 
-            <div className="trial-mode-panel">
+            <div className="lobby-mode-panel trial-mode-panel">
               <span><Zap size={17} aria-hidden="true" /><b>Free resources</b><small>Mana controls</small></span>
               <span><BookOpen size={17} aria-hidden="true" /><b>Open draws</b><small>Draw on demand</small></span>
               <span><Swords size={17} aria-hidden="true" /><b>Repeat combat</b><small>Refresh attacks</small></span>

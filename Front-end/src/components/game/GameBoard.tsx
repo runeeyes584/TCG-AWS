@@ -35,6 +35,7 @@ import { PendingAbilityTargetDialog } from "./PendingAbilityTargetDialog";
 import { PendingDiscardDialog } from "./PendingDiscardDialog";
 import { PileDock, type PileSpecs } from "./hud/piles/pile-dock";
 import { useGraveyardFx } from "./hud/graveyard/useGraveyardFx";
+import { isUnitOnTable } from "./hud/inspector/hoverGuard";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
 import { useTurnTickSound } from "../../hooks/useTurnTickSound";
@@ -44,7 +45,7 @@ import { DeveloperResourcesPanel } from "./DeveloperResourcesPanel";
 import type { RoomUpdate } from "@backend/shared/multiplayer";
 import { PhaserArenaCanvas } from "./phaser/PhaserArenaCanvas";
 import { arenaEventBus } from "../../libs/arenaEventBus";
-import { combatCues, cueSnapshot, type CueSnapshot } from "./phaser/config/combatCues";
+import { combatCues, cueSnapshot, type CueSnapshot } from "./phaser/config/combat/combatCues";
 import { useGameStore } from "../../hooks/useGameStore";
 import { SpellEffectLayer } from "./spell-effect-layer";
 import { AnimatePresence } from "framer-motion";
@@ -85,7 +86,12 @@ interface GameBoardViewProps {
 }
 
 function PhaserHoverBridge({ gameState }: { gameState: ReturnType<typeof useLocalGame>["gameState"] }) {
-  const { setHoveredCard, selectCard } = useHover();
+  const { hoveredUnit, setHoveredCard, selectCard } = useHover();
+
+  // The label of a card is never kept for a unit that is no longer on the table, whatever left it up.
+  useEffect(() => {
+    if (hoveredUnit && !isUnitOnTable(gameState, hoveredUnit)) setHoveredCard(undefined, undefined);
+  }, [gameState, hoveredUnit, setHoveredCard]);
 
   useEffect(() => {
     const stopHover = arenaEventBus.on("HOVER_UNIT", (entity) => {

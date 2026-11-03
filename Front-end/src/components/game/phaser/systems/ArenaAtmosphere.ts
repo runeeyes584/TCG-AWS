@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
-import type { ArenaProjection } from "../config/arenaProjection";
-import { ARENA_COLORS as C, ARENA_HEX, rgba, seededRandom } from "../config/arenaTheme";
+import type { ArenaProjection } from "../config/geometry/arenaProjection";
+import { ARENA_COLORS as C, ARENA_HEX, rgba, seededRandom } from "../config/presentation/arenaTheme";
 import { acquireCanvasTexture } from "../renders/canvasTexture";
 
 const BACKDROP_KEY = "arena-atmosphere-backdrop";

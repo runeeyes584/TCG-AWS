@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARD_RATIO } from "../../zones/handLayout";
+import { CARD_RATIO } from "../../../zones/handLayout";
 import { NEXUS_CORE_RADIUS, createArenaProjection } from "./arenaProjection";
 import { PILE_IDS, PILE_LIMITS, RAIL, pileLayout, railLeftEdge, type PileLayout, type PileRect } from "./pileLayout";
 

@@ -28,6 +28,19 @@ export class UnitHoverTracker<T extends HoverTarget> {
     this.on.hide();
   }
 
+  /**
+   * The pointer is no longer over the table at all (it went onto a control drawn above it, or out of the page): Phaser
+   * says nothing to the cards then, so nothing is hovered. Returns the card that held the hover, if any, so that it can be lowered.
+   */
+  release(): T | undefined {
+    const held = this.current;
+    const waiting = this.carried !== undefined;
+    this.current = undefined;
+    this.carried = undefined;
+    if (held || waiting) this.on.hide();
+    return held;
+  }
+
   /** Every card is about to be replaced: remember the hovered unit, and keep its label up meanwhile. */
   carry() {
     if (this.current) this.carried = this.current.unitId;

@@ -1,10 +1,10 @@
 import * as Phaser from "phaser";
 import { arenaEventAdapter } from "../adapters/arenaEventAdapter";
-import { ARENA_HEX } from "../config/arenaTheme";
-import type { ArenaProjection, Point } from "../config/arenaProjection";
-import { ARENA_COLUMNS } from "../config/arenaProjection";
-import { riftPolyline } from "../config/riftLine";
-import { actorDirection, laneRowsFor, pulsePositions, type TurnOwner } from "../config/riftMotion";
+import { ARENA_HEX } from "../config/presentation/arenaTheme";
+import type { ArenaProjection, Point } from "../config/geometry/arenaProjection";
+import { ARENA_COLUMNS } from "../config/geometry/arenaProjection";
+import { riftPolyline } from "../config/motion/riftLine";
+import { actorDirection, laneRowsFor, pulsePositions, type TurnOwner } from "../config/motion/riftMotion";
 import type { ArenaEventMap } from "../../../../libs/arenaEventBus";
 import { acquireCanvasTexture } from "./canvasTexture";
 
