@@ -1,6 +1,7 @@
 "use client";
 
 import type { CardInstance } from "@backend/game/types";
+import { Callsign } from "../ui/data";
 import { BoardDialog } from "../ui/modal";
 import { PickerCard } from "./PickerCard";
 
@@ -33,7 +34,7 @@ export function PendingDiscardDialog({ playerName, hand, downTo, canControl, onD
     <BoardDialog
       tone="blood"
       badge="Hand limit"
-      title={`${playerName}: discard`}
+      title={<><Callsign>{playerName}</Callsign>: discard</>}
       titleId="pending-discard-title"
       maxWidth={820}
       scrollBody

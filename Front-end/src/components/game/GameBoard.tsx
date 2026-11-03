@@ -1,7 +1,7 @@
 "use client";
 
 import { BookOpen, ChevronLeft, ChevronRight, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Skull, Swords, Trophy, X, Zap } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
   AbilityTargetMap,
@@ -27,7 +27,8 @@ import { deriveTurnRail } from "./hud/infoBoard/turnRail";
 import { getUnitAttack, getUnitHealth, isChampionCard } from "@backend/game/entities/cards";
 import { OPPONENT_CLAIM_DELAY_MS, turnDeadline } from "@backend/game/rules/turnClock";
 import { serverNow } from "../../libs/serverClock";
-import { afkWarningKey } from "./hud/afkNoti/afkWarning";
+import { afkToastInput, afkWarningKey } from "./hud/afkNoti/afkWarning";
+import { WRONG_TARGET_TOAST } from "./hud/wrongTargetToast";
 import { HoverProvider, useHover } from "../../contexts/HoverContext";
 import { CardInspector } from "./hud/inspector/card-inspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
@@ -48,12 +49,10 @@ import { arenaEventBus } from "../../libs/arenaEventBus";
 import { combatCues, cueSnapshot, type CueSnapshot } from "./phaser/config/combat/combatCues";
 import { useGameStore } from "../../hooks/useGameStore";
 import { SpellEffectLayer } from "./spell-effect-layer";
-import { AnimatePresence } from "framer-motion";
-import { AfkToastNotification } from "./hud/afkNoti/AfkToastNotification";
 import { Button } from "../ui/button";
 import { BoardDialog, Modal } from "../ui/modal";
 import { playBlockReason, type PlayBlock, BLOCK_TEXT } from "./zones/playBlock";
-import { NoticeCard } from "../ui/feedback";
+import { NoticeCard, useToast } from "../ui/feedback";
 
 const MATCH_RESULT_RETURN_SECONDS = 20;
 
@@ -159,41 +158,11 @@ export function GameBoardView({
   const controllerRef = useRef(controller);
   controllerRef.current = controller;
   const battleTableRef = useRef<HTMLElement>(null);
-  const [afkNotice, setAfkNotice] = useState<{
-    level: "warning" | "danger";
-    message: string;
-  }>();
+  const toast = useToast();
   const lastHandledAfkWarningRef = useRef<string | undefined>(undefined);
-  const dismissAfkNotice = useCallback(() => {
-    setAfkNotice(undefined);
-  }, []);
-  const [targetError, setTargetError] = useState<string>();
-  const dismissTargetError = useCallback(() => {
-    setTargetError(undefined);
-  }, []);
-  const targetErrorTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const previousArenaUnitIdsRef = useRef<Set<string>>(new Set());
   const previousCueRef = useRef<CueSnapshot | undefined>(undefined);
   const { playSfx } = useGlobalAudio();
-
-  const showTargetError = (message: string) => {
-    if (targetErrorTimeoutRef.current) {
-      clearTimeout(targetErrorTimeoutRef.current);
-    }
-    setTargetError(message);
-    targetErrorTimeoutRef.current = setTimeout(() => {
-      setTargetError(undefined);
-      targetErrorTimeoutRef.current = undefined;
-    }, 1000);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (targetErrorTimeoutRef.current) {
-        clearTimeout(targetErrorTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const previousChampionIdsRef = useRef<Set<string>>(new Set());
 
@@ -524,15 +493,8 @@ export function GameBoardView({
     }
     lastHandledAfkWarningRef.current = warningKey;
 
-    setAfkNotice(
-      warning.afkCount === 1
-        ? { level: "warning", message: "You missed your turn. Your next turn will be limited to 15 seconds." }
-        : {
-          level: "danger",
-          message: "AFK warning! You will lose the match if you stay inactive next turn."
-        }
-    );
-  }, [gameState, localPlayerId]);
+    toast.show(afkToastInput(warning.afkCount));
+  }, [gameState, localPlayerId, toast]);
 
   function canPlay(playerId: PlayerId, card: CardInstance) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
@@ -845,7 +807,7 @@ export function GameBoardView({
           (targetKind === "ENEMY_UNIT" && playerId !== casterId));
 
       if (!isValidUnitTarget) {
-        showTargetError("Wrong target! Read the description of card and choose again");
+        toast.show(WRONG_TARGET_TOAST);
         return;
       }
 
@@ -1595,28 +1557,6 @@ export function GameBoardView({
             </div>
           </div>
         ) : null}
-
-        <AnimatePresence>
-          {afkNotice ? (
-            <AfkToastNotification
-              level={afkNotice.level}
-              message={afkNotice.message}
-              duration={8000}
-              onClose={dismissAfkNotice}
-            />
-          ) : null}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {targetError ? (
-            <AfkToastNotification
-              level="warning"
-              message={targetError}
-              duration={3500}
-              onClose={dismissTargetError}
-            />
-          ) : null}
-        </AnimatePresence>
 
         <section
           ref={battleTableRef}

@@ -43,9 +43,18 @@ import { useRealtimeRank } from "../hooks/useRealtimeRank";
 import { ChronoCommandCompass, type LobbyTab } from "../components/lobby/ChronoCommandCompass";
 import { Eyebrow, EyebrowRule, Lede } from "../components/ui/layout";
 import { Button } from "../components/ui/button";
+import { useToast } from "../components/ui/feedback";
+import {
+  PENDING_MATCH_NOTICE_KEY,
+  pendingMatchCheckFailed,
+  pendingMatchLeaveFailed,
+  serverStartingNotice,
+  sessionExpiredNotice,
+} from "../components/matchmaking/pendingMatchNotice";
 
 export default function Home() {
   const router = useRouter();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<LobbyTab>("duel");
   const [playerName, setPlayerName] = useState("Guest Operative");
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -55,7 +64,6 @@ export default function Home() {
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
-  const [pendingMatchError, setPendingMatchError] = useState<string>();
   const [pendingMatchChecked, setPendingMatchChecked] = useState(true);
   const [resolvingPendingMatch, setResolvingPendingMatch] = useState(false);
   const [continuingPendingMatch, setContinuingPendingMatch] = useState(false);
@@ -146,12 +154,12 @@ export default function Home() {
         setEmail("guest@kaleidoscope.local");
         setWins(0);
         setLosses(0);
-        setPendingMatchError("Your session has expired. Please sign in again.");
+        toast.show(sessionExpiredNotice());
       } else {
-        setPendingMatchError(
+        toast.show(
           isServerUnavailable(error)
-            ? "The server is starting up. Please try again in a few seconds."
-            : msg || "Unable to check your active match."
+            ? serverStartingNotice()
+            : pendingMatchCheckFailed(msg || "Unable to check your active match.")
         );
       }
     };
@@ -186,13 +194,13 @@ export default function Home() {
       .then((result) => {
         setPendingMatch(result.match);
         setCachedPendingMatch(result.match);
-        setPendingMatchError(undefined);
+        toast.dismiss(PENDING_MATCH_NOTICE_KEY);
       })
       .catch((error) => {
         handleAuthError(error);
       })
       .finally(() => setPendingMatchChecked(true));
-  }, []);
+  }, [toast]);
 
   const startDuel = () => {
     playSfx("click");
@@ -262,7 +270,7 @@ export default function Home() {
 
   const abandonPendingMatch = async () => {
     setResolvingPendingMatch(true);
-    setPendingMatchError(undefined);
+    toast.dismiss(PENDING_MATCH_NOTICE_KEY);
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
@@ -274,8 +282,8 @@ export default function Home() {
         setLosses(user.losses);
       }
     } catch (error) {
-      setPendingMatchError(
-        error instanceof Error ? error.message : "Unable to leave the active match."
+      toast.show(
+        pendingMatchLeaveFailed(error instanceof Error ? error.message : "Unable to leave the active match.")
       );
     } finally {
       setResolvingPendingMatch(false);
@@ -552,7 +560,6 @@ export default function Home() {
         <span>Chrono Genesis TCG <b>v0.1.0</b></span>
       </footer>
 
-      {pendingMatchError ? <p className="pending-match-check-error" role="alert">{pendingMatchError}</p> : null}
       {pendingMatch ? <PendingMatchDialog status={pendingMatch.status} isResolving={resolvingPendingMatch} isContinuing={continuingPendingMatch} onContinue={resumePendingMatch} onForfeit={abandonPendingMatch} /> : null}
 
       {/* Global Sound Matrix Modal */}

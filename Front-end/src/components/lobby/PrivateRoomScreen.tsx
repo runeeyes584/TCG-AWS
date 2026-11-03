@@ -21,6 +21,13 @@ import { PendingMatchDialog } from "./PendingMatchDialog";
 import { CyberCodeSlotInput } from "../matchmaking/CyberCodeSlotInput";
 import { Button, LobbyButton } from "../ui/button";
 import { PageShell } from "../ui/layout";
+import { useToast } from "../ui/feedback";
+import {
+  PENDING_MATCH_NOTICE_KEY,
+  pendingMatchCheckFailed,
+  pendingMatchLeaveFailed,
+  waitingRoomLeaveFailed,
+} from "../matchmaking/pendingMatchNotice";
 import {
   MatchFoundShowcase,
   type ShowcasePlayer,
@@ -57,6 +64,7 @@ export function PrivateRoomScreen(props: {
   initialRoomCode?: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const normalizedInitialCode = props.initialRoomCode?.trim().toUpperCase();
   const initialValidCode =
     normalizedInitialCode && /^[A-HJ-NP-Z2-9]{6}$/.test(normalizedInitialCode)
@@ -82,7 +90,6 @@ export function PrivateRoomScreen(props: {
     const cached = getCachedPendingMatch();
     return cached ? cached.match : null;
   });
-  const [pendingMatchError, setPendingMatchError] = useState<string>();
   const [pendingMatchChecked, setPendingMatchChecked] = useState(() => {
     return getCachedPendingMatch() !== null;
   });
@@ -141,13 +148,13 @@ export function PrivateRoomScreen(props: {
         if (mounted) {
           setPendingMatch(result.match);
           setCachedPendingMatch(result.match);
-          setPendingMatchError(undefined);
+          toast.dismiss(PENDING_MATCH_NOTICE_KEY);
         }
       })
       .catch((error) => {
         if (mounted) {
-          setPendingMatchError(
-            error instanceof Error ? error.message : "Unable to check your active match."
+          toast.show(
+            pendingMatchCheckFailed(error instanceof Error ? error.message : "Unable to check your active match.")
           );
         }
       })
@@ -157,7 +164,7 @@ export function PrivateRoomScreen(props: {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (!controller.resumeRequired) return;
@@ -294,15 +301,17 @@ export function PrivateRoomScreen(props: {
   const leaveRoom = async () => {
     if (leavingRoom || controller.inGame) return;
     setLeavingRoom(true);
-    setPendingMatchError(undefined);
+    toast.dismiss(PENDING_MATCH_NOTICE_KEY);
 
     controller.cancelMatchmaking();
     try {
       await cancelWaitingRoomWithRetry();
       router.replace("/");
     } catch (error) {
-      setPendingMatchError(
-        error instanceof Error ? error.message : "Unable to leave the waiting room. Please retry."
+      toast.show(
+        waitingRoomLeaveFailed(
+          error instanceof Error ? error.message : "Unable to leave the waiting room. Please retry."
+        )
       );
       setLeavingRoom(false);
     }
@@ -335,13 +344,15 @@ export function PrivateRoomScreen(props: {
 
   const abandonPendingMatch = async () => {
     setResolvingPendingMatch(true);
-    setPendingMatchError(undefined);
+    toast.dismiss(PENDING_MATCH_NOTICE_KEY);
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
       setCachedPendingMatch(null);
     } catch (error) {
-      setPendingMatchError(error instanceof Error ? error.message : "Unable to leave the active match.");
+      toast.show(
+        pendingMatchLeaveFailed(error instanceof Error ? error.message : "Unable to leave the active match.")
+      );
     } finally {
       setResolvingPendingMatch(false);
     }
@@ -486,11 +497,6 @@ export function PrivateRoomScreen(props: {
               </div>
 
               {controller.error ? <p className="matchmaking-error">{controller.error}</p> : null}
-              {pendingMatchError ? (
-                <p className="pending-match-check-error" role="alert">
-                  {pendingMatchError}
-                </p>
-              ) : null}
 
               {/* Quick Actions Grid (COPY ROOM CODE & ABORT/LEAVE ROOM on 1 row) */}
               <div className="private-room-actions-grid" style={{ marginTop: "16px" }}>
@@ -541,11 +547,6 @@ export function PrivateRoomScreen(props: {
                 isJoined={Boolean(controller.roomCode)}
               />
 
-              {pendingMatchError ? (
-                <p className="pending-match-check-error" role="alert">
-                  {pendingMatchError}
-                </p>
-              ) : null}
 
               {/* Guest Return to Lobby Action */}
               <div style={{ marginTop: "4px", width: "100%" }}>

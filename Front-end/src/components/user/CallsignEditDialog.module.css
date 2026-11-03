@@ -1,0 +1,15 @@
+.body {
+  display: grid;
+  gap: 12px;
+}
+
+/* The cooldown warning: an amber edge, the same one the board uses for something that costs. */
+.notice {
+  margin: 0;
+  padding: 11px 13px;
+  border-left: 2px solid #e8c26a;
+  background: rgba(232, 194, 106, 0.08);
+  color: #f3dfa6;
+  font-size: 13px;
+  line-height: 1.55;
+}

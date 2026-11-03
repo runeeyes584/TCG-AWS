@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Flame, Hourglass, Layers, Skull, Sparkles, Swords, Trash2, type LucideIcon } from "lucide-react";
 import type { GraveyardEntry, GraveyardEntryType, PlayerId } from "@backend/game/types";
 import { Button } from "../ui/button";
+import { Callsign } from "../ui/data";
 import { BoardDialog } from "../ui/modal";
 import { PickerCard } from "./PickerCard";
 import {
@@ -84,7 +85,7 @@ export function GraveyardPickerModal({
     <BoardDialog
       tone="crypt"
       badge={canSelect ? "Choose from the graveyard" : `Crypt · ${entries.length} fallen`}
-      title={`${playerName}'s graveyard`}
+      title={<><Callsign>{playerName}&apos;s</Callsign> graveyard</>}
       titleId={`graveyard-title-${playerId}`}
       maxWidth={860}
       scrollBody

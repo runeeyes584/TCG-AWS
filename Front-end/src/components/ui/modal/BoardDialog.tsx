@@ -7,7 +7,7 @@ import styles from "./BoardDialog.module.css";
 export interface BoardDialogProps {
   /** Small label over the title, e.g. "SPELL READY". */
   badge: string;
-  title: string;
+  title: ReactNode;
   titleId: string;
   /** What the player is asked, under the title. */
   children?: ReactNode;
@@ -17,8 +17,8 @@ export interface BoardDialogProps {
   onClose?: () => void;
   /** Max width of the panel, in px. */
   maxWidth?: number;
-  /** violet for a choice, blood for something that spends or cannot be taken back, crypt for the graveyard. */
-  tone?: "violet" | "blood" | "crypt";
+  /** violet for a choice, blood for something that spends or cannot be taken back, crypt for the graveyard, azure for the account screens (the blue of the profile page; the edge stays the same). */
+  tone?: "violet" | "blood" | "crypt" | "azure";
   /** The body scrolls when it is taller than the window (e.g. a grid of cards). */
   scrollBody?: boolean;
 }

@@ -20,8 +20,10 @@ export async function updateUsername(userId: string, username: string): Promise<
   const newUsername = username.trim();
   const currentUser = await getUserById(userId);
   if (!currentUser) throw new Error("User not found.");
-  if (currentUser.username.trim().toLowerCase() === newUsername.toLowerCase()) return currentUser;
+  // The same name, letter for letter: nothing to change. A change of capitals only ("khang" to "Khang") is a change.
+  if (currentUser.username.trim() === newUsername) return currentUser;
 
+  // Names are unique whatever their capitals; the player's own record does not count as a clash.
   const existing = await findUserByUsername(newUsername);
   if (existing && existing.id !== userId) throw new Error("Operative callsign is already taken.");
 
@@ -40,9 +42,14 @@ export async function updateUsername(userId: string, username: string): Promise<
   await dynamoDb.send(new UpdateCommand({
     TableName: userProfileTable,
     Key: { user_id: userId },
-    UpdateExpression: "SET username = :username, lastNameChangedAt = :changedAt",
+    // username_lower is the key of the UsernameIndex used to find a name again; it moves with the name.
+    UpdateExpression: "SET username = :username, username_lower = :usernameLower, lastNameChangedAt = :changedAt",
     ConditionExpression: "attribute_exists(user_id)",
-    ExpressionAttributeValues: { ":username": newUsername, ":changedAt": Date.now() }
+    ExpressionAttributeValues: {
+      ":username": newUsername,
+      ":usernameLower": newUsername.toLowerCase(),
+      ":changedAt": Date.now()
+    }
   }));
   return (await getUserById(userId)) || { ...currentUser, username: newUsername, lastNameChangedAt: Date.now() };
 }

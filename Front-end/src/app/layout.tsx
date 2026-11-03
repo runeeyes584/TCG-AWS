@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { GlobalAudioProvider } from "../contexts/AudioContext";
 import { SessionGuard } from "../components/session/SessionGuard";
+import { ToastProvider } from "../components/ui/feedback/ToastProvider";
 
 // The fonts are kept in the repository (Latin subset, from Google Fonts, SIL Open Font License) rather than loaded
 // with next/font/google, which downloads them from Google on every build: a slow or blocked connection to Google
@@ -59,8 +60,10 @@ export default function RootLayout({
     <html lang="en" className={`${cinzel.variable} ${rajdhani.variable} ${geistSans.variable} ${geistMono.variable} bg-background`}>
       <body className="antialiased" suppressHydrationWarning>
         <GlobalAudioProvider>
-          {children}
-          <SessionGuard />
+          <ToastProvider>
+            {children}
+            <SessionGuard />
+          </ToastProvider>
         </GlobalAudioProvider>
       </body>
     </html>

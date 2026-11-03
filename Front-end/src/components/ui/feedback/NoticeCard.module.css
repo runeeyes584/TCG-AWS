@@ -1,4 +1,4 @@
-/* Tactical notice card (originally the AFK toast). Tones: warning (amber), danger (red). */
+/* Tactical notice card (originally the AFK toast). Tones: warning (amber), danger (red), success (green), info (cyan). */
 .card {
   position: relative;
   overflow: hidden;
@@ -31,6 +31,7 @@
   --notice-shard: linear-gradient(135deg, rgba(255, 220, 100, 0.6), transparent);
   --notice-bar: linear-gradient(90deg, #ff8800 0%, #ffd700 70%, #ffffff 100%);
   --notice-bar-glow: 0 0 8px #ffaa00;
+  --notice-dot: rgba(255, 200, 50, 0.3);
 }
 
 .danger {
@@ -44,7 +45,36 @@
   --notice-shard: linear-gradient(135deg, rgba(255, 70, 90, 0.6), transparent);
   --notice-bar: linear-gradient(90deg, #cc0033 0%, #ff2255 70%, #ffffff 100%);
   --notice-bar-glow: 0 0 10px #ff2255;
+  --notice-dot: rgba(255, 200, 50, 0.3);
   animation: dangerPulse 2.5s infinite ease-in-out;
+}
+
+.success {
+  --notice-border: rgba(74, 222, 128, 0.55);
+  --notice-glow: rgba(74, 222, 128, 0.2);
+  --notice-edge: rgba(156, 248, 191, 0.2);
+  --notice-accent: #6ef3a7;
+  --notice-frame-bg: rgba(74, 222, 128, 0.12);
+  --notice-frame-border: rgba(74, 222, 128, 0.4);
+  --notice-frame-glow: 0 0 12px rgba(74, 222, 128, 0.22);
+  --notice-shard: linear-gradient(135deg, rgba(110, 243, 167, 0.6), transparent);
+  --notice-bar: linear-gradient(90deg, #16a34a 0%, #4ade80 70%, #ffffff 100%);
+  --notice-bar-glow: 0 0 8px #4ade80;
+  --notice-dot: rgba(110, 243, 167, 0.3);
+}
+
+.info {
+  --notice-border: rgba(88, 230, 255, 0.5);
+  --notice-glow: rgba(88, 230, 255, 0.18);
+  --notice-edge: rgba(186, 244, 255, 0.2);
+  --notice-accent: #58e6ff;
+  --notice-frame-bg: rgba(88, 230, 255, 0.1);
+  --notice-frame-border: rgba(88, 230, 255, 0.38);
+  --notice-frame-glow: 0 0 12px rgba(88, 230, 255, 0.22);
+  --notice-shard: linear-gradient(135deg, rgba(120, 236, 255, 0.6), transparent);
+  --notice-bar: linear-gradient(90deg, #0891b2 0%, #58e6ff 70%, #ffffff 100%);
+  --notice-bar-glow: 0 0 8px #58e6ff;
+  --notice-dot: rgba(120, 236, 255, 0.3);
 }
 
 @keyframes dangerPulse {
@@ -106,7 +136,7 @@
   height: 12px;
   top: 40%;
   right: 18%;
-  background: radial-gradient(circle, rgba(255, 200, 50, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--notice-dot) 0%, transparent 70%);
   opacity: 0.5;
 }
 

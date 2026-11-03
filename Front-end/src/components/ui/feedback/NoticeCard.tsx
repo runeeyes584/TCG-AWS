@@ -2,10 +2,18 @@
 
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Clock, ShieldAlert, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Info, ShieldAlert, X } from "lucide-react";
 import styles from "./NoticeCard.module.css";
 
-export type NoticeTone = "warning" | "danger";
+/** warning and danger are the match tones (AFK); success and info are for the screens outside a match. */
+export type NoticeTone = "warning" | "danger" | "success" | "info";
+
+const TONE_ICONS = {
+  warning: AlertTriangle,
+  danger: ShieldAlert,
+  success: CheckCircle2,
+  info: Info,
+} as const;
 
 export interface NoticeCardProps {
   tone?: NoticeTone;
@@ -32,7 +40,7 @@ export interface NoticeCardProps {
 }
 
 /**
- * Cyber notice frame shared by the AFK toast and confirmation dialogs.
+ * Cyber notice frame shared by the toasts and the confirmation dialogs.
  */
 export function NoticeCard({
   tone = "warning",
@@ -48,8 +56,9 @@ export function NoticeCard({
   closeLabel = "Close notification",
   actions,
 }: NoticeCardProps) {
-  const defaultIcon = tone === "danger" ? <ShieldAlert size={24} /> : <AlertTriangle size={24} />;
-  const badgeIcon = tone === "danger" ? <ShieldAlert size={14} /> : <AlertTriangle size={14} />;
+  const ToneIcon = TONE_ICONS[tone];
+  const defaultIcon = <ToneIcon size={24} />;
+  const badgeIcon = <ToneIcon size={14} />;
 
   return (
     <div className={`${styles.card} ${styles[tone]} ${size === "lg" ? styles.lg : ""}`}>

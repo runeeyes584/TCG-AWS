@@ -1,0 +1,29 @@
+/* Where the stacks stand. The container lets the pointer through; each toast takes it. */
+.viewport {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(92vw, 360px);
+  pointer-events: none;
+}
+
+/* The match table: above the hand, at the right. The newest toast is the lowest. */
+.game {
+  right: 24px;
+  bottom: 95px;
+  align-items: flex-end;
+}
+
+/* Every other screen: top centre. */
+.page {
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.toast {
+  width: 100%;
+  pointer-events: auto;
+}

@@ -469,21 +469,6 @@ button svg { vertical-align: -2px; }
   margin-top: 26px;
 }
 
-.pending-match-check-error {
-  position: fixed;
-  z-index: 1200;
-  right: 20px;
-  bottom: 20px;
-  max-width: min(440px, calc(100vw - 40px));
-  margin: 0;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 111, 132, 0.65);
-  border-radius: 9px;
-  background: rgba(53, 10, 20, 0.96);
-  color: #ffd7de;
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.4);
-}
-
 /* ==========================================================================
    SIGN OUT CONFIRMATION MODAL (Tactical HUD / Technology / Minimalism)
    ========================================================================== */
@@ -1319,7 +1304,6 @@ button svg { vertical-align: -2px; }
 
 /* Graveyard Modal Styles */
 
-
 /* ===== AUTH ACCESS TERMINAL ===== */
 .auth-shell {
   position: relative;
@@ -1659,7 +1643,6 @@ button svg { vertical-align: -2px; }
   outline-color: #ff7777;
 }
 
-
 /* ===== GAME-LIKE ARENA REFRESH ===== */
 body {
   overflow: hidden;
@@ -1799,7 +1782,6 @@ body {
   }
 }
 
-
 .pending-choice-grid {
   --pending-card-width: 112px;
   --pending-card-height: 168px;
@@ -1861,7 +1843,6 @@ body {
   height: 100%;
   min-height: 0;
 }
-
 
 /* A card in a picking dialog (targets of an ability, the graveyard) that cannot be chosen: it sinks into grey
    and takes no click, and NOT TARGET lies across its middle in the red of the board. */
@@ -1942,7 +1923,6 @@ body {
   text-align: center;
   text-transform: uppercase;
 }
-
 
 @media (max-width: 600px) {
   .pending-choice-grid {
@@ -2224,7 +2204,6 @@ body {
   background-repeat: no-repeat;
   background-position: center;
 }
-
 
 .pending-choice-need {
   margin: 0 0 12px;
@@ -2764,7 +2743,6 @@ button.pile-hit:active:not(:disabled) {
     animation: none;
   }
 }
-
 
 /* ===== COMPACT BLUE-NOIR BATTLEFIELD =====
    The player hand is deliberately anchored upward inside its dock so its
@@ -4031,7 +4009,6 @@ button.pile-hit:active:not(:disabled) {
   font-weight: 800;
   letter-spacing: 0.06em;
   color: #f8fafc;
-  text-transform: uppercase;
   max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4468,7 +4445,6 @@ button.pile-hit:active:not(:disabled) {
   width: 104px;
   height: 146px;
 }
-
 
 .phaser-arena-canvas canvas {
   display: block;
@@ -9441,23 +9417,6 @@ button.pile-hit:active:not(:disabled) {
   letter-spacing: 0.05em;
 }
 
-.username-edit-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.username-input {
-  padding: 6px 12px;
-  border: 1px solid #ffd700;
-  border-radius: 4px;
-  background: #0d121f;
-  color: #fff;
-  font-family: var(--font-rajdhani);
-  font-size: 18px;
-  outline: none;
-}
-
 .user-meta-pills {
   display: flex;
   flex-wrap: wrap;
@@ -9916,12 +9875,6 @@ button.pile-hit:active:not(:disabled) {
   letter-spacing: 0.07em;
 }
 
-.username-input {
-  border-color: var(--profile-cyan);
-  background: #07111e;
-  box-shadow: 0 0 0 3px rgba(var(--profile-cyan-rgb), 0.06);
-}
-
 .user-meta-pill {
   padding: 5px 11px;
   border-color: rgba(var(--profile-cyan-rgb), 0.13);
@@ -10147,14 +10100,9 @@ button.pile-hit:active:not(:disabled) {
     padding: 26px 18px 20px;
   }
 
-  .username-display-box,
-  .username-edit-box {
+  .username-display-box {
     flex-wrap: wrap;
     justify-content: center;
-  }
-
-  .username-input {
-    width: 100%;
   }
 
   .user-power-track {
@@ -10247,125 +10195,6 @@ button.pile-hit:active:not(:disabled) {
   animation-delay: -0.16s;
 }
 
-.profile-toast {
-  position: fixed;
-  top: 22px;
-  left: 50%;
-  z-index: 9999;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: min(92vw, 510px);
-  padding: 15px 17px;
-  transform: translateX(-50%);
-  border: 1px solid rgba(88, 230, 255, 0.42);
-  background: rgba(5, 13, 27, 0.96);
-  box-shadow: 0 0 28px rgba(88, 230, 255, 0.18), inset 0 0 18px rgba(88, 230, 255, 0.045);
-  backdrop-filter: blur(14px);
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
-}
-
-.profile-toast::before {
-  position: absolute;
-  top: 0;
-  right: 18%;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #58e6ff, transparent);
-  box-shadow: 0 0 10px #58e6ff;
-  content: "";
-}
-
-.profile-toast--success {
-  border-color: rgba(74, 222, 128, 0.55);
-  box-shadow: 0 0 28px rgba(74, 222, 128, 0.2), inset 0 0 18px rgba(74, 222, 128, 0.05);
-}
-
-.profile-toast--error {
-  border-color: rgba(255, 105, 126, 0.62);
-  box-shadow: 0 0 28px rgba(255, 64, 104, 0.2), inset 0 0 18px rgba(255, 64, 104, 0.05);
-}
-
-.profile-toast__icon {
-  flex: 0 0 auto;
-  margin-top: 2px;
-  color: #58e6ff;
-}
-
-.profile-toast--success .profile-toast__icon { color: #6ef3a7; }
-.profile-toast--error .profile-toast__icon { color: #ff7890; }
-
-.profile-toast__content { flex: 1; min-width: 0; }
-.profile-toast__content strong {
-  display: block;
-  color: #baf4ff;
-  font: 800 12px var(--font-rajdhani);
-  letter-spacing: 0.14em;
-}
-.profile-toast--success .profile-toast__content strong { color: #9cf8bf; }
-.profile-toast--error .profile-toast__content strong { color: #ffb0bd; }
-.profile-toast__content p { margin: 5px 0 0; color: #d7e5ec; font-size: 0.82rem; line-height: 1.5; }
-.profile-toast__close { flex: 0 0 auto; padding: 2px; border: 0; background: transparent; color: #76909d; cursor: pointer; }
-.profile-toast__close:hover { color: #fff; }
-
-.username-edit-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(1, 5, 14, 0.72);
-  backdrop-filter: blur(5px);
-}
-
-.username-edit-modal {
-  position: relative;
-  width: min(460px, 100%);
-  padding: 25px 26px 23px;
-  border: 1px solid rgba(var(--profile-cyan-rgb), 0.48);
-  background:
-    linear-gradient(135deg, rgba(9, 26, 43, 0.98), rgba(13, 10, 32, 0.98)),
-    #07101d;
-  box-shadow: 0 0 42px rgba(88, 230, 255, 0.16), inset 0 0 24px rgba(88, 230, 255, 0.045);
-  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
-}
-
-.username-edit-modal::before {
-  position: absolute;
-  top: 0;
-  right: 20%;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--profile-cyan), transparent);
-  box-shadow: 0 0 12px var(--profile-cyan);
-  content: "";
-}
-
-.username-edit-modal__eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--profile-cyan);
-  font: 800 11px var(--font-rajdhani);
-  letter-spacing: 0.16em;
-}
-
-.username-edit-modal h2 { margin: 10px 0 13px; color: #effcff; font-size: 1.25rem; letter-spacing: 0.08em; }
-.username-edit-modal__warning { margin: 0; padding: 12px 13px; border-left: 2px solid #ffd166; background: rgba(255, 209, 102, 0.07); color: #f9e2a1; font-size: 0.85rem; line-height: 1.55; }
-.username-edit-modal__field { display: block; margin-top: 18px; }
-.username-edit-modal__field span { display: block; margin-bottom: 7px; color: #79a3b7; font: 800 11px var(--font-rajdhani); letter-spacing: 0.13em; text-transform: uppercase; }
-.username-edit-modal__field .username-input { width: 100%; box-sizing: border-box; }
-.username-edit-modal__hint { margin: 8px 0 0; color: #6f8a9b; font-size: 0.76rem; }
-.username-edit-modal__actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 21px; }
-
-@media (max-width: 640px) {
-  .profile-toast { top: 14px; }
-  .username-edit-modal { padding: 22px 19px 20px; }
-  .username-edit-modal h2 { font-size: 1.05rem; }
-  .username-edit-modal__actions { flex-wrap: wrap; }
-}
-
 .user-account-actions {
   position: fixed;
   right: clamp(16px, 2.8vw, 42px);
@@ -10374,105 +10203,6 @@ button.pile-hit:active:not(:disabled) {
   margin: 0;
   pointer-events: auto;
 }
-
-.user-delete-account {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 156px;
-  height: 38px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 105, 126, 0.7);
-  background:
-    linear-gradient(90deg, rgba(61, 11, 30, 0.96), rgba(19, 13, 32, 0.94)),
-    rgba(5, 11, 24, 0.94);
-  color: #ff9eae;
-  box-shadow:
-    0 0 18px rgba(255, 64, 104, 0.14),
-    inset 0 0 14px rgba(255, 64, 104, 0.08);
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
-  font: 800 11px var(--font-rajdhani);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
-.user-delete-account::before {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #ff6885, transparent);
-  box-shadow: 0 0 8px #ff6885;
-  content: "";
-  opacity: 0.82;
-}
-
-.user-delete-account::after {
-  position: absolute;
-  right: 7px;
-  bottom: 5px;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #ff6885;
-  box-shadow: 0 0 8px #ff6885;
-  content: "";
-}
-
-/* :not(:disabled) keeps the red hover above the global gold `button:hover` */
-.user-delete-account:hover:not(:disabled) {
-  border-color: #ff7890;
-  color: #fff0f3;
-  box-shadow:
-    0 0 26px rgba(255, 64, 104, 0.28),
-    inset 0 0 18px rgba(255, 64, 104, 0.13);
-  transform: translateY(-2px);
-}
-
-.user-delete-account:focus-visible {
-  outline: 2px solid #58e6ff;
-  outline-offset: 4px;
-}
-
-@media (max-width: 640px) {
-  .user-delete-account {
-    min-width: 142px;
-    height: 36px;
-    font-size: 8px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .user-delete-account {
-    transition: none;
-  }
-}
-
-.account-delete-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  background: rgba(2, 5, 14, 0.82);
-}
-
-.account-delete-modal {
-  width: min(440px, calc(100vw - 32px));
-  padding: 24px;
-  border: 1px solid rgba(255, 95, 95, 0.55);
-  background: #080d1c;
-  box-shadow: 0 0 40px rgba(255, 45, 70, 0.18);
-}
-
-.account-delete-modal h2 { color: #ff9b9b; font-size: 1rem; letter-spacing: 0.12em; }
-.account-delete-modal p { color: #b7bfd2; line-height: 1.6; font-size: 0.9rem; }
-.account-delete-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
 @media (max-width: 640px) {
   .user-account-actions {
@@ -11926,7 +11656,6 @@ button.card-codex__play:disabled {
   letter-spacing: 0.08em;
   line-height: 1;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -12224,3 +11953,19 @@ button.card-codex__play:disabled {
   box-shadow: none;
 }
 
+/*
+ * A callsign is shown as its player wrote it, capitals included. Headings (h1-h6) and buttons upper-case their text and
+ * pass it on to what they hold, so every place that shows a callsign says so itself instead of relying on where it sits.
+ */
+.username-display-box h2,
+.lobby-header-profile__callsign,
+.nx-name,
+.turn-rail__callsign,
+.dossier-callsign,
+.gladiator-name,
+.leaderboard-podium-card__name,
+.leaderboard-row__identity > strong,
+.opponent-name,
+.match-result-panel__winner strong {
+  text-transform: none;
+}

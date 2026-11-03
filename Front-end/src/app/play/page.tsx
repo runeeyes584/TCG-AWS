@@ -10,6 +10,12 @@ import {
 } from "lucide-react";
 import { LobbyButton } from "../../components/ui/button";
 import { PageShell } from "../../components/ui/layout";
+import { useToast } from "../../components/ui/feedback";
+import {
+  PENDING_MATCH_NOTICE_KEY,
+  pendingMatchCheckFailed,
+  pendingMatchLeaveFailed,
+} from "../../components/matchmaking/pendingMatchNotice";
 import { GameBoardView } from "../../components/game/GameBoard";
 import { PhaserSplash } from "../../components/lobby/PhaserSplash";
 import { PendingMatchDialog } from "../../components/lobby/PendingMatchDialog";
@@ -47,6 +53,7 @@ import { AuthGuard, AuthGateLoadingState } from "../../components/lobby/AuthGuar
 
 function OnlinePlayPageContent() {
   const router = useRouter();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const { settings, toggleMusicMute, playBgm, playSfx } = useGlobalAudio();
   const isMuted = settings.masterMuted || settings.musicMuted;
@@ -63,7 +70,6 @@ function OnlinePlayPageContent() {
     const cached = getCachedPendingMatch();
     return cached ? cached.match : null;
   });
-  const [pendingMatchError, setPendingMatchError] = useState<string>();
   const [pendingMatchChecked, setPendingMatchChecked] = useState(() => {
     if (isResumeSession) return true;
     return getCachedPendingMatch() !== null;
@@ -101,16 +107,19 @@ function OnlinePlayPageContent() {
       .then((result) => {
         setPendingMatch(result.match);
         setCachedPendingMatch(result.match);
-        setPendingMatchError(controller.error);
+        if (controller.error) toast.show(pendingMatchCheckFailed(controller.error));
+        else toast.dismiss(PENDING_MATCH_NOTICE_KEY);
       })
       .catch((error) =>
-        setPendingMatchError(
-          error instanceof Error
-            ? error.message
-            : "Unable to check your active match."
+        toast.show(
+          pendingMatchCheckFailed(
+            error instanceof Error
+              ? error.message
+              : "Unable to check your active match."
+          )
         )
       );
-  }, [controller.error, controller.status, isResumeSession]);
+  }, [controller.error, controller.status, isResumeSession, toast]);
 
   useEffect(() => {
     if (!isResumeSession || !controller.roomCode || !controller.localPlayerId) return;
@@ -124,17 +133,19 @@ function OnlinePlayPageContent() {
       .then((result) => {
         setPendingMatch(result.match);
         setCachedPendingMatch(result.match);
-        setPendingMatchError(undefined);
+        toast.dismiss(PENDING_MATCH_NOTICE_KEY);
       })
       .catch((error) =>
-        setPendingMatchError(
-          error instanceof Error
-            ? error.message
-            : "Unable to check your active match."
+        toast.show(
+          pendingMatchCheckFailed(
+            error instanceof Error
+              ? error.message
+              : "Unable to check your active match."
+          )
         )
       )
       .finally(() => setPendingMatchChecked(true));
-  }, [isResumeSession]);
+  }, [isResumeSession, toast]);
 
   const resumePendingMatch = () => {
     if (pendingMatch) {
@@ -149,16 +160,18 @@ function OnlinePlayPageContent() {
 
   const abandonPendingMatch = async () => {
     setResolvingPendingMatch(true);
-    setPendingMatchError(undefined);
+    toast.dismiss(PENDING_MATCH_NOTICE_KEY);
     try {
       await forfeitPendingMatch();
       setPendingMatch(null);
       setCachedPendingMatch(null);
     } catch (error) {
-      setPendingMatchError(
-        error instanceof Error
-          ? error.message
-          : "Unable to leave the active match."
+      toast.show(
+        pendingMatchLeaveFailed(
+          error instanceof Error
+            ? error.message
+            : "Unable to leave the active match."
+        )
       );
     } finally {
       setResolvingPendingMatch(false);
@@ -300,12 +313,6 @@ function OnlinePlayPageContent() {
           onStartSearch={startSearch}
           errorText={controller.error}
         />
-
-        {pendingMatchError ? (
-          <p className="pending-match-check-error" role="alert">
-            {pendingMatchError}
-          </p>
-        ) : null}
 
         {pendingMatch ? (
           <PendingMatchDialog

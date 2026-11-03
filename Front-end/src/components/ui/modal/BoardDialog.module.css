@@ -40,6 +40,12 @@
   --ui-btn-accent: #c4b5fd;
 }
 
+/* The account screens: the face takes the deep blue of the profile page; the edge keeps the violet-to-gold of the others. */
+.azure {
+  --glow: rgba(56, 160, 220, 0.32);
+  --ui-btn-accent: #7dd3fc;
+}
+
 .face {
   display: grid;
   gap: 14px;
@@ -54,6 +60,17 @@
     0 calc(var(--cut) - 0.5px)
   );
   color: #f4f0ff;
+}
+
+.azure .face {
+  background:
+    radial-gradient(120% 70% at 90% 0%, rgba(56, 160, 220, 0.12), transparent 62%),
+    linear-gradient(160deg, rgba(10, 30, 50, 0.995), rgba(3, 10, 20, 0.995));
+  color: #e9f7ff;
+}
+
+.azure .body {
+  color: #9fbdd0;
 }
 
 .crypt .face {

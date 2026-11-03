@@ -5,6 +5,7 @@ import { MessageCircle, Send, Smile, X } from "lucide-react";
 import type { PlayerId } from "@backend/game/types";
 import { CHAT_MAX_LENGTH } from "@backend/shared/chat";
 import { Button } from "../../ui/button";
+import { Callsign } from "../../ui/data";
 import { CornerBrackets } from "../../ui/decor";
 import { FormMessage, TextField } from "../../ui/form";
 import type { ChatController } from "./chatTypes";
@@ -69,7 +70,7 @@ export function ChatPanel({ chat, localPlayerId, opponentName, onClose }: ChatPa
       <header className={styles.header}>
         <span className={styles.title}>
           <MessageCircle size={16} aria-hidden="true" />
-          {opponentName ? `Chat · ${opponentName}` : "Match chat"}
+          {opponentName ? <>Chat · <Callsign>{opponentName}</Callsign></> : "Match chat"}
         </span>
         <Button size="compact" icon={<X size={14} />} onClick={onClose} aria-label="Close chat" />
       </header>
@@ -82,7 +83,7 @@ export function ChatPanel({ chat, localPlayerId, opponentName, onClose }: ChatPa
           const mine = message.senderId === localPlayerId;
           return (
             <li key={message.id} className={`${styles.row} ${mine ? styles.mine : styles.theirs}`}>
-              {!mine ? <span className={styles.sender}>{message.username}</span> : null}
+              {!mine ? <span className={styles.sender}><Callsign>{message.username}</Callsign></span> : null}
               <span className={isEmojiOnly(message.text) ? styles.bigEmoji : styles.bubble}>{message.text}</span>
               <time className={styles.time} dateTime={new Date(message.sentAt).toISOString()}>
                 {timeFormat.format(message.sentAt)}
