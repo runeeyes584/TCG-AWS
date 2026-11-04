@@ -1,0 +1,78 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ui-modal-z, 1200);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 7, 18, 0.84);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bare {
+  width: min(100%, var(--ui-modal-width, 450px));
+}
+
+.panel {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, var(--ui-modal-width, 450px));
+  padding: 26px 28px 28px;
+  border-radius: 0;
+  border: 1px solid var(--ui-modal-border);
+  background: linear-gradient(165deg, rgba(8, 14, 28, 0.98) 0%, rgba(4, 7, 16, 0.99) 100%);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.85),
+    0 0 35px var(--ui-modal-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tones */
+.cyan {
+  --ui-modal-border: rgba(56, 189, 248, 0.45);
+  --ui-modal-glow: rgba(56, 189, 248, 0.18);
+}
+
+.rose {
+  --ui-modal-border: rgba(244, 63, 94, 0.42);
+  --ui-modal-glow: rgba(244, 63, 94, 0.2);
+}
+
+/* Shapes & alignment */
+.rounded {
+  border-radius: 16px;
+}
+
+.center {
+  align-items: center;
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (max-width: 440px) {
+  .panel {
+    padding: 20px 18px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .panel {
+    animation: none;
+  }
+}

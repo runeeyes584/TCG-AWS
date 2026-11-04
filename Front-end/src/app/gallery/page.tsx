@@ -1,12 +1,14 @@
 "use client";
 
 import { memo, useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Crown, Gem, Search, Sparkles, Swords } from "lucide-react";
+import { Crown, Gem, Search, Sparkles, Swords } from "lucide-react";
 import type { CardDefinition, CardInstance, CardType } from "@backend/game/types";
 import { listCards } from "@backend/game/entities/cardRegistry";
 import { GameCard } from "../../components/game/cards/game-card";
 import { HoverProvider } from "../../contexts/HoverContext";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
+import { LobbyButton } from "../../components/ui/button";
+import { Dropdown } from "../../components/ui/dropdown";
 
 type GalleryCard = CardDefinition & {
   rarity?: "common" | "rare" | "epic" | "legendary" | "champion" | string;
@@ -96,13 +98,12 @@ export default function CardGalleryPage() {
         <div className="gallery-vignette" aria-hidden="true" />
 
         <header className="gallery-catalog-header">
-          <button className="gallery-back" onClick={() => window.location.assign("/")} aria-label="Return to lobby">
-            <ArrowLeft size={18} /> Lobby
-          </button>
+          <LobbyButton />
           <div className="gallery-catalog-title">
             <strong>Card Gallery</strong>
             <small>Kaleidoscope Archive</small>
           </div>
+          <div aria-hidden="true" />
         </header>
 
         <section className="gallery-console" aria-label="Card collection">
@@ -137,25 +138,31 @@ export default function CardGalleryPage() {
               <span>Cards indexed</span>
             </div>
 
-            <label className="gallery-inline-filter">
-              <span>Archetype</span>
-              <select value={selectedArchetype} onChange={(event) => setSelectedArchetype(event.target.value)}>
-                <option value="all">All archetypes</option>
-                {archetypes.map((archetype) => (
-                  <option key={archetype} value={archetype}>{archetype}</option>
-                ))}
-              </select>
-            </label>
+            <div className="gallery-inline-filter">
+              <Dropdown
+                aria-label="Archetype"
+                height={44}
+                value={selectedArchetype}
+                onChange={setSelectedArchetype}
+                options={[
+                  { value: "all", label: "All archetypes" },
+                  ...archetypes.map((archetype) => ({ value: archetype, label: archetype })),
+                ]}
+              />
+            </div>
 
-            <label className="gallery-inline-filter">
-              <span>Rarity</span>
-              <select value={selectedRarity} onChange={(event) => setSelectedRarity(event.target.value)}>
-                <option value="all">All rarities</option>
-                {rarities.map((rarity) => (
-                  <option key={rarity} value={rarity}>{formatLabel(rarity)}</option>
-                ))}
-              </select>
-            </label>
+            <div className="gallery-inline-filter">
+              <Dropdown
+                aria-label="Rarity"
+                height={44}
+                value={selectedRarity}
+                onChange={setSelectedRarity}
+                options={[
+                  { value: "all", label: "All rarities" },
+                  ...rarities.map((rarity) => ({ value: rarity, label: formatLabel(rarity) })),
+                ]}
+              />
+            </div>
 
             <div className="gallery-result-count">
               <strong>{filteredCards.length}</strong>

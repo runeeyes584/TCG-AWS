@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import type { UnitInstance } from "@backend/game/types";
 

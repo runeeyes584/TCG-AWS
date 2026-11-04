@@ -3,10 +3,12 @@
 import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, BadgeCheck, MailCheck, RefreshCw, CheckCircle2, Mail } from "lucide-react";
+import { BadgeCheck, MailCheck, RefreshCw, Mail } from "lucide-react";
 import { login, resendCode, verify } from "../../libs/api";
 import { warmupUserSession } from "../../libs/profileCache";
 import { AuthShell } from "../../components/auth/AuthShell";
+import { Button } from "../../components/ui/button";
+import { TextField, FormMessage } from "../../components/ui/form";
 
 export function VerifyForm() {
     const searchParams = useSearchParams();
@@ -147,73 +149,56 @@ export function VerifyForm() {
                         <strong title={email}>{email}</strong>
                     </div>
                 ) : (
-                    <label className="auth-field">
-                        <span>Email address</span>
-                        <div className="auth-input">
-                            <Mail size={17} aria-hidden="true" />
-                            <input
-                                type="email"
-                                placeholder="operative@kaleidoscope.gg"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                autoComplete="email"
-                                required
-                            />
-                        </div>
-                    </label>
+                    <TextField
+                        label="Email address"
+                        icon={<Mail size={17} />}
+                        type="email"
+                        placeholder="operative@kaleidoscope.gg"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                        required
+                    />
                 )}
 
-                <label className="auth-field">
-                    <span>6-digit verification code</span>
-                    <div className="auth-input auth-input--otp">
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            autoComplete="one-time-code"
-                            maxLength={6}
-                            placeholder="000000"
-                            value={code}
-                            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                            onPaste={handlePaste}
-                            autoFocus
-                            required
-                        />
-                    </div>
-                </label>
+                <TextField
+                    label="6-digit verification code"
+                    variant="otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    onPaste={handlePaste}
+                    autoFocus
+                    required
+                />
 
                 <div className="flex items-center justify-between text-xs my-1 text-slate-400">
-                    <p className="auth-form__hint m-0">Check your inbox and spam folder if the code has not arrived.</p>
-                    <button
-                        type="button"
+                    <FormMessage tone="hint">Check your inbox and spam folder if the code has not arrived.</FormMessage>
+                    <Button
+                        size="sm"
                         onClick={() => handleResend()}
                         disabled={resendLoading || resendCooldown > 0 || !email}
-                        className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        style={{ background: "none", border: "none", cursor: resendCooldown > 0 ? "not-allowed" : "pointer" }}
+                        icon={<RefreshCw size={13} className={resendLoading ? "animate-spin" : ""} />}
                     >
-                        <RefreshCw size={13} className={resendLoading ? "animate-spin" : ""} />
-                        <span>
-                            {resendLoading
-                                ? "Resending..."
-                                : resendCooldown > 0
-                                ? `Resend in (${resendCooldown}s)`
-                                : "Resend OTP code"}
-                        </span>
-                    </button>
+                        {resendLoading
+                            ? "Resending..."
+                            : resendCooldown > 0
+                            ? `Resend in (${resendCooldown}s)`
+                            : "Resend OTP code"}
+                    </Button>
                 </div>
 
-                {resendSuccess ? (
-                    <p className="auth-success text-emerald-400 text-xs flex items-center gap-1.5 p-2 bg-emerald-950/40 border border-emerald-800/50 rounded" role="status">
-                        <CheckCircle2 size={16} className="shrink-0" />
-                        <span>{resendSuccess}</span>
-                    </p>
-                ) : null}
+                {resendSuccess ? <FormMessage tone="success">{resendSuccess}</FormMessage> : null}
 
-                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+                {error ? <FormMessage>{error}</FormMessage> : null}
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                    <BadgeCheck size={18} />
-                    <span>{loading ? "Verifying identity..." : "Verify account"}</span>
-                </button>
+                <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} loadingText={"Verifying identity..."} icon={<BadgeCheck size={18} />}>
+                    {"Verify account"}
+                </Button>
             </form>
         </AuthShell>
     );

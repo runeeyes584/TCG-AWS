@@ -14,6 +14,7 @@ import {
     InvalidParameterException,
     UserNotFoundException,
     AliasExistsException,
+    UserLambdaValidationException,
 } from "@aws-sdk/client-cognito-identity-provider";
 
 import { cognito } from "./cognito";
@@ -23,8 +24,10 @@ import { validateRegister } from "./validators";
 import { LoginRequest, RegisterRequest, VerifyRequest } from "./types";
 import { normalizeConfirmationCode } from "./confirmationCode";
 import { ensureUserProfile, findUserByUsername, getUserByEmail, isEmailInDeletionCooldown } from "../user/user.repository";
-import { getCognitoIdentityByAccessToken } from "./cognito-user";
-import { verifyIdToken } from "./verifyToken";
+import { getCognitoIdentityByAccessToken, type CognitoIdentity } from "./cognito-user";
+import { verifyIdToken, verifyToken } from "./verifyToken";
+import { activateSession, assertActiveSession, endSession, sessionIdOf } from "../session/activeSession";
+import { evictConnections, findPlayerConnections } from "../session/connectionEviction";
 
 async function signUpNewUser(email: string, username: string, password: string) {
     return cognito.send(
@@ -32,7 +35,7 @@ async function signUpNewUser(email: string, username: string, password: string) 
             ClientId: env.clientId,
             Username: email,
             Password: password,
-            ...secretHashField(email),
+            ...(await secretHashField(email)),
             UserAttributes: [
                 { Name: "email", Value: email },
                 { Name: "preferred_username", Value: username },
@@ -45,7 +48,7 @@ async function resendConfirmationForEmail(email: string): Promise<void> {
     await cognito.send(new ResendConfirmationCodeCommand({
         ClientId: env.clientId,
         Username: email,
-        ...secretHashField(email),
+        ...(await secretHashField(email)),
     }));
 }
 
@@ -148,7 +151,7 @@ export async function verify(data: VerifyRequest) {
 
             ConfirmationCode: code,
 
-            ...secretHashField(email)
+            ...(await secretHashField(email))
 
         });
 
@@ -176,6 +179,27 @@ export async function verify(data: VerifyRequest) {
     }
 }
 
+/**
+ * Makes this sign-in the player's only active one (the latest sign-in wins), then pushes the WebSocket connections of
+ * earlier sign-ins out. Pushing out is best effort: the earlier session is refused anyway on its next request.
+ */
+async function startSession(userId: string, accessToken: string): Promise<void> {
+    const sessionId = sessionIdOf(await verifyToken(accessToken));
+    if (!sessionId) {
+        console.warn("The access token has no origin_jti; single-session sign-in is not enforced for it.");
+        return;
+    }
+    await activateSession(userId, sessionId);
+
+    const endpoint = process.env.WS_MANAGEMENT_ENDPOINT;
+    if (!endpoint) return;
+    try {
+        await evictConnections(endpoint, await findPlayerConnections(userId), () => "device");
+    } catch (error) {
+        console.warn("Could not push out the connections of the replaced session:", error);
+    }
+}
+
 export async function login(data: LoginRequest) {
 
     const email = data.email.trim().toLowerCase();
@@ -195,7 +219,7 @@ export async function login(data: LoginRequest) {
 
                 PASSWORD: password,
 
-                ...secretHashAuthParameters(email)
+                ...(await secretHashAuthParameters(email))
 
             }
 
@@ -212,15 +236,21 @@ export async function login(data: LoginRequest) {
         // ID-token claims are verified locally and contain the attributes that
         // were submitted during registration. GetUser is the public Cognito
         // fallback when an app client does not expose all claims in the ID token.
-        let identity: { id: string; email: string; username: string } | undefined;
+        let identity: CognitoIdentity | undefined;
         if (idToken) {
             try {
                 const claims = await verifyIdToken(idToken);
                 const claimId = typeof claims.sub === "string" ? claims.sub : undefined;
                 const claimEmail = typeof claims.email === "string" ? claims.email.trim().toLowerCase() : undefined;
                 const claimUsername = typeof claims.preferred_username === "string" ? claims.preferred_username.trim() : undefined;
+                const claimLegacyId = typeof claims["custom:legacy_sub"] === "string" ? claims["custom:legacy_sub"].trim() : "";
                 if (claimId && claimEmail && claimUsername) {
-                    identity = { id: claimId, email: claimEmail, username: claimUsername };
+                    identity = {
+                        id: claimId,
+                        email: claimEmail,
+                        username: claimUsername,
+                        ...(claimLegacyId ? { legacyId: claimLegacyId } : {})
+                    };
                 }
             } catch {
                 // GetUser below remains the public fallback for this case.
@@ -231,6 +261,7 @@ export async function login(data: LoginRequest) {
             identity = publicUser;
         }
         await ensureUserProfile(identity);
+        await startSession(identity.id, accessToken);
 
         return {
 
@@ -253,7 +284,13 @@ export async function login(data: LoginRequest) {
             throw new Error("Account is not verified. Please complete registration or sign up again.");
         }
 
-        if (error instanceof NotAuthorizedException) {
+        // The user-migration trigger refuses an unknown account or a wrong password of the old user pool; to the
+        // player that is the same as a wrong password.
+        if (
+            error instanceof NotAuthorizedException ||
+            error instanceof UserNotFoundException ||
+            error instanceof UserLambdaValidationException
+        ) {
 
             throw new Error("Invalid email or password.");
 
@@ -280,15 +317,18 @@ export async function refresh(
 
             REFRESH_TOKEN: refreshToken,
 
-            ...secretHashAuthParameters(email)
+            ...(await secretHashAuthParameters(email))
 
         }
 
     });
 
     const response = await cognito.send(command);
+    const accessToken = response.AuthenticationResult?.AccessToken;
+    // A refresh keeps the session of the sign-in it came from: a session that a later sign-in replaced gets nothing.
+    if (accessToken) await assertActiveSession(await verifyToken(accessToken));
     return {
-        accessToken: response.AuthenticationResult?.AccessToken,
+        accessToken,
         idToken: response.AuthenticationResult?.IdToken,
         expiresIn: response.AuthenticationResult?.ExpiresIn
     };
@@ -297,6 +337,12 @@ export async function refresh(
 export async function logout(
     accessToken: string
 ) {
+
+    const claims = await verifyToken(accessToken).catch(() => undefined);
+    const sessionId = claims ? sessionIdOf(claims) : undefined;
+    if (typeof claims?.sub === "string" && sessionId) {
+        await endSession(claims.sub, sessionId).catch((error) => console.warn("Could not end the session:", error));
+    }
 
     const command = new GlobalSignOutCommand({
 
@@ -312,7 +358,7 @@ export async function forgotPassword(email: string) {
     const command = new ForgotPasswordCommand({
         ClientId: env.clientId,
         Username: email,
-        ...secretHashField(email)
+        ...(await secretHashField(email))
     });
 
     await cognito.send(command);
@@ -335,7 +381,7 @@ export async function resetPassword(
         Username: email,
         ConfirmationCode: normalizedCode,
         Password: password,
-        ...secretHashField(email)
+        ...(await secretHashField(email))
     });
 
     await cognito.send(command);

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, KeyRound, Mail } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { forgotPassword } from "../../libs/api";
 import { AuthShell } from "../../components/auth/AuthShell";
+import { Button } from "../../components/ui/button";
+import { TextField, FormMessage } from "../../components/ui/form";
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
@@ -14,6 +16,15 @@ export default function ForgotPasswordPage() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [resetRequired, setResetRequired] = useState(false);
+
+    // Sign-in sends a player here when their account was moved and needs a new password.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const prefilledEmail = params.get("email");
+        if (prefilledEmail) setEmail(prefilledEmail);
+        setResetRequired(params.get("reason") === "reset-required");
+    }, []);
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -49,30 +60,31 @@ export default function ForgotPasswordPage() {
             footer={<>Remembered your password? <Link href="/login">Return to sign in</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
-                <label className="auth-field">
-                    <span>Email address</span>
-                    <div className="auth-input">
-                        <Mail size={17} aria-hidden="true" />
-                        <input
-                            type="email"
-                            placeholder="operative@kaleidoscope.gg"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            autoComplete="email"
-                            autoFocus
-                            required
-                        />
-                    </div>
-                </label>
+                <TextField
+                    label="Email address"
+                    icon={<Mail size={17} />}
+                    type="email"
+                    placeholder="operative@kaleidoscope.gg"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    autoFocus
+                    required
+                />
 
-                <p className="auth-form__hint">The verification code will be valid for a limited time.</p>
+                {resetRequired ? (
+                    <FormMessage tone="hint">
+                        Your account was moved to our new sign-in system. Please set a new password to continue; your profile and progress are kept.
+                    </FormMessage>
+                ) : null}
 
-                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+                <FormMessage tone="hint">The verification code will be valid for a limited time.</FormMessage>
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                    <KeyRound size={18} />
-                    <span>{loading ? "Transmitting code..." : "Send verification code"}</span>
-                </button>
+                {error ? <FormMessage>{error}</FormMessage> : null}
+
+                <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} loadingText={"Transmitting code..."} icon={<KeyRound size={18} />}>
+                    {"Send verification code"}
+                </Button>
             </form>
         </AuthShell>
     );

@@ -6,6 +6,11 @@ export const arenaEventAdapter = {
     return arenaEventBus.on(event, listener);
   },
 
+  /** The last payload sent for `event`: lets Phaser, which starts after React, catch up. */
+  latest<K extends keyof ArenaEventMap>(event: K) {
+    return arenaEventBus.latest(event);
+  },
+
   emit<K extends keyof ArenaEventMap>(event: K, payload: ArenaEventMap[K]) {
     arenaEventBus.emit(event, payload);
   },

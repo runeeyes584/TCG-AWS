@@ -73,3 +73,6 @@ package-lock.json
 tsconfig.tsbuildinfo
 Front-end/out
 .log
+.plan
+.claude/*
+.tmp/*

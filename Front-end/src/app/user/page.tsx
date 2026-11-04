@@ -1,13 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Activity, AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, Edit3, Mail, Shield, Swords, Trophy, UserCheck, X, Zap, Trash2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Activity, Camera, Edit3, Mail, Shield, Swords, Trophy, UserCheck, Zap, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button, LobbyButton } from "../../components/ui/button";
 import { AuthGuard } from "../../components/lobby/AuthGuard";
 import { UserProfilePhaserEffects } from "../../components/user/UserProfilePhaserEffects";
 import { deleteAccount, getCurrentUser, updateAvatar, updateUsername } from "../../libs/api";
 import { getCachedProfile, setCachedProfile, clearCachedProfile } from "../../libs/profileCache";
+import { StatCard } from "../../components/ui/data";
+import { useToast, type ToastInput } from "../../components/ui/feedback";
+import { BoardDialog } from "../../components/ui/modal";
+import { CallsignEditDialog } from "../../components/user/CallsignEditDialog";
+
+/** The profile page shows one toast at a time: a newer result replaces the one on the screen. */
+const PROFILE_TOAST_KEY = "profile";
+
+const avatarFailedToast = (message: string): ToastInput => ({
+  key: PROFILE_TOAST_KEY,
+  tone: "danger",
+  badge: "OPERATIVE PROFILE · AVATAR",
+  title: "AVATAR UPDATE FAILED",
+  message
+});
 
 interface UserProfile {
   user_id: string;
@@ -31,12 +47,6 @@ interface UserProfile {
   leaderboard_wins?: number;
   leaderboard_losses?: number;
   lastNameChangedAt?: number;
-}
-
-interface ToastNotification {
-  type: "success" | "error";
-  title: string;
-  message: string;
 }
 
 function normalizeProfile(value: unknown): UserProfile | null {
@@ -76,22 +86,15 @@ function UserPageContent() {
   });
   const [loading, setLoading] = useState(() => !cached);
   const [editingName, setEditingName] = useState(false);
-  const [username, setUsername] = useState(() => cached?.username || "");
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [toast, setToast] = useState<ToastNotification | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadProfile();
   }, []);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 5000);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   async function loadProfile() {
     try {
@@ -100,7 +103,6 @@ function UserPageContent() {
         const profile = normalizeProfile(response.user);
         if (!profile) throw new Error("The backend returned an invalid user profile.");
         setUser(profile);
-        setUsername(profile.username);
         setCachedProfile({
           id: profile.user_id,
           username: profile.username,
@@ -116,8 +118,8 @@ function UserPageContent() {
     }
   }
 
-  async function handleSaveUsername() {
-    if (!username.trim() || username === user?.username) {
+  async function handleSaveUsername(username: string) {
+    if (username === user?.username) {
       setEditingName(false);
       return;
     }
@@ -130,14 +132,18 @@ function UserPageContent() {
         setUser(profile);
         setEditingName(false);
         setCachedProfile({ username: profile.username });
-        setToast({
-          type: "success",
+        toast.show({
+          key: PROFILE_TOAST_KEY,
+          tone: "success",
+          badge: "OPERATIVE PROFILE · CALLSIGN",
           title: "CALLSIGN UPDATED",
           message: `Operative callsign updated to "${profile.username}". Next change available in 30 days.`
         });
       } else {
-        setToast({
-          type: "error",
+        toast.show({
+          key: PROFILE_TOAST_KEY,
+          tone: "danger",
+          badge: "OPERATIVE PROFILE · CALLSIGN",
           title: "UPDATE RESTRICTED",
           message: response.message || "Failed to update username."
         });
@@ -146,8 +152,10 @@ function UserPageContent() {
       const errorCode = typeof error === "object" && error !== null && "code" in error
         ? (error as { code?: string }).code
         : undefined;
-      setToast({
-        type: "error",
+      toast.show({
+        key: PROFILE_TOAST_KEY,
+        tone: "danger",
+        badge: "OPERATIVE PROFILE · CALLSIGN",
         title: errorCode === "CALLSIGN_TAKEN" ? "CALLSIGN ALREADY IN USE" : "CALLSIGN CHANGE RESTRICTED",
         message: error instanceof Error ? error.message : "The callsign could not be updated."
       });
@@ -194,8 +202,10 @@ function UserPageContent() {
         setUser(response.user);
         setCachedProfile({ avatar: response.user?.avatar_url || base64 });
       } else {
-        alert(response.message || "Failed to update avatar");
+        toast.show(avatarFailedToast(response.message || "Failed to update avatar"));
       }
+    } catch (error) {
+      toast.show(avatarFailedToast(error instanceof Error ? error.message : "Failed to update avatar"));
     } finally {
       setUploadingAvatar(false);
     }
@@ -210,7 +220,13 @@ function UserPageContent() {
       sessionStorage.clear();
       router.replace("/login?deleted=1");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Unable to delete account.");
+      toast.show({
+        key: PROFILE_TOAST_KEY,
+        tone: "danger",
+        badge: "OPERATIVE PROFILE · ACCOUNT",
+        title: "ACCOUNT DELETION FAILED",
+        message: error instanceof Error ? error.message : "Unable to delete account."
+      });
       setDeleting(false);
     }
   }
@@ -226,9 +242,7 @@ function UserPageContent() {
         <div className="user-page-vignette" aria-hidden="true" />
         <div className="user-page-loading">
           <p>Unable to load user profile.</p>
-          <button className="user-page-back" onClick={() => router.push("/")}>
-            <ArrowLeft size={16} /> Return to Lobby
-          </button>
+          <LobbyButton label="Return to Lobby" />
         </div>
       </main>
     );
@@ -260,33 +274,6 @@ function UserPageContent() {
 
   return (
     <main className="user-page-shell">
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            key="top-toast"
-            initial={{ opacity: 0, y: -60, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -40, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className={`profile-toast profile-toast--${toast.type}`}
-          >
-            <div className="profile-toast__icon">
-              {toast.type === "success" ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
-            </div>
-            <div className="profile-toast__content">
-              <strong>
-                {toast.title}
-              </strong>
-              <p>
-                {toast.message}
-              </p>
-            </div>
-            <button className="profile-toast__close" onClick={() => setToast(null)} aria-label="Dismiss notification">
-              <X size={16} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
       <div className="user-page-art" aria-hidden="true">
         <UserProfilePhaserEffects />
       </div>
@@ -299,9 +286,7 @@ function UserPageContent() {
         initial={{ opacity: 0, y: -14 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <button className="user-page-back" onClick={() => router.push("/")}>
-          <ArrowLeft size={17} /> Lobby
-        </button>
+        <LobbyButton />
         <div className="user-page-brand">
           <span><UserCheck size={18} /></span>
           <div>
@@ -323,7 +308,7 @@ function UserPageContent() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.08 }}
       >
-        <p><Shield size={14} /> Identity Record <i /> Season 01 <i /> ID {user.user_id.slice(0, 8)}</p>
+        <p><Shield size={14} /> Identity Record <i /> Season 01</p>
         <div className="user-page-heading-row">
           <div>
             <h1>Player <em>Profile</em></h1>
@@ -364,12 +349,12 @@ function UserPageContent() {
           </div>
 
           <div className="user-identity-info">
-            <span className="identity-eyebrow">Authenticated player identity</span>
+            <span className="identity-eyebrow">ID {user.user_id.slice(0, 8)}</span>
             <div className="username-display-box">
               <h2>{user.username}</h2>
-              <button className="user-btn edit" onClick={() => { setUsername(user.username); setEditingName(true); }}>
-                <Edit3 size={14} /> Edit Name
-              </button>
+              <Button size="sm" icon={<Edit3 size={14} />} onClick={() => setEditingName(true)}>
+                Edit Name
+              </Button>
             </div>
 
             <div className="user-meta-pills">
@@ -399,45 +384,10 @@ function UserPageContent() {
         </div>
 
         <div className="user-stats-grid">
-          <motion.div className="user-stat-card elo-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Shield size={18} />
-              <span>Combat Rating</span>
-            </div>
-            <strong className="stat-card-value">{elo.toLocaleString()}</strong>
-            <small className="stat-card-sub">ELO Points</small>
-            <span className="stat-card-code">CR-01</span>
-          </motion.div>
-
-          <motion.div className="user-stat-card win-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Swords size={18} />
-              <span>Victories</span>
-            </div>
-            <strong className="stat-card-value text-win">{wins}</strong>
-            <small className="stat-card-sub">Matches Won</small>
-            <span className="stat-card-code">VX-02</span>
-          </motion.div>
-
-          <motion.div className="user-stat-card loss-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Swords size={18} />
-              <span>Defeats</span>
-            </div>
-            <strong className="stat-card-value text-loss">{losses}</strong>
-            <small className="stat-card-sub">Matches Lost</small>
-            <span className="stat-card-code">DX-03</span>
-          </motion.div>
-
-          <motion.div className="user-stat-card rate-card" whileHover={{ y: -4 }}>
-            <div className="stat-card-header">
-              <Zap size={18} />
-              <span>Win Ratio</span>
-            </div>
-            <strong className="stat-card-value">{winRate}%</strong>
-            <small className="stat-card-sub">{games} Total Duels</small>
-            <span className="stat-card-code">WR-04</span>
-          </motion.div>
+          <StatCard lift icon={<Shield size={18} />} label="Combat Rating" value={elo.toLocaleString()} sub="ELO Points" code="CR-01" />
+          <StatCard lift icon={<Swords size={18} />} label="Victories" tone="win" value={wins} sub="Matches Won" code="VX-02" />
+          <StatCard lift icon={<Swords size={18} />} label="Defeats" tone="loss" value={losses} sub="Matches Lost" code="DX-03" />
+          <StatCard lift icon={<Zap size={18} />} label="Win Ratio" tone="accent" value={`${winRate}%`} sub={`${games} Total Duels`} code="WR-04" />
         </div>
 
         <div className="user-details-panel">
@@ -470,73 +420,53 @@ function UserPageContent() {
           </div>
         </div>
       </motion.div>
-      <AnimatePresence>
-        {editingName && (
-          <motion.div
-            className="username-edit-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="username-edit-title"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.section
-              className="username-edit-modal"
-              initial={{ opacity: 0, y: -24, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -18, scale: 0.98 }}
-            >
-              <div className="username-edit-modal__eyebrow"><Shield size={14} /> IDENTITY CONTROL</div>
-              <h2 id="username-edit-title">EDIT OPERATIVE CALLSIGN</h2>
-              <p className="username-edit-modal__warning">
-                You have one callsign change every 30 days. {user.lastNameChangedAt
-                  ? `Your next change is available on ${formatDate(usernameChangeDate)}.`
-                  : `If you save this change now, your next change will be available on ${formatDate(usernameChangeDate)}.`}
-              </p>
-              <label className="username-edit-modal__field">
-                <span>New callsign</span>
-                <input
-                  className="username-input"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  maxLength={20}
-                  autoFocus
-                />
-              </label>
-              <p className="username-edit-modal__hint">Use 3–20 letters, numbers, or underscores. The name must be unique.</p>
-              <div className="username-edit-modal__actions">
-                <button
-                  className="user-btn cancel"
-                  onClick={() => { setUsername(user.username); setEditingName(false); }}
-                  disabled={savingName}
-                >
-                  <X size={14} /> Cancel
-                </button>
-                <button className="user-btn save" onClick={handleSaveUsername} disabled={savingName}>
-                  <Check size={14} /> {savingName ? "Saving..." : "Save changes"}
-                </button>
-              </div>
-            </motion.section>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {editingName && (
+        <CallsignEditDialog
+          currentName={user.username}
+          cooldownNotice={
+            user.lastNameChangedAt
+              ? `You have one callsign change every 30 days. Your next change is available on ${formatDate(usernameChangeDate)}.`
+              : `You have one callsign change every 30 days. If you save this change now, your next change will be available on ${formatDate(usernameChangeDate)}.`
+          }
+          saving={savingName}
+          onSave={handleSaveUsername}
+          onCancel={() => setEditingName(false)}
+        />
+      )}
       <div className="user-account-actions">
-        <button className="user-delete-account" onClick={() => setShowDeleteModal(true)}>
-          <Trash2 size={15} /> Delete Account
-        </button>
+        <Button chamfer size="sm" variant="danger" icon={<Trash2 size={15} />} onClick={() => setShowDeleteModal(true)}>
+          Delete account
+        </Button>
       </div>
       {showDeleteModal && (
-        <div className="account-delete-overlay" role="dialog" aria-modal="true">
-          <section className="account-delete-modal">
-            <h2>TERMINATE OPERATIVE PROFILE</h2>
-            <p>This action is permanent. Your profile, stats, decks, and account data will be deleted. The email address will be unavailable for 24 hours.</p>
-            <div className="account-delete-actions">
-              <button onClick={() => setShowDeleteModal(false)} disabled={deleting}>CANCEL</button>
-              <button className="confirm-delete" onClick={handleDeleteAccount} disabled={deleting}>{deleting ? "DELETING..." : "CONFIRM DELETION"}</button>
-            </div>
-          </section>
-        </div>
+        <BoardDialog
+          tone="blood"
+          badge="Account termination"
+          title="Terminate operative profile"
+          titleId="account-delete-title"
+          maxWidth={460}
+          // Not dismissible while the account is being deleted.
+          onClose={deleting ? undefined : () => setShowDeleteModal(false)}
+          actions={
+            <>
+              <Button chamfer size="md" tone="red" onClick={() => setShowDeleteModal(false)} disabled={deleting} autoFocus>
+                Cancel
+              </Button>
+              <Button
+                chamfer
+                size="md"
+                variant="danger"
+                onClick={handleDeleteAccount}
+                loading={deleting}
+                loadingText="Deleting..."
+              >
+                Confirm deletion
+              </Button>
+            </>
+          }
+        >
+          This action is permanent. Your profile, stats, decks, and account data will be deleted. The email address will be unavailable for 24 hours.
+        </BoardDialog>
       )}
     </main>
   );

@@ -1,4 +1,5 @@
 import type { GameAction, GameState, PlayerId } from "../game/types";
+import type { ChatMessage } from "./chat";
 
 export interface ClientToServerEvents {
   "room:create": (selection: MatchmakingDeckSelection | undefined, ack: RoomAck) => void;
@@ -8,6 +9,7 @@ export interface ClientToServerEvents {
   "developer:resources": (updates: DeveloperResourceUpdate[], ack?: ActionAck) => void;
   "matchmaking:start": (selection?: MatchmakingDeckSelection) => void;
   "matchmaking:cancel": () => void;
+  "chat:send": (text: string, ack?: ActionAck) => void;
 }
 
 export interface MatchmakingDeckSelection {
@@ -21,13 +23,30 @@ export interface DeveloperResourceUpdate {
   spellMana: number;
 }
 
+/**
+ * Why a connection is pushed out: `tab` when the same sign-in is now used from another tab or window, `device` when
+ * a later sign-in on another browser or device replaced it (see session/connectionEviction.ts).
+ */
+export type SessionReplacedReason = "tab" | "device";
+
+export interface SessionReplacedPayload {
+  reason: SessionReplacedReason;
+}
+
 export interface ServerToClientEvents {
   "room:update": (payload: RoomUpdate) => void;
   "room:created"?: (payload: Partial<RoomUpdate>) => void;
   "game:error": (message: string) => void;
+  "session:replaced": (payload: SessionReplacedPayload) => void;
   "matchmaking:searching": () => void;
   "matchmaking:cancelled": () => void;
-  "matchmaking:found": () => void;
+  "matchmaking:found": (payload?: Partial<RoomUpdate>) => void;
+  "chat:message": (message: ChatMessage) => void;
+  /**
+   * A refused chat message, told to its sender only. Sent by the API Gateway stack, whose routes have no
+   * acknowledgement; the Socket.IO server answers through the `chat:send` ack instead.
+   */
+  "chat:error"?: (payload: { message: string }) => void;
 }
 
 export interface RoomAckPayload {
@@ -57,4 +76,6 @@ export interface RoomUpdate {
   players: Partial<Record<PlayerId, MatchPlayerProfile>>;
   state: GameState;
   log: Array<{ id: number; message: string }>;
+  /** The server clock when the message was sent, so a browser can correct its own clock against it. */
+  serverTime?: number;
 }

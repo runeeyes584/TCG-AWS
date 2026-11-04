@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, Eye, EyeOff, LockKeyhole, LogIn, Mail, ShieldAlert } from "lucide-react";
-import { login } from "../../libs/api";
-import { warmupUserSession } from "../../libs/profileCache";
+import { ArrowRight, LockKeyhole, LogIn, Mail, ShieldAlert } from "lucide-react";
+import { login, type ApiError } from "../../libs/api";
+import { clearCachedProfile, warmupUserSession } from "../../libs/profileCache";
 import { AuthShell } from "../../components/auth/AuthShell";
+import { Button } from "../../components/ui/button";
+import { TextField, FormMessage, FormNotice } from "../../components/ui/form";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -18,6 +20,10 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [isUnverified, setIsUnverified] = useState(false);
+
+    useEffect(() => {
+        clearCachedProfile();
+    }, []);
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -46,6 +52,10 @@ export default function LoginPage() {
             window.location.replace("/");
 
         } catch (err: unknown) {
+            if ((err as ApiError | undefined)?.code === "PASSWORD_RESET_REQUIRED") {
+                router.push(`/forgot-password?email=${encodeURIComponent(normalizedEmail)}&reason=reset-required`);
+                return;
+            }
             const msg = err instanceof Error ? err.message : "Could not log in. Please try again.";
             setError(msg);
             if (/not verified|incomplete|xác thực/i.test(msg)) {
@@ -64,87 +74,69 @@ export default function LoginPage() {
             footer={<>Don't have an account? <Link href="/register">Create operative</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
-                <label className="auth-field">
-                    <span>Email address</span>
-                    <div className="auth-input">
-                        <Mail size={17} aria-hidden="true" />
-                        <input
-                            type="email"
-                            placeholder="operative@kaleidoscope.gg"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            autoComplete="email"
-                            autoFocus
-                            required
-                        />
-                    </div>
-                </label>
+                <TextField
+                    label="Email address"
+                    icon={<Mail size={17} />}
+                    type="email"
+                    placeholder="operative@kaleidoscope.gg"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    autoFocus
+                    required
+                />
 
-                <label className="auth-field">
-                    <span>Password</span>
-                    <div className="auth-input">
-                        <LockKeyhole size={17} aria-hidden="true" />
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter your password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            autoComplete="current-password"
-                            required
-                        />
-                        <button type="button" className="auth-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>
-                            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                        </button>
-                    </div>
-                </label>
+                <TextField
+                    label="Password"
+                    icon={<LockKeyhole size={17} />}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                    passwordToggle={{ visible: showPassword, onToggle: () => setShowPassword((visible) => !visible), label: showPassword ? "Hide password" : "Show password" }}
+                />
 
                 <div className="auth-form__meta">
                     <span>Encrypted session</span>
                     <Link href="/forgot-password">Forgot password?</Link>
                 </div>
 
-                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+                {error ? <FormMessage>{error}</FormMessage> : null}
 
                 {isUnverified ? (
-                    <div className="auth-notice" role="alert">
-                        <div className="auth-notice__header">
-                            <ShieldAlert size={16} aria-hidden="true" />
-                            <span>Verification Required</span>
-                        </div>
-                        <p className="auth-notice__body">
-                            This operative account has an incomplete registration. Please enter your OTP code to complete verification.
-                        </p>
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const targetEmail = email.trim().toLowerCase();
-                                    if (typeof window !== "undefined" && targetEmail) {
-                                        window.sessionStorage.setItem("pendingRegistrationEmail", targetEmail);
-                                    }
-                                    router.push(`/verify?email=${encodeURIComponent(targetEmail)}&autoResend=1`);
-                                }}
-                                className="auth-notice__action"
-                            >
-                                <span>Verify OTP Code</span>
-                                <ArrowRight size={14} aria-hidden="true" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => router.push("/register")}
-                                className="auth-notice__action"
-                                style={{ opacity: 0.85 }}
-                            >
-                                <span>Register again</span>
-                            </button>
-                        </div>
-                    </div>
+                    <FormNotice
+                        title="Verification Required"
+                        icon={<ShieldAlert size={16} aria-hidden="true" />}
+                        actions={
+                            <>
+                                <Button
+                                    size="sm"
+                                    iconEnd={<ArrowRight size={14} />}
+                                    onClick={() => {
+                                        const targetEmail = email.trim().toLowerCase();
+                                        if (typeof window !== "undefined" && targetEmail) {
+                                            window.sessionStorage.setItem("pendingRegistrationEmail", targetEmail);
+                                        }
+                                        router.push(`/verify?email=${encodeURIComponent(targetEmail)}&autoResend=1`);
+                                    }}
+                                >
+                                    Verify OTP Code
+                                </Button>
+                                <Button size="sm" onClick={() => router.push("/register")}>
+                                    Register again
+                                </Button>
+                            </>
+                        }
+                    >
+                        This operative account has an incomplete registration. Please enter your OTP code to complete verification.
+                    </FormNotice>
                 ) : null}
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                    <LogIn size={18} />
-                    <span>{loading ? loadingText : "Enter the arena"}</span>
-                </button>
+                <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} loadingText={loadingText} icon={<LogIn size={18} />}>
+                    {"Enter the arena"}
+                </Button>
             </form>
         </AuthShell>
     );

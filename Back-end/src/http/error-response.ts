@@ -28,6 +28,15 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (name === "EmailDeletionCooldownError" || message.includes("recently deleted") || message.includes("deleted recently") || message.includes("wait 24 hours")) {
     return { status: 429, code: "EMAIL_DELETION_COOLDOWN", message: rawMessage || "This email belongs to an account deleted recently. You cannot register with this email for 24 hours." };
   }
+  if (name === "SessionReplacedError") {
+    return { status: 401, code: "SESSION_REPLACED", message: rawMessage };
+  }
+  if (name === "PasswordResetRequiredException") {
+    return { status: 409, code: "PASSWORD_RESET_REQUIRED", message: "Your account was moved to a new sign-in system. Please reset your password to continue." };
+  }
+  if (name === "ProfileEmailConflictError") {
+    return { status: 409, code: "PROFILE_EMAIL_CONFLICT", message: rawMessage };
+  }
   if (name === "UserNotConfirmedException" || message.includes("not verified")) {
     return { status: 403, code: "ACCOUNT_UNCONFIRMED", message: "This account is not verified. Please complete registration or sign up again." };
   }
@@ -46,8 +55,11 @@ export function getApiError(error: unknown, fallback = "Request could not be com
   if (name === "UserNotFoundException" || message === "user not found.") {
     return { status: 404, code: "USER_NOT_FOUND", message: "User profile was not found." };
   }
-  if (name === "MissingAccessTokenError") {
-    return { status: 401, code: "MISSING_ACCESS_TOKEN", message: "Your authenticated session is required to delete the account." };
+  if (name === "TooManyRequestsException" || name === "LimitExceededException" || message.includes("exceeded") || message.includes("too many requests")) {
+    return { status: 429, code: "TOO_MANY_REQUESTS", message: "The service is temporarily busy. Please try again in a few moments." };
+  }
+  if (name === "ProvisionedThroughputExceededException") {
+    return { status: 503, code: "DEPENDENCY_BUSY", message: "The database service is currently busy. Please try again shortly." };
   }
 
   return { status: 500, code: "INTERNAL_ERROR", message: fallback };
@@ -55,6 +67,8 @@ export function getApiError(error: unknown, fallback = "Request could not be com
 
 export function sendApiError(res: Response, error: unknown, fallback: string) {
   const details = getApiError(error, fallback);
+  // A server-side failure must leave a trace: the client only sees the generic message.
+  if (details.status >= 500) console.error(`API ${details.code}:`, error);
   return res.status(details.status).json({
     success: false,
     code: details.code,

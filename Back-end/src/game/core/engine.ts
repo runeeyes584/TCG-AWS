@@ -515,6 +515,9 @@ function beginNextRound(state: GameState): void {
   next.phase = "ACTION";
   next.pendingDiscard = undefined;
   next.combat.attackers = [];
+  // A round that ends without a combat (both players passed) still sends every unit back to the waiting row,
+  // including those that came back from the graveyard into the active row.
+  clearCombatAssignments(next);
   next.consecutivePasses = 0;
   refreshRound(next, true);
   if (next.winnerId) {
@@ -980,11 +983,22 @@ function submitOnPlayAbilityTargets(
   return state;
 }
 
-function cancelPendingChoice(state: GameState, _playerId: PlayerId): GameState {
+function cancelPendingChoice(state: GameState, playerId: PlayerId): GameState {
   const next = cloneState(state);
-  if (next.pendingChoice) {
-    next.phase = next.pendingChoice.returnPhase;
+  const pendingChoice = next.pendingChoice;
+  if (pendingChoice) {
+    next.phase = pendingChoice.returnPhase;
     next.pendingChoice = undefined;
+    // A unit that is already on the table was played, and playing it passed the priority on; the choice only
+    // lent it back to the caster. Skipping the ability gives it to the opponent again, exactly as choosing a
+    // target does, so the turn goes on. A spell that was not cast stays with the player who was casting it.
+    const onTable = next.players[pendingChoice.playerId].board.some(
+      (unit) => unit.instanceId === pendingChoice.sourceInstanceId
+    );
+    if (onTable) {
+      next.priorityPlayerId = opponentOf(playerId);
+      next.activePlayerId = opponentOf(playerId);
+    }
   }
   return next;
 }
@@ -1325,8 +1339,24 @@ export function hasKeyword(unit: UnitInstance, keyword: Keyword): boolean {
   return unit.keywords.includes(keyword);
 }
 
+/** Attackers that were declared but never committed go back to the waiting row, ready again. */
+function withdrawDeclaredAttackers(state: GameState): void {
+  for (const lane of state.combat.attackers) {
+    for (const playerId of PLAYER_IDS) {
+      const unit = state.players[playerId].board.find((candidate) => candidate.instanceId === lane.attackerId);
+      if (unit) unit.exhausted = false;
+    }
+  }
+  state.combat.attackers = [];
+}
+
 function endTurn(state: GameState, playerId: PlayerId): GameState {
   const next = cloneState(state);
+  // Passing the turn, or losing it to the clock, with attackers declared but not committed must not leave
+  // their lanes standing for the opponent's turn.
+  if (next.phase === "ACTION" && next.combat.attackers.length > 0) {
+    withdrawDeclaredAttackers(next);
+  }
   next.consecutivePasses += 1;
   if (next.consecutivePasses >= 2) {
     beginNextRound(next);
@@ -1463,10 +1493,16 @@ function expireModifiers(
   // by cleanupDeadUnits called immediately after in runCleanupPipeline.
 }
 
+/**
+ * Ends a combat for the units: nothing is attacking or blocking, and every unit is back in the waiting row
+ * (those that died are already in the graveyard). The active row only exists while a combat has lanes, so a
+ * unit left marked ACTIVE (an older state, a revived unit) would otherwise stay in it for the rest of the match.
+ */
 function clearCombatAssignments(state: GameState): void {
   for (const playerId of PLAYER_IDS) {
     state.players[playerId].board = state.players[playerId].board.map((unit) => ({
       ...unit,
+      boardRow: "WAITING",
       attacking: false,
       blockingUnitId: undefined,
       blockedByUnitId: undefined

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { clockOffset } from "../libs/serverClock";
 import type { GameController } from "../components/game/GameBoard";
 import { buildDefaultDeck } from "@backend/game/entities/defaultDeck";
 import { createInitialGameState } from "@backend/game/core/engine";
 import type { GameAction, GameState, PlayerId } from "@backend/game/types";
+import type { ChatMessage } from "@backend/shared/chat";
 import type { DeveloperResourceUpdate, MatchmakingDeckSelection, RoomUpdate } from "@backend/shared/multiplayer";
 import { accessTokenNeedsRefresh, refreshToken } from "../libs/api";
 import { socketManager } from "../libs/socket";
@@ -25,6 +27,7 @@ export interface SocketGameController extends GameController {
   roomCode?: string;
   localPlayerId?: PlayerId;
   opponentConnected: boolean;
+  socketConnected: boolean;
   status: string;
   error?: string;
   resumeRequired?: {
@@ -53,13 +56,17 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
   const [queueTime, setQueueTime] = useState(0);
   const [inGame, setInGame] = useState(false);
   const [gameState, setGameState] = useState<GameState>(initialState);
+  const [clockOffsetMs, setClockOffsetMs] = useState(0);
   const [roomCode, setRoomCode] = useState<string>();
   const [localPlayerId, setLocalPlayerId] = useState<PlayerId>();
   const [playerProfiles, setPlayerProfiles] = useState<RoomUpdate["players"]>({});
   const [opponentConnected, setOpponentConnected] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string>();
   const [resumeRequired, setResumeRequired] = useState<SocketGameController["resumeRequired"]>();
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatError, setChatError] = useState<string>();
   const roomCodeRef = useRef<string | undefined>(resumeRoomCode);
   const resumeAttemptsRef = useRef(0);
   const [actionLog, setActionLog] = useState<Array<{ id: number; message: string }>>([
@@ -78,6 +85,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       setStatus("Login required");
+      setSocketConnected(false);
       setSearching(false);
       setQueueTime(0);
       setError(message);
@@ -117,7 +125,20 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         return;
       }
 
-      socket = socketManager.connect(token, email);
+      try {
+        socket = socketManager.connect(token, email);
+      } catch (connectionError) {
+        if (active) {
+          setSocketConnected(false);
+          setStatus("Connection failed");
+          setError(
+            connectionError instanceof Error
+              ? connectionError.message
+              : "Unable to connect to the game server."
+          );
+        }
+        return;
+      }
 
       const requestResume = () => {
         if (!active || !resumeRoomCode || !socketManager.getSocket()?.connected) return;
@@ -129,7 +150,13 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         resumeAttemptsRef.current += 1;
         setStatus("Restoring match...");
         setError(undefined);
-        socketManager.resumeMatch(resumeRoomCode);
+        socketManager.resumeMatch(resumeRoomCode, (response) => {
+          // Only the local server answers here (API Gateway reports through events): the room is gone, for
+          // instance because the server restarted, so there is nothing left to restore.
+          if (response.ok || !active) return;
+          setStatus("Recovery failed");
+          setError(response.error);
+        });
       };
 
       const retryResume = () => {
@@ -141,6 +168,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
 
       const onConnect = () => {
         refreshRetried = false;
+        setSocketConnected(true);
         setStatus("Connected");
         setError(undefined);
         // A room code from the URL is an explicit private-room join (or resume).
@@ -169,12 +197,14 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       }
 
       socket.on("disconnect", () => {
-      setStatus("Disconnected");
-      setSearching(false);
-      setQueueTime(0);
+        setSocketConnected(false);
+        setStatus("Disconnected");
+        setSearching(false);
+        setQueueTime(0);
       });
 
       socket.on("connect_error", (connectError: { message?: string }) => {
+        setSocketConnected(false);
         const message = connectError.message || "Unable to connect to the game server.";
         const storedToken = localStorage.getItem("accessToken");
         const tokenNeedsRefresh = !storedToken || accessTokenNeedsRefresh(storedToken);
@@ -242,17 +272,21 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       });
 
       socket.on("room:update", (update: Partial<RoomUpdate> & Pick<RoomUpdate, "playerId" | "state">) => {
-      const nextRoomCode = update.roomCode ?? roomCodeRef.current;
-      roomCodeRef.current = nextRoomCode;
-      setRoomCode(nextRoomCode);
-      setLocalPlayerId(update.playerId);
-      setOpponentConnected(update.opponentConnected ?? true);
-      if (update.players) {
-        setPlayerProfiles((current) => mergePlayerProfiles(current, update.players!));
-      }
-      setGameState(update.state);
-      if (update.log) setActionLog(update.log);
-      setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
+        const nextRoomCode = update.roomCode ?? roomCodeRef.current;
+        roomCodeRef.current = nextRoomCode;
+        setRoomCode(nextRoomCode);
+        setLocalPlayerId(update.playerId);
+        setOpponentConnected(update.opponentConnected ?? true);
+        if (update.players) {
+          setPlayerProfiles((current) => mergePlayerProfiles(current, update.players!));
+        }
+        setGameState(update.state);
+        setClockOffsetMs(clockOffset(update.serverTime));
+        if (update.log) setActionLog(update.log);
+        if (update.state?.started) {
+          setInGame(true);
+        }
+        setStatus(update.opponentConnected === false ? "Waiting for opponent" : "Opponent connected");
       });
 
       socket.on("room:created", (message?: {
@@ -261,23 +295,28 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         state?: GameState;
         opponentConnected?: boolean;
         players?: RoomUpdate["players"];
+        serverTime?: number;
       }) => {
-      if (!message?.roomCode) {
-        setError("The game server did not return a room code.");
-        return;
-      }
-      roomCodeRef.current = message.roomCode;
-      setRoomCode(message.roomCode);
-      setLocalPlayerId(message.playerId ?? "P1");
-      if (message.state) setGameState(message.state);
-      if (message.players) {
-        setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
-      }
-      setOpponentConnected(message.opponentConnected ?? false);
-      setSearching(false);
-      setQueueTime(0);
-      setInGame(false);
-      setStatus(`Room ${message.roomCode} created. Waiting for opponent`);
+        if (!message?.roomCode) {
+          setError("The game server did not return a room code.");
+          return;
+        }
+        roomCodeRef.current = message.roomCode;
+        setRoomCode(message.roomCode);
+        setLocalPlayerId(message.playerId ?? "P1");
+        if (message.state) {
+          setGameState(message.state);
+          setClockOffsetMs(clockOffset(message.serverTime));
+        }
+        if (message.players) {
+          setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
+        }
+        setOpponentConnected(message.opponentConnected ?? false);
+        setChatMessages([]);
+        setSearching(false);
+        setQueueTime(0);
+        setInGame(false);
+        setStatus(`Room ${message.roomCode} created. Waiting for opponent`);
       });
 
       socket.on("matchmaking:searching", (message?: { roomCode?: string }) => {
@@ -300,6 +339,7 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         playerId?: PlayerId;
         state?: GameState;
         players?: RoomUpdate["players"];
+        serverTime?: number;
       }) => {
       if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
       if (message?.roomCode) {
@@ -307,17 +347,33 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
         setRoomCode(message.roomCode);
       }
       if (message?.playerId) setLocalPlayerId(message.playerId);
-      if (message?.state) setGameState(message.state);
+      if (message?.state) {
+        setGameState(message.state);
+        setClockOffsetMs(clockOffset(message.serverTime));
+      }
       if (message?.players) {
         setPlayerProfiles((current) => mergePlayerProfiles(current, message.players!));
       }
       setOpponentConnected(true);
+      setChatMessages([]);
       setSearching(false);
       setQueueTime(0);
       setStatus("Match Found!");
       setError(undefined);
       setResumeRequired(undefined);
       setInGame(true);
+      });
+
+      socket.on("chat:message", (message: ChatMessage) => {
+        setChatError(undefined);
+        setChatMessages((current) =>
+          current.some((existing) => existing.id === message.id) ? current : [...current, message].slice(-100)
+        );
+      });
+
+      // Only the API Gateway stack sends this: its routes cannot answer through the send callback.
+      socket.on("chat:error", (payload?: { message?: string }) => {
+        setChatError(payload?.message || "Your message could not be sent.");
       });
 
       socket.on("match:ended", (message?: { state?: GameState }) => {
@@ -343,6 +399,8 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       socket?.off("matchmaking:searching");
       socket?.off("matchmaking:cancelled");
       socket?.off("matchmaking:found");
+      socket?.off("chat:message");
+      socket?.off("chat:error");
       socket?.off("match:ended");
       socketManager.disconnect();
     };
@@ -457,6 +515,13 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
     });
   }
 
+  function sendChatMessage(text: string) {
+    setChatError(undefined);
+    socketManager.sendChatMessage(roomCodeRef.current, text, (response: any) => {
+      if (!response.ok) setChatError(response.error);
+    });
+  }
+
   function cancelMatchmaking() {
     socketManager.cancelMatchmaking();
     setSearching(false);
@@ -475,7 +540,9 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       roomCode,
       localPlayerId,
       playerProfiles,
+      clockOffsetMs,
       opponentConnected,
+      socketConnected,
       status,
       error,
       resumeRequired,
@@ -485,9 +552,10 @@ export function useGameMatch(resumeRoomCode?: string): SocketGameController {
       queueTime,
       startMatchmaking,
       cancelMatchmaking,
-      inGame
+      inGame,
+      chat: { messages: chatMessages, send: sendChatMessage, error: chatError }
     }),
-    [actionLog, error, gameState, localPlayerId, playerProfiles, opponentConnected, roomCode, status, searching, queueTime, inGame, resumeRequired]
+    [chatMessages, chatError, actionLog, error, gameState, clockOffsetMs, localPlayerId, playerProfiles, opponentConnected, roomCode, socketConnected, status, searching, queueTime, inGame, resumeRequired]
   );
 
   return controller;

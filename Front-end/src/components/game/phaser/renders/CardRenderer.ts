@@ -1,36 +1,158 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GiHeartShield, GiBroadsword, GiLightningStorm } from "react-icons/gi";
+import { GiHeartShield, GiBroadsword } from "react-icons/gi";
 import { getCardDefinition } from "@backend/game/entities/cardRegistry";
 import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
 import type { PlayerId, UnitInstance } from "@backend/game/types";
 import type { UnitView } from "../types/arenaTypes";
+import { boundsOf, padBounds, type Bounds, type CardPlacement, type Point, type Quad } from "../config/geometry/arenaProjection";
+import { logicalSize } from "../config/geometry/arenaScale";
+import { hoverPose, liftedRect } from "../config/motion/hoverLift";
+import { GLIDE_MS, SWEEP_MS, glideOffset, isNewlyDeclared, isRetreating, sweepWindow } from "../config/motion/declareMotion";
 import { TextureLoader } from "../systems/TextureLoader";
 import { CardInteractionSystem } from "../systems/CardInteractionSystem";
 import { CardAnimationManager } from "../systems/CardAnimationManager";
 import type { SpellEffectKind } from "../../visualEffectSemantics";
+import { CARD_THEME, paintBoardFace, type CardFaceKind } from "./cardFace";
+import { statTrends, trendKey } from "../../cards/cardStats";
+import { speedOf } from "../../cards/spellSpeed";
+import { CardSurface, type CardLook } from "./CardSurface";
 
+const FACE_PADDING = 24;
+/** The face is painted at this multiple of its on-screen size, then scaled down crisply. */
+const FACE_SUPERSAMPLE = 2;
+const HOVER_FADE_MS = 120;
+
+/** The colour of the edge of a declared card: blood-red to attack, gold to block (as on the Pass seal). */
+export const ROLE_COLOR = { attack: 0xff2e63, defend: 0xe8c26a } as const;
+export type CardRole = keyof typeof ROLE_COLOR;
+
+const reducedMotion = () =>
+  typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+
+export interface CardViewOptions {
+  /** The player has picked this card to declare next: it stays raised and ringed in violet until it is declared or dropped. */
+  picked?: boolean;
+  isTargetable?: boolean;
+  targetType?: "ally" | "enemy";
+  /** The card is part of a combat lane (attacking or blocking). */
+  inLane?: boolean;
+  /** Whether it attacks or blocks: the colour of its edge. */
+  role?: CardRole;
+}
+
+/** What a declared card tells the table: where it came from and where it is going (for the trail it leaves). */
+export interface DeclareInfo {
+  unitId: string;
+  from: Point;
+  to: Point;
+  width: number;
+  height: number;
+  role: CardRole;
+  champion: boolean;
+  /** The card is being taken back to the waiting row, not declared: the trail runs the other way, in a plain colour. */
+  retreat?: boolean;
+}
+
+/** The state of a card that outlives a redraw of the arena, kept per unit. */
+interface CardPose {
+  /** In a combat lane. */
+  base: boolean;
+  role?: CardRole;
+  /** The player has picked it (a blocker waiting for its lane). */
+  picked: boolean;
+  /** The pointer is over it. */
+  hovered: boolean;
+  /** How strongly the pointer lights its edge, 0..1. */
+  hover: number;
+  /** The role it had in the lane it has just left, while it glides back (its edge fades out). */
+  leaving?: CardRole;
+  /** 0 = still at the slot it came from (the waiting row), 1 = arrived at its slot in the lane. */
+  glide: number;
+  /** Where the card came from, while it glides. */
+  glideFrom?: Point;
+  /** A one-shot jolt (a hit, a lunge) added to the card's place, so it never fights the glide; at rest it is 0. */
+  nudge: Point;
+  /** How far the light has run round its edge, 0..1 (1 = done), and how many laps it makes. */
+  sweep: number;
+  sweepLaps: number;
+  hoverTween?: Phaser.Tweens.Tween;
+  glideTween?: Phaser.Tweens.Tween;
+  sweepTween?: Phaser.Tweens.Tween;
+  nudgeTween?: Phaser.Tweens.Tween;
+}
+
+/** A short jolt of a card along one axis: it goes `from` to `to` (yoyo comes back) and always ends at rest. */
+export interface Jolt {
+  axis: "x" | "y";
+  from?: number;
+  to: number;
+  duration: number;
+  ease?: string;
+  yoyo?: boolean;
+  repeat?: number;
+}
+
+interface CardView {
+  card: UnitView;
+  /** The card's picture: the part that rises and grows under the pointer (the container and its hit area stay put). */
+  image: Phaser.GameObjects.Image;
+  /** Where `image` lies in the container and how large it is shown when the card is at rest. */
+  rest: { x: number; y: number; scaleX: number; scaleY: number };
+  surface: CardSurface;
+  /** The card's face painted for the proportions of `quad`, so it is never stretched. */
+  renderFace: (quad: Quad) => HTMLCanvasElement;
+  placement: CardPlacement;
+  /** The flat footprint's bounding box: the container is centred on it. */
+  box: Bounds;
+  pose: CardPose;
+}
+
+interface CardFace {
+  signature: string;
+  canvas: HTMLCanvasElement;
+}
+
+/**
+ * Units on the board lie flat in their lane at the lane's full size, and stay flat. Each card face is
+ * painted into an offscreen canvas and then laid into the lane's quad. A card that is declared into a
+ * combat lane glides there from its slot in the waiting row, a light runs once round its edge, and the
+ * edge stays lit: blood-red for an attacker, gold for a blocker. The pointer lights the edge too.
+ * Everything that marks a card is painted into its own texture, so nothing can fall behind or in
+ * front of the wrong thing. As a card moves its face is painted again for the proportions of the
+ * current quad, so it stays sharp and is never stretched.
+ */
 export class CardRenderer {
-  private readonly views = new Map<string, UnitView>();
+  private readonly views = new Map<string, CardView>();
+  private readonly faces = new Map<string, CardFace>();
+  private readonly poses = new Map<string, CardPose>();
+  /** Where each card lay when it was last drawn: a card that is declared glides from there to its lane. */
+  private readonly centers = new Map<string, Point>();
   private readonly textures: TextureLoader;
   private readonly animations: CardAnimationManager;
+  private fontEpoch = 0;
+  /** Called once when a card is declared into a lane (the table draws the trail it leaves). */
+  onDeclare?: (info: DeclareInfo) => void;
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly onTextureLoaded: () => void,
-    private readonly interactions = new CardInteractionSystem(scene)
+    private readonly interactions = new CardInteractionSystem(),
   ) {
     this.animations = new CardAnimationManager(scene);
     this.textures = new TextureLoader(scene, onTextureLoaded);
     this.textures.request("arena-card-front", "/monster/card-front.png");
 
-    // Preload gaming icons from react-icons/gi
-    // Phaser runs in CANVAS mode so runtime image tinting is not reliable.
-    // Bake the same soft icon colours used by StatPip into each SVG texture.
+    // Phaser runs in CANVAS mode, so icons are baked in their final colours.
     this.preloadReactIcon("icon-hp", GiHeartShield, 128, "#86efac");
     this.preloadReactIcon("icon-atk", GiBroadsword, 128, "#fca5a5");
-    this.preloadReactIcon("icon-mana", GiLightningStorm, 128, "#7dd3fc");
+
+    // Repaint once the web fonts are available (the first paint may use fallbacks).
+    void document.fonts?.ready.then(() => {
+      this.fontEpoch += 1;
+      if (this.scene?.sys?.isActive()) this.onTextureLoaded();
+    });
   }
 
   private preloadReactIcon(
@@ -59,330 +181,462 @@ export class CardRenderer {
     }
   }
 
+  /** Takes every card off the table before a redraw; the hovered unit is carried over to its new card. */
   clear() {
+    this.interactions.beginRedraw();
     this.animations.clear();
-    this.views.forEach((view) => view.destroy());
+    this.views.forEach((view) => {
+      this.stopTweens(view.pose);
+      view.card.destroy();
+    });
     this.views.clear();
+  }
+
+  private stopTweens(pose: CardPose) {
+    [pose.hoverTween, pose.glideTween, pose.sweepTween, pose.nudgeTween].forEach((tween) => tween?.stop());
+    pose.hoverTween = undefined;
+    pose.glideTween = undefined;
+    pose.sweepTween = undefined;
+    pose.nudgeTween = undefined;
+    // A jolt cut short by a redraw ends at rest; the card is drawn again from its place.
+    pose.nudge = { x: 0, y: 0 };
+  }
+
+  /** Drops the face, texture and pose of units that are no longer on the board. */
+  prune(activeUnitIds: Set<string>) {
+    Array.from(this.faces.keys()).forEach((unitId) => {
+      if (activeUnitIds.has(unitId)) return;
+      this.faces.delete(unitId);
+      const pose = this.poses.get(unitId);
+      if (pose) this.stopTweens(pose);
+      this.poses.delete(unitId);
+      this.centers.delete(unitId);
+      const key = this.faceKey(unitId);
+      if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
+    });
+  }
+
+  /** The redraw is over: ends a hover that no new card took back (its unit has left the table). */
+  settleHover() {
+    this.interactions.endRedraw();
   }
 
   destroy() {
     this.clear();
+    this.settleHover();
+    this.interactions.destroy();
+    this.prune(new Set());
     this.textures.destroy();
   }
 
-  get(unitId: string) {
-    return this.views.get(unitId);
+  get(unitId: string): UnitView | undefined {
+    return this.views.get(unitId)?.card;
   }
 
   playEffect(unitId: string, kind: SpellEffectKind) {
-    const view = this.views.get(unitId);
+    const view = this.get(unitId);
     if (view) this.animations.playEffect(view, kind);
   }
 
-  private getTitleFontSize(name: string, width: number) {
-    const base = Math.min(12, Math.max(8, Math.round(width * 0.105)));
-    if (name.length > 24) return Math.max(7, base - 3);
-    if (name.length > 17) return Math.max(8, base - 2);
-    return base;
+  playBarrierTrigger(unitId: string) {
+    const view = this.get(unitId);
+    if (view) this.animations.playBarrierTrigger(view);
   }
 
-  private drawHeart(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
-    const width = w * 0.95;
-    const height = h * 0.95;
-    g.beginPath();
-    g.moveTo(x, y + height * 0.45);
-    g.lineTo(x - width * 0.48, y - height * 0.08);
-    g.lineTo(x - width * 0.42, y - height * 0.32);
-    g.lineTo(x - width * 0.22, y - height * 0.46);
-    g.lineTo(x - width * 0.08, y - height * 0.38);
-    g.lineTo(x, y - height * 0.22);
-    g.lineTo(x + width * 0.08, y - height * 0.38);
-    g.lineTo(x + width * 0.22, y - height * 0.46);
-    g.lineTo(x + width * 0.42, y - height * 0.32);
-    g.lineTo(x + width * 0.48, y - height * 0.08);
-    g.closePath();
-    g.fillPath();
-    g.strokePath();
+  private faceKey(unitId: string) {
+    return `arena-face-${unitId}`;
   }
 
-  private drawSword(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
-    const width = w * 0.9;
-    const height = h * 0.95;
-    g.beginPath();
-    g.moveTo(x, y - height * 0.48);
-    g.lineTo(x - width * 0.28, y - height * 0.22);
-    g.lineTo(x - width * 0.24, y + height * 0.08);
-    g.lineTo(x - width * 0.42, y + height * 0.08);
-    g.lineTo(x - width * 0.42, y + height * 0.16);
-    g.lineTo(x - width * 0.12, y + height * 0.16);
-    g.lineTo(x - width * 0.08, y + height * 0.42);
-    g.lineTo(x - width * 0.15, y + height * 0.42);
-    g.lineTo(x - width * 0.15, y + height * 0.48);
-    g.lineTo(x + width * 0.15, y + height * 0.48);
-    g.lineTo(x + width * 0.15, y + height * 0.42);
-    g.lineTo(x + width * 0.08, y + height * 0.42);
-    g.lineTo(x + width * 0.12, y + height * 0.16);
-    g.lineTo(x + width * 0.42, y + height * 0.16);
-    g.lineTo(x + width * 0.42, y + height * 0.08);
-    g.lineTo(x + width * 0.24, y + height * 0.08);
-    g.lineTo(x + width * 0.28, y - height * 0.22);
-    g.closePath();
-    g.fillPath();
-    g.strokePath();
+  private sourceImage(key: string) {
+    if (!this.scene.textures.exists(key)) return undefined;
+    return this.scene.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
   }
 
-  private drawLightning(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
-    g.beginPath();
-    g.moveTo(x + w * 0.08, y - h * 0.48);
-    g.lineTo(x + w * 0.38, y - h * 0.48);
-    g.lineTo(x - w * 0.08, y - h * 0.05);
-    g.lineTo(x + w * 0.28, y - h * 0.05);
-    g.lineTo(x - w * 0.18, y + h * 0.48);
-    g.lineTo(x - w * 0.05, y + h * 0.08);
-    g.lineTo(x - w * 0.38, y + h * 0.08);
-    g.closePath();
-    g.fillPath();
-    g.strokePath();
-  }
-
-  private createStatBadge(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    type: "ATK" | "HP",
-    value: number,
-    originalHeight: number
-  ) {
-    const textureKey = type === "HP" ? "icon-hp" : "icon-atk";
-    const tintColor = type === "HP" ? 0x86efac : 0xfca5a5; // Soft pastel green / soft pastel red
-    const textColor = type === "HP" ? "#22d389" : "#f14935"; // Bright Tailwind theme colors (var(--hp) / var(--attack))
-    
-    // Reduce diameter by 3px (reduce radius by 1.5px)
-    const plateRadius = height * 0.78 - 1.5;
-    const plate = this.scene.add.circle(x, y, plateRadius, 0x050b14, 0.98)
-      .setStrokeStyle(2, tintColor, 0.98);
-
-    // Reduce icon size by 3px
-    const iconSize = height * 0.9 - 3;
-
-    let badge: Phaser.GameObjects.GameObject;
-    if (this.scene.textures.exists(textureKey)) {
-      const img = this.scene.add.image(x, y, textureKey);
-      img.setDisplaySize(iconSize, iconSize);
-      // Do not use setTint here: this scene deliberately uses Phaser.CANVAS,
-      // where tint support varies by browser. The texture itself is coloured.
-      img.setAlpha(0.82);
-      badge = img;
-    } else {
-      const fallback = this.scene.add.graphics();
-      fallback.fillStyle(tintColor, 0.28);
-      fallback.lineStyle(1.6, tintColor, 0.95);
-      if (type === "HP") this.drawHeart(fallback, x, y, width - 3, height - 3);
-      else this.drawSword(fallback, x, y, width - 3, height - 3);
-      badge = fallback;
-    }
-
-    const textOffsetY = type === "ATK" ? -height * 0.08 : 0;
-
-    const valueText = this.scene.add.text(x, y + textOffsetY, String(value), {
-      fontFamily: "Inter, Arial, sans-serif",
-      fontSize: `${Math.max(13, Math.round(originalHeight * 0.52))}px`,
-      fontStyle: "bold",
-      color: textColor,
-      stroke: "#000000",
-      strokeThickness: 3.5,
-    }).setOrigin(0.5);
-
-    return [plate, badge, valueText];
-  }
-
-  create(unit: UnitInstance, playerId: PlayerId, width: number, height: number, isTargetable = false, targetType?: "ally" | "enemy") {
+  /** Creates a unit lying in its lane. `placement` holds the lane's quad: the card fills it completely. */
+  create(unit: UnitInstance, playerId: PlayerId, placement: CardPlacement, options: CardViewOptions = {}) {
     const definition = getCardDefinition(unit.cardId);
-    const isChampion = definition.type === "champion";
-    // Color theme matching game-card.tsx & hand-card.tsx:
-    // Gold-Red (0xf59e0b) for Champions, Steel Blue-Grey (0x6495ed) for Units
-    const color = isChampion ? 0xf59e0b : 0x6495ed;
+    const kind: CardFaceKind = definition.type === "champion" ? "champion" : definition.type === "spell" ? "spell" : "unit";
+    const isChampion = kind === "champion";
+    const accent = parseInt(CARD_THEME[kind].accent.slice(1), 16);
+    const hasBarrier = Boolean(unit.keywords?.includes("BARRIER") || unit.temporaryKeywords?.includes("BARRIER"));
+    const attack = getUnitAttack(unit);
+    const health = getUnitHealth(unit);
+    const trends = statTrends(definition, unit);
+    const speed = speedOf(definition);
+    const artKey = this.textures.getKey(unit);
 
-    // A dark ritual-card silhouette with a compact header, square artwork,
-    // and stat badges anchored to the lower corners.
-    const frameGraphics = this.scene.add.graphics();
-    const radius = Math.min(12, width * 0.12);
-    const left = -width / 2;
-    const right = width / 2;
-    const top = -height / 2;
-    const bottom = height / 2;
+    const flatBox = boundsOf(placement.quad);
+    const surfaceBox = padBounds(flatBox, FACE_PADDING);
 
-    frameGraphics.fillStyle(0x050b14, 0.99);
-    frameGraphics.beginPath();
-    frameGraphics.moveTo(left + radius, top);
-    frameGraphics.lineTo(right, top);
-    frameGraphics.lineTo(right, bottom - radius);
-    frameGraphics.arc(right - radius, bottom - radius, radius, 0, Math.PI / 2, false);
-    frameGraphics.lineTo(left, bottom);
-    frameGraphics.lineTo(left, top + radius);
-    frameGraphics.arc(left + radius, top + radius, radius, Math.PI, (3 * Math.PI) / 2, false);
-    frameGraphics.closePath();
-    frameGraphics.fillPath();
+    const renderFace = (quad: Quad) => {
+      const [nearLeft, nearRight, farRight, farLeft] = quad;
+      const faceWidth = this.faceSize(Math.max(nearRight.x - nearLeft.x, farRight.x - farLeft.x));
+      const faceHeight = this.faceSize(nearLeft.y - farLeft.y);
+      return this.faceFor(
+        unit.instanceId,
+        [
+          unit.cardId,
+          attack,
+          health,
+          trendKey(trends),
+          speed ?? "",
+          artKey ? 1 : 0,
+          this.scene.textures.exists("arena-card-front") ? 1 : 0,
+          this.scene.textures.exists("icon-atk") ? 1 : 0,
+          this.fontEpoch,
+          faceWidth,
+          faceHeight,
+        ],
+        faceWidth,
+        faceHeight,
+        (ctx) =>
+          paintBoardFace(
+            ctx,
+            { name: definition.name, kind, attack, health, trends, speed },
+            {
+              art: artKey ? (this.sourceImage(artKey) as HTMLImageElement) : undefined,
+              frame: this.sourceImage("arena-card-front"),
+              icons: { attack: this.sourceImage("icon-atk"), health: this.sourceImage("icon-hp") },
+            },
+            faceWidth,
+            faceHeight,
+          ),
+      );
+    };
 
-    frameGraphics.lineStyle(2.2, color, 0.96);
-    frameGraphics.strokePath();
-
-    // The updated PNG has a transparent centre, so it can sit above content as
-    // a true frame without hiding artwork, title, or stat badges.
-    // Tint the PNG frame overlay to match the card type theme (Steel Blue-Grey or Gold-Red).
-    const cardFront = this.scene.textures.exists("arena-card-front")
-      ? this.scene.add.image(0, 0, "arena-card-front")
-          .setDisplaySize(width, height)
-          .setTint(color)
-      : undefined;
-
-    const innerRadius = Math.max(2, radius - 3);
-    const iLeft = left + 3;
-    const iRight = right - 3;
-    const iTop = top + 3;
-    const iBottom = bottom - 3;
-    frameGraphics.lineStyle(1, color, 0.25);
-    frameGraphics.beginPath();
-    frameGraphics.moveTo(iLeft + innerRadius, iTop);
-    frameGraphics.lineTo(iRight, iTop);
-    frameGraphics.lineTo(iRight, iBottom - innerRadius);
-    frameGraphics.arc(iRight - innerRadius, iBottom - innerRadius, innerRadius, 0, Math.PI / 2, false);
-    frameGraphics.lineTo(iLeft, iBottom);
-    frameGraphics.lineTo(iLeft, iTop + innerRadius);
-    frameGraphics.arc(iLeft + innerRadius, iTop + innerRadius, innerRadius, Math.PI, (3 * Math.PI) / 2, false);
-    frameGraphics.closePath();
-    frameGraphics.strokePath();
-
-    const headerHeight = Math.max(18, Math.min(27, height * 0.15));
-    const headerY = top + headerHeight / 2 + 3;
-    const artSize = Math.min(width - 10, height - headerHeight - 12);
-    const artY = top + headerHeight + 5 + artSize / 2;
-    const artFrame = this.scene.add.rectangle(0, artY, artSize, artSize, 0x020711, 0.95).setStrokeStyle(1, color, 0.62);
-    const textureKey = this.textures.getKey(unit);
-
-    let art: Phaser.GameObjects.GameObject;
-    if (textureKey) {
-      const artImage = this.scene.add.image(0, artY, textureKey);
-      // Fit inside the square without stretching or spilling over its frame.
-      artImage.setScale(Math.min(artSize / artImage.width, artSize / artImage.height));
-      art = artImage;
-    } else {
-      // Fallback empty graphics or colored box
-      art = this.scene.add.rectangle(0, artY, artSize, artSize, color, 0.15).setStrokeStyle(1, color, 0.45);
+    const center: Point = { x: flatBox.x + flatBox.width / 2, y: flatBox.y + flatBox.height / 2 };
+    const known = this.poses.has(unit.instanceId);
+    const pose = this.poseOf(unit.instanceId);
+    const wasInLane = pose.base;
+    const leavingRole = pose.role;
+    pose.base = Boolean(options.inLane);
+    pose.role = pose.base ? options.role : undefined;
+    pose.picked = Boolean(options.picked);
+    pose.hovered = false;
+    pose.hover = 0;
+    pose.hoverTween?.stop();
+    pose.hoverTween = undefined;
+    if (!pose.base) {
+      // A card on its way back carries on across a redraw; any other card in the waiting row is simply there.
+      if (isRetreating(known, wasInLane, pose.base) && !reducedMotion()) {
+        this.endDeclare(pose);
+        this.beginRetreat(unit.instanceId, pose, center, flatBox, isChampion, leavingRole);
+      } else if (!pose.leaving) {
+        this.endDeclare(pose);
+      }
+    } else if (isNewlyDeclared(known, wasInLane, pose.base) && pose.role && !reducedMotion()) {
+      this.beginDeclare(unit.instanceId, pose, center, flatBox, isChampion);
     }
+    this.centers.set(unit.instanceId, center);
 
-    // Header nameplate: the title stays inside a clearly defined border and
-    // leaves room for the mana badge floating over the top-left corner.
-    const banner = this.scene.add.rectangle(0, headerY, width - 8, headerHeight, 0x091321, 0.98).setStrokeStyle(1.2, color, 0.72);
-    const nameText = this.scene.add.text(width * 0.06, headerY, definition.name.toUpperCase(), {
-      fontFamily: "Inter, Arial, sans-serif",
-      fontSize: `${this.getTitleFontSize(definition.name, width)}px`,
-      fontStyle: "bold",
-      color: "#f2f7ff",
-      align: "center",
-      wordWrap: { width: width - 25, useAdvancedWrap: true },
-      lineSpacing: -2,
-      stroke: "#02060d",
-      strokeThickness: 2,
-    }).setOrigin(0.5);
+    const surface = new CardSurface(this.scene, this.faceKey(unit.instanceId), surfaceBox);
+    surface.paint(renderFace(placement.quad), placement.quad, this.lookOf(pose));
 
-    // Pre-calculate stat height and text size to share with mana text
-    const statHeight = Math.max(25, width * 0.26);
-    const statTextSize = Math.max(13, Math.round(statHeight * 0.52));
-
-    // Mana badge floats over the top-left border of the header.
-    const manaRadius = Math.max(10, Math.round(width * 0.125));
-    const manaX = left + manaRadius * 0.55;
-    const manaY = top + manaRadius * 0.82;
-    const manaSize = manaRadius * 1.35;
-    const manaPlate = this.scene.add.circle(manaX, manaY, manaRadius, 0x061522, 0.98)
-      .setStrokeStyle(1.7, 0x0ea5e9, 0.98);
-    
-    let manaBadge: Phaser.GameObjects.GameObject;
-    if (this.scene.textures.exists("icon-mana")) {
-      const img = this.scene.add.image(manaX, manaY, "icon-mana");
-      img.setDisplaySize(manaSize, manaSize);
-      // The SVG texture is already pastel blue; this remains visible in both
-      // WebGL and Canvas renderers.
-      img.setAlpha(0.82);
-      manaBadge = img;
-    } else {
-      const fallback = this.scene.add.graphics();
-      fallback.fillStyle(0x0b82c7, 0.28);
-      fallback.lineStyle(1.5, 0x0ea5e9, 0.95);
-      this.drawLightning(fallback, manaX, manaY, manaSize, manaSize);
-      manaBadge = fallback;
-    }
-
-    const manaText = this.scene.add.text(manaX, manaY, String(definition.cost), {
-      fontFamily: "Inter, Arial, sans-serif",
-      fontSize: `${statTextSize}px`,
-      fontStyle: "bold",
-      color: "#00b4ff",
-      stroke: "#000000",
-      strokeThickness: 3,
-    }).setOrigin(0.5);
-
-    const statY = bottom - statHeight * 0.45;
-    const statX = width * 0.06;
-    const atkParts = this.createStatBadge(left + statX, statY, statHeight, statHeight, "ATK", getUnitAttack(unit), statHeight);
-    const hpParts = this.createStatBadge(right - statX, statY, statHeight, statHeight, "HP", getUnitHealth(unit), statHeight);
-
-    // Assemble Card Components
-    const card = this.scene.add.container(0, 0, [
-      frameGraphics,
-      ...(cardFront ? [cardFront] : []),
-      artFrame,
-      art,
-      banner,
-      nameText,
-      manaPlate,
-      manaBadge,
-      manaText,
-      ...atkParts,
-      ...hpParts,
-    ]) as UnitView;
-
+    const shown = surface.displaySize;
+    const image = this.scene.add
+      .image(surfaceBox.x - center.x, surfaceBox.y - center.y, surface.key)
+      .setOrigin(0, 0)
+      .setDisplaySize(shown.width, shown.height);
+    const rest = { x: image.x, y: image.y, scaleX: image.scaleX, scaleY: image.scaleY };
+    const offset = this.offsetOf(pose, center);
+    const card = this.scene.add.container(center.x + offset.x, center.y + offset.y, [image]) as UnitView;
     card.unitId = unit.instanceId;
-    card.setSize(width, height);
-    this.interactions.bind(card, unit, playerId);
-    this.animations.attach(card, isChampion, color, isTargetable, targetType);
-    this.views.set(unit.instanceId, card);
+    card.setSize(flatBox.width, flatBox.height);
+    card.setDepth(placement.depth);
+    card.setData("outline", this.outlineOf(placement.quad, center));
+    card.setData("topExtent", flatBox.height / 2);
+
+    const view: CardView = { card, image, rest, surface, renderFace, placement, box: flatBox, pose };
+    card.setData("anchorRect", () => this.anchorOf(view));
+    const hitArea = new Phaser.Geom.Polygon(this.hitPoints(view));
+    this.interactions.bind(card, unit, playerId, hitArea, (hovering) => this.setHovered(view, hovering), () => pose.glide < 1);
+    this.animations.attach(card, isChampion, accent, options.isTargetable, options.targetType, hasBarrier);
+    this.views.set(unit.instanceId, view);
+    this.glideTo(view);
+    this.sweepTo(view);
     return card;
   }
 
-  playSummon(unitId: string) {
+  private poseOf(unitId: string): CardPose {
+    let pose = this.poses.get(unitId);
+    if (!pose) {
+      pose = { base: false, picked: false, hovered: false, hover: 0, glide: 1, nudge: { x: 0, y: 0 }, sweep: 1, sweepLaps: 1 };
+      this.poses.set(unitId, pose);
+    }
+    return pose;
+  }
+
+  /** What is laid over the face of a card right now: its brand, the light running round it, and the pointer's light. */
+  private lookOf(pose: CardPose): CardLook {
+    // A card on its way back to the waiting row keeps the colour of the lane it left, fading as it goes.
+    const role = pose.base ? pose.role : pose.glide < 1 ? pose.leaving : undefined;
+    const color = role ? ROLE_COLOR[role] : undefined;
+    const edgeAlpha = pose.base ? 0.6 : 0.6 * (1 - pose.glide);
+    const window = color !== undefined && pose.sweep < 1 ? sweepWindow(pose.sweep, pose.sweepLaps) : undefined;
+    return {
+      edge: color !== undefined ? { color, alpha: edgeAlpha } : undefined,
+      sweep: color !== undefined && window ? { color, ...window } : undefined,
+      hover: Math.max(pose.hover, pose.picked ? 1 : 0),
+      ring: pose.picked
+    };
+  }
+
+  private outlineOf(quad: Quad, center: Point): Point[] {
+    return quad.map((p) => ({ x: p.x - center.x, y: p.y - center.y }));
+  }
+
+  /** The card's polygon in the container's own space (origin at its top-left corner). */
+  private hitPoints(view: CardView): Point[] {
+    const { box, placement } = view;
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+    return placement.quad.map((p) => ({ x: p.x - centerX + box.width / 2, y: p.y - centerY + box.height / 2 }));
+  }
+
+  /** The pointer lights the edge of a card, and puts the light out when it leaves. */
+  private setHovered(view: CardView, hovered: boolean) {
+    if (!view.card.active) return;
+    const { pose } = view;
+    pose.hovered = hovered;
+    pose.hoverTween?.stop();
+    pose.hoverTween = this.scene.tweens.add({
+      targets: pose,
+      hover: hovered ? 1 : 0,
+      duration: HOVER_FADE_MS,
+      ease: "Sine.Out",
+      onUpdate: () => this.paintView(view),
+      onComplete: () => {
+        pose.hoverTween = undefined;
+      },
+    });
+  }
+
+  private paintView(view: CardView) {
+    if (!view.card.active) return;
+    view.surface.paint(view.renderFace(view.placement.quad), view.placement.quad, this.lookOf(view.pose));
+    this.applyHover(view);
+  }
+
+  /** A card lifts under the pointer only when it is at rest: not gliding to its lane, not with the light running round it. */
+  private liftOf(pose: CardPose) {
+    const resting = !reducedMotion() && pose.glide >= 1 && pose.sweep >= 1;
+    return resting ? Math.max(pose.hover, pose.picked ? 1 : 0) : 0;
+  }
+
+  /** Raises and grows the picture of the card by how strongly the pointer is on it; the card's box and hit area stay. */
+  private applyHover(view: CardView) {
+    const { image, rest, card, pose, box, placement } = view;
+    const t = this.liftOf(pose);
+    const { scale, lift } = hoverPose(t, box.height);
+    image.setScale(rest.scaleX * scale, rest.scaleY * scale);
+    image.setPosition(rest.x * scale, rest.y * scale - lift);
+    // Over its neighbours in the row while lifted; still under every effect layer.
+    card.setDepth(placement.depth + (t > 0 ? 2 : 0));
+  }
+
+  /** Where the card is on the table when the pointer has lifted it: where the inspector stands. */
+  private anchorOf(view: CardView) {
+    const { card, box } = view;
+    const resting = { x: card.x - box.width / 2, y: card.y - box.height / 2, width: box.width, height: box.height };
+    return reducedMotion() || view.pose.glide < 1 || view.pose.sweep < 1 ? resting : liftedRect(resting);
+  }
+
+  // ── declare ──────────────────────────────────────────────
+
+  /**
+   * The card has just been declared into a lane. It glides there from the slot it lay in, a light runs
+   * round its edge (twice for a champion), and the table is told, so it can draw the trail.
+   */
+  private beginDeclare(unitId: string, pose: CardPose, center: Point, box: Bounds, champion: boolean) {
+    pose.sweep = 0;
+    pose.sweepLaps = champion ? 2 : 1;
+    const from = this.centers.get(unitId);
+    if (!from || Math.hypot(from.x - center.x, from.y - center.y) <= 2) return;
+    pose.glideFrom = from;
+    pose.glide = 0;
+    if (pose.role) {
+      this.onDeclare?.({ unitId, from, to: center, width: box.width, height: box.height, role: pose.role, champion });
+    }
+  }
+
+  /**
+   * The card has been taken out of its lane. It glides back to its slot in the waiting row, its edge fading
+   * as it goes, and the table is told so it can leave the shadow step the other way.
+   */
+  private beginRetreat(unitId: string, pose: CardPose, center: Point, box: Bounds, champion: boolean, role?: CardRole) {
+    const from = this.centers.get(unitId);
+    if (!from || Math.hypot(from.x - center.x, from.y - center.y) <= 2) return;
+    pose.glideFrom = from;
+    pose.glide = 0;
+    pose.leaving = role;
+    if (role) {
+      this.onDeclare?.({ unitId, from, to: center, width: box.width, height: box.height, role, champion, retreat: true });
+    }
+  }
+
+  private endDeclare(pose: CardPose) {
+    pose.glideTween?.stop();
+    pose.glideTween = undefined;
+    pose.sweepTween?.stop();
+    pose.sweepTween = undefined;
+    pose.glide = 1;
+    pose.sweep = 1;
+  }
+
+  /** How far the card still is from its slot while it glides (none once it has arrived). */
+  private glideOf(pose: CardPose, center: Point): Point {
+    return pose.glide < 1 && pose.glideFrom ? glideOffset(pose.glideFrom, center, pose.glide) : { x: 0, y: 0 };
+  }
+
+  /** How far the card is from the centre of its slot: still gliding to it, plus any jolt it is taking. */
+  private offsetOf(pose: CardPose, center: Point): Point {
+    const glide = this.glideOf(pose, center);
+    return { x: glide.x + pose.nudge.x, y: glide.y + pose.nudge.y };
+  }
+
+  /** Puts the card where its pose says: the one place that moves a card, so a glide and a jolt always agree. */
+  private settle(view: CardView) {
+    const { card, box, pose } = view;
+    if (!card.active) return;
+    const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const offset = this.offsetOf(pose, center);
+    card.setPosition(center.x + offset.x, center.y + offset.y);
+  }
+
+  /**
+   * Carries a card that was just declared from the slot it lay in to its slot in the lane. The progress
+   * lives in the pose, so a redraw in the middle of the glide carries on from where it was.
+   */
+  private glideTo(view: CardView) {
+    const { card, pose } = view;
+    pose.glideTween?.stop();
+    pose.glideTween = undefined;
+    if (pose.glide >= 1) return;
+    pose.glideTween = this.scene.tweens.add({
+      targets: pose,
+      glide: 1,
+      duration: GLIDE_MS * (1 - pose.glide),
+      ease: "Linear",
+      onUpdate: () => {
+        if (!card.active) return;
+        this.settle(view);
+        // The edge of a card that is leaving its lane fades out with the glide.
+        if (pose.leaving) this.paintView(view);
+      },
+      onComplete: () => {
+        pose.glideTween = undefined;
+        pose.glide = 1;
+        if (pose.leaving) {
+          pose.leaving = undefined;
+          this.paintView(view);
+        }
+        this.settle(view);
+      },
+    });
+  }
+
+  /**
+   * A card takes a short jolt (it is hit, it lunges). The jolt is part of the card's pose, not a tween on the
+   * container: whatever else is moving the card (it may be gliding back to the waiting row) is kept, and the
+   * card always ends at its slot, never where it happened to be when the jolt began.
+   */
+  nudge(unitId: string, jolt: Jolt) {
     const view = this.views.get(unitId);
+    if (!view) return;
+    const { pose } = view;
+    pose.nudgeTween?.stop();
+    pose.nudge = { x: 0, y: 0 };
+    pose.nudgeTween = this.scene.tweens.add({
+      targets: pose.nudge,
+      [jolt.axis]: jolt.from === undefined ? jolt.to : { from: jolt.from, to: jolt.to },
+      duration: jolt.duration,
+      ease: jolt.ease,
+      yoyo: jolt.yoyo,
+      repeat: jolt.repeat,
+      onUpdate: () => this.settle(view),
+      onComplete: () => {
+        pose.nudgeTween = undefined;
+        pose.nudge = { x: 0, y: 0 };
+        this.settle(view);
+      },
+    });
+  }
+
+  /** Runs the light round the card's edge; like the glide, it carries on across a redraw. */
+  private sweepTo(view: CardView) {
+    const { pose } = view;
+    pose.sweepTween?.stop();
+    pose.sweepTween = undefined;
+    if (pose.sweep >= 1) return;
+    pose.sweepTween = this.scene.tweens.add({
+      targets: pose,
+      sweep: 1,
+      duration: SWEEP_MS * pose.sweepLaps * (1 - pose.sweep),
+      ease: "Linear",
+      onUpdate: () => this.paintView(view),
+      onComplete: () => {
+        pose.sweepTween = undefined;
+        pose.sweep = 1;
+        this.paintView(view);
+      },
+    });
+  }
+
+  /** On-screen size of a face edge → canvas pixels: supersampled, in steps of 4 so a moving card repaints less often. */
+  private faceSize(screenPx: number) {
+    return Math.max(64, Math.round((screenPx * FACE_SUPERSAMPLE) / 4) * 4);
+  }
+
+  /** Returns the cached face of a unit, repainting it only when what it shows or its size changed. */
+  private faceFor(unitId: string, parts: Array<string | number | boolean>, width: number, height: number, paint: (ctx: CanvasRenderingContext2D) => void) {
+    const signature = parts.join("|");
+    let entry = this.faces.get(unitId);
+    if (!entry) {
+      entry = { signature: "", canvas: document.createElement("canvas") };
+      this.faces.set(unitId, entry);
+    }
+    if (entry.signature !== signature) {
+      entry.canvas.width = width;
+      entry.canvas.height = height;
+      const ctx = entry.canvas.getContext("2d");
+      if (ctx) {
+        ctx.imageSmoothingQuality = "high";
+        paint(ctx);
+      }
+      entry.signature = signature;
+    }
+    return entry.canvas;
+  }
+
+  // ── one-shot animations ──────────────────────────────────
+
+  playSummon(unitId: string) {
+    const view = this.get(unitId);
     if (view) {
-      view.setAlpha(0).setScale(1.22);
+      const restY = view.y;
+      view.setAlpha(0).setScale(1.18).setY(restY - 26);
       this.scene.tweens.add({
         targets: view,
         alpha: 1,
         scaleX: 1,
         scaleY: 1,
-        duration: 320,
+        y: restY,
+        duration: 340,
         ease: "Back.Out"
       });
     }
   }
 
   playAttack(unitId: string) {
-    const view = this.views.get(unitId);
+    const view = this.get(unitId);
     if (view) {
-      const y = view.y;
-      this.scene.tweens.add({
-        targets: view,
-        y: y + (y > this.scene.scale.height / 2 ? -38 : 38),
-        yoyo: true,
-        duration: 190,
-        ease: "Sine.Out"
-      });
+      const riftY = (this.scene.registry.get("arenaRiftY") as number | undefined) ?? logicalSize(this.scene.scale).height / 2;
+      this.nudge(unitId, { axis: "y", to: view.y > riftY ? -38 : 38, yoyo: true, duration: 190, ease: "Sine.Out" });
     }
   }
 
   playDestroy(unitId: string) {
-    const view = this.views.get(unitId);
+    const view = this.get(unitId);
     if (view) {
       this.scene.tweens.add({
         targets: view,

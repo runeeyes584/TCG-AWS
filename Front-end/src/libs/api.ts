@@ -1,12 +1,11 @@
 import type { SaveDeckPayload, SavedDeck } from "@backend/decks/deck.types";
 import type { MatchEndReason } from "@backend/game/types";
+import { reportSessionReplaced } from "./session/sessionEvents";
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const API_URL = (
     configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "")
 ).replace(/\/$/, "");
-
-console.log("matches.routes loaded");
 
 export interface LoginResponse {
     success: boolean;
@@ -114,6 +113,8 @@ export interface MatchHistory {
   rank_point_change: number;
   elo_change?: number;
   duration?: number;
+  /** Name of the deck the player used. Absent for matches recorded before decks were stored. */
+  deck_name?: string;
 }
 
 function parseLeaderboardPlayer(value: unknown): LeaderboardPlayer | null {
@@ -231,11 +232,34 @@ export async function getMyRank(): Promise<{
     };
 }
 
+/** An error answered by the API, with the HTTP status it came with. */
+export type ApiError = Error & { code?: string; status?: number };
+
+/** The session is no longer valid: the only case in which a client should drop it. */
+export function isAuthError(error: unknown): boolean {
+    const status = (error as ApiError | undefined)?.status;
+    return status === 401 || status === 403;
+}
+
+/**
+ * The server did not answer the request properly (it failed, timed out while starting up, or could not be reached),
+ * so the same request may well succeed a moment later. Says nothing about the session.
+ */
+export function isServerUnavailable(error: unknown): boolean {
+    if (error instanceof TypeError) return true; // fetch could not reach the server
+    const status = (error as ApiError | undefined)?.status;
+    return typeof status === "number" && status >= 500;
+}
+
+const SERVER_UNAVAILABLE_MESSAGE = "The server is starting up. Please try again in a few seconds.";
+const LOGIN_RETRY_DELAY_MS = 1_000;
+
 async function request<T = any>(
     url: string,
     options: RequestInit = {}
 ): Promise<T> {
-    const token = typeof window === "undefined"
+    const isPublicAuthRoute = /^\/auth\/(login|register|verify|forgot-password|reset-password|resend-code)/.test(url);
+    const token = typeof window === "undefined" || isPublicAuthRoute
         ? undefined
         : window.localStorage.getItem("accessToken");
 
@@ -261,19 +285,24 @@ async function request<T = any>(
             data = JSON.parse(rawBody);
         } catch {
             const isHtml = /^\s*(?:<!doctype|<html)/i.test(rawBody);
-            throw new Error(
+            const parseError = new Error(
                 isHtml
                     ? "The API returned an HTML page instead of JSON. Check that NEXT_PUBLIC_API_URL points to the HTTP API Gateway invoke URL and includes the correct stage."
                     : `The API returned invalid JSON (HTTP ${response.status}).`
-            );
+            ) as ApiError;
+            parseError.status = response.status;
+            throw parseError;
         }
     }
 
     if (!response.ok) {
         const apiError = new Error(
             data?.error?.message || data?.message || `Request failed (HTTP ${response.status}).`
-        ) as Error & { code?: string };
+        ) as ApiError;
         apiError.code = data?.error?.code || data?.code;
+        apiError.status = response.status;
+        // A sign-in on another device or browser ended this session.
+        if (response.status === 401 && apiError.code === "SESSION_REPLACED") reportSessionReplaced("device");
         throw apiError;
     }
 
@@ -340,14 +369,32 @@ export async function login(
     email: string,
     password: string
 ): Promise<LoginResponse> {
+    if (typeof window !== "undefined") {
+        window.localStorage.removeItem("accessToken");
+        window.localStorage.removeItem("refreshToken");
+    }
 
-    return request<LoginResponse>("/auth/login", {
+    const attempt = () => request<LoginResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify({
             email,
             password
         })
     });
+
+    // A server that is starting up may fail the first request; signing in again is harmless, so it is tried once more.
+    try {
+        return await attempt();
+    } catch (error) {
+        if (!isServerUnavailable(error)) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOGIN_RETRY_DELAY_MS));
+    try {
+        return await attempt();
+    } catch (error) {
+        if (isServerUnavailable(error)) throw new Error(SERVER_UNAVAILABLE_MESSAGE);
+        throw error;
+    }
 }
 
 export async function logout() {
@@ -397,6 +444,14 @@ export function accessTokenNeedsRefresh(token: string, minimumValidityMs = 60_00
     } catch {
         return true;
     }
+}
+
+/**
+ * Asks the server whether this session is still the active one. A WebSocket refused at connect gives the browser no
+ * reason; this request does (401 SESSION_REPLACED is reported by `request`). Other failures are left to the caller.
+ */
+export async function verifySession(): Promise<void> {
+    await me().catch(() => undefined);
 }
 
 export async function me(): Promise<ApiResponse<PlayerProfile>> {

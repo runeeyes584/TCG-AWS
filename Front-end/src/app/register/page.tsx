@@ -3,9 +3,11 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, AlertTriangle, ArrowRight, Eye, EyeOff, LockKeyhole, LogIn, Mail, ShieldAlert, UserRound, UserRoundPlus } from "lucide-react";
+import { LockKeyhole, LogIn, Mail, ShieldAlert, UserRound, UserRoundPlus } from "lucide-react";
 import { register } from "../../libs/api";
 import { AuthShell } from "../../components/auth/AuthShell";
+import { Button } from "../../components/ui/button";
+import { TextField, FormMessage, FormNotice } from "../../components/ui/form";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -116,84 +118,63 @@ export default function RegisterPage() {
             footer={<>Already have an account? <Link href="/login">Sign in</Link></>}
         >
             <form className="auth-form" onSubmit={submit} noValidate>
-                <label className="auth-field">
-                    <span>Operative name</span>
-                    <div className="auth-input">
-                        <UserRound size={17} aria-hidden="true" />
-                        <input
-                            type="text"
-                            placeholder="Choose your callsign"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            autoComplete="username"
-                            autoFocus
-                            required
-                        />
-                    </div>
-                </label>
-                {usernameError ? <p className="auth-inline-error" role="alert"><AlertTriangle size={15} />{usernameError}</p> : null}
+                <TextField
+                    label="Operative name"
+                    icon={<UserRound size={17} />}
+                    type="text"
+                    placeholder="Choose your callsign"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                    autoFocus
+                    required
+                />
+                {usernameError ? <FormMessage tone="inline">{usernameError}</FormMessage> : null}
 
-                <label className="auth-field">
-                    <span>Email address</span>
-                    <div className="auth-input">
-                        <Mail size={17} aria-hidden="true" />
-                        <input
-                            type="email"
-                            placeholder="operative@kaleidoscope.gg"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            autoComplete="email"
-                            required
-                        />
-                    </div>
-                </label>
+                <TextField
+                    label="Email address"
+                    icon={<Mail size={17} />}
+                    type="email"
+                    placeholder="operative@kaleidoscope.gg"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    required
+                />
 
-                <label className="auth-field">
-                    <span>Password</span>
-                    <div className="auth-input">
-                        <LockKeyhole size={17} aria-hidden="true" />
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Create a secure password (8+ chars, A-Z, 0-9, special)"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            autoComplete="new-password"
-                            required
-                        />
-                        <button type="button" className="auth-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>
-                            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                        </button>
-                    </div>
-                </label>
+                <TextField
+                    label="Password"
+                    icon={<LockKeyhole size={17} />}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a secure password (8+ chars, A-Z, 0-9, special)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                    passwordToggle={{ visible: showPassword, onToggle: () => setShowPassword((visible) => !visible), label: showPassword ? "Hide password" : "Show password" }}
+                />
 
-                <p className="auth-form__hint">Password requires at least 8 characters including uppercase, lowercase, numbers, and special characters.</p>
+                <FormMessage tone="hint">Password requires at least 8 characters including uppercase, lowercase, numbers, and special characters.</FormMessage>
 
-                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+                {error ? <FormMessage>{error}</FormMessage> : null}
 
                 {isExistingUser ? (
-                    <div className="auth-notice" role="alert">
-                        <div className="auth-notice__header">
-                            <ShieldAlert size={16} aria-hidden="true" />
-                            <span>Account Already Exists</span>
-                        </div>
-                        <p className="auth-notice__body">
-                            An operative profile registered to <strong>{normalizedEmail}</strong> already exists in the Prism Network. Please sign in to access your profile.
-                        </p>
-                        <button
-                            type="button"
-                            onClick={() => router.push("/login")}
-                            className="auth-notice__action"
-                        >
-                            <LogIn size={14} aria-hidden="true" />
-                            <span>Sign in to operative profile</span>
-                        </button>
-                    </div>
+                    <FormNotice
+                        title="Account Already Exists"
+                        icon={<ShieldAlert size={16} aria-hidden="true" />}
+                        actions={
+                            <Button size="sm" fullWidth icon={<LogIn size={14} />} onClick={() => router.push("/login")}>
+                                Sign in to operative profile
+                            </Button>
+                        }
+                    >
+                        An operative profile registered to <strong>{normalizedEmail}</strong> already exists in the Prism Network. Please sign in to access your profile.
+                    </FormNotice>
                 ) : null}
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                    <UserRoundPlus size={18} />
-                    <span>{loading ? "Creating profile..." : "Create operative"}</span>
-                </button>
+                <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} loadingText={"Creating profile..."} icon={<UserRoundPlus size={18} />}>
+                    {"Create operative"}
+                </Button>
             </form>
         </AuthShell>
     );

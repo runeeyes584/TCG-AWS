@@ -104,6 +104,7 @@ export const handler = async (event: any) => {
               roomCode: match.match_id,
               playerId: opponentPlayerId,
               opponentConnected: false,
+              serverTime: Date.now(),
               state: redactStateForPlayer(match.engine_state, opponentPlayerId)
             }))
           }));

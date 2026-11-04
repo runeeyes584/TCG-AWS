@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function useLoopingAudio(src: string, volume = 0.35, enabled = true) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const enabledRef = useRef(enabled);
+  const userInteractedRef = useRef(false);
   const [muted, setMuted] = useState(false);
   enabledRef.current = enabled;
 
@@ -17,17 +18,23 @@ export function useLoopingAudio(src: string, volume = 0.35, enabled = true) {
   useEffect(() => {
     const audio = new Audio(src);
     audio.loop = true;
-    audio.preload = "auto";
+    // Keep music off the critical rendering path. The first user gesture
+    // triggers loading and also satisfies browser autoplay requirements.
+    audio.preload = "none";
     audio.volume = volume;
     audioRef.current = audio;
 
-    play();
-    window.addEventListener("pointerdown", play, { once: true });
-    window.addEventListener("keydown", play, { once: true });
+    const handleUserGesture = () => {
+      userInteractedRef.current = true;
+      play();
+    };
+
+    window.addEventListener("pointerdown", handleUserGesture, { once: true });
+    window.addEventListener("keydown", handleUserGesture, { once: true });
 
     return () => {
-      window.removeEventListener("pointerdown", play);
-      window.removeEventListener("keydown", play);
+      window.removeEventListener("pointerdown", handleUserGesture);
+      window.removeEventListener("keydown", handleUserGesture);
       audio.pause();
       audio.currentTime = 0;
       audioRef.current = null;
@@ -42,7 +49,7 @@ export function useLoopingAudio(src: string, volume = 0.35, enabled = true) {
       audioRef.current.currentTime = 0;
       return;
     }
-    if (!muted) play();
+    if (!muted && userInteractedRef.current) play();
   }, [enabled, muted, play]);
 
   return { muted, toggleMuted: () => setMuted((current) => !current) };

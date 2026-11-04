@@ -13,7 +13,7 @@ function JoinRoomContent() {
 export default function JoinRoomPage() {
   return (
     <Suspense fallback={null}>
-      <AuthGuard>
+      <AuthGuard animatedBackdrop={false}>
         <JoinRoomContent />
       </AuthGuard>
     </Suspense>

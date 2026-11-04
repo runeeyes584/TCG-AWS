@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Radio, RefreshCw, Sparkles, Trophy } from "lucide-react";
+import { Radio, RefreshCw, Sparkles, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button, LobbyButton } from "../../components/ui/button";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
 import { LeaderboardPanel } from "../../components/rank/LeaderboardPanel";
 import { useLeaderboard } from "../../hooks/useLeaderboard";
 
 import { AuthGuard } from "../../components/lobby/AuthGuard";
+import { StatusPanel } from "../../components/ui/feedback";
 
 function RankPageContent() {
   const router = useRouter();
@@ -32,9 +34,7 @@ function RankPageContent() {
         initial={{ opacity: 0, y: -14 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <button className="rank-page-back" onClick={() => router.push("/")}>
-          <ArrowLeft size={17} /> Lobby
-        </button>
+        <LobbyButton />
         <div className="rank-page-brand">
           <span><Sparkles size={18} /></span>
           <div>
@@ -62,14 +62,15 @@ function RankPageContent() {
               ELO leads the order, followed by win rate and total victories · Rebuilds every 10 minutes
             </span>
           </div>
-          <button
-            className="leaderboard-refresh"
+          <Button
+            size="sm"
+            className="rank-refresh"
+            icon={<RefreshCw size={15} className={leaderboard.loading ? "is-spinning" : ""} />}
             onClick={() => void leaderboard.refresh()}
             disabled={!isSignedIn || leaderboard.loading}
           >
-            <RefreshCw size={15} className={leaderboard.loading ? "is-spinning" : ""} />
             Refresh
-          </button>
+          </Button>
         </div>
       </motion.section>
 
@@ -92,9 +93,7 @@ function RankPageContent() {
             onLoadMore={() => void leaderboard.loadMore()}
           />
         ) : (
-          <div className="leaderboard-state" aria-label="Checking authentication">
-            <span /><span /><span />
-          </div>
+          <StatusPanel status="loading" label="Checking authentication" fill />
         )}
       </motion.div>
 

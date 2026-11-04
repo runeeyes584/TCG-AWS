@@ -6,7 +6,8 @@ import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDb } from "../config/dynamodb";
 import { applyAuthoritativeAction } from "../game/core/authoritativeAction";
 import type { GameAction, GameState, PlayerId } from "../game/types";
-import { enqueueTurnTimeout } from "./turnTimeoutQueue";
+import { actionIsTooLate, holderMayReportTimeout, opponentMayClaimTimeout } from "../game/rules/turnClock";
+import { cancelTurnTimeout, scheduleTurnTimeout } from "./turnTimeoutScheduler";
 import { enqueueMatchResult } from "./matchResultQueue";
 
 const region = process.env.AWS_REGION || process.env.DB_REGION || "ap-southeast-1";
@@ -32,14 +33,6 @@ function isGone(error: any): boolean {
   return error?.name === "GoneException" || error?.$metadata?.httpStatusCode === 410;
 }
 
-export function turnHasExpired(state: GameState, now = Date.now()): boolean {
-  return state.started &&
-    !state.winnerId &&
-    Number.isFinite(state.turnStartTime) &&
-    Number.isFinite(state.turnDuration) &&
-    state.turnDuration > 0 &&
-    now >= state.turnStartTime + state.turnDuration;
-}
 
 export const handler = async (event: any) => {
   try {
@@ -57,7 +50,8 @@ export const handler = async (event: any) => {
     const body = typeof event.body === "string"
       ? JSON.parse(event.body || "{}")
       : (event.body || {});
-    const { matchId, action } = body as { matchId?: string; action?: GameAction };
+    const { matchId, action: requestedAction } = body as { matchId?: string; action?: GameAction };
+    let action = requestedAction;
 
     if (!matchId || !action || typeof action.type !== "string") {
       return { statusCode: 400, body: "Missing matchId or action." };
@@ -89,16 +83,33 @@ export const handler = async (event: any) => {
       return { statusCode: 403, body: "Action player mismatch." };
     }
 
-    if (action.type === "TIME_OUT" || action.type === "RESOLVE_COMBAT") {
-      await sendError(wsClient, connectionId, "This action is processed by the server.");
-      return { statusCode: 400, body: `${action.type} is a server-only action.` };
-    }
+    if (action.type === "TIME_OUT") {
+      // Either player may report an expired turn: the player in turn as soon as it has run out, their opponent
+      // only after a short delay so that the player in turn is heard first (it covers the case where they have
+      // left). A report is best effort, so refusing one is not an error the player has to see.
+      const state = match.engine_state;
+      const mayReport = senderPlayerId === state.priorityPlayerId
+        ? holderMayReportTimeout(state)
+        : opponentMayClaimTimeout(state);
+      if (!mayReport) {
+        return { statusCode: 409, body: "Turn has not yet expired." };
+      }
 
-    // A late action must not overwrite the timeout transition. Surrender is
-    // intentionally still accepted after the clock expires.
-    if (action.type !== "SURRENDER" && turnHasExpired(match.engine_state)) {
-      await sendError(wsClient, connectionId, "Turn has already timed out.");
-      return { statusCode: 409, body: "Turn has already timed out." };
+      // Never trust the playerId supplied by the browser: the player who timed out is the one the server knows
+      // to be in turn.
+      action = { type: "TIME_OUT", playerId: state.priorityPlayerId };
+    } else {
+      if (action.type === "RESOLVE_COMBAT") {
+        await sendError(wsClient, connectionId, "This action is processed by the server.");
+        return { statusCode: 400, body: `${action.type} is a server-only action.` };
+      }
+
+      // A late action must not overwrite the timeout transition. Surrender is
+      // intentionally still accepted after the clock expires.
+      if (action.type !== "SURRENDER" && actionIsTooLate(match.engine_state)) {
+        await sendError(wsClient, connectionId, "Turn has already timed out.");
+        return { statusCode: 409, body: "Turn has already timed out." };
+      }
     }
 
     let nextState: GameState;
@@ -113,16 +124,6 @@ export const handler = async (event: any) => {
     const endReason = nextState.endReason ?? "UNKNOWN_LEGACY";
     const currentVersion = match.state_version ?? 0;
     const nextVersion = currentVersion + 1;
-    const timeoutScheduling = enqueueTurnTimeout({
-      matchId,
-      state: nextState,
-      stateVersion: nextVersion
-    }).then(
-      () => undefined,
-      (error) => {
-        console.error("Could not schedule the next turn timeout:", error);
-      }
-    );
 
     try {
       await dynamoDb.send(new UpdateCommand({
@@ -160,7 +161,10 @@ export const handler = async (event: any) => {
       }));
     } catch (error: any) {
       if (error?.name !== "ConditionalCheckFailedException") throw error;
-      await timeoutScheduling;
+      if (action.type === "TIME_OUT") {
+        // Someone else (the other player, or the watchdog) has already moved this turn on.
+        return { statusCode: 409, body: "Turn already handled." };
+      }
       await sendError(wsClient, connectionId, "Game state changed. Please use the latest state.");
       return { statusCode: 409, body: "Game state changed." };
     }
@@ -170,6 +174,12 @@ export const handler = async (event: any) => {
     // awaits scheduling before returning, preventing the runtime from freezing
     // an unfinished send.
     await publishState(wsClient, match, nextState);
+    // The turn's safety net is set only now that its state is committed: a request that lost the write above
+    // must never move the deadline. The schedule is already logged when it fails.
+    const timeoutScheduling = (finished
+      ? cancelTurnTimeout(matchId)
+      : scheduleTurnTimeout({ matchId, state: nextState, stateVersion: nextVersion })
+    ).catch(() => undefined);
     const resultScheduling = finished && nextState.winnerId
       ? enqueueMatchResult({
           match,
@@ -239,6 +249,7 @@ async function publishState(
           roomCode: match.match_id,
           playerId,
           opponentConnected,
+          serverTime: Date.now(),
           state: redactStateForPlayer(state, playerId)
         }))
       }));

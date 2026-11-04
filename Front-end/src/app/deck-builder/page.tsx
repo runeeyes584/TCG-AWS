@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   Check,
   Crown,
   FilePlus2,
@@ -19,12 +18,15 @@ import { listCards } from "@backend/game/entities/cardRegistry";
 import {
   getSelectedDeckId,
   loadLocalDecks,
+  type LocalDeck,
   mergeCloudDecks,
   saveLocalDeck,
   setSelectedDeckId
 } from "../../libs/localDecks";
 import { listDecks, saveDeck } from "../../libs/api";
 import { GalleryPhaserBackdrop } from "../../components/gallery/GalleryPhaserBackdrop";
+import { Button, LobbyButton } from "../../components/ui/button";
+import { Dropdown } from "../../components/ui/dropdown";
 
 type DeckCard = CardDefinition & {
   rarity?: string;
@@ -47,6 +49,21 @@ const typeFilters: Array<{ value: TypeFilter; label: string; icon: typeof Swords
 ];
 
 import { AuthGuard } from "../../components/lobby/AuthGuard";
+
+/** Keeps only known cards, at most three copies each and at most MAX_DECK_SIZE cards (same rules as the initial load). */
+function sanitizeDeckCardIds(cardIds: string[] | undefined, known: Map<string, unknown>): string[] {
+  if (!Array.isArray(cardIds)) return [];
+  const copyCounts = new Map<string, number>();
+  return cardIds
+    .filter((cardId) => {
+      if (!known.has(cardId)) return false;
+      const nextCount = (copyCounts.get(cardId) ?? 0) + 1;
+      if (nextCount > 3) return false;
+      copyCounts.set(cardId, nextCount);
+      return true;
+    })
+    .slice(0, MAX_DECK_SIZE);
+}
 
 function DeckBuilderPageContent() {
   const cards = useMemo(
@@ -75,6 +92,7 @@ function DeckBuilderPageContent() {
   const [previewCardId, setPreviewCardId] = useState(cards[0]?.id ?? "");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [notice, setNotice] = useState("Select a card to add it to the deck.");
+  const [savedDecks, setSavedDecks] = useState<LocalDeck[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +104,7 @@ function DeckBuilderPageContent() {
         availableDecks = mergeCloudDecks(result.decks);
       }
       if (!mounted) return;
+      setSavedDecks(availableDecks.filter((deck) => !deck.isDefault));
       const selectedDeck = availableDecks.find(
         (deck) => !deck.isDefault && deck.deckId === getSelectedDeckId()
       ) ?? availableDecks.find((deck) => !deck.isDefault);
@@ -210,6 +229,17 @@ function DeckBuilderPageContent() {
     setNotice("Deck cleared.");
   }
 
+  function switchDeck(nextDeckId: string) {
+    if (nextDeckId === deckId) return;
+    const target = savedDecks.find((deck) => deck.deckId === nextDeckId);
+    if (!target) return;
+    setDeckId(target.deckId);
+    setDeckName(target.deckName || "New Kaleidoscope Deck");
+    setDeckCardIds(sanitizeDeckCardIds(target.cardIds, cardById));
+    setSaveState("idle");
+    setNotice(`Loaded "${target.deckName}". Save to select it for matchmaking.`);
+  }
+
   function createNewDeck() {
     setDeckId(createDeckId());
     setDeckName("New Kaleidoscope Deck");
@@ -235,6 +265,7 @@ function DeckBuilderPageContent() {
 
     try {
       saveLocalDeck(payload);
+      setSavedDecks(loadLocalDecks().filter((deck) => !deck.isDefault));
       const signedIn = Boolean(window.localStorage.getItem("accessToken"));
       if (!signedIn) {
         setSelectedDeckId(deckId);
@@ -247,13 +278,13 @@ function DeckBuilderPageContent() {
         await saveDeck(payload);
         setSelectedDeckId(deckId);
         setSaveState("saved");
-        setNotice("Deck saved locally, synced to your account, and selected for matchmaking.");
+        setNotice("Deck saved, synced to your account, and selected for matchmaking.");
       } catch (cloudError) {
         setSaveState("local");
         setNotice(
           cloudError instanceof Error
-            ? `Saved locally but not selected for online play. Cloud sync failed: ${cloudError.message}`
-            : "Saved locally but not selected for online play. Cloud sync failed."
+            ? `Saved but not selected for online play. Cloud sync failed: ${cloudError.message}`
+            : "Saved but not selected for online play. Cloud sync failed."
         );
       }
     } catch (error) {
@@ -271,9 +302,7 @@ function DeckBuilderPageContent() {
       <GalleryPhaserBackdrop />
       <div className="deck-builder-grid-bg" aria-hidden="true" />
       <header className="deck-builder-header">
-        <button className="deck-builder-back" type="button" onClick={() => window.location.assign("/")}>
-          <ArrowLeft size={18} /> Lobby
-        </button>
+        <LobbyButton />
         <div className="deck-builder-title">
           <strong>Deck Builder</strong>
           <small>Kaleidoscope Arsenal</small>
@@ -312,9 +341,10 @@ function DeckBuilderPageContent() {
                   </>
                 )}
               </div>
-              <button
-                className="deck-inspector-action"
-                type="button"
+              <Button
+                variant="primary"
+                fullWidth
+                icon={<Layers3 size={17} />}
                 onClick={() => addCard(previewCard)}
                 disabled={
                   previewCopies >= 3 ||
@@ -322,9 +352,8 @@ function DeckBuilderPageContent() {
                   (previewCard.type === "champion" && championCount >= MAX_CHAMPIONS)
                 }
               >
-                <Layers3 size={17} />
                 {previewCopies >= 3 ? "Copy limit reached" : `Add copy (${previewCopies}/3)`}
-              </button>
+              </Button>
             </>
           ) : null}
         </aside>
@@ -343,12 +372,38 @@ function DeckBuilderPageContent() {
                 }}
               />
             </div>
-            <button className="deck-clear-button" type="button" onClick={clearDeck} disabled={deckCardIds.length === 0} title="Clear deck">
-              <Trash2 size={17} />
-            </button>
-            <button className="deck-clear-button" type="button" onClick={createNewDeck} title="Create another deck">
-              <FilePlus2 size={17} />
-            </button>
+            <div className="deck-switcher">
+              <Dropdown
+                aria-label="Switch deck"
+                height={34}
+                placeholder="My decks"
+                value={deckId}
+                onChange={switchDeck}
+                options={[
+                  ...(savedDecks.some((deck) => deck.deckId === deckId)
+                    ? []
+                    : [{ value: deckId, label: `${deckName.trim() || "New deck"} (unsaved)`, disabled: true }]),
+                  ...savedDecks.map((deck) => ({ value: deck.deckId, label: deck.deckName || deck.deckId })),
+                ]}
+              />
+            </div>
+            <Button
+              size="sm"
+              className="deck-toolbar-btn"
+              icon={<Trash2 size={17} />}
+              onClick={clearDeck}
+              disabled={deckCardIds.length === 0}
+              title="Clear deck"
+              aria-label="Clear deck"
+            />
+            <Button
+              size="sm"
+              className="deck-toolbar-btn"
+              icon={<FilePlus2 size={17} />}
+              onClick={createNewDeck}
+              title="Create another deck"
+              aria-label="Create another deck"
+            />
           </div>
 
           <div className="deck-main-meta">
@@ -386,10 +441,16 @@ function DeckBuilderPageContent() {
               {saveState === "saved" || saveState === "local" ? <Check size={15} /> : <span />}
               <p>{notice}</p>
             </div>
-            <button className="deck-save-button" type="button" onClick={handleSave} disabled={saveState === "saving"}>
-              <Save size={18} />
-              {saveState === "saving" ? "Saving" : "Save Deck"}
-            </button>
+            <Button
+              variant="primary"
+              className="deck-save-action"
+              icon={<Save size={18} />}
+              onClick={handleSave}
+              loading={saveState === "saving"}
+              loadingText="Saving"
+            >
+              Save Deck
+            </Button>
           </div>
         </section>
 
@@ -406,20 +467,28 @@ function DeckBuilderPageContent() {
           </label>
 
           <div className="deck-library-filters">
-            <label>
-              <SlidersHorizontal size={15} />
-              <select value={archetypeFilter} onChange={(event) => setArchetypeFilter(event.target.value)} aria-label="Filter archetype">
-                <option value="all">All archetypes</option>
-                {archetypes.map((archetype) => <option key={archetype} value={archetype}>{archetype}</option>)}
-              </select>
-            </label>
-            <label>
-              <select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)} aria-label="Sort cards">
-                <option value="cost">Sort: Mana</option>
-                <option value="name">Sort: Name</option>
-                <option value="archetype">Sort: Archetype</option>
-              </select>
-            </label>
+            <Dropdown
+              aria-label="Filter archetype"
+              height={32}
+              icon={<SlidersHorizontal size={15} />}
+              value={archetypeFilter}
+              onChange={setArchetypeFilter}
+              options={[
+                { value: "all", label: "All archetypes" },
+                ...archetypes.map((archetype) => ({ value: archetype, label: archetype })),
+              ]}
+            />
+            <Dropdown
+              aria-label="Sort cards"
+              height={32}
+              value={sortMode}
+              onChange={(next) => setSortMode(next as SortMode)}
+              options={[
+                { value: "cost", label: "Sort: Mana" },
+                { value: "name", label: "Sort: Name" },
+                { value: "archetype", label: "Sort: Archetype" },
+              ]}
+            />
           </div>
 
           <div className="deck-library-tabs" aria-label="Filter by card type">

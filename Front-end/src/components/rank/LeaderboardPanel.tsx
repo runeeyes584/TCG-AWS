@@ -3,8 +3,6 @@
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Crown,
-  Medal,
   ShieldCheck,
   Trophy
 } from "lucide-react";
@@ -12,6 +10,10 @@ import {
   type LeaderboardPlayer
 } from "../../libs/api";
 import { LeaderboardPhaserEffects } from "./LeaderboardPhaserEffects";
+import { PodiumBadge } from "./PodiumBadge";
+import { Eyebrow, Lede } from "../ui/layout";
+import { StatusPanel } from "../ui/feedback";
+import { Button } from "../ui/button";
 
 const podiumOrder = [2, 1, 3];
 
@@ -48,6 +50,8 @@ function avatar(player: LeaderboardPlayer) {
   );
 }
 
+const PODIUM_TITLE: Record<number, string> = { 1: "Champion", 2: "Runner-up", 3: "Third place" };
+
 function PodiumCard({ player, rank }: { player: LeaderboardPlayer; rank: number }) {
   return (
     <motion.article
@@ -56,18 +60,29 @@ function PodiumCard({ player, rank }: { player: LeaderboardPlayer; rank: number 
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 180, damping: 18, delay: rank === 1 ? 0.05 : rank * 0.08 }}
     >
+      {/* Decorative layers: a moving sheen, metal corner trims and, for the champion, rising sparks. */}
+      <span className="leaderboard-podium-card__shine" aria-hidden="true" />
+      <span className="leaderboard-podium-card__trim leaderboard-podium-card__trim--left" aria-hidden="true" />
+      <span className="leaderboard-podium-card__trim leaderboard-podium-card__trim--right" aria-hidden="true" />
+      {rank === 1 ? (
+        <span className="leaderboard-podium-card__sparks" aria-hidden="true">
+          {Array.from({ length: 7 }, (_, index) => <i key={index} />)}
+        </span>
+      ) : null}
       <div className="leaderboard-podium-card__rank">
-        {rank === 1 ? <Crown size={24} /> : <Medal size={21} />}
-        <strong>#{rank}</strong>
+        <PodiumBadge rank={rank as 1 | 2 | 3} />
       </div>
-      <div className="leaderboard-podium-card__avatar">{avatar(player)}</div>
+      <span className="leaderboard-podium-card__title">{PODIUM_TITLE[rank]}</span>
+      <div className="leaderboard-podium-card__avatar-wrap">
+        <span className="leaderboard-podium-card__ring" aria-hidden="true" />
+        <div className="leaderboard-podium-card__avatar">{avatar(player)}</div>
+      </div>
       <strong className="leaderboard-podium-card__name">{player.username}</strong>
       <span className="leaderboard-podium-card__elo">{Math.round(player.elo).toLocaleString()} ELO</span>
       <div className="leaderboard-podium-card__record">
         <span>{formatWinRate(player)} WR</span>
         <span>{player.wins}W · {player.losses}L</span>
       </div>
-      {rank === 1 ? <span className="leaderboard-podium-card__champion">PRISM CHAMPION</span> : null}
     </motion.article>
   );
 }
@@ -119,12 +134,12 @@ export function LeaderboardPanel({
     return (
       <div className="rank-leaderboard-locked">
         <Trophy size={38} />
-        <p className="lobby-eyebrow">Global Circuit <span /></p>
+        <Eyebrow line>Global Circuit</Eyebrow>
         <h1>Claim your<br /><em>World Rank</em></h1>
-        <p className="lobby-lede">Sign in to view the global standings and track your position among every operative.</p>
-        <button className="queue-action queue-action--small" onClick={onSignIn}>
-          <ShieldCheck size={18} /> Sign in to view ranks
-        </button>
+        <Lede>Sign in to view the global standings and track your position among every operative.</Lede>
+        <Button className="rank-locked-action" variant="primary" icon={<ShieldCheck size={18} />} onClick={onSignIn}>
+          Sign in to view ranks
+        </Button>
       </div>
     );
   }
@@ -132,14 +147,15 @@ export function LeaderboardPanel({
   return (
     <section className="rank-leaderboard-content" aria-label="Global leaderboard">
       {error ? (
-        <div className="leaderboard-state leaderboard-state--error">
-          <p>{error}</p>
-          <button onClick={onRefresh}>Try again</button>
-        </div>
+        <StatusPanel
+          status="error"
+          className="rank-state-span"
+          action={{ label: "Try again", onClick: onRefresh }}
+        >
+          {error}
+        </StatusPanel>
       ) : loading ? (
-        <div className="leaderboard-state" aria-label="Loading leaderboard">
-          <span /><span /><span />
-        </div>
+        <StatusPanel status="loading" label="Loading leaderboard" className="rank-state-span" />
       ) : entries.length ? (
         <>
           <div className="leaderboard-podium">
@@ -157,18 +173,16 @@ export function LeaderboardPanel({
               ))}
             </AnimatePresence>
             {hasMore ? (
-              <button
-                className="leaderboard-load-more"
-                disabled={loadingMore}
-                onClick={onLoadMore}
-              >
+              <Button size="sm" fullWidth disabled={loadingMore} onClick={onLoadMore}>
                 {loadingMore ? "Loading…" : "Load more operatives"}
-              </button>
+              </Button>
             ) : null}
           </div>
         </>
       ) : (
-        <div className="leaderboard-state">The circuit is waiting for its first scheduled rank build.</div>
+        <StatusPanel className="rank-state-span">
+          The circuit is waiting for its first scheduled rank build.
+        </StatusPanel>
       )}
     </section>
   );

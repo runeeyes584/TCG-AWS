@@ -21,5 +21,7 @@ export const env = {
     clientId: required("COGNITO_CLIENT_ID", process.env.COGNITO_CLIENT_ID),
     // Required only when the selected Cognito app client was created with a secret.
     clientSecret: process.env.COGNITO_CLIENT_SECRET,
+    // In AWS the secret is kept in SSM Parameter Store instead; this names the SecureString (see auth/clientSecret.ts).
+    clientSecretParameter: process.env.COGNITO_CLIENT_SECRET_PARAM,
     JWT_SECRET: process.env.JWT_SECRET,
 };

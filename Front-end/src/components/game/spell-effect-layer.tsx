@@ -48,6 +48,8 @@ function getEffectPosition(
 
   const stageRect = stage.getBoundingClientRect();
   const targetId = getEffectTargetId(event);
+  // A graveyard shows what happens to it itself (GraveyardFx and the pile): a burst here would be a third effect.
+  if (targetId?.startsWith("graveyard-")) return undefined;
   const target = targetId
     ? stage.querySelector<HTMLElement>(`[data-effect-target-id="${targetId}"]`)
     : undefined;

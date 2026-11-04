@@ -3,9 +3,11 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Eye, EyeOff, KeyRound, LockKeyhole, MailCheck } from "lucide-react";
+import { KeyRound, LockKeyhole, MailCheck } from "lucide-react";
 import { resetPassword } from "../../libs/api";
 import { AuthShell } from "../../components/auth/AuthShell";
+import { Button } from "../../components/ui/button";
+import { TextField, FormMessage } from "../../components/ui/form";
 
 export function ResetPasswordForm() {
     const router = useRouter();
@@ -74,63 +76,49 @@ export function ResetPasswordForm() {
                     <strong title={email}>{email || "No email supplied"}</strong>
                 </div>
 
-                <label className="auth-field">
-                    <span>Verification code</span>
-                    <div className="auth-input auth-input--otp">
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            autoComplete="one-time-code"
-                            maxLength={6}
-                            placeholder="000000"
-                            value={code}
-                            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                            onPaste={handlePaste}
-                            autoFocus
-                            required
-                        />
-                    </div>
-                </label>
+                <TextField
+                    label="Verification code"
+                    variant="otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    onPaste={handlePaste}
+                    autoFocus
+                    required
+                />
 
-                <label className="auth-field">
-                    <span>New password</span>
-                    <div className="auth-input">
-                        <LockKeyhole size={17} aria-hidden="true" />
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Create a new password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            autoComplete="new-password"
-                            required
-                        />
-                        <button type="button" className="auth-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide passwords" : "Show passwords"}>
-                            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                        </button>
-                    </div>
-                </label>
+                <TextField
+                    label="New password"
+                    icon={<LockKeyhole size={17} />}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a new password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                    passwordToggle={{ visible: showPassword, onToggle: () => setShowPassword((visible) => !visible), label: showPassword ? "Hide passwords" : "Show passwords" }}
+                />
 
-                <label className="auth-field">
-                    <span>Confirm new password</span>
-                    <div className="auth-input">
-                        <LockKeyhole size={17} aria-hidden="true" />
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Repeat your new password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            autoComplete="new-password"
-                            required
-                        />
-                    </div>
-                </label>
+                <TextField
+                    label="Confirm new password"
+                    icon={<LockKeyhole size={17} />}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Repeat your new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                />
 
-                {error ? <p className="auth-error" role="alert"><AlertCircle size={16} />{error}</p> : null}
+                {error ? <FormMessage>{error}</FormMessage> : null}
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                    <KeyRound size={18} />
-                    <span>{loading ? "Updating credentials..." : "Set new password"}</span>
-                </button>
+                <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} loadingText={"Updating credentials..."} icon={<KeyRound size={18} />}>
+                    {"Set new password"}
+                </Button>
             </form>
         </AuthShell>
     );

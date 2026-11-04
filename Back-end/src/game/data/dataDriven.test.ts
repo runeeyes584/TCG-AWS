@@ -698,8 +698,9 @@ describe("data-driven card registry and operations", () => {
     expect(state.players.P1.hand).toHaveLength(0);
     expect(state.players.P1.mana).toBe(9);
     expect(state.players.P2.board[0].modifiers).toHaveLength(0);
-    expect(state.priorityPlayerId).toBe("P1");
-    expect(state.activePlayerId).toBe("P1");
+    // Skipping the ability passes the turn on, exactly as choosing a target does.
+    expect(state.priorityPlayerId).toBe("P2");
+    expect(state.activePlayerId).toBe("P2");
   });
 
   it("Cat-Baby-with-bow permanent debuff survives end of turn and round", () => {

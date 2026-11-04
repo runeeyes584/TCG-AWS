@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyAction, createInitialGameState } from "../../src/game/core/engine";
 import type { GameState } from "../../src/game/types";
 import { duePlayer } from "../../src/aws-lambdas/handleTimeout";
-import { turnHasExpired } from "../../src/aws-lambdas/processGameEngine";
+import { turnHasExpired } from "../../src/game/rules/turnClock";
 
 function startedState(turnStartTime = 1_000): GameState {
   const state = applyAction(createInitialGameState([], [], 1), {

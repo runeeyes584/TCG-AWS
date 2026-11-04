@@ -1,0 +1,53 @@
+{
+  "DataUserProfile1CA5BF93": {
+    "TableName": "UserProfile"
+  },
+  "DataGameStateC30796F3": {
+    "TableName": "GameState"
+  },
+  "DataGameLogs781123FF": {
+    "TableName": "GameLogs"
+  },
+  "DataConnectionsBFBFE6F5": {
+    "TableName": "Connections"
+  },
+  "DataMatchHistoryC479AFF1": {
+    "TableName": "MatchHistory"
+  },
+  "DataAccountDeletionCooldownE4A09586": {
+    "TableName": "AccountDeletionCooldown"
+  },
+  "MatchResultsQueueE8B64D12": {
+    "QueueUrl": "https://sqs.ap-southeast-1.amazonaws.com/977233000065/Match-Result-queue"
+  },
+  "HttpBackendFunctionD0355BC2": {
+    "FunctionName": "chrono-http-backend"
+  },
+  "StartMatchFunction5C9DE259": {
+    "FunctionName": "StartMatch-function"
+  },
+  "ConnectHandlerFunction22378451": {
+    "FunctionName": "ConnectHandler-function"
+  },
+  "ProcessGameEngineFunctionD365E179": {
+    "FunctionName": "ProcessGameEngine-function"
+  },
+  "HandleTimeoutFunction52610378": {
+    "FunctionName": "HandleTimeout-function"
+  },
+  "EndMatchFunctionAF0D873A": {
+    "FunctionName": "EndMatch-function"
+  },
+  "CancelMatchFunction44A2EC88": {
+    "FunctionName": "CancelMatch-function"
+  },
+  "DisconnectHandlerFunction979D5503": {
+    "FunctionName": "DisconnectHandler-function"
+  },
+  "PostMatchWorkerFunction84029524": {
+    "FunctionName": "PostMatchWorker-function"
+  },
+  "RebuildLeaderboardFunction6C032CE7": {
+    "FunctionName": "Rebuild_Leader_Board-function"
+  }
+}

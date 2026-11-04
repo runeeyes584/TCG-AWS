@@ -1,0 +1,39 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Same size as the other dock buttons. */
+.button {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+/* Stays lit while the chat is open. */
+.open {
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.14);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.3);
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #f43f5e;
+  color: #fff;
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}

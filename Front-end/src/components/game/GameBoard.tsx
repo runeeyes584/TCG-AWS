@@ -1,7 +1,7 @@
 "use client";
 
-import { BookOpen, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Shield, Skull, Swords, Trophy, X, Zap } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { BookOpen, ChevronLeft, ChevronRight, Flag, FlaskConical, Gauge, House, List, LogOut, Plus, RotateCcw, Search, Settings, Skull, Swords, Trophy, X, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
   AbilityTargetMap,
@@ -10,36 +10,49 @@ import {
   PlayerId,
   SpellTarget,
   SpellTargetKind,
-  TargetDefinition,
-  UnitInstance,
-  VisualEvent
+  UnitInstance
 } from "@backend/game/types";
 import { useLocalGame } from "../../hooks/useLocalGame";
-import type { GameAction } from "@backend/game/types";
 import { ActionLog } from "./ActionLog";
-import { GameCard } from "./cards/game-card";
-import { CardBack } from "./cards/card-back";
-import { CenterInfo } from "./zones/center-info";
+import { ChatPanel } from "./chat/ChatPanel";
+import { ChatToggle } from "./chat/ChatToggle";
+import type { ChatController } from "./chat/chatTypes";
+import { useChatUnread } from "./chat/useChatUnread";
+import { TurnRail } from "./zones/turn-rail";
 import { Hand } from "./zones/hand";
-import { NexusPanel } from "./hud/nexus-panel";
-import { PassButton } from "./hud/pass-button";
-import { getUnitAttack, getUnitHealth } from "@backend/game/entities/cards";
+import { NexusPanel } from "./hud/nexus/nexus-panel";
+import { PassButton } from "./hud/passButton/pass-button";
+import { ActionPrompt } from "./hud/action-prompt";
+import { deriveTurnRail } from "./hud/infoBoard/turnRail";
+import { getUnitAttack, getUnitHealth, isChampionCard } from "@backend/game/entities/cards";
+import { OPPONENT_CLAIM_DELAY_MS, turnDeadline } from "@backend/game/rules/turnClock";
+import { serverNow } from "../../libs/serverClock";
+import { afkToastInput, afkWarningKey } from "./hud/afkNoti/afkWarning";
+import { WRONG_TARGET_TOAST } from "./hud/wrongTargetToast";
 import { HoverProvider, useHover } from "../../contexts/HoverContext";
-import { DetailPanel } from "./hud/detail-panel";
+import { CardInspector } from "./hud/inspector/card-inspector";
 import { GraveyardPickerModal } from "./GraveyardPickerModal";
-import { DeckPile, GraveyardPile } from "./hud/side-piles";
+import { PendingAbilityTargetDialog } from "./PendingAbilityTargetDialog";
+import { PendingDiscardDialog } from "./PendingDiscardDialog";
+import { PileDock, type PileSpecs } from "./hud/piles/pile-dock";
+import { useGraveyardFx } from "./hud/graveyard/useGraveyardFx";
+import { isUnitOnTable } from "./hud/inspector/hoverGuard";
 import { getCardDefinition, hasCard } from "@backend/game/entities/cardRegistry";
 import { useBattleMusic } from "../../hooks/useBattleMusic";
+import { useTurnTickSound } from "../../hooks/useTurnTickSound";
+import { useTurnAnnouncement } from "../../hooks/useTurnAnnouncement";
+import { useGlobalAudio } from "../../contexts/AudioContext";
 import { DeveloperResourcesPanel } from "./DeveloperResourcesPanel";
 import type { RoomUpdate } from "@backend/shared/multiplayer";
 import { PhaserArenaCanvas } from "./phaser/PhaserArenaCanvas";
 import { arenaEventBus } from "../../libs/arenaEventBus";
+import { combatCues, cueSnapshot, type CueSnapshot } from "./phaser/config/combat/combatCues";
 import { useGameStore } from "../../hooks/useGameStore";
 import { SpellEffectLayer } from "./spell-effect-layer";
-import { GiEvilEyes } from "react-icons/gi";
-import { FaEyeSlash } from "react-icons/fa";
-import { AnimatePresence } from "framer-motion";
-import { AfkToastNotification } from "./hud/AfkToastNotification";
+import { Button } from "../ui/button";
+import { BoardDialog, Modal } from "../ui/modal";
+import { playBlockReason, type PlayBlock, BLOCK_TEXT } from "./zones/playBlock";
+import { NoticeCard, useToast } from "../ui/feedback";
 
 const MATCH_RESULT_RETURN_SECONDS = 20;
 
@@ -56,6 +69,10 @@ export interface GameController {
   setDeveloperResources?: ReturnType<typeof useLocalGame>["setDeveloperResources"];
   runTrialCommand?: ReturnType<typeof useLocalGame>["runTrialCommand"];
   playerProfiles?: RoomUpdate["players"];
+  /** Present in online matches (duel, custom room); the chat button is hidden without it. */
+  chat?: ChatController;
+  /** The server clock less the browser clock, so the turn timer reads the server's time. Zero when they agree. */
+  clockOffsetMs?: number;
 }
 
 interface GameBoardViewProps {
@@ -68,19 +85,30 @@ interface GameBoardViewProps {
 }
 
 function PhaserHoverBridge({ gameState }: { gameState: ReturnType<typeof useLocalGame>["gameState"] }) {
-  const { setHoveredCard } = useHover();
+  const { hoveredUnit, setHoveredCard, selectCard } = useHover();
+
+  // The label of a card is never kept for a unit that is no longer on the table, whatever left it up.
+  useEffect(() => {
+    if (hoveredUnit && !isUnitOnTable(gameState, hoveredUnit)) setHoveredCard(undefined, undefined);
+  }, [gameState, hoveredUnit, setHoveredCard]);
 
   useEffect(() => {
     const stopHover = arenaEventBus.on("HOVER_UNIT", (entity) => {
       const unit = entity
         ? gameState.players[entity.playerId].board.find((candidate) => candidate.instanceId === entity.unitId)
         : undefined;
-      setHoveredCard(undefined, unit);
+      setHoveredCard(undefined, unit, entity ? () => entity.anchor : undefined);
+    });
+    // A right click on a card of the table pins it, which opens its codex.
+    const stopInspect = arenaEventBus.on("INSPECT_UNIT", ({ playerId, unitId }) => {
+      const unit = gameState.players[playerId].board.find((candidate) => candidate.instanceId === unitId);
+      if (unit) selectCard(undefined, unit);
     });
     return () => {
       stopHover();
+      stopInspect();
     };
-  }, [gameState, setHoveredCard]);
+  }, [gameState, setHoveredCard, selectCard]);
 
   return null;
 }
@@ -98,16 +126,20 @@ export function GameBoardView({
   trialMode = false,
   onExitTrial
 }: GameBoardViewProps) {
-  const { gameState, actionLog, dispatch, dispatchChain, resetGame, setDeveloperResources, runTrialCommand, playerProfiles } = controller;
+  const { gameState, actionLog, dispatch, resetGame, setDeveloperResources, runTrialCommand, playerProfiles, clockOffsetMs, chat } = controller;
   useBattleMusic(gameState);
   const [selectedBlockerId, setSelectedBlockerId] = useState<string>();
   const [selectedSpell, setSelectedSpell] = useState<CardInstance>();
   const [selectedSpellTarget, setSelectedSpellTarget] = useState<SpellTarget>();
   const [selectedCostTargets, setSelectedCostTargets] = useState<SpellTarget[]>([]);
   const [viewingGraveyard, setViewingGraveyard] = useState<PlayerId>();
-  const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | undefined>();
+  const [openPanel, setOpenPanel] = useState<"log" | "dev" | "resources" | "chat" | undefined>();
+  const chatUnread = useChatUnread(chat?.messages ?? [], localPlayerId, openPanel === "chat");
   const [showExitTrialDialog, setShowExitTrialDialog] = useState(false);
+  const [trialConsoleOpen, setTrialConsoleOpen] = useState(true);
   const [showSurrenderDialog, setShowSurrenderDialog] = useState(false);
+  // A champion is declared only after the player has confirmed it in a dialog of the game.
+  const [championConfirm, setChampionConfirm] = useState<{ playerId: PlayerId; card: CardInstance }>();
   const [resultReturnSeconds, setResultReturnSeconds] = useState(MATCH_RESULT_RETURN_SECONDS);
   const developerToolsEnabled = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
   const canEditDeveloperResources = developerToolsEnabled && Boolean(setDeveloperResources);
@@ -121,41 +153,16 @@ export function GameBoardView({
     health?: number;
   }>();
   const [timeRemainingMs, setTimeRemainingMs] = useState(0);
+  const timeoutTurnKeyRef = useRef<string | undefined>(undefined);
+  const opponentTimeoutTurnKeyRef = useRef<string | undefined>(undefined);
+  const controllerRef = useRef(controller);
+  controllerRef.current = controller;
   const battleTableRef = useRef<HTMLElement>(null);
-  const [afkNotice, setAfkNotice] = useState<{
-    level: "warning" | "danger";
-    message: string;
-  }>();
-  const lastHandledAfkCountRef = useRef<number>(0);
-  const dismissAfkNotice = useCallback(() => {
-    setAfkNotice(undefined);
-  }, []);
-  const [targetError, setTargetError] = useState<string>();
-  const dismissTargetError = useCallback(() => {
-    setTargetError(undefined);
-  }, []);
-  const targetErrorTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const toast = useToast();
+  const lastHandledAfkWarningRef = useRef<string | undefined>(undefined);
   const previousArenaUnitIdsRef = useRef<Set<string>>(new Set());
-  const previousAttackersRef = useRef<string>("");
-
-  const showTargetError = (message: string) => {
-    if (targetErrorTimeoutRef.current) {
-      clearTimeout(targetErrorTimeoutRef.current);
-    }
-    setTargetError(message);
-    targetErrorTimeoutRef.current = setTimeout(() => {
-      setTargetError(undefined);
-      targetErrorTimeoutRef.current = undefined;
-    }, 1000);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (targetErrorTimeoutRef.current) {
-        clearTimeout(targetErrorTimeoutRef.current);
-      }
-    };
-  }, []);
+  const previousCueRef = useRef<CueSnapshot | undefined>(undefined);
+  const { playSfx } = useGlobalAudio();
 
   const previousChampionIdsRef = useRef<Set<string>>(new Set());
 
@@ -172,6 +179,7 @@ export function GameBoardView({
   }, [showExitTrialDialog, showSurrenderDialog]);
   const viewerPlayerId: PlayerId = localPlayerId ?? "P1";
   const opponentPlayerId = opponentOf(viewerPlayerId);
+  useGraveyardFx(gameState, viewerPlayerId, battleTableRef);
 
   // The bridge mirrors only presentation data. The existing controller remains
   // the single source of truth for websocket updates and game actions.
@@ -196,11 +204,21 @@ export function GameBoardView({
     });
     previousArenaUnitIdsRef.current = unitIds;
 
-    const attackers = gameState.combat.attackers.map((lane) => lane.attackerId).join(":");
-    if (attackers && attackers !== previousAttackersRef.current) {
-      gameState.combat.attackers.forEach((lane) => arenaEventBus.emit("ATTACK_UNIT", { unitId: lane.attackerId }));
-    }
-    previousAttackersRef.current = attackers;
+    // Only the big moments shake the screen: a champion declared, the attack committed, the blocks committed.
+    const championIds = new Set(
+      (["P1", "P2"] as PlayerId[]).flatMap((playerId) =>
+        gameState.players[playerId].board
+          .filter((unit) => hasCard(unit.cardId) && getCardDefinition(unit.cardId).type === "champion")
+          .map((unit) => unit.instanceId)
+      )
+    );
+    const cueNow = cueSnapshot(gameState, (unitId) => championIds.has(unitId));
+    const cues = combatCues(previousCueRef.current, cueNow);
+    previousCueRef.current = cueNow;
+    cues.champions.forEach((unitId) => arenaEventBus.emit("CHAMPION_DECLARED", { unitId }));
+    if (cues.commit) arenaEventBus.emit("COMMIT_CUE", cues.commit);
+    if (cues.attackers.length > 0) playSfx("blade_draw");
+    if (cues.blockers.length > 0) playSfx("gate_lock");
 
     const stopSelect = arenaEventBus.on("SELECT_UNIT", ({ playerId, unitId }) => {
       const unit = gameState.players[playerId].board.find((candidate) => candidate.instanceId === unitId);
@@ -237,11 +255,6 @@ export function GameBoardView({
         : undefined;
     const unitTargetKind =
       targetKind === "ALLY_UNIT" || targetKind === "ENEMY_UNIT" ? targetKind : undefined;
-    
-    // Calculate target color based on target kind
-    const targetColor = unitTargetKind === "ALLY_UNIT" ? "ALLY" as const 
-      : unitTargetKind === "ENEMY_UNIT" ? "ENEMY" as const 
-      : undefined;
 
     arenaEventBus.emit("TARGETING_CHANGED", {
       targetKind: unitTargetKind,
@@ -252,6 +265,12 @@ export function GameBoardView({
       arenaEventBus.emit("TARGETING_CHANGED", { targetKind: undefined });
     };
   }, [selectedSpell, selectedSpellTarget, viewingGraveyard]);
+
+  // The blocker the player has picked stays raised and ringed on the table until a lane takes it (or it is dropped).
+  useEffect(() => {
+    arenaEventBus.emit("UNIT_PICKED", { unitId: selectedBlockerId });
+  }, [selectedBlockerId]);
+  useEffect(() => () => arenaEventBus.emit("UNIT_PICKED", { unitId: undefined }), []);
 
   // A remote priority/phase transition invalidates any local targeting UI.
   // Do not leave a stale Phaser highlight active after the authoritative state
@@ -273,13 +292,9 @@ export function GameBoardView({
       (unit) => unit.instanceId === selectedBlockerId
     )
     : undefined;
-  const attackerIds = gameState.combat.attackers.map((lane) => lane.attackerId);
   const assignedBlockerIds = gameState.combat.attackers
     .map((lane) => lane.blockerId)
     .filter((blockerId): blockerId is string => Boolean(blockerId));
-  const selectedCostUnitIds = selectedCostTargets
-    .filter((target): target is Extract<SpellTarget, { type: "UNIT" }> => target.type === "UNIT")
-    .map((target) => target.unitId);
 
   const cardDef = (card: CardInstance) => getCardDefinition(card.cardId);
   const unitDef = (unit: UnitInstance) => getCardDefinition(unit.cardId);
@@ -288,6 +303,19 @@ export function GameBoardView({
   const getPlayerName = (playerId: PlayerId) =>
     playerProfiles?.[playerId]?.username?.trim() || `Player ${playerId === "P1" ? "One" : "Two"}`;
   const getPlayerProfile = (playerId: PlayerId) => playerProfiles?.[playerId];
+  const turnRail = deriveTurnRail({
+    state: gameState,
+    viewerId: viewerPlayerId,
+    callsigns: { P1: getPlayerName("P1"), P2: getPlayerName("P2") },
+    remainingMs: timeRemainingMs
+  });
+  // Ticks only while the viewer can still act in the turn that is running out.
+  useTurnTickSound(
+    turnRail.owner === "you" && turnRail.started && !gameState.winnerId,
+    turnRail.urgency,
+    turnRail.seconds
+  );
+  useTurnAnnouncement(turnRail, Boolean(gameState.winnerId));
   const winnerId = gameState.winnerId;
   const isViewerWinner = Boolean(winnerId && winnerId === viewerPlayerId);
   const winnerName = winnerId ? getPlayerName(winnerId) : "";
@@ -373,15 +401,82 @@ export function GameBoardView({
 
   useEffect(() => {
     const updateCountdown = () => {
-      setTimeRemainingMs(Math.max(
-        0,
-        gameState.turnDuration - (Date.now() - gameState.turnStartTime)
+      setTimeRemainingMs(Math.min(
+        gameState.turnDuration,
+        Math.max(0, gameState.turnDuration - (serverNow(clockOffsetMs) - gameState.turnStartTime))
       ));
     };
     updateCountdown();
     const interval = window.setInterval(updateCountdown, 100);
     return () => window.clearInterval(interval);
-  }, [gameState.turnDuration, gameState.turnStartTime]);
+  }, [gameState.turnDuration, gameState.turnStartTime, clockOffsetMs]);
+
+  useEffect(() => {
+    // The local trial already owns its timer in useLocalGame. Online matches
+    // need one client-side signal at expiry so they do not depend on the
+    // asynchronous scheduler for the visible turn transition.
+    if (
+      trialMode ||
+      !localPlayerId ||
+      !gameState.started ||
+      Boolean(gameState.winnerId) ||
+      gameState.priorityPlayerId !== localPlayerId
+    ) {
+      return;
+    }
+
+    const deadline = gameState.turnStartTime + gameState.turnDuration;
+    // timeRemainingMs starts at zero before the countdown effect's first tick;
+    // the authoritative timestamp prevents an immediate false timeout when
+    // the board mounts during the match-found/showcase handoff.
+    if (timeRemainingMs > 0 || serverNow(clockOffsetMs) < deadline) return;
+
+    const turnKey = `${gameState.turnStartTime}:${gameState.turnDuration}:${gameState.priorityPlayerId}`;
+    if (timeoutTurnKeyRef.current === turnKey) return;
+    timeoutTurnKeyRef.current = turnKey;
+
+    // The server remains authoritative: it validates the deadline, player,
+    // and state version before committing the timeout transition.
+    if (!controller.dispatch({ type: "TIME_OUT", playerId: localPlayerId })) {
+      // Allow a retry after a transient disconnect while the turn is still
+      // represented by the same local state.
+      timeoutTurnKeyRef.current = undefined;
+    }
+  }, [controller, gameState, localPlayerId, timeRemainingMs, trialMode, clockOffsetMs]);
+
+  useEffect(() => {
+    // Online matches only. When it is the opponent's turn and their clock has run out, they may have left, and
+    // then nobody else would report it: after a short delay (so that they are heard first if they are still
+    // here) this player reports it, once per turn. The server decides whether the turn really expired and who
+    // timed out; a refused report is silent.
+    if (
+      trialMode ||
+      !localPlayerId ||
+      !gameState.started ||
+      Boolean(gameState.winnerId) ||
+      gameState.priorityPlayerId === localPlayerId
+    ) {
+      return;
+    }
+
+    const turnKey = `${gameState.turnStartTime}:${gameState.turnDuration}:${gameState.priorityPlayerId}`;
+    const wait = turnDeadline(gameState) + OPPONENT_CLAIM_DELAY_MS - serverNow(clockOffsetMs);
+    const timer = window.setTimeout(() => {
+      if (opponentTimeoutTurnKeyRef.current === turnKey) return;
+      opponentTimeoutTurnKeyRef.current = turnKey;
+      controllerRef.current.dispatch({ type: "TIME_OUT", playerId: localPlayerId });
+    }, Math.max(0, wait));
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gameState.started,
+    gameState.winnerId,
+    gameState.priorityPlayerId,
+    gameState.turnStartTime,
+    gameState.turnDuration,
+    localPlayerId,
+    trialMode
+  ]);
 
   useEffect(() => {
     const warning = gameState.visualEvents.find(
@@ -392,20 +487,14 @@ export function GameBoardView({
       return;
     }
 
-    if (warning.afkCount === lastHandledAfkCountRef.current) {
+    const warningKey = afkWarningKey(gameState, warning.afkCount);
+    if (warningKey === lastHandledAfkWarningRef.current) {
       return;
     }
-    lastHandledAfkCountRef.current = warning.afkCount;
+    lastHandledAfkWarningRef.current = warningKey;
 
-    setAfkNotice(
-      warning.afkCount === 1
-        ? { level: "warning", message: "Bạn đã bỏ lỡ lượt. Lượt sau chỉ còn 15s." }
-        : {
-          level: "danger",
-          message: "Cảnh báo AFK! Lượt sau bạn sẽ bị xử thua nếu tiếp tục không thao tác."
-        }
-    );
-  }, [gameState.visualEvents, localPlayerId]);
+    toast.show(afkToastInput(warning.afkCount));
+  }, [gameState, localPlayerId, toast]);
 
   function canPlay(playerId: PlayerId, card: CardInstance) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
@@ -438,13 +527,31 @@ export function GameBoardView({
     );
   }
 
+  /** Why a card that cannot be played is blocked (nothing for a card that can be). */
+  function playBlock(playerId: PlayerId, card: CardInstance): PlayBlock | undefined {
+    if (canPlay(playerId, card)) return undefined;
+    const player = gameState.players[playerId];
+    const definition = cardDef(card);
+    return playBlockReason({
+      controllable: canControl(playerId) && !shouldHideHand(playerId),
+      started: gameState.started,
+      over: Boolean(gameState.winnerId),
+      inAction: gameState.phase === "ACTION",
+      hasPriority: gameState.priorityPlayerId === playerId,
+      mana: player.mana,
+      spellMana: player.spellMana,
+      cost: definition.cost,
+      isSpell: definition.type === "spell"
+    });
+  }
+
   function surrender() {
     if (!localPlayerId) return;
     dispatch({ type: "SURRENDER", playerId: localPlayerId });
     setShowSurrenderDialog(false);
   }
 
-  function playCard(playerId: PlayerId, card: CardInstance) {
+  function playCard(playerId: PlayerId, card: CardInstance, championConfirmed = false) {
     if (!canControl(playerId) || shouldHideHand(playerId)) {
       return;
     }
@@ -458,10 +565,9 @@ export function GameBoardView({
       return;
     }
 
-    if (definition.supertype?.toLowerCase() === "champion") {
-      if (!window.confirm(`Are you sure you want to play Champion ${definition.name}?`)) {
-        return;
-      }
+    if ((isChampionCard(definition) || definition.supertype?.toLowerCase() === "champion") && !championConfirmed) {
+      setChampionConfirm({ playerId, card });
+      return;
     }
 
     if (definition.type === "spell") {
@@ -701,7 +807,7 @@ export function GameBoardView({
           (targetKind === "ENEMY_UNIT" && playerId !== casterId));
 
       if (!isValidUnitTarget) {
-        showTargetError("Wrong target! Read the description of card and choose again");
+        toast.show(WRONG_TARGET_TOAST);
         return;
       }
 
@@ -865,7 +971,7 @@ export function GameBoardView({
     if (started && gameState.phase === "ACTION") {
       return {
         label: "PASS",
-        sublabel: "Pass priority",
+        sublabel: "End action",
         mode: "idle",
         enabled: canControl(gameState.priorityPlayerId),
         onClick: passPriority
@@ -874,7 +980,7 @@ export function GameBoardView({
 
     return {
       label: "WAITING",
-      sublabel: `#${gameState.round}`,
+      sublabel: getPlayerName(gameState.priorityPlayerId),
       mode: "idle",
       enabled: false,
       onClick: () => { }
@@ -996,326 +1102,20 @@ export function GameBoardView({
     );
   }
 
-  function getPendingTargetUnits(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    unit: UnitInstance;
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const enemyPlayerId = opponentOf(sourcePlayerId);
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_UNIT"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ENEMY_UNIT"
-          ? [enemyPlayerId]
-          : targetDefinition.kind === "ANY_UNIT" || targetDefinition.kind === "ANY_TARGET"
-            ? ["P1", "P2"]
-            : [];
-
-    const chosenUnitIds = new Set(
-      Object.values(pendingChoice.chosenTargets)
-        .filter((target): target is Extract<SpellTarget, { type: "UNIT" }> => target.type === "UNIT")
-        .map((target) => `${target.playerId}:${target.unitId}`)
-    );
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].board
-        .filter((unit) => !chosenUnitIds.has(`${playerId}:${unit.instanceId}`))
-        .map((unit) => ({ playerId, unit }))
-    );
-  }
-
-  function getPendingTargetDeckCards(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    card: CardInstance;
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_DECK_CARD"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ANY_DECK_CARD"
-          ? ["P1", "P2"]
-          : [];
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].deck
-        .filter((card) => doesCardMatchTargetFilter(card, targetDefinition))
-        .map((card) => ({ playerId, card }))
-    );
-  }
-
-  function getPendingTargetHandCards(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    card: CardInstance;
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const enemyPlayerId = opponentOf(sourcePlayerId);
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_HAND_CARD"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ENEMY_HAND_CARD"
-          ? [enemyPlayerId]
-          : targetDefinition.kind === "ANY_HAND_CARD"
-            ? ["P1", "P2"]
-            : [];
-
-    const chosenCardIds = new Set(
-      Object.values(pendingChoice.chosenTargets)
-        .filter((target): target is Extract<SpellTarget, { type: "HAND_CARD" }> => target.type === "HAND_CARD")
-        .map((target) => `${target.playerId}:${target.cardInstanceId}`)
-    );
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].hand
-        .filter((card) => !chosenCardIds.has(`${playerId}:${card.instanceId}`))
-        .filter((card) => doesCardMatchTargetFilter(card, targetDefinition))
-        .map((card) => ({ playerId, card }))
-    );
-  }
-
-  function getPendingTargetGraveyardCards(targetDefinition: TargetDefinition): Array<{
-    playerId: PlayerId;
-    entry: typeof gameState.players.P1.graveyard[number];
-  }> {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return [];
-    }
-
-    const sourcePlayerId = pendingChoice.playerId;
-    const playerIds: PlayerId[] =
-      targetDefinition.kind === "ALLY_GRAVEYARD"
-        ? [sourcePlayerId]
-        : targetDefinition.kind === "ENEMY_GRAVEYARD"
-          ? [opponentOf(sourcePlayerId)]
-          : targetDefinition.kind === "ANY_GRAVEYARD"
-            ? ["P1", "P2"]
-            : [];
-
-    return playerIds.flatMap((playerId) =>
-      gameState.players[playerId].graveyard.map((entry) => ({ playerId, entry }))
-    );
-  }
-
-  function doesCardMatchTargetFilter(
-    card: CardInstance,
-    targetDefinition: TargetDefinition
-  ): boolean {
-    if (!hasCard(card.cardId)) {
-      return false;
-    }
-    const filter = targetDefinition.filter;
-    if (!filter) {
-      return true;
-    }
-
-    const definition = cardDef(card);
-    return (
-      (!filter.archetype || definition.archetype === filter.archetype) &&
-      (!filter.cardType || definition.type === filter.cardType) &&
-      (!filter.cardTypes || filter.cardTypes.includes(definition.type)) &&
-      (!filter.spellSpeed || definition.spellSpeed === filter.spellSpeed) &&
-      (filter.maxCost === undefined || definition.cost <= filter.maxCost) &&
-      definition.level !== 2
-    );
-  }
-
-  function renderPendingChoice() {
-    const pendingChoice = gameState.pendingChoice;
-    if (!pendingChoice) {
-      return null;
-    }
-
-    if (!canControl(pendingChoice.playerId)) {
-      return (
-        <div className="pending-choice-overlay" role="dialog" aria-modal="true">
-          <div className="pending-choice-panel">
-            <div className="pending-choice-header">
-              <strong>Opponent is choosing a target</strong>
-              <span>Please wait for the action to resolve.</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const targetDefinition = pendingChoice.requiredTargets[0];
-    const sourceName = getCardDefinition(pendingChoice.sourceCardId).name;
-
-    return (
-      <div
-        className="pending-choice-overlay"
-        role="dialog"
-        aria-modal="true"
-        onClick={cancelPendingChoice}
-      >
-        <div className="pending-choice-panel" onClick={(event) => event.stopPropagation()}>
-          <div className="pending-choice-header">
-            <strong>{sourceName}</strong>
-            <span>{describeAbilityTargetNeed(targetDefinition)}</span>
-          </div>
-
-          {targetDefinition ? (
-            <div className="pending-choice-grid">
-              {getPendingTargetUnits(targetDefinition).map(({ playerId, unit }) => (
-                <GameCard
-                  key={unit.instanceId}
-                  unit={unit}
-                  compact
-                  onClick={() =>
-                    submitPendingAbilityTarget(targetDefinition.id, {
-                      type: "UNIT",
-                      playerId,
-                      unitId: unit.instanceId
-                    })
-                  }
-                  visualEvents={[]}
-                />
-              ))}
-              {getPendingTargetDeckCards(targetDefinition).map(({ playerId, card }) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <span className="pending-choice-zone-label">{playerId} Deck</span>
-                  <GameCard
-                    card={card}
-                    compact
-                    onClick={() =>
-                      submitPendingAbilityTarget(targetDefinition.id, {
-                        type: "DECK_CARD",
-                        playerId,
-                        cardInstanceId: card.instanceId
-                      })
-                    }
-                    visualEvents={[]}
-                  />
-                </div>
-              ))}
-              {getPendingTargetHandCards(targetDefinition).map(({ playerId, card }) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <span className="pending-choice-zone-label">{playerId} Hand</span>
-                  <GameCard
-                    card={card}
-                    compact
-                    onClick={() =>
-                      submitPendingAbilityTarget(targetDefinition.id, {
-                        type: "HAND_CARD",
-                        playerId,
-                        cardInstanceId: card.instanceId
-                      })
-                    }
-                    visualEvents={[]}
-                  />
-                </div>
-              ))}
-              {getPendingTargetGraveyardCards(targetDefinition).map(({ playerId, entry }) => {
-                const canRevive = entry.type === "UNIT" || entry.type === "CHAMPION";
-                return (
-                  <div
-                    className={`pending-choice-card ${canRevive ? "" : "is-disabled"}`}
-                    key={entry.id}
-                  >
-                    <span className="pending-choice-zone-label">{playerId} Graveyard</span>
-                    <GameCard
-                      card={{
-                        instanceId: entry.instanceId,
-                        cardId: entry.cardId,
-                        ownerId: entry.ownerId
-                      }}
-                      compact
-                      onClick={
-                        canRevive
-                          ? () =>
-                            submitPendingAbilityTarget(targetDefinition.id, {
-                              type: "GRAVEYARD",
-                              playerId,
-                              cardInstanceId: entry.instanceId
-                            })
-                          : undefined
-                      }
-                      visualEvents={[]}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {targetDefinition &&
-            getPendingTargetUnits(targetDefinition).length === 0 &&
-            getPendingTargetDeckCards(targetDefinition).length === 0 &&
-            getPendingTargetHandCards(targetDefinition).length === 0 &&
-            getPendingTargetGraveyardCards(targetDefinition).some(({ entry }) =>
-              entry.type === "UNIT" || entry.type === "CHAMPION"
-            ) === false ? (
-            <div className="empty-message">No valid targets.</div>
-          ) : null}
-
-        </div>
-      </div>
-    );
-  }
-
-
   function renderPendingDiscard() {
     const pendingDiscard = gameState.pendingDiscard;
     if (!pendingDiscard) {
       return null;
     }
 
-    const player = gameState.players[pendingDiscard.playerId];
-    const cardsToDiscard = Math.max(0, player.hand.length - pendingDiscard.downTo);
-    const hidden = shouldHideHand(pendingDiscard.playerId);
-
     return (
-      <div className="pending-choice-overlay hand-limit-overlay" role="dialog" aria-modal="true">
-        <div className="pending-choice-panel hand-limit-panel">
-          <div className="pending-choice-header">
-            <strong>{getPlayerName(pendingDiscard.playerId)} Hand Limit</strong>
-            <span>
-              Attack token changed. Discard {cardsToDiscard} card
-              {cardsToDiscard === 1 ? "" : "s"} to keep {pendingDiscard.downTo}.
-            </span>
-          </div>
-
-          <div className="pending-choice-grid hand-limit-grid">
-            {hidden
-              ? player.hand.map((card, index) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <CardBack className="w-[112px] h-[168px]" />
-                </div>
-              ))
-              : player.hand.map((card) => (
-                <div className="pending-choice-card" key={card.instanceId}>
-                  <span className="pending-choice-zone-label">Discard</span>
-                  <GameCard
-                    card={card}
-                    compact
-                    onClick={() => playCard(pendingDiscard.playerId, card)}
-                    visualEvents={[]}
-                  />
-                </div>
-              ))}
-          </div>
-          {hidden ? (
-            <div className="empty-message">
-              Waiting for {getPlayerName(pendingDiscard.playerId)} to discard down to {pendingDiscard.downTo}.
-            </div>
-          ) : null}
-        </div>
-      </div>
+      <PendingDiscardDialog
+        playerName={getPlayerName(pendingDiscard.playerId)}
+        hand={gameState.players[pendingDiscard.playerId].hand}
+        downTo={pendingDiscard.downTo}
+        canControl={!shouldHideHand(pendingDiscard.playerId)}
+        onDiscard={(card) => playCard(pendingDiscard.playerId, card)}
+      />
     );
   }
 
@@ -1325,27 +1125,24 @@ export function GameBoardView({
     }
 
     return (
-      <div
-        className="spell-confirmation-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Confirm spell"
-        onClick={clearSelectedCard}
-      >
-        <section className="spell-confirmation-panel" onClick={(event) => event.stopPropagation()}>
-          <div className="spell-confirmation-panel__header">
-            <span>Spell ready</span>
-            <strong>{cardDef(selectedSpell).name}</strong>
-            <p>Target: {describeSpellTarget(selectedSpellTarget, getPlayerName)}</p>
-          </div>
-          <div className="button-row">
-            <button type="button" onClick={clearSelectedCard}>Cancel</button>
-            <button type="button" className="spell-confirmation-panel__cast" onClick={castSelectedSpell}>
+      <BoardDialog
+        badge="Spell ready"
+        title={cardDef(selectedSpell).name}
+        titleId="spell-confirm-title"
+        onClose={clearSelectedCard}
+        actions={
+          <>
+            <Button chamfer size="md" tone="accent" onClick={clearSelectedCard}>
+              Cancel
+            </Button>
+            <Button chamfer size="md" variant="accent" onClick={castSelectedSpell}>
               Cast Spell
-            </button>
-          </div>
-        </section>
-      </div>
+            </Button>
+          </>
+        }
+      >
+        Target: {describeSpellTarget(selectedSpellTarget, getPlayerName)}
+      </BoardDialog>
     );
   }
 
@@ -1370,38 +1167,48 @@ export function GameBoardView({
     };
   }
 
-  function renderDeckStack(playerId: PlayerId, label: string) {
-    const player = gameState.players[playerId];
-    const canDraw =
-      gameState.started &&
-      !gameState.winnerId &&
-      gameState.priorityPlayerId === playerId &&
-      player.deck.length > 0 &&
-      canControl(playerId);
-
-    return (
-      <DeckPile
-        count={player.deck.length}
-        label={label}
-        interactive={canDraw}
-        onDraw={
-          canDraw
-            ? () => dispatch({ type: "DRAW_CARD", playerId }, `${playerId} drew a card.`)
-            : undefined
-        }
-      />
-    );
-  }
-
-  function renderGraveyard(playerId: PlayerId, label: string) {
-    return (
-      <GraveyardPile
-        entries={gameState.players[playerId].graveyard}
-        playerId={playerId}
-        label={label}
-        onOpen={() => setViewingGraveyard(playerId)}
-      />
-    );
+  /**
+   * The decks and graveyards of the table, for the dock that takes the pointer. The rules are the ones they always were:
+   * a graveyard always opens, and a deck draws only on its player's priority, while the match runs, if the player has
+   * cards left and is the one controlling this screen.
+   */
+  function pileSpecs(): PileSpecs {
+    const names = (playerId: PlayerId) => (playerId === viewerPlayerId ? "Your" : "Opponent's");
+    const deck = (playerId: PlayerId) => {
+      const player = gameState.players[playerId];
+      const canDraw =
+        gameState.started &&
+        !gameState.winnerId &&
+        gameState.priorityPlayerId === playerId &&
+        player.deck.length > 0 &&
+        canControl(playerId);
+      return {
+        kind: "deck" as const,
+        playerId,
+        name: `${names(playerId)} deck`,
+        count: player.deck.length,
+        onActivate: canDraw
+          ? () => dispatch({ type: "DRAW_CARD", playerId }, `${playerId} drew a card.`)
+          : undefined
+      };
+    };
+    const graveyard = (playerId: PlayerId) => {
+      const entries = gameState.players[playerId].graveyard;
+      return {
+        kind: "graveyard" as const,
+        playerId,
+        name: `${names(playerId)} graveyard`,
+        count: entries.length,
+        topCardId: entries.at(-1)?.cardId,
+        onActivate: () => setViewingGraveyard(playerId)
+      };
+    };
+    return {
+      opponentGraveyard: graveyard(opponentPlayerId),
+      opponentDeck: deck(opponentPlayerId),
+      viewerDeck: deck(viewerPlayerId),
+      viewerGraveyard: graveyard(viewerPlayerId)
+    };
   }
 
   function renderSpellStack(label: string) {
@@ -1430,81 +1237,36 @@ export function GameBoardView({
     );
   }
 
-  /* Board units are rendered by PhaserArenaCanvas.
-  function renderActiveUnitLegacy(playerId: PlayerId, unit: UnitInstance, _index: number) {
-    const lane = gameState.combat.attackers.find(
-      (candidate) => candidate.blockerId === unit.instanceId
-    );
-    const canToggleAttacker =
-      playerId === attackPlayerId &&
-      gameState.phase === "ACTION" &&
-      gameState.priorityPlayerId === attackPlayerId &&
-      gameState.attackTokenAvailable;
-    const canSelectDefender =
-      playerId === defenderId &&
-      gameState.phase === "BLOCK" &&
-      gameState.priorityPlayerId === defenderId;
-    const canSelectForSpell = canSelectSpellUnit(playerId);
-
-    return (
-      <div className="active-unit-card" data-effect-target-id={unit.instanceId}>
-        <GameCard
-          unit={unit}
-          compact
-          board
-          selected={
-            unit.instanceId === selectedBlockerId ||
-            attackerIds.includes(unit.instanceId) ||
-            assignedBlockerIds.includes(unit.instanceId) ||
-            selectedCostUnitIds.includes(unit.instanceId)
-          }
-          onClick={
-            canToggleAttacker || canSelectDefender || canSelectForSpell
-              ? () => selectBoardUnit(playerId, unit)
-              : undefined
-          }
-          visualEvents={gameState.visualEvents.filter(
-            (event) =>
-              (event as any).targetId === unit.instanceId ||
-              (event as any).sourceId === unit.instanceId
-          )}
-        />
-        {playerId === defenderId && lane ? (
-          <div className="damage-preview">
-            {(() => {
-              const attacker = gameState.players[attackPlayerId].board.find(
-                (candidate) => candidate.instanceId === lane.attackerId
-              );
-              if (!attacker) {
-                return "No damage";
-              }
-              const preview = getDamagePreview(attacker, unit);
-              const parts = [];
-              if (preview.attackerTakes > 0) parts.push(`Atk ${preview.attackerTakes}`);
-              if (preview.blockerTakes > 0) parts.push(`Blk ${preview.blockerTakes}`);
-              if (preview.nexusTakes > 0) parts.push(`Nexus ${preview.nexusTakes}`);
-              return parts.length > 0 ? parts.join(" · ") : "No damage";
-            })()}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  */
   return (
     <HoverProvider>
       <PhaserHoverBridge gameState={gameState} />
-      <main className="app-shell board-layout bg-dungeon">
-        <div className="utility-dock" aria-label="Utility panels">
-          <button
-            type="button"
-            className={openPanel === "log" ? "is-active" : ""}
-            onClick={() => setOpenPanel(openPanel === "log" ? undefined : "log")}
-            aria-label="Open action log"
-          >
-            <List size={18} aria-hidden="true" />
-          </button>
+      <main className="app-shell board-layout">
+        <div className={`utility-dock${trialMode ? " utility-dock--bare" : ""}`} aria-label="Utility panels">
+          {trialMode ? (
+            <Button
+              data-ui-btn=""
+              icon={<List size={18} />}
+              onClick={() => setOpenPanel(openPanel === "log" ? undefined : "log")}
+              aria-label="Open action log"
+              aria-pressed={openPanel === "log"}
+            />
+          ) : (
+            <button
+              type="button"
+              className={openPanel === "log" ? "is-active" : ""}
+              onClick={() => setOpenPanel(openPanel === "log" ? undefined : "log")}
+              aria-label="Open action log"
+            >
+              <List size={18} aria-hidden="true" />
+            </button>
+          )}
+          {chat && localPlayerId ? (
+            <ChatToggle
+              open={openPanel === "chat"}
+              unread={chatUnread}
+              onToggle={() => setOpenPanel(openPanel === "chat" ? undefined : "chat")}
+            />
+          ) : null}
           {developerToolsEnabled ? (
             <button
               type="button"
@@ -1526,108 +1288,139 @@ export function GameBoardView({
             </button>
           ) : null}
           {localPlayerId ? (
-            <button
-              type="button"
+            <Button
+              data-ui-btn=""
               className="utility-dock__surrender"
+              variant="ghost"
+              tone="red"
+              size="sm"
               onClick={() => setShowSurrenderDialog(true)}
               disabled={!gameState.started || Boolean(gameState.winnerId)}
             >
               Surrender
-            </button>
+            </Button>
           ) : null}
         </div>
 
         {trialMode && runTrialCommand ? (
-          <section className="trial-console" aria-label="Trial controls">
-            <strong><FlaskConical size={15} aria-hidden="true" /> Trial</strong>
-            <button type="button" onClick={() => runTrialCommand("ADD_MANA")} title="Add one mana">
-              <Plus size={15} aria-hidden="true" /> Mana
+          <div className="trial-dock" style={{ "--ui-btn-accent": "#d7ff61" } as React.CSSProperties}>
+            <Button
+              data-ui-btn=""
+              tone="accent"
+              icon={<FlaskConical size={15} />}
+              iconEnd={trialConsoleOpen ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+              onClick={() => setTrialConsoleOpen((open) => !open)}
+              aria-expanded={trialConsoleOpen}
+              aria-controls="trial-console-actions"
+              title={trialConsoleOpen ? "Collapse trial controls" : "Expand trial controls"}
+            >
+              Trial
+            </Button>
+            {trialConsoleOpen ? (
+              <section className="trial-console" id="trial-console-actions" aria-label="Trial controls">
+          <button type="button" onClick={() => runTrialCommand("ADD_MANA")} title="Add one mana">
+            <Plus size={15} aria-hidden="true" /> Mana
+          </button>
+          <button type="button" onClick={() => runTrialCommand("MAX_MANA")} title="Fill mana and spell mana">
+            <Zap size={15} aria-hidden="true" /> Max
+          </button>
+          <button type="button" onClick={() => dispatch({ type: "DRAW_CARD", playerId: "P1" }, "Trial: P1 drew a card.")} title="Draw a card">
+            <BookOpen size={15} aria-hidden="true" /> Draw
+          </button>
+          <button type="button" onClick={() => runTrialCommand("READY_ATTACK")} title="Refresh the attack token">
+            <Swords size={15} aria-hidden="true" /> Attack
+          </button>
+          <button type="button" onClick={resetGame} title="Reset trial">
+            <RotateCcw size={15} aria-hidden="true" /> Reset
+          </button>
+          {onExitTrial ? (
+            <button className="trial-console__exit" type="button" onClick={() => setShowExitTrialDialog(true)} title="Exit Trial Duel">
+              <LogOut size={15} aria-hidden="true" /> Exit
             </button>
-            <button type="button" onClick={() => runTrialCommand("MAX_MANA")} title="Fill mana and spell mana">
-              <Zap size={15} aria-hidden="true" /> Max
-            </button>
-            <button type="button" onClick={() => dispatch({ type: "DRAW_CARD", playerId: "P1" }, "Trial: P1 drew a card.")} title="Draw a card">
-              <BookOpen size={15} aria-hidden="true" /> Draw
-            </button>
-            <button type="button" onClick={() => runTrialCommand("READY_ATTACK")} title="Refresh the attack token">
-              <Swords size={15} aria-hidden="true" /> Attack
-            </button>
-            <button type="button" onClick={resetGame} title="Reset trial">
-              <RotateCcw size={15} aria-hidden="true" /> Reset
-            </button>
-            {onExitTrial ? (
-              <button className="trial-console__exit" type="button" onClick={() => setShowExitTrialDialog(true)} title="Exit Trial Duel">
-                <LogOut size={15} aria-hidden="true" /> Exit
-              </button>
+          ) : null}
+              </section>
             ) : null}
-          </section>
+          </div>
         ) : null}
 
         {showExitTrialDialog && onExitTrial ? (
-          <div
-            className="trial-exit-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="trial-exit-title"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setShowExitTrialDialog(false);
-            }}
+          <Modal
+            bare
+            maxWidth={520}
+            zIndex={2600}
+            labelledBy="trial-exit-title"
+            onClose={() => setShowExitTrialDialog(false)}
           >
-            <section className="trial-exit-dialog">
-              <div className="trial-exit-dialog__icon" aria-hidden="true"><LogOut size={24} /></div>
-              <div className="trial-exit-dialog__copy">
-                <span>Trial session</span>
-                <h2 id="trial-exit-title">Leave the arena?</h2>
-                <p>Tiến trình thử nghiệm hiện tại sẽ bị hủy và bạn sẽ trở về Lobby.</p>
-              </div>
-              <div className="trial-exit-dialog__actions">
-                <button type="button" onClick={() => setShowExitTrialDialog(false)} autoFocus>
-                  Continue Trial
-                </button>
-                <button type="button" className="trial-exit-dialog__confirm" onClick={onExitTrial}>
-                  <LogOut size={16} aria-hidden="true" /> Exit to Lobby
-                </button>
-              </div>
-            </section>
-          </div>
+            <NoticeCard
+              size="lg"
+              tone="warning"
+              badge="TRIAL SESSION · EXIT REQUEST"
+              title="Leave the arena?"
+              titleId="trial-exit-title"
+              icon={<LogOut size={24} />}
+              actions={
+                <>
+                  <Button size="lg" tone="amber" fullWidth onClick={() => setShowExitTrialDialog(false)} autoFocus>
+                    Continue Trial
+                  </Button>
+                  <Button size="lg" variant="warning" fullWidth icon={<LogOut size={16} />} onClick={onExitTrial}>
+                    Exit to Lobby
+                  </Button>
+                </>
+              }
+            >
+              Your current trial progress will be lost, and you will return to the Lobby.
+            </NoticeCard>
+          </Modal>
         ) : null}
 
         {showSurrenderDialog && localPlayerId ? (
-          <div
-            className="trial-exit-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="surrender-title"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setShowSurrenderDialog(false);
-            }}
+          <Modal
+            bare
+            maxWidth={520}
+            zIndex={2600}
+            labelledBy="surrender-title"
+            onClose={() => setShowSurrenderDialog(false)}
           >
-            <section className="trial-exit-dialog surrender-dialog">
-              <div className="trial-exit-dialog__icon" aria-hidden="true"><Flag size={24} /></div>
-              <div className="trial-exit-dialog__copy">
-                <span>Match command</span>
-                <h2 id="surrender-title">Surrender duel?</h2>
-                <p>The opponent will be declared the winner, and the match result will be recorded immediately.</p>
-              </div>
-              <div className="trial-exit-dialog__actions">
-                <button type="button" onClick={() => setShowSurrenderDialog(false)} autoFocus>
-                  Continue Duel
-                </button>
-                <button type="button" className="trial-exit-dialog__confirm" onClick={surrender}>
-                  <Flag size={16} aria-hidden="true" /> Surrender
-                </button>
-              </div>
-            </section>
-          </div>
+            <NoticeCard
+              size="lg"
+              tone="danger"
+              badge="MATCH COMMAND · SURRENDER"
+              title="Surrender duel?"
+              titleId="surrender-title"
+              icon={<Flag size={24} />}
+              actions={
+                <>
+                  <Button size="lg" tone="red" fullWidth onClick={() => setShowSurrenderDialog(false)} autoFocus>
+                    Continue Duel
+                  </Button>
+                  <Button size="lg" variant="danger" fullWidth icon={<Flag size={16} />} onClick={surrender}>
+                    Surrender
+                  </Button>
+                </>
+              }
+            >
+              The opponent will be declared the winner, and the match result will be recorded immediately.
+            </NoticeCard>
+          </Modal>
         ) : null}
 
         {connectionStatus && !opponentConnected ? (
           <div className="opponent-disconnected-notice" role="status">
-            Đối thủ đã mất kết nối. Đang chờ kết nối lại...
+            Opponent disconnected. Waiting for them to reconnect...
           </div>
         ) : null}
 
-        {openPanel ? (
+        {chat && openPanel === "chat" ? (
+          <ChatPanel
+            chat={chat}
+            localPlayerId={localPlayerId}
+            opponentName={playerProfiles?.[localPlayerId === "P1" ? "P2" : "P1"]?.username}
+            onClose={() => setOpenPanel(undefined)}
+          />
+        ) : null}
+
+        {openPanel && openPanel !== "chat" ? (
           <aside className="floating-utility-panel" aria-label={openPanel === "log" ? "Action log" : openPanel === "resources" ? "Resource developer tools" : "Developer controls"}>
             <button
               type="button"
@@ -1649,7 +1442,7 @@ export function GameBoardView({
                     <span>{connectionStatus}</span>
                     {localPlayerId ? <span>You are {localPlayerId}</span> : null}
                     {!opponentConnected ? (
-                      <span>Đối thủ đã mất kết nối. Đang chờ kết nối lại...</span>
+                      <span>Opponent disconnected. Waiting for them to reconnect...</span>
                     ) : null}
                   </section>
                 ) : null}
@@ -1765,35 +1558,47 @@ export function GameBoardView({
           </div>
         ) : null}
 
-        <AnimatePresence>
-          {afkNotice ? (
-            <AfkToastNotification
-              level={afkNotice.level}
-              message={afkNotice.message}
-              duration={8000}
-              onClose={dismissAfkNotice}
-            />
-          ) : null}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {targetError ? (
-            <AfkToastNotification
-              level="warning"
-              message={targetError}
-              duration={3500}
-              onClose={dismissTargetError}
-            />
-          ) : null}
-        </AnimatePresence>
-
-        <section ref={battleTableRef} className="battle-table lor-table relative overflow-hidden" aria-label="Local battle board">
+        <section
+          ref={battleTableRef}
+          className="battle-table lor-table relative overflow-hidden"
+          aria-label="Local battle board"
+          data-urgency={turnRail.owner === "you" ? turnRail.urgency : "calm"}
+        >
           <PhaserArenaCanvas />
+          <div className="board-alarm" aria-hidden="true" />
           <SpellEffectLayer events={gameState.visualEvents} stageRef={battleTableRef} />
+          <PileDock piles={pileSpecs()} />
+          <div className="turn-rail-anchor">
+            <TurnRail model={turnRail}>
+              <ActionPrompt
+                targeting={
+                  selectedSpell && !selectedSpellTarget && !viewingGraveyard
+                    ? {
+                        cardName: cardDef(selectedSpell).name,
+                        instruction: describeSelectedCardPrompt(selectedSpell, selectedCostTargets),
+                        onCancel: clearSelectedCard
+                      }
+                    : undefined
+                }
+                discard={
+                  gameState.pendingDiscard
+                    ? {
+                        playerName: getPlayerName(gameState.pendingDiscard.playerId),
+                        count: gameState.players[gameState.pendingDiscard.playerId].hand.length,
+                        limit: gameState.pendingDiscard.downTo
+                      }
+                    : undefined
+                }
+                attackerCount={gameState.phase === "BLOCK" ? attackerCount : 0}
+                blockerName={selectedBlocker ? unitDef(selectedBlocker).name : undefined}
+              />
+            </TurnRail>
+          </div>
           <Hand
             cards={gameState.players[opponentPlayerId].hand}
             side="opponent"
             hidden={shouldHideHand(opponentPlayerId)}
+            opponentHover={trialMode}
             selectedCardId={
               selectedSpell?.ownerId === opponentPlayerId ? selectedSpell.instanceId : undefined
             }
@@ -1803,63 +1608,10 @@ export function GameBoardView({
           />
 
           <div className="arena-grid">
-            <div className="side-counters">
-              {renderGraveyard(opponentPlayerId, "GY")}
-              {renderDeckStack(opponentPlayerId, "Deck")}
-              {renderDeckStack(viewerPlayerId, "Deck")}
-              {renderGraveyard(viewerPlayerId, "GY")}
-            </div>
+            {/* Only keeps the width of the column; the piles stand in the dock below. */}
+            <div className="side-counters" aria-hidden="true" />
 
-            <div className="center-board phaser-arena-enabled">
-              <div className="phaser-center-info">
-                <CenterInfo
-                  state={gameState}
-                  timeRemainingMs={timeRemainingMs}
-                  playerNames={{ P1: getPlayerName("P1"), P2: getPlayerName("P2") }}
-                />
-                {selectedSpell && !selectedSpellTarget && !viewingGraveyard ? (
-                  <div className="center-target-prompt">
-                    <div className="target-dots">
-                      <span className="target-dot" />
-                      <span className="target-dot" />
-                      <span className="target-dot" />
-                    </div>
-                    <div className="text-xs font-semibold text-cyan-200 tracking-wide drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]">
-                      <strong className="text-white uppercase tracking-wider font-bold mr-1">
-                        {cardDef(selectedSpell).name}:
-                      </strong>
-                      <span>
-                        {cardDef(selectedSpell).type === "unit" ||
-                        cardDef(selectedSpell).type === "champion" ||
-                        cardDef(selectedSpell).type === "spell"
-                          ? describeSelectedCardPrompt(selectedSpell, selectedCostTargets)
-                          : selectedSpellTarget
-                            ? describeSpellTarget(selectedSpellTarget, getPlayerName)
-                            : describeSelectedCardPrompt(selectedSpell, selectedCostTargets)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearSelectedCard}
-                      className="ml-1 rounded-full border border-red-500/50 bg-red-950/70 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-300 transition-colors hover:bg-red-900/90 hover:text-white"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : null}
-                {gameState.pendingDiscard ? (
-                  <span className="stat-pill">
-                    Discard <strong>{getPlayerName(gameState.pendingDiscard.playerId)} {gameState.players[gameState.pendingDiscard.playerId].hand.length}/{gameState.pendingDiscard.downTo}</strong>
-                  </span>
-                ) : null}
-                {gameState.phase === "BLOCK" && attackerCount > 0 ? (
-                  <span className="stat-pill"><Swords size={12} aria-hidden="true" /> <strong>{attackerCount}</strong> attacking</span>
-                ) : null}
-                {selectedBlocker ? (
-                  <span className="stat-pill"><Shield size={12} aria-hidden="true" /> <strong>{unitDef(selectedBlocker).name}</strong></span>
-                ) : null}
-              </div>
-            </div>
+            <div className="center-board phaser-arena-enabled" />
 
             <div className="status-column">
               <NexusPanel
@@ -1869,6 +1621,8 @@ export function GameBoardView({
                 playerName={getPlayerName(opponentPlayerId)}
                 playerAvatar={getPlayerProfile(opponentPlayerId)?.avatar}
                 playerElo={getPlayerProfile(opponentPlayerId)?.elo}
+                side="opponent"
+                round={gameState.round}
                 isAttacker={gameState.attackTokenPlayerId === opponentPlayerId}
                 hasPriority={gameState.priorityPlayerId === opponentPlayerId}
                 attackTokenAvailable={gameState.attackTokenAvailable}
@@ -1879,7 +1633,6 @@ export function GameBoardView({
                       ? getResourcePreview(opponentPlayerId, selectedSpell)
                   : { manaUsed: 0, spellManaUsed: 0 }
                 }
-                visualEvents={gameState.visualEvents}
               />
               {renderSpellStack("Spell")}
               {(() => {
@@ -1890,6 +1643,7 @@ export function GameBoardView({
                     label={action.label}
                     sublabel={action.sublabel}
                     enabled={action.enabled}
+                    urgency={turnRail.urgency}
                     onClick={action.onClick}
                   />
                 );
@@ -1902,7 +1656,8 @@ export function GameBoardView({
                 playerName={getPlayerName(viewerPlayerId)}
                 playerAvatar={getPlayerProfile(viewerPlayerId)?.avatar}
                 playerElo={getPlayerProfile(viewerPlayerId)?.elo}
-                bottomAligned
+                side="viewer"
+                round={gameState.round}
                 isAttacker={gameState.attackTokenPlayerId === viewerPlayerId}
                 hasPriority={gameState.priorityPlayerId === viewerPlayerId}
                 attackTokenAvailable={gameState.attackTokenAvailable}
@@ -1913,7 +1668,6 @@ export function GameBoardView({
                       ? getResourcePreview(viewerPlayerId, selectedSpell)
                   : { manaUsed: 0, spellManaUsed: 0 }
                 }
-                visualEvents={gameState.visualEvents}
               />
             </div>
           </div>
@@ -1925,6 +1679,7 @@ export function GameBoardView({
               selectedSpell?.ownerId === viewerPlayerId ? selectedSpell.instanceId : undefined
             }
             canPlay={(card) => canPlay(viewerPlayerId, card)}
+            blockReason={(card) => playBlock(viewerPlayerId, card)}
             onPlayCard={(card) => playCard(viewerPlayerId, card)}
             onPreviewCard={(card) => setPreviewCard(card)}
           />
@@ -1933,14 +1688,65 @@ export function GameBoardView({
 
         </section>
 
-        <DetailPanel />
+        <CardInspector
+          play={{
+            isInHand: (card) => gameState.players[viewerPlayerId].hand.some((held) => held.instanceId === card.instanceId),
+            canPlay: (card) => canPlay(viewerPlayerId, card),
+            blocked: (card) => {
+              const reason = playBlock(viewerPlayerId, card);
+              return reason ? BLOCK_TEXT[reason] : undefined;
+            },
+            label: (card) =>
+              gameState.phase === "DISCARD" ? "Discard" : cardDef(card).type === "spell" ? "Cast" : "Declare",
+            onPlay: (card) => playCard(viewerPlayerId, card)
+          }}
+        />
 
         {renderPendingDiscard()}
-        {renderPendingChoice()}
+        {gameState.pendingChoice ? (
+          <PendingAbilityTargetDialog
+            gameState={gameState}
+            pendingChoice={gameState.pendingChoice}
+            canControl={canControl(gameState.pendingChoice.playerId)}
+            onSelectTarget={submitPendingAbilityTarget}
+            onCancel={cancelPendingChoice}
+          />
+        ) : null}
         {renderSpellConfirmation()}
+        {championConfirm ? (
+          <BoardDialog
+            tone="blood"
+            badge="Champion"
+            title={cardDef(championConfirm.card).name}
+            titleId="champion-confirm-title"
+            onClose={() => setChampionConfirm(undefined)}
+            actions={
+              <>
+                <Button chamfer size="md" tone="red" onClick={() => setChampionConfirm(undefined)} autoFocus>
+                  Cancel
+                </Button>
+                <Button
+                  chamfer
+                  size="md"
+                  variant="danger"
+                  onClick={() => {
+                    const { playerId, card } = championConfirm;
+                    setChampionConfirm(undefined);
+                    playCard(playerId, card, true);
+                  }}
+                >
+                  Declare Champion
+                </Button>
+              </>
+            }
+          >
+            Declare this champion for {cardDef(championConfirm.card).cost} mana? It joins the waiting row at once.
+          </BoardDialog>
+        ) : null}
         {winnerId ? (
           <div
             className={`match-result-overlay ${isViewerWinner ? "match-result-overlay--win" : "match-result-overlay--lose"}`}
+            data-ui-shield=""
             role="dialog"
             aria-modal="true"
             aria-label={isViewerWinner ? "Match won" : "Match lost"}
@@ -1979,12 +1785,12 @@ export function GameBoardView({
                 </div>
               ) : null}
               <div className="match-result-panel__actions">
-                <button type="button" className="match-result-panel__action match-result-panel__action--secondary" onClick={leaveToLobby}>
-                  <House size={17} aria-hidden="true" /> Lobby
-                </button>
-                <button type="button" className="match-result-panel__action" onClick={startAnotherDuel}>
-                  <Search size={17} aria-hidden="true" /> {localPlayerId ? "Find another match" : "New duel"}
-                </button>
+                <Button tone="accent" fullWidth icon={<House size={17} />} onClick={leaveToLobby}>
+                  Lobby
+                </Button>
+                <Button variant="accent" fullWidth icon={<Search size={17} />} onClick={startAnotherDuel}>
+                  {localPlayerId ? "Find another match" : "New duel"}
+                </Button>
               </div>
             </section>
           </div>
@@ -2029,44 +1835,6 @@ function describeSelectedCardPrompt(card: CardInstance, costTargets: SpellTarget
   }
 
   return describeNeededTarget(definition.effects?.[0]?.target as SpellTargetKind | undefined);
-}
-
-function describeAbilityTargetNeed(targetDefinition: TargetDefinition | undefined): string {
-  if (!targetDefinition) {
-    return "Resolve ability choice";
-  }
-
-  switch (targetDefinition.kind) {
-    case "ALLY_UNIT":
-      return "Choose an allied unit";
-    case "ENEMY_UNIT":
-      return "Choose an enemy unit";
-    case "ANY_UNIT":
-    case "ANY_TARGET":
-      return "Choose a unit";
-    case "ALLY_NEXUS":
-      return "Choose your nexus";
-    case "ENEMY_NEXUS":
-      return "Choose the enemy nexus";
-    case "SELF":
-      return "Choose self";
-    case "ALLY_DECK_CARD":
-      return "Choose a card from your deck";
-    case "ANY_DECK_CARD":
-      return "Choose a card from a deck";
-    case "ALLY_HAND_CARD":
-      return "Choose a card in your hand";
-    case "ENEMY_HAND_CARD":
-      return "Choose a card in enemy hand";
-    case "ANY_HAND_CARD":
-      return "Choose a hand card";
-    case "ALLY_GRAVEYARD":
-      return "Choose an allied unit or champion from the graveyard";
-    case "ENEMY_GRAVEYARD":
-      return "Choose an enemy unit or champion from the graveyard";
-    case "ANY_GRAVEYARD":
-      return "Choose a unit or champion from a graveyard";
-  }
 }
 
 function describeSpellTarget(

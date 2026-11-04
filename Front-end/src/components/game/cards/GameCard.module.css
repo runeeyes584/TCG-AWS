@@ -1,0 +1,351 @@
+/*
+ * "Hybrid" card face: the thorn frame is kept (recoloured per card type exactly as
+ * before), the art is full-bleed inside it, and cost / attack / health sit in
+ * diamond badges that reuse the original icons. Sizes use container-query units so
+ * the same face scales from a hand card to the gallery or detail preview.
+ * The board version is painted on canvas in phaser/renders/cardFace.ts.
+ */
+.card {
+  --accent: #6495ed;
+  --base: #070b16;
+  --mana-ring: #0ea5e9;
+  --mana-text: #7dd3fc;
+  --type-text: #a9c5e8;
+  --glow: rgba(100, 149, 237, 0.45);
+  --frame-filter: hue-rotate(180deg) saturate(1.1) brightness(1.05) drop-shadow(0 0 4px rgba(56, 189, 248, 0.35));
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  isolation: isolate;
+  container-type: inline-size;
+  border: 0;
+  border-radius: 0;
+  /* The black card body is the ::before below, so the face stays untouched. */
+  background: transparent;
+  box-shadow: none;
+  color: #fff7ec;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  letter-spacing: normal;
+  line-height: 1.2;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+
+/* Card stock: the dark body sits exactly under the thorn frame (same outline as the
+   card, no protruding edge), so the thorns read as the card's own border. Only a faint
+   rim in the card's accent colour separates it from the table. */
+.card::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(165deg, #0b0d14, #040509 70%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+/* Global `button` styles add a gold hover border; keep the card's own light. */
+.card:hover:not(:disabled) {
+  border: 0;
+  color: #fff7ec;
+  box-shadow: none;
+}
+
+.unit {
+  --accent: #6495ed;
+  --base: #070b16;
+  --glow: rgba(100, 149, 237, 0.45);
+}
+
+.spell {
+  --accent: #a855f7;
+  --base: #0c0618;
+  --mana-ring: #a855f7;
+  --mana-text: #d8b4fe;
+  --type-text: #d8b4fe;
+  --glow: rgba(168, 85, 247, 0.55);
+  --frame-filter: hue-rotate(220deg) saturate(1.4) drop-shadow(0 0 6px rgba(168, 85, 247, 0.6));
+}
+
+.champion {
+  --accent: #f59e0b;
+  --base: #120a05;
+  --mana-ring: #f59e0b;
+  --mana-text: #fde68a;
+  --type-text: #fcd34d;
+  --glow: rgba(245, 158, 11, 0.55);
+  --frame-filter: sepia(1) saturate(3.5) hue-rotate(330deg) drop-shadow(0 0 8px rgba(245, 158, 11, 0.75));
+}
+
+.selected {
+  --frame-extra: drop-shadow(0 0 3px #69f0df) drop-shadow(0 0 10px rgba(59, 215, 200, 0.7));
+}
+
+.playable {
+  --frame-extra: drop-shadow(0 0 2px var(--accent)) drop-shadow(0 0 9px var(--glow));
+}
+
+/* ---- art ---- */
+.art {
+  position: absolute;
+  inset: 5.3cqw;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: 0;
+  background-color: #111827;
+  background-image: linear-gradient(155deg, #243247, #080d15 72%);
+  background-position: center 4%;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.art::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 32%;
+  background: linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0));
+  content: "";
+}
+
+.art::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 60%;
+  background: linear-gradient(rgba(6, 4, 14, 0), rgba(6, 4, 14, 0.86) 42%, rgba(6, 4, 14, 0.97));
+  content: "";
+}
+
+.artFull .art::after {
+  height: 34%;
+}
+
+.championFlicker {
+  position: absolute;
+  inset: 5.3cqw;
+  z-index: 1;
+  border-radius: 0;
+  background: linear-gradient(to top, rgba(245, 158, 11, 0.28), transparent 64%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: flicker 3.5s ease-in-out infinite;
+}
+
+/* ---- thorn frame (same recolouring as the original card) ---- */
+.frame {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: url("/monster/card-front.png") center / 100% 100% no-repeat;
+  filter: var(--frame-filter) var(--frame-extra, );
+  pointer-events: none;
+}
+
+
+.champion::after {
+  position: absolute;
+  inset: 4.7cqw;
+  z-index: 2;
+  border: 1px solid rgba(252, 211, 77, 0.55);
+  border-radius: 0;
+  content: "";
+  pointer-events: none;
+}
+
+/* ---- text block ---- */
+.text {
+  position: absolute;
+  left: 11cqw;
+  right: 11cqw;
+  top: 53%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqw;
+}
+
+.name {
+  overflow: hidden;
+  color: #fff7ec;
+  font-family: var(--font-rajdhani), "Rajdhani", sans-serif;
+  font-size: 13.3cqw;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.type {
+  overflow: hidden;
+  color: var(--type-text);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 4.4cqw;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.rule {
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+.desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #e9e3fb;
+  font-size: 6.6cqw;
+  font-weight: 600;
+  line-height: 1.25;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* ---- diamond badges (original icons) ---- */
+.badge {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  width: 21.4cqw;
+  height: 21.4cqw;
+  place-items: center;
+  filter: drop-shadow(0 0 2.2cqw var(--ring));
+}
+
+.badge::before,
+.badge::after {
+  position: absolute;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  content: "";
+}
+
+.badge::before {
+  inset: 0;
+  background: var(--ring);
+}
+
+.badge::after {
+  inset: 1.6cqw;
+  background: #050b14;
+}
+
+.badgeIcon {
+  position: absolute;
+  z-index: 1;
+  width: 62%;
+  height: 62%;
+  color: var(--ring);
+  opacity: 0.5;
+}
+
+.badgeValue {
+  position: relative;
+  z-index: 2;
+  color: var(--value);
+  font-family: var(--font-rajdhani), "Rajdhani", sans-serif;
+  font-size: 10.5cqw;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 0 3px #000, 0 2px 4px #000;
+}
+
+.cost {
+  --ring: var(--mana-ring);
+  --value: var(--mana-text);
+  left: 4.6cqw;
+  top: 4.6cqw;
+}
+
+.attack {
+  --ring: #fca5a5;
+  --value: #f14935;
+  left: 4.6cqw;
+  bottom: 4cqw;
+}
+
+.health {
+  --ring: #86efac;
+  --value: #22d389;
+  right: 4.6cqw;
+  bottom: 4cqw;
+}
+
+/* Spell speed: a small diamond right beside the cost, one glyph per speed. A hand fans out with each
+   card over the right side of the one before it, so the corner opposite the cost would be hidden. */
+.speed {
+  --ring: #b794f6;
+  top: 7.8cqw;
+  left: 26.5cqw;
+  width: 15cqw;
+  height: 15cqw;
+}
+
+.speed::after {
+  inset: 1.3cqw;
+}
+
+.speedGlyph {
+  position: relative;
+  z-index: 2;
+  width: 56%;
+  height: 56%;
+}
+
+/* A trend arrow stands just inside the diamond's inner side: attack on its right, health on its left. */
+.trend {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  width: 5cqw;
+  height: 4.4cqw;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 0 0.5cqw #000) drop-shadow(0 0 0.5cqw #000);
+}
+
+.attack .trend {
+  left: 100%;
+  margin-left: 0.6cqw;
+}
+
+.health .trend {
+  right: 100%;
+  margin-right: 0.6cqw;
+}
+
+.trend[data-trend="up"] {
+  background: #4ade80;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.trend[data-trend="down"] {
+  background: #ff5c7a;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .champion,
+  .championFlicker {
+    animation: none;
+  }
+}
